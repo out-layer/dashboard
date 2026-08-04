@@ -979,8 +979,8 @@ export function SecretsForm({
  <span className="text-sm text-muted-foreground">Loading your projects...</span>
               </div>
             ) : userProjects.length === 0 ? (
- <div className="p-3 bg-warning/10 border border-warning/30 rounded-md">
- <p className="text-sm text-warning">
+ <div className="p-3 max-w-xl bg-card-muted border border-border rounded-md">
+ <p className="text-sm text-muted-foreground">
  You don&apos;t have any projects yet. <a href="/projects" className="text-accent-text hover:underline">Create a project first</a>.
                 </p>
               </div>

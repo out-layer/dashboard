@@ -283,7 +283,7 @@ export default function SecretsPage() {
       <div className="sm:flex sm:items-center">
         <div className="sm:flex-auto">
           <h1 className="text-xl font-bold tracking-tight">Secrets Management</h1>
-          <p className="mt-2 text-sm text-foreground">
+          <p className="mt-1 text-sm text-muted-foreground">
             Create and manage encrypted secrets for your repositories
           </p>
         </div>
@@ -413,10 +413,10 @@ export default function SecretsPage() {
 
       {/* Info Section */}
       <div className="mt-8 bg-info/10 border border-info/30 rounded-lg p-6">
-        <h3 className="text-sm font-semibold text-info mb-3">
+        <h3 className="text-sm font-semibold text-foreground mb-3">
           🔐 How Repo-Based Secrets Work
         </h3>
-        <ol className="text-sm text-info space-y-2 list-decimal list-inside">
+        <ol className="text-sm text-muted-foreground space-y-2 list-decimal list-inside">
           <li>
             <strong>Create secrets</strong>: Secrets are encrypted with keystore&apos;s public key and stored in the contract
           </li>
@@ -438,7 +438,7 @@ export default function SecretsPage() {
         </ol>
 
         <div className="mt-4 p-3 bg-card rounded border border-info/30">
-          <h4 className="text-xs font-semibold text-info mb-2">Example: Request Execution with Secrets</h4>
+          <h4 className="text-xs font-semibold text-foreground mb-2">Example: Request Execution with Secrets</h4>
           <pre className="text-xs text-info overflow-x-auto">
 {`near call outlayer.testnet request_execution '{
   "source": {

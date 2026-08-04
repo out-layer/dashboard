@@ -122,7 +122,7 @@ export default function AttestationPage() {
       )}
 
       {/* Header */}
-      <div className="bg-card rounded-lg shadow-sm border border-border p-6 mb-6">
+      <div className="bg-card rounded-lg border border-border border border-border p-6 mb-6">
         <div className="flex justify-between items-start">
           <div>
             <h1 className="text-xl font-bold tracking-tight mb-2">
@@ -143,7 +143,7 @@ export default function AttestationPage() {
       </div>
 
       {/* Attestation Component */}
-      <div className="bg-card rounded-lg shadow-sm border border-border p-6">
+      <div className="bg-card rounded-lg border border-border border border-border p-6">
         <AttestationView
           attestation={attestation}
           network={displayNetwork}

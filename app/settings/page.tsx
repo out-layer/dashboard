@@ -108,7 +108,7 @@ export default function SettingsPage() {
       <div className="sm:flex sm:items-center sm:justify-between">
         <div className="sm:flex-auto">
           <h1 className="text-xl font-bold tracking-tight">Settings</h1>
-          <p className="mt-2 text-sm text-foreground">Manage your account and view usage statistics</p>
+          <p className="mt-1 text-sm text-muted-foreground">Manage your account and view usage statistics</p>
         </div>
         <div className="mt-4 sm:mt-0">
           <button
@@ -121,7 +121,7 @@ export default function SettingsPage() {
       </div>
 
       {/* Account Information */}
-      <div className="mt-8 bg-card shadow overflow-hidden sm:rounded-lg">
+      <div className="mt-8 bg-card border border-border overflow-hidden rounded-md">
         <div className="px-4 py-5 sm:px-6">
           <h3 className="text-lg leading-6 font-medium text-foreground">Account Information</h3>
           <p className="mt-1 max-w-2xl text-sm text-muted-foreground">Your NEAR wallet details</p>
@@ -146,7 +146,7 @@ export default function SettingsPage() {
 
       {/* API Key Section - only show if required */}
       {process.env.NEXT_PUBLIC_REQUIRE_ATTESTATION_API_KEY === 'true' && (
-        <div className="mt-8 bg-card shadow overflow-hidden sm:rounded-lg">
+        <div className="mt-8 bg-card border border-border overflow-hidden rounded-md">
           <div className="px-4 py-5 sm:px-6">
             <h3 className="text-lg leading-6 font-medium text-foreground">API Key</h3>
             <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
@@ -229,7 +229,7 @@ export default function SettingsPage() {
         </div>
       ) : earnings ? (
         <>
-          <div className="mt-8 bg-card shadow overflow-hidden sm:rounded-lg">
+          <div className="mt-8 bg-card border border-border overflow-hidden rounded-md">
             <div className="px-4 py-5 sm:px-6">
               <h3 className="text-lg leading-6 font-medium text-foreground">Usage Statistics</h3>
               <p className="mt-1 max-w-2xl text-sm text-muted-foreground">

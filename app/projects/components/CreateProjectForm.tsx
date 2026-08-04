@@ -57,7 +57,7 @@ export function CreateProjectForm({ onSubmit, onCancel, isSubmitting }: CreatePr
   };
 
   return (
-    <div className="bg-card shadow rounded-lg p-6">
+    <div className="bg-card border border-border rounded-lg p-6">
       <h3 className="text-lg font-medium text-foreground mb-4">Create New Project</h3>
       <form onSubmit={handleSubmit} className="space-y-4">
         {/* Project Name */}

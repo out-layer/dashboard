@@ -355,7 +355,7 @@ export default function ProjectsPage() {
       <div className="sm:flex sm:items-center sm:justify-between">
         <div>
           <h1 className="text-xl font-bold tracking-tight">Projects</h1>
-          <p className="mt-2 text-sm text-foreground">
+          <p className="mt-1 text-sm text-muted-foreground">
             Manage your OutLayer projects with persistent storage across versions
           </p>
         </div>
@@ -500,10 +500,10 @@ export default function ProjectsPage() {
 
       {/* Info Section */}
       <div className="mt-8 bg-info/10 border border-info/30 rounded-lg p-6">
-        <h3 className="text-sm font-semibold text-info mb-3">
+        <h3 className="text-sm font-semibold text-foreground mb-3">
           About Projects
         </h3>
-        <ul className="text-sm text-info space-y-2 list-disc list-inside">
+        <ul className="text-sm text-muted-foreground space-y-2 list-disc list-inside">
           <li>
             <strong>Persistent Storage</strong>: Data persists across version updates within a project
           </li>
@@ -519,8 +519,8 @@ export default function ProjectsPage() {
         </ul>
 
         <div className="mt-4 p-3 bg-card rounded border border-info/30">
-          <h4 className="text-xs font-semibold text-info mb-2">Project ID Format</h4>
-          <code className="text-xs text-info font-mono">
+          <h4 className="text-xs font-semibold text-foreground mb-2">Project ID Format</h4>
+          <code className="text-xs text-accent-text font-mono">
             {accountId || 'yourname.near'}/project-name
           </code>
         </div>

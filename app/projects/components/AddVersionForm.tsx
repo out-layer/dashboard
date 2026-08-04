@@ -52,7 +52,7 @@ export function AddVersionForm({ projectName, onSubmit, onCancel, isSubmitting }
   };
 
   return (
-    <div className="bg-card shadow rounded-lg p-6">
+    <div className="bg-card border border-border rounded-lg p-6">
       <h3 className="text-lg font-medium text-foreground mb-4">
         Add Version to <span className="text-accent-text">{projectName}</span>
       </h3>

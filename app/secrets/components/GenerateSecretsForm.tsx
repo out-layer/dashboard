@@ -171,7 +171,7 @@ export function GenerateSecretsForm({
   };
 
   return (
-    <div className="bg-card shadow sm:rounded-lg">
+    <div className="bg-card border border-border sm:rounded-lg">
       <div className="px-4 py-5 sm:p-6">
         <h2 className="text-lg font-medium text-foreground mb-4">
           🔑 Generate Secrets

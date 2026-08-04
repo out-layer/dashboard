@@ -324,7 +324,7 @@ function FundContent() {
   if (txHash) {
     return (
       <div className="max-w-lg mx-auto mt-12">
-        <div className="bg-card shadow rounded-lg p-6 text-center">
+        <div className="bg-card border border-border rounded-lg p-6 text-center">
           <div className="w-16 h-16 bg-success/15 rounded-full flex items-center justify-center mx-auto mb-4">
             <svg className="w-8 h-8 text-success-text" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
@@ -355,7 +355,7 @@ function FundContent() {
 
   return (
     <div className="max-w-lg mx-auto mt-12">
-      <div className="bg-card shadow rounded-lg p-6">
+      <div className="bg-card border border-border rounded-lg p-6">
         {/* Header */}
         <div className="text-center mb-6">
           <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-3">
@@ -430,7 +430,7 @@ function FundContent() {
                 }`}
               >
                 <span
-                  className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-card shadow transform transition duration-200 ease-in-out ${
+                  className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-card border border-border transform transition duration-200 ease-in-out ${
                     depositToIntents ? 'translate-x-5' : 'translate-x-0'
                   }`}
                 />

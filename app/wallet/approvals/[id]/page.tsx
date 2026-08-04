@@ -181,13 +181,13 @@ function ApprovalDetailContent() {
           <span className="ml-3 text-muted-foreground">Loading...</span>
         </div>
       ) : !approval ? (
-        <div className="bg-card shadow rounded-lg p-8 text-center">
+        <div className="bg-card border border-border rounded-lg p-8 text-center">
           <p className="text-muted-foreground">Approval not found.</p>
         </div>
       ) : (
         <div className="space-y-6">
           {/* Status card */}
-          <div className="bg-card shadow rounded-lg p-6 border border-border">
+          <div className="bg-card border border-border rounded-lg p-6 border border-border">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center space-x-3">
                 <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
@@ -230,7 +230,7 @@ function ApprovalDetailContent() {
 
           {/* Canonical op — what the keystore will actually sign. The signature you
               produce below covers request_hash = sha256(canonical_json(op)). */}
-          <div className="bg-card shadow rounded-lg p-6 border border-border">
+          <div className="bg-card border border-border rounded-lg p-6 border border-border">
             <h2 className="text-lg font-semibold text-foreground mb-3">Operation</h2>
             <pre className="bg-card-muted rounded p-4 text-sm text-foreground overflow-x-auto">
               {JSON.stringify(approval.op ?? approval.request_data, null, 2)}
@@ -244,7 +244,7 @@ function ApprovalDetailContent() {
 
           {/* Existing approvers */}
           {approval.approvers && approval.approvers.length > 0 && (
-            <div className="bg-card shadow rounded-lg p-6 border border-border">
+            <div className="bg-card border border-border rounded-lg p-6 border border-border">
               <h2 className="text-lg font-semibold text-foreground mb-3">Approvers</h2>
               <div className="space-y-2">
                 {approval.approvers.map((a, i) => (

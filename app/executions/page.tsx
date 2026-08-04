@@ -383,7 +383,7 @@ export default function JobsPage() {
                   className="fixed inset-0 z-10"
                   onClick={() => setShowColumnSettings(false)}
                 />
-                <div className="absolute right-0 mt-2 w-48 bg-card rounded-lg shadow-lg border border-border z-20 py-2">
+                <div className="absolute right-0 mt-2 w-48 bg-card rounded-lg border border-border-lg border border-border z-20 py-2">
                   {(Object.keys(COLUMN_LABELS) as Array<keyof TableSettings['visibleColumns']>).map((col) => (
                     <label
                       key={col}

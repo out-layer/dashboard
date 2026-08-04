@@ -76,7 +76,7 @@ export function TopUpModal({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-card rounded-lg shadow-xl p-6 max-w-md w-full">
+      <div className="bg-card rounded-lg border border-border-xl p-6 max-w-md w-full">
         <h2 className="text-xl font-bold text-foreground mb-4">Top Up Payment Key #{nonce}</h2>
 
         {error && (

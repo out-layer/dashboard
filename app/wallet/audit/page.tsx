@@ -238,7 +238,7 @@ function WalletAuditContent() {
     return (
       <div className="w-full">
         <h1 className="text-xl font-bold tracking-tight mb-6">Wallet Audit Log</h1>
-        <div className="bg-card shadow rounded-lg p-8">
+        <div className="bg-card border border-border rounded-lg p-8">
           <p className="text-muted-foreground mb-4">
             No saved wallet keys found. Enter an API key to view the audit log.
           </p>
@@ -332,12 +332,12 @@ function WalletAuditContent() {
           <span className="ml-3 text-muted-foreground">Loading audit log...</span>
         </div>
       ) : mergedEvents.length === 0 ? (
-        <div className="bg-card shadow rounded-lg p-8 text-center">
+        <div className="bg-card border border-border rounded-lg p-8 text-center">
           <p className="text-muted-foreground">No audit events found.</p>
         </div>
       ) : (
         <>
-          <div className="bg-card shadow rounded-lg overflow-hidden">
+          <div className="bg-card border border-border rounded-lg overflow-hidden">
             <table className="min-w-full divide-y divide-border">
               <thead className="bg-card-muted">
                 <tr>

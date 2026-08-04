@@ -48,7 +48,7 @@ export function ProjectCard({
   onDeleteProject,
 }: ProjectCardProps) {
   return (
-    <div className="bg-card shadow rounded-lg overflow-hidden">
+    <div className="bg-card border border-border rounded-lg overflow-hidden">
       {/* Project Header */}
       <div
         className="px-4 py-4 sm:px-6 cursor-pointer hover:bg-card-muted transition-colors"

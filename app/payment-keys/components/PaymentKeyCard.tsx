@@ -129,7 +129,7 @@ export function PaymentKeyCard({
   const available = balance?.available || '0';
 
   return (
-    <div className="bg-card shadow rounded-lg overflow-hidden">
+    <div className="bg-card border border-border rounded-lg overflow-hidden">
       {/* Header */}
       <div className="px-4 py-4 sm:px-6">
         <div className="flex justify-between items-start">
@@ -334,7 +334,7 @@ export function PaymentKeyCard({
           onClick={() => setAttestationModal(null)}
         >
           <div
-            className="bg-card rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto"
+            className="bg-card rounded-lg border border-border-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="p-6">

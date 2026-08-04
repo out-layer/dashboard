@@ -240,7 +240,7 @@ export function CreateKeyForm({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-card rounded-lg shadow-xl p-6 max-w-lg w-full">
+      <div className="bg-card rounded-lg border border-border-xl p-6 max-w-lg w-full">
         <h2 className="text-xl font-bold text-foreground mb-4">Create Payment Key</h2>
 
         {/* Progress indicator */}

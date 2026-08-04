@@ -370,7 +370,7 @@ export default function PaymentKeysPage() {
       <div className="sm:flex sm:items-center sm:justify-between">
         <div>
           <h1 className="text-xl font-bold tracking-tight">Payment Keys</h1>
-          <p className="mt-2 text-sm text-foreground">
+          <p className="mt-1 text-sm text-muted-foreground">
             Manage API keys for HTTPS calls to OutLayer projects
           </p>
         </div>
@@ -581,10 +581,10 @@ export default function PaymentKeysPage() {
 
       {/* Info Section */}
       <div className="mt-8 bg-info/10 border border-info/30 rounded-lg p-6">
-        <h3 className="text-sm font-semibold text-info mb-3">
+        <h3 className="text-sm font-semibold text-foreground mb-3">
           About Payment Keys
         </h3>
-        <ul className="text-sm text-info space-y-2 list-disc list-inside">
+        <ul className="text-sm text-muted-foreground space-y-2 list-disc list-inside">
           <li>
             <strong>HTTPS API Access</strong>: Call OutLayer projects without NEAR transactions
           </li>
@@ -600,8 +600,8 @@ export default function PaymentKeysPage() {
         </ul>
 
         <div className="mt-4 p-3 bg-card rounded border border-info/30">
-          <h4 className="text-xs font-semibold text-info mb-2">Header Format</h4>
-          <code className="text-xs text-info font-mono">
+          <h4 className="text-xs font-semibold text-foreground mb-2">Header Format</h4>
+          <code className="text-xs text-accent-text font-mono">
             X-Payment-Key: {accountId || 'yourname.near'}:1:your-secret-key
           </code>
         </div>

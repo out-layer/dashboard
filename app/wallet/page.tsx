@@ -289,7 +289,7 @@ function WalletHandoffContent() {
     return (
       <div className="max-w-2xl mx-auto py-12">
         <h1 className="text-xl font-bold tracking-tight mb-4">Wallet Handoff</h1>
-        <div className="bg-card shadow rounded-lg p-8 text-center">
+        <div className="bg-card border border-border rounded-lg p-8 text-center">
           <p className="text-muted-foreground mb-4">
             This page is used to take control of an AI agent wallet.
           </p>
@@ -332,7 +332,7 @@ function WalletHandoffContent() {
       )}
 
       {/* Step 1: Wallet Info */}
-      <div className="bg-card shadow rounded-lg p-6 mb-6">
+      <div className="bg-card border border-border rounded-lg p-6 mb-6">
         <h2 className="text-lg font-semibold text-foreground mb-3">
           <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-accent text-white text-xs mr-2">1</span>
           Wallet Info
@@ -379,7 +379,7 @@ function WalletHandoffContent() {
 
       {/* Step 2: Policy Owner */}
       {walletInfo && (
-        <div className="bg-card shadow rounded-lg p-6 mb-6">
+        <div className="bg-card border border-border rounded-lg p-6 mb-6">
           <h2 className="text-lg font-semibold text-foreground mb-3">
             <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-accent text-white text-xs mr-2">2</span>
             Policy Owner
@@ -458,7 +458,7 @@ function WalletHandoffContent() {
 
       {/* Step 3: Set Policy */}
       {walletInfo && ownerReady && (
-        <div className="bg-card shadow rounded-lg p-6 mb-6">
+        <div className="bg-card border border-border rounded-lg p-6 mb-6">
           <h2 className="text-lg font-semibold text-foreground mb-6">
             <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-accent text-white text-xs mr-2">3</span>
             Set Spending Policy
@@ -624,7 +624,7 @@ function WalletHandoffContent() {
 
       {/* After success — next steps */}
       {success && (
-        <div className="bg-card shadow rounded-lg p-6">
+        <div className="bg-card border border-border rounded-lg p-6">
           <h2 className="text-lg font-semibold text-foreground mb-3">Next Steps</h2>
           <ul className="space-y-2 text-sm text-foreground">
             <li>

@@ -839,13 +839,13 @@ function PlaygroundContent() {
       <div className="sm:flex sm:items-center">
         <div className="sm:flex-auto">
           <h1 className="text-xl font-bold tracking-tight">Playground</h1>
-          <p className="mt-2 text-sm text-foreground">
+          <p className="mt-1 text-sm text-muted-foreground">
             Test off-chain execution with your GitHub repository
           </p>
         </div>
       </div>
 
-      <div className="mt-8 bg-card shadow sm:rounded-lg">
+      <div className="mt-8 bg-card border border-border sm:rounded-lg">
         <div className="px-4 py-5 sm:p-6">
           {/* Current Network & Contract Info */}
           <div className="mb-6 p-3 bg-card-muted rounded-md">

@@ -774,7 +774,7 @@ export function SecretsForm({
   };
 
   return (
-    <div className="bg-card shadow sm:rounded-lg">
+    <div className="bg-card border border-border sm:rounded-lg">
       <div className="px-4 py-5 sm:p-6">
         {/* Header with cancel button for update mode */}
         <div className="flex justify-between items-center mb-4">

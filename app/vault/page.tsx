@@ -770,7 +770,7 @@ near send <your_account> ${report.vaultId} ${(Number(VAULT_TOPUP_SUGGESTED_YOCTO
           {s.recovery ? (
             <>
  <strong>Recovery in progress.</strong>              Finalize with <code className="bg-card px-1 rounded">
-                outlayer vault finalize-recovery {report.vaultId} <your_new_pubkey>
+                outlayer vault finalize-recovery {report.vaultId} &lt;your_new_pubkey&gt;
               </code>              after the timer elapses. Generate the keypair locally via <code className="bg-card px-1 rounded">
                 customer-recovery generate-key
               </code>.

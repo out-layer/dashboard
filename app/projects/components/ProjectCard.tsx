@@ -57,7 +57,7 @@ export function ProjectCard({
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
             <div className="flex-shrink-0">
-              <svg className="h-8 w-8 text-[#cc6600]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="h-8 w-8 text-accent-text" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
               </svg>
             </div>
@@ -113,7 +113,7 @@ export function ProjectCard({
           <div className="flex flex-wrap gap-2 mb-4">
             <button
               onClick={(e) => { e.stopPropagation(); onAddVersion(); }}
-              className="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-white bg-[#cc6600] hover:bg-[#b35900] transition-colors"
+              className="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-white bg-accent hover:bg-accent-hover transition-colors"
             >
               <svg className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -214,7 +214,7 @@ function VersionItem({ version, isActive, onSetActive, onRemove }: VersionItemPr
               <div className="relative group">
                 <button
                   onClick={(e) => { e.stopPropagation(); onSetActive(); }}
-                  className="p-1 rounded hover:bg-orange-100 text-[#cc6600] hover:text-[#b35900] transition-colors cursor-pointer"
+                  className="p-1 rounded hover:bg-orange-100 text-accent-text hover:text-accent-text transition-colors cursor-pointer"
                 >
                   <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />

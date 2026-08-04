@@ -337,7 +337,7 @@ function WalletApprovalsContent() {
           </p>
           <button
             onClick={() => setShowWalletModal(true)}
-            className="px-6 py-2 bg-gradient-to-r from-[#cc6600] to-[#d4a017] text-white rounded-lg font-medium hover:from-[#b35900] hover:to-[#c49016]"
+            className="px-6 py-2 bg-accent text-white rounded-lg font-medium"
           >
             Connect Wallet
           </button>
@@ -369,19 +369,19 @@ function WalletApprovalsContent() {
           )}
           <button
             onClick={() => loadApprovals()}
-            className="text-sm text-[#cc6600] hover:text-[#b35900] font-medium"
+            className="text-sm text-accent-text hover:text-accent-text font-medium"
           >
             Refresh
           </button>
           <Link
             href="/wallet/manage"
-            className="text-sm text-[#cc6600] hover:text-[#b35900] font-medium"
+            className="text-sm text-accent-text hover:text-accent-text font-medium"
           >
             Manage
           </Link>
           <Link
             href="/wallet/audit"
-            className="text-sm text-[#cc6600] hover:text-[#b35900] font-medium"
+            className="text-sm text-accent-text hover:text-accent-text font-medium"
           >
             Audit
           </Link>
@@ -414,13 +414,13 @@ function WalletApprovalsContent() {
               onChange={(e) => setApiKey(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleApiKeySubmit()}
               placeholder="wk_..."
-              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#cc6600] focus:border-transparent font-mono text-sm"
+              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent focus:border-transparent font-mono text-sm"
               autoFocus
             />
             <button
               onClick={handleApiKeySubmit}
               disabled={!apiKey.trim()}
-              className="px-4 py-2 bg-gradient-to-r from-[#cc6600] to-[#d4a017] text-white rounded-lg text-sm font-medium hover:from-[#b35900] hover:to-[#c49016] disabled:opacity-50"
+              className="px-4 py-2 bg-accent text-white rounded-lg text-sm font-medium disabled:opacity-50"
             >
               Submit
             </button>
@@ -436,7 +436,7 @@ function WalletApprovalsContent() {
 
       {loading ? (
         <div className="flex items-center justify-center py-12">
-          <svg className="animate-spin h-8 w-8 text-[#cc6600]" fill="none" viewBox="0 0 24 24">
+          <svg className="animate-spin h-8 w-8 text-accent-text" fill="none" viewBox="0 0 24 24">
             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
           </svg>
@@ -446,7 +446,7 @@ function WalletApprovalsContent() {
         <div className="bg-white shadow rounded-lg p-8 text-center">
           <p className="text-gray-500">No wallet policies found for this account.</p>
           <p className="text-sm text-gray-400 mt-2">
-            Go to <Link href="/wallet/manage" className="text-[#cc6600] hover:underline">Manage</Link> to set up policies for your AI wallets.
+            Go to <Link href="/wallet/manage" className="text-accent-text hover:underline">Manage</Link> to set up policies for your AI wallets.
           </p>
         </div>
       ) : approvals.length === 0 ? (
@@ -464,7 +464,7 @@ function WalletApprovalsContent() {
               className={`bg-white shadow rounded-lg border ${
                 isExpired(approval.expires_at)
                   ? 'border-gray-300 opacity-60'
-                  : 'border-[#cc6600]'
+                  : 'border-accent'
               }`}
             >
               <div className="px-4 py-4 sm:px-6">
@@ -520,7 +520,7 @@ function WalletApprovalsContent() {
                       <button
                         onClick={() => handleApprove(approval.id)}
                         disabled={approvingId === approval.id}
-                        className="px-4 py-2 bg-gradient-to-r from-[#cc6600] to-[#d4a017] text-white text-sm rounded-lg font-medium hover:from-[#b35900] hover:to-[#c49016] disabled:opacity-50"
+                        className="px-4 py-2 bg-accent text-white text-sm rounded-lg font-medium disabled:opacity-50"
                       >
                         {approvingId === approval.id ? 'Processing...' : 'Approve'}
                       </button>

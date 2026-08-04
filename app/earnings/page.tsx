@@ -235,7 +235,7 @@ export default function EarningsPage() {
         <div className="mt-8 flex justify-center">
           <button
             onClick={() => setShowWalletModal(true)}
-            className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-gradient-to-r from-[#cc6600] to-[#d4a017] hover:from-[#b35900] hover:to-[#c49016] shadow-sm hover:shadow-md transition-all"
+            className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-accent hover:bg-accent-hover shadow-sm hover:shadow-md transition-all"
           >
             Connect Wallet
           </button>
@@ -399,7 +399,7 @@ export default function EarningsPage() {
 
           {loading ? (
             <div className="flex items-center justify-center py-12">
-              <svg className="animate-spin h-8 w-8 text-[#cc6600]" fill="none" viewBox="0 0 24 24">
+              <svg className="animate-spin h-8 w-8 text-accent-text" fill="none" viewBox="0 0 24 24">
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
               </svg>
@@ -445,7 +445,7 @@ export default function EarningsPage() {
                         )}
                       </td>
                       <td className="px-6 py-4">
-                        <span className="text-[#cc6600] font-mono text-xs">
+                        <span className="text-accent-text font-mono text-xs">
                           {record.project_id.length > 20
                             ? record.project_id.slice(0, 20) + '...'
                             : record.project_id}

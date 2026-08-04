@@ -11,7 +11,7 @@ export function PolicyJsonEditor({ policyJsonText, onChangeText, jsonEdited, onR
       <div className="flex items-center justify-between mb-2">
         <h3 className="text-sm font-semibold text-gray-800">Policy JSON</h3>
         {jsonEdited && (
-          <button onClick={onReset} className="text-xs text-[#cc6600] hover:underline">
+          <button onClick={onReset} className="text-xs text-accent-text hover:underline">
             Reset from form
           </button>
         )}

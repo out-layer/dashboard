@@ -219,7 +219,7 @@ export default function WorkspacePage() {
           <div className="mt-6">
             <button
               onClick={() => setShowWalletModal(true)}
-              className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-gradient-to-r from-[#cc6600] to-[#d4a017] hover:from-[#b35900] hover:to-[#c49016] shadow-sm"
+              className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-accent hover:bg-accent-hover shadow-sm"
             >
               Connect Wallet
             </button>
@@ -271,7 +271,7 @@ export default function WorkspacePage() {
 
       {loading ? (
         <div className="flex items-center justify-center py-12">
-          <svg className="animate-spin h-8 w-8 text-[#cc6600]" fill="none" viewBox="0 0 24 24">
+          <svg className="animate-spin h-8 w-8 text-accent-text" fill="none" viewBox="0 0 24 24">
             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
           </svg>
@@ -437,8 +437,8 @@ export default function WorkspacePage() {
             <div className="bg-white shadow rounded-lg p-6 border border-gray-200">
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-[#cc6600]/10 rounded-lg flex items-center justify-center">
-                    <svg className="h-6 w-6 text-[#cc6600]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <div className="w-12 h-12 bg-accent/10 rounded-lg flex items-center justify-center">
+                    <svg className="h-6 w-6 text-accent-text" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
                     </svg>
                   </div>
@@ -455,7 +455,7 @@ export default function WorkspacePage() {
               <div className="mt-4 pt-4 border-t border-gray-100">
                 <Link
                   href="/payment-keys"
-                  className="inline-flex items-center text-sm font-medium text-[#cc6600] hover:text-[#b35900]"
+                  className="inline-flex items-center text-sm font-medium text-accent-text hover:text-accent-text"
                 >
                   Manage Payment Keys
                   <svg className="ml-1 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">

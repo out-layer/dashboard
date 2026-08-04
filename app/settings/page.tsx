@@ -119,7 +119,7 @@ export default function SettingsPage() {
           <div className="mt-6">
             <button
               onClick={() => setShowWalletModal(true)}
-              className="inline-flex items-center px-6 py-3 border border-transparent shadow-sm text-base font-medium rounded-md text-white bg-gradient-to-r from-[#cc6600] to-[#d4a017] hover:from-[#b35900] hover:to-[#c49016] transition-all"
+              className="inline-flex items-center px-6 py-3 border border-transparent shadow-sm text-base font-medium rounded-md text-white bg-accent hover:bg-accent-hover transition-all"
             >
               Connect Wallet
             </button>
@@ -194,7 +194,7 @@ export default function SettingsPage() {
               <button
                 onClick={handleGenerateApiKey}
                 disabled={generatingKey}
-                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-gradient-to-r from-[#cc6600] to-[#d4a017] hover:from-[#b35900] hover:to-[#c49016] disabled:opacity-50 disabled:cursor-not-allowed"
+                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-accent hover:bg-accent-hover disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {generatingKey ? (
                   <>

@@ -135,7 +135,7 @@ export function PaymentKeyCard({
         <div className="flex justify-between items-start">
           <div className="flex items-center space-x-3">
             <div className="flex-shrink-0">
-              <svg className="h-8 w-8 text-[#cc6600]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="h-8 w-8 text-accent-text" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
               </svg>
             </div>
@@ -149,7 +149,7 @@ export function PaymentKeyCard({
           <div className="flex gap-2">
             <button
               onClick={onTopUp}
-              className="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-white bg-[#cc6600] hover:bg-[#b35900] transition-colors"
+              className="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-white bg-accent hover:bg-accent-hover transition-colors"
               title="Top up with USDC"
             >
               Top Up
@@ -157,7 +157,7 @@ export function PaymentKeyCard({
             {onTopUpNear && (
               <button
                 onClick={onTopUpNear}
-                className="inline-flex items-center px-3 py-1.5 border border-[#cc6600] text-sm font-medium rounded-md text-[#cc6600] bg-white hover:bg-orange-50 transition-colors"
+                className="inline-flex items-center px-3 py-1.5 border border-accent text-sm font-medium rounded-md text-accent-text bg-white hover:bg-orange-50 transition-colors"
                 title="Top up with NEAR (swapped to USDC)"
               >
                 + NEAR
@@ -213,7 +213,7 @@ export function PaymentKeyCard({
         {/* Usage toggle */}
         <button
           onClick={toggleUsage}
-          className="mt-3 text-sm text-[#cc6600] hover:text-[#b35900] font-medium"
+          className="mt-3 text-sm text-accent-text hover:text-accent-text font-medium"
         >
           {showUsage ? 'Hide' : 'Show'} Usage History
         </button>
@@ -277,7 +277,7 @@ export function PaymentKeyCard({
                         {u.job_id ? (
                           <button
                             onClick={() => loadAttestation(u.job_id)}
-                            className="text-[#cc6600] hover:text-[#b35900] text-xs font-medium"
+                            className="text-accent-text hover:text-accent-text text-xs font-medium"
                             title={`View TEE attestation for job #${u.job_id}`}
                           >
                             View
@@ -363,7 +363,7 @@ export function PaymentKeyCard({
 
               {attestationModal.loading && (
                 <div className="flex justify-center items-center py-12">
-                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#cc6600]"></div>
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-accent"></div>
                 </div>
               )}
 

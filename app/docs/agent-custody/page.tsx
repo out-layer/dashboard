@@ -57,7 +57,7 @@ export default function AgentCustodyPage() {
             <strong>Optional: sovereign vaults.</strong> Custody wallets are derived from a shared OutLayer master by default
             &mdash; convenient and recovery-free. If your application&rsquo;s value-at-risk justifies an extra setup step,
             you can deploy a per-customer{' '}
-            <Link href="/docs/vaults" className="text-[#cc6600] hover:underline">
+            <Link href="/docs/vaults" className="text-accent-text hover:underline">
               sovereign vault
             </Link>
             : the wallet&rsquo;s keys are then derived from a master that&rsquo;s recoverable by you through DAO cessation

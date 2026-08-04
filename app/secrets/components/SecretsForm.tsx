@@ -859,7 +859,7 @@ export function SecretsForm({
                 value="project"
                 checked={sourceType === 'project'}
                 onChange={(e) => setSourceType(e.target.value as SecretSourceType)}
-                className="form-radio h-4 w-4 text-[#cc6600]"
+                className="form-radio h-4 w-4 text-accent-text"
                 disabled={encrypting}
               />
               <span className="ml-2 text-sm text-gray-700">Project</span>
@@ -981,14 +981,14 @@ export function SecretsForm({
             ) : userProjects.length === 0 ? (
               <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-md">
                 <p className="text-sm text-yellow-800">
-                  You don&apos;t have any projects yet. <a href="/projects" className="text-[#cc6600] hover:underline">Create a project first</a>.
+                  You don&apos;t have any projects yet. <a href="/projects" className="text-accent-text hover:underline">Create a project first</a>.
                 </p>
               </div>
             ) : (
               <select
                 value={projectId}
                 onChange={(e) => setProjectId(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-[#cc6600] focus:border-[#cc6600]"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-accent focus:border-accent"
                 disabled={encrypting}
               >
                 <option value="">Select a project...</option>

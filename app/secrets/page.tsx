@@ -294,7 +294,7 @@ export default function SecretsPage() {
         <div className="mt-4 flex justify-center">
           <button
             onClick={() => setShowWalletModal(true)}
-            className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-gradient-to-r from-[#cc6600] to-[#d4a017] hover:from-[#b35900] hover:to-[#c49016] shadow-sm hover:shadow-md transition-all"
+            className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-accent hover:bg-accent-hover shadow-sm hover:shadow-md transition-all"
           >
             Connect Wallet
           </button>

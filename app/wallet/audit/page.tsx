@@ -249,12 +249,12 @@ function WalletAuditContent() {
               onChange={(e) => setManualKeyInput(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleManualKeySubmit()}
               placeholder="wk_..."
-              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#cc6600] focus:border-transparent font-mono text-sm"
+              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent focus:border-transparent font-mono text-sm"
             />
             <button
               onClick={handleManualKeySubmit}
               disabled={!manualKeyInput.trim()}
-              className="px-6 py-2 bg-gradient-to-r from-[#cc6600] to-[#d4a017] text-white rounded-lg font-medium hover:from-[#b35900] hover:to-[#c49016] disabled:opacity-50"
+              className="px-6 py-2 bg-accent text-white rounded-lg font-medium disabled:opacity-50"
             >
               Load
             </button>
@@ -271,13 +271,13 @@ function WalletAuditContent() {
         <div className="flex items-center space-x-3">
           <Link
             href="/wallet/approvals"
-            className="text-sm text-[#cc6600] hover:text-[#b35900] font-medium"
+            className="text-sm text-accent-text hover:text-accent-text font-medium"
           >
             Approvals
           </Link>
           <Link
             href="/wallet/manage"
-            className="text-sm text-[#cc6600] hover:text-[#b35900] font-medium"
+            className="text-sm text-accent-text hover:text-accent-text font-medium"
           >
             Manage
           </Link>
@@ -291,8 +291,8 @@ function WalletAuditContent() {
             onClick={() => setSelectedWallet('all')}
             className={`px-3 py-1.5 text-sm rounded-lg border transition-colors ${
               selectedWallet === 'all'
-                ? 'bg-[#cc6600] text-white border-[#cc6600]'
-                : 'bg-white text-gray-600 border-gray-300 hover:border-[#cc6600]'
+                ? 'bg-accent text-white border-accent'
+                : 'bg-white text-gray-600 border-gray-300 hover:border-accent'
             }`}
           >
             All wallets ({wallets.length})
@@ -303,8 +303,8 @@ function WalletAuditContent() {
               onClick={() => setSelectedWallet(w.walletId)}
               className={`px-3 py-1.5 text-sm rounded-lg border transition-colors font-mono ${
                 selectedWallet === w.walletId
-                  ? 'bg-[#cc6600] text-white border-[#cc6600]'
-                  : 'bg-white text-gray-600 border-gray-300 hover:border-[#cc6600]'
+                  ? 'bg-accent text-white border-accent'
+                  : 'bg-white text-gray-600 border-gray-300 hover:border-accent'
               }`}
             >
               {w.label}
@@ -325,7 +325,7 @@ function WalletAuditContent() {
       {/* Events table */}
       {loading && mergedEvents.length === 0 ? (
         <div className="flex items-center justify-center py-12">
-          <svg className="animate-spin h-8 w-8 text-[#cc6600]" fill="none" viewBox="0 0 24 24">
+          <svg className="animate-spin h-8 w-8 text-accent-text" fill="none" viewBox="0 0 24 24">
             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
           </svg>

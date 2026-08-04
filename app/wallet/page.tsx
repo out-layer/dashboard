@@ -302,7 +302,7 @@ function WalletHandoffContent() {
           <div className="mt-6">
             <Link
               href="/wallet/manage"
-              className="text-[#cc6600] hover:text-[#b35900] font-medium"
+              className="text-accent-text hover:text-accent-text font-medium"
             >
               Or manage existing wallets &rarr;
             </Link>
@@ -334,13 +334,13 @@ function WalletHandoffContent() {
       {/* Step 1: Wallet Info */}
       <div className="bg-white shadow rounded-lg p-6 mb-6">
         <h2 className="text-lg font-semibold text-gray-900 mb-3">
-          <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-[#cc6600] text-white text-xs mr-2">1</span>
+          <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-accent text-white text-xs mr-2">1</span>
           Wallet Info
         </h2>
 
         {loading ? (
           <div className="flex items-center py-4">
-            <svg className="animate-spin h-5 w-5 text-[#cc6600] mr-3" fill="none" viewBox="0 0 24 24">
+            <svg className="animate-spin h-5 w-5 text-accent-text mr-3" fill="none" viewBox="0 0 24 24">
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
             </svg>
@@ -381,7 +381,7 @@ function WalletHandoffContent() {
       {walletInfo && (
         <div className="bg-white shadow rounded-lg p-6 mb-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-3">
-            <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-[#cc6600] text-white text-xs mr-2">2</span>
+            <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-accent text-white text-xs mr-2">2</span>
             Policy Owner
           </h2>
 
@@ -395,7 +395,7 @@ function WalletHandoffContent() {
               onClick={() => setOwnerMode('wallet')}
               className={`px-4 py-2 text-sm rounded-lg border ${
                 ownerMode === 'wallet'
-                  ? 'bg-[#cc6600] text-white border-[#cc6600]'
+                  ? 'bg-accent text-white border-accent'
                   : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
               }`}
             >
@@ -406,7 +406,7 @@ function WalletHandoffContent() {
               onClick={() => setOwnerMode('manual')}
               className={`px-4 py-2 text-sm rounded-lg border ${
                 ownerMode === 'manual'
-                  ? 'bg-[#cc6600] text-white border-[#cc6600]'
+                  ? 'bg-accent text-white border-accent'
                   : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
               }`}
             >
@@ -423,7 +423,7 @@ function WalletHandoffContent() {
               <div>
                 <button
                   onClick={() => setShowWalletModal(true)}
-                  className="px-4 py-2 bg-gradient-to-r from-[#cc6600] to-[#d4a017] text-white rounded-lg font-medium hover:from-[#b35900] hover:to-[#c49016]"
+                  className="px-4 py-2 bg-accent text-white rounded-lg font-medium"
                 >
                   Connect Wallet
                 </button>
@@ -445,7 +445,7 @@ function WalletHandoffContent() {
                 <div className="mt-3">
                   <button
                     onClick={() => setShowWalletModal(true)}
-                    className="px-4 py-2 text-sm border border-[#cc6600] text-[#cc6600] rounded-lg hover:bg-orange-50"
+                    className="px-4 py-2 text-sm border border-accent text-accent-text rounded-lg hover:bg-orange-50"
                   >
                     Connect wallet to sign transaction
                   </button>
@@ -460,7 +460,7 @@ function WalletHandoffContent() {
       {walletInfo && ownerReady && (
         <div className="bg-white shadow rounded-lg p-6 mb-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-6">
-            <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-[#cc6600] text-white text-xs mr-2">3</span>
+            <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-accent text-white text-xs mr-2">3</span>
             Set Spending Policy
           </h2>
 
@@ -471,7 +471,7 @@ function WalletHandoffContent() {
               <div
                 className={`border-2 rounded-lg p-4 cursor-pointer transition-colors ${
                   requireApproval
-                    ? 'border-[#cc6600] bg-orange-50'
+                    ? 'border-accent bg-orange-50'
                     : 'border-gray-200 hover:border-gray-300'
                 }`}
                 onClick={() => setRequireApproval(!requireApproval)}
@@ -481,7 +481,7 @@ function WalletHandoffContent() {
                     type="checkbox"
                     checked={requireApproval}
                     onChange={(e) => setRequireApproval(e.target.checked)}
-                    className="mt-1 mr-3 h-4 w-4 accent-[#cc6600]"
+                    className="mt-1 mr-3 h-4 w-4 accent-accent"
                   />
                   <div className="flex-1">
                     <p className="font-medium text-gray-900">Require personal approval</p>
@@ -614,7 +614,7 @@ function WalletHandoffContent() {
             <button
               onClick={handleSubmitPolicy}
               disabled={submitting || !isConnected}
-              className="px-5 py-2 bg-gradient-to-r from-[#cc6600] to-[#d4a017] text-white rounded-lg font-medium hover:from-[#b35900] hover:to-[#c49016] disabled:opacity-50"
+              className="px-5 py-2 bg-accent text-white rounded-lg font-medium disabled:opacity-50"
             >
               {submitting ? 'Encrypting & Storing...' : 'Store Policy On-Chain'}
             </button>
@@ -628,19 +628,19 @@ function WalletHandoffContent() {
           <h2 className="text-lg font-semibold text-gray-900 mb-3">Next Steps</h2>
           <ul className="space-y-2 text-sm text-gray-700">
             <li>
-              <Link href={`/wallet/approvals?key=${apiKey}`} className="text-[#cc6600] hover:text-[#b35900] font-medium">
+              <Link href={`/wallet/approvals?key=${apiKey}`} className="text-accent-text hover:text-accent-text font-medium">
                 Approvals
               </Link>
               {' '}&mdash; review and approve pending transactions
             </li>
             <li>
-              <Link href={`/wallet/manage?key=${apiKey}`} className="text-[#cc6600] hover:text-[#b35900] font-medium">
+              <Link href={`/wallet/manage?key=${apiKey}`} className="text-accent-text hover:text-accent-text font-medium">
                 Manage Wallets
               </Link>
               {' '}&mdash; edit policy, freeze wallet
             </li>
             <li>
-              <Link href={`/wallet/audit?key=${apiKey}`} className="text-[#cc6600] hover:text-[#b35900] font-medium">
+              <Link href={`/wallet/audit?key=${apiKey}`} className="text-accent-text hover:text-accent-text font-medium">
                 Audit Log
               </Link>
               {' '}&mdash; view transaction history

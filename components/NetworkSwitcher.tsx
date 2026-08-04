@@ -51,7 +51,7 @@ export default function NetworkSwitcher() {
           disabled={!isConnected}
           className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
             network === 'testnet'
-              ? 'bg-white text-[#cc6600] shadow-sm'
+              ? 'bg-white text-accent-text shadow-sm'
               : 'text-gray-600 hover:text-gray-900'
           } ${!isConnected ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
         >
@@ -84,7 +84,7 @@ export default function NetworkSwitcher() {
             <div className="flex space-x-3">
               <button
                 onClick={confirmNetworkSwitch}
-                className="flex-1 px-4 py-2 bg-gradient-to-r from-[#cc6600] to-[#d4a017] text-white rounded-lg font-medium hover:from-[#b35900] hover:to-[#c49016] transition-colors"
+                className="flex-1 px-4 py-2 bg-accent text-white rounded-lg font-medium transition-colors"
               >
                 Switch Network
               </button>

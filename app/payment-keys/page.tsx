@@ -381,7 +381,7 @@ export default function PaymentKeysPage() {
                 setShowCreateForm(true);
                 setCreationState({ step: 'form' });
               }}
-              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-gradient-to-r from-[#cc6600] to-[#d4a017] hover:from-[#b35900] hover:to-[#c49016] shadow-sm"
+              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-accent hover:bg-accent-hover shadow-sm"
             >
               <svg className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -397,7 +397,7 @@ export default function PaymentKeysPage() {
         <div className="mt-8 flex justify-center">
           <button
             onClick={() => setShowWalletModal(true)}
-            className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-gradient-to-r from-[#cc6600] to-[#d4a017] hover:from-[#b35900] hover:to-[#c49016] shadow-sm hover:shadow-md transition-all"
+            className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-accent hover:bg-accent-hover shadow-sm hover:shadow-md transition-all"
           >
             Connect Wallet
           </button>
@@ -442,7 +442,7 @@ export default function PaymentKeysPage() {
                 );
                 setSuccess('Copied to clipboard!');
               }}
-              className="bg-[#cc6600] hover:bg-[#b35900] text-white px-4 py-2 rounded"
+              className="bg-accent hover:bg-accent-hover text-white px-4 py-2 rounded"
             >
               Copy
             </button>
@@ -459,7 +459,7 @@ export default function PaymentKeysPage() {
               </p>
               <button
                 onClick={handleContinueTopUp}
-                className="w-full bg-gradient-to-r from-[#cc6600] to-[#d4a017] hover:from-[#b35900] hover:to-[#c49016] text-white px-4 py-2 rounded font-medium"
+                className="w-full bg-accent hover:bg-accent-hover text-white px-4 py-2 rounded font-medium"
               >
                 Continue: Add Balance
               </button>
@@ -515,7 +515,7 @@ export default function PaymentKeysPage() {
         <div className="mt-8">
           {loading ? (
             <div className="flex items-center justify-center py-12">
-              <svg className="animate-spin h-8 w-8 text-[#cc6600]" fill="none" viewBox="0 0 24 24">
+              <svg className="animate-spin h-8 w-8 text-accent-text" fill="none" viewBox="0 0 24 24">
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
               </svg>
@@ -534,7 +534,7 @@ export default function PaymentKeysPage() {
                     setShowCreateForm(true);
                     setCreationState({ step: 'form' });
                   }}
-                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-[#cc6600] hover:bg-[#b35900]"
+                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-accent hover:bg-accent-hover"
                 >
                   <svg className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -567,7 +567,7 @@ export default function PaymentKeysPage() {
             <div className="mt-4 flex justify-center">
               <button
                 onClick={loadPaymentKeys}
-                className="text-sm text-gray-500 hover:text-[#cc6600] flex items-center"
+                className="text-sm text-gray-500 hover:text-accent-text flex items-center"
               >
                 <svg className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />

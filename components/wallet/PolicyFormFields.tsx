@@ -84,7 +84,7 @@ export function PolicyFormFields({ policyForm, onChange, apiKeyHash, knownKeyHas
               title={desc}
               className={`px-3 py-1.5 text-xs rounded border ${
                 policyForm.address_mode === mode
-                  ? 'bg-[#cc6600] text-white border-[#cc6600]'
+                  ? 'bg-accent text-white border-accent'
                   : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
               }`}
             >

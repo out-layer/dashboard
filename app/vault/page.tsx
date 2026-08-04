@@ -418,7 +418,7 @@ deploy requires at least ${(Number(VAULT_PARENT_BUDGET_YOCTO) / 1e24).toFixed(2)
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 shadow-sm focus:border-[#cc6600] focus:ring-[#cc6600]"
+              className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 shadow-sm focus:border-accent focus:ring-accent"
               placeholder="vault"
             />
           </label>
@@ -427,7 +427,7 @@ deploy requires at least ${(Number(VAULT_PARENT_BUDGET_YOCTO) / 1e24).toFixed(2)
             <select
               value={exitWindow}
               onChange={(e) => setExitWindow(e.target.value)}
-              className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 shadow-sm focus:border-[#cc6600] focus:ring-[#cc6600]"
+              className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 shadow-sm focus:border-accent focus:ring-accent"
             >
               {EXIT_WINDOW_OPTIONS.map((o) => (
                 <option key={o.value} value={o.value}>
@@ -462,7 +462,7 @@ deploy requires at least ${(Number(VAULT_PARENT_BUDGET_YOCTO) / 1e24).toFixed(2)
             value={findInput}
             onChange={(e) => setFindInput(e.target.value)}
             placeholder="vault.alice.near"
-            className="flex-1 rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 shadow-sm focus:border-[#cc6600] focus:ring-[#cc6600]"
+            className="flex-1 rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 shadow-sm focus:border-accent focus:ring-accent"
           />
           <button
             onClick={handleFind}

@@ -153,7 +153,7 @@ function ApprovalDetailContent() {
   return (
     <div className="max-w-4xl mx-auto">
       <div className="flex items-center space-x-3 mb-6">
-        <Link href={backUrl} className="text-[#cc6600] hover:text-[#b35900]">
+        <Link href={backUrl} className="text-accent-text hover:text-accent-text">
           &larr; Back to Approvals
         </Link>
       </div>
@@ -174,7 +174,7 @@ function ApprovalDetailContent() {
 
       {loading ? (
         <div className="flex items-center justify-center py-12">
-          <svg className="animate-spin h-8 w-8 text-[#cc6600]" fill="none" viewBox="0 0 24 24">
+          <svg className="animate-spin h-8 w-8 text-accent-text" fill="none" viewBox="0 0 24 24">
             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
           </svg>
@@ -279,7 +279,7 @@ function ApprovalDetailContent() {
               <button
                 onClick={() => handleVote('approve')}
                 disabled={voting !== null || !isConnected}
-                className="px-6 py-3 bg-gradient-to-r from-[#cc6600] to-[#d4a017] text-white rounded-lg font-medium hover:from-[#b35900] hover:to-[#c49016] disabled:opacity-50"
+                className="px-6 py-3 bg-accent text-white rounded-lg font-medium disabled:opacity-50"
               >
                 {voting === 'approve' ? 'Approving...' : 'Approve'}
               </button>

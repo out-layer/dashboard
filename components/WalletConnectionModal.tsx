@@ -86,7 +86,7 @@ export default function WalletConnectionModal({ isOpen, onClose }: WalletConnect
                   onClick={() => handleNetworkChange('testnet')}
                   className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
                     pendingNetwork === 'testnet'
-                      ? 'bg-white text-[#cc6600] shadow-sm'
+                      ? 'bg-white text-accent-text shadow-sm'
                       : 'text-gray-600 hover:text-gray-900'
                   }`}
                 >
@@ -109,7 +109,7 @@ export default function WalletConnectionModal({ isOpen, onClose }: WalletConnect
             <button
               onClick={handleConnect}
               disabled={!isWalletReady || pendingNetwork !== network}
-              className="w-full px-4 py-3 bg-gradient-to-r from-[#cc6600] to-[#d4a017] text-white rounded-lg font-medium hover:from-[#b35900] hover:to-[#c49016] transition-colors shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full px-4 py-3 bg-accent text-white rounded-lg font-medium transition-colors shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {!isWalletReady || pendingNetwork !== network ? 'Switching network...' : `Connect to ${pendingNetwork === 'testnet' ? 'Testnet' : 'Mainnet'}`}
             </button>

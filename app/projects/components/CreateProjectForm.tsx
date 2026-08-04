@@ -71,7 +71,7 @@ export function CreateProjectForm({ onSubmit, onCancel, isSubmitting }: CreatePr
             value={formData.name}
             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
             placeholder="my-awesome-app"
-            className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-[#cc6600] focus:border-[#cc6600] sm:text-sm"
+            className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-accent focus:border-accent sm:text-sm"
             pattern="[a-zA-Z0-9_-]+"
             required
           />
@@ -93,7 +93,7 @@ export function CreateProjectForm({ onSubmit, onCancel, isSubmitting }: CreatePr
                 value="github"
                 checked={formData.sourceType === 'github'}
                 onChange={() => setFormData({ ...formData, sourceType: 'github' })}
-                className="form-radio text-[#cc6600] focus:ring-[#cc6600]"
+                className="form-radio text-accent-text focus:ring-accent"
               />
               <span className="ml-2 text-sm text-gray-700">GitHub Repository</span>
             </label>
@@ -104,7 +104,7 @@ export function CreateProjectForm({ onSubmit, onCancel, isSubmitting }: CreatePr
                 value="wasm_url"
                 checked={formData.sourceType === 'wasm_url'}
                 onChange={() => setFormData({ ...formData, sourceType: 'wasm_url' })}
-                className="form-radio text-[#cc6600] focus:ring-[#cc6600]"
+                className="form-radio text-accent-text focus:ring-accent"
               />
               <span className="ml-2 text-sm text-gray-700">WASM URL</span>
             </label>
@@ -124,7 +124,7 @@ export function CreateProjectForm({ onSubmit, onCancel, isSubmitting }: CreatePr
                 value={formData.repo}
                 onChange={(e) => setFormData({ ...formData, repo: e.target.value })}
                 placeholder="https://github.com/owner/repo"
-                className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-[#cc6600] focus:border-[#cc6600] sm:text-sm"
+                className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-accent focus:border-accent sm:text-sm"
                 required={formData.sourceType === 'github'}
               />
             </div>
@@ -139,7 +139,7 @@ export function CreateProjectForm({ onSubmit, onCancel, isSubmitting }: CreatePr
                   value={formData.commit}
                   onChange={(e) => setFormData({ ...formData, commit: e.target.value })}
                   placeholder="main"
-                  className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-[#cc6600] focus:border-[#cc6600] sm:text-sm"
+                  className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-accent focus:border-accent sm:text-sm"
                   required={formData.sourceType === 'github'}
                 />
               </div>
@@ -151,7 +151,7 @@ export function CreateProjectForm({ onSubmit, onCancel, isSubmitting }: CreatePr
                   id="buildTarget"
                   value={formData.buildTarget}
                   onChange={(e) => setFormData({ ...formData, buildTarget: e.target.value })}
-                  className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-[#cc6600] focus:border-[#cc6600] sm:text-sm"
+                  className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-accent focus:border-accent sm:text-sm"
                 >
                   <option value="wasm32-wasip2">wasm32-wasip2</option>
                   {/* <option value="wasm32-wasip1">wasm32-wasip1 (not supported for projects)</option> */}
@@ -174,7 +174,7 @@ export function CreateProjectForm({ onSubmit, onCancel, isSubmitting }: CreatePr
                 value={formData.wasmUrl}
                 onChange={(e) => setFormData({ ...formData, wasmUrl: e.target.value })}
                 placeholder="https://example.com/my-app.wasm"
-                className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-[#cc6600] focus:border-[#cc6600] sm:text-sm"
+                className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-accent focus:border-accent sm:text-sm"
                 required={formData.sourceType === 'wasm_url'}
               />
             </div>
@@ -190,7 +190,7 @@ export function CreateProjectForm({ onSubmit, onCancel, isSubmitting }: CreatePr
                     value={formData.wasmHash}
                     onChange={(e) => setFormData({ ...formData, wasmHash: e.target.value })}
                     placeholder="abc123..."
-                    className="block w-full font-mono text-xs border-gray-300 rounded-l-md shadow-sm focus:ring-[#cc6600] focus:border-[#cc6600]"
+                    className="block w-full font-mono text-xs border-gray-300 rounded-l-md shadow-sm focus:ring-accent focus:border-accent"
                     required={formData.sourceType === 'wasm_url'}
                   />
                   <button
@@ -220,7 +220,7 @@ export function CreateProjectForm({ onSubmit, onCancel, isSubmitting }: CreatePr
                   id="wasmBuildTarget"
                   value={formData.buildTarget}
                   onChange={(e) => setFormData({ ...formData, buildTarget: e.target.value })}
-                  className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-[#cc6600] focus:border-[#cc6600] sm:text-sm"
+                  className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-accent focus:border-accent sm:text-sm"
                 >
                   <option value="wasm32-wasip2">wasm32-wasip2</option>
                   {/* <option value="wasm32-wasip1">wasm32-wasip1 (not supported for projects)</option> */}
@@ -242,7 +242,7 @@ export function CreateProjectForm({ onSubmit, onCancel, isSubmitting }: CreatePr
           </button>
           <button
             type="submit"
-            className="px-4 py-2 border border-transparent rounded-md text-sm font-medium text-white bg-[#cc6600] hover:bg-[#b35900] disabled:opacity-50"
+            className="px-4 py-2 border border-transparent rounded-md text-sm font-medium text-white bg-accent hover:bg-accent-hover disabled:opacity-50"
             disabled={isSubmitting}
           >
             {isSubmitting ? 'Creating...' : 'Create Project'}

@@ -343,7 +343,7 @@ function FundContent() {
               href={getTransactionUrl(txHash, network)}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-[#cc6600] hover:text-[#b35900] text-sm font-medium underline"
+              className="text-accent-text hover:text-accent-text text-sm font-medium underline"
             >
               View transaction on explorer
             </a>
@@ -362,7 +362,7 @@ function FundContent() {
             {tokenMeta?.icon ? (
               <img src={tokenMeta.icon} alt={symbol} className="w-8 h-8 rounded-full" />
             ) : (
-              <svg className="w-6 h-6 text-[#cc6600]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="w-6 h-6 text-accent-text" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             )}
@@ -426,7 +426,7 @@ function FundContent() {
                 aria-checked={depositToIntents}
                 onClick={() => setDepositToIntents(!depositToIntents)}
                 className={`relative inline-flex h-6 w-11 flex-shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                  depositToIntents ? 'bg-[#cc6600]' : 'bg-gray-300'
+                  depositToIntents ? 'bg-accent' : 'bg-gray-300'
                 }`}
               >
                 <span
@@ -496,7 +496,7 @@ function FundContent() {
         {!isConnected ? (
           <button
             onClick={() => setShowWalletModal(true)}
-            className="w-full px-4 py-3 bg-gradient-to-r from-[#cc6600] to-[#d4a017] text-white rounded-lg font-medium hover:from-[#b35900] hover:to-[#c49016] transition-colors shadow-sm hover:shadow-md"
+            className="w-full px-4 py-3 bg-accent text-white rounded-lg font-medium transition-colors shadow-sm hover:shadow-md"
           >
             Connect Wallet to Send
           </button>
@@ -522,7 +522,7 @@ function FundContent() {
             <button
               onClick={handleSend}
               disabled={sending || !hasEnough || !tokenMeta || !!viaError}
-              className="w-full px-4 py-3 bg-gradient-to-r from-[#cc6600] to-[#d4a017] text-white rounded-lg font-medium hover:from-[#b35900] hover:to-[#c49016] transition-colors shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full px-4 py-3 bg-accent text-white rounded-lg font-medium transition-colors shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {sending ? (
                 <span className="flex items-center justify-center gap-2">
@@ -553,7 +553,7 @@ function FundContent() {
 function LoadingSpinner({ small }: { small?: boolean }) {
   const size = small ? 'h-4 w-4' : 'h-8 w-8';
   return (
-    <svg className={`animate-spin ${size} text-[#cc6600]`} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+    <svg className={`animate-spin ${size} text-accent-text`} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
     </svg>

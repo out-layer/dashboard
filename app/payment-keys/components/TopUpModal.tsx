@@ -94,7 +94,7 @@ export function TopUpModal({
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
             placeholder="10.00"
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-[#cc6600] focus:border-transparent"
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-accent focus:border-transparent"
             disabled={isSubmitting}
           />
           <p className="text-xs text-gray-500 mt-1">
@@ -120,7 +120,7 @@ export function TopUpModal({
           </button>
           <button
             onClick={handleTopUp}
-            className="flex-1 bg-gradient-to-r from-[#cc6600] to-[#d4a017] hover:from-[#b35900] hover:to-[#c49016] text-white px-4 py-2 rounded-lg font-medium disabled:opacity-50 transition-colors"
+            className="flex-1 bg-accent hover:bg-accent-hover text-white px-4 py-2 rounded-lg font-medium disabled:opacity-50 transition-colors"
             disabled={isSubmitting}
           >
             {isSubmitting ? 'Processing...' : 'Top Up'}

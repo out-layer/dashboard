@@ -198,7 +198,7 @@ function WalletManagePage() {
           <p className="text-gray-600 mb-4">Connect your NEAR wallet to manage wallet policies.</p>
           <button
             onClick={() => setShowWalletModal(true)}
-            className="px-6 py-3 bg-gradient-to-r from-[#cc6600] to-[#d4a017] text-white rounded-lg font-medium hover:from-[#b35900] hover:to-[#c49016]"
+            className="px-6 py-3 bg-accent text-white rounded-lg font-medium"
           >
             Connect Wallet
           </button>
@@ -215,13 +215,13 @@ function WalletManagePage() {
         <div className="flex items-center space-x-3">
           <Link
             href="/wallet/approvals"
-            className="text-sm text-[#cc6600] hover:text-[#b35900] font-medium"
+            className="text-sm text-accent-text hover:text-accent-text font-medium"
           >
             Approvals
           </Link>
           <Link
             href="/wallet/audit"
-            className="text-sm text-[#cc6600] hover:text-[#b35900] font-medium"
+            className="text-sm text-accent-text hover:text-accent-text font-medium"
           >
             Audit Log
           </Link>
@@ -242,7 +242,7 @@ function WalletManagePage() {
 
       {/* API key wallet (from ?key= param) — new wallet without policy yet */}
       {apiKeyWallet && !wallets.some((w) => w.wallet_pubkey === `ed25519:${apiKeyWallet.address}`) && (
-        <div className="mb-4 bg-white shadow rounded-lg border-2 border-dashed border-[#cc6600]">
+        <div className="mb-4 bg-white shadow rounded-lg border-2 border-dashed border-accent">
           <div className="px-4 py-4 sm:px-6">
             <div className="flex items-center justify-between">
               <div>
@@ -261,7 +261,7 @@ function WalletManagePage() {
               </div>
               <Link
                 href={`/wallet?key=${searchParams.get('key')}`}
-                className="px-3 py-1.5 text-sm bg-[#cc6600] text-white rounded hover:bg-[#b35900]"
+                className="px-3 py-1.5 text-sm bg-accent text-white rounded hover:bg-accent-hover"
               >
                 Set Policy
               </Link>
@@ -272,7 +272,7 @@ function WalletManagePage() {
 
       {loading ? (
         <div className="flex items-center justify-center py-12">
-          <svg className="animate-spin h-8 w-8 text-[#cc6600]" fill="none" viewBox="0 0 24 24">
+          <svg className="animate-spin h-8 w-8 text-accent-text" fill="none" viewBox="0 0 24 24">
             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
           </svg>
@@ -324,7 +324,7 @@ function WalletManagePage() {
                     {walletKey ? (
                       <Link
                         href={`/wallet?key=${walletKey}`}
-                        className="px-3 py-1.5 text-sm border border-[#cc6600] text-[#cc6600] rounded hover:bg-orange-50"
+                        className="px-3 py-1.5 text-sm border border-accent text-accent-text rounded hover:bg-orange-50"
                       >
                         Edit Policy
                       </Link>
@@ -380,7 +380,7 @@ function WalletManagePage() {
                       </button>
                       <button
                         onClick={() => { navigator.clipboard.writeText(savedKeys[wallet.wallet_pubkey]); setSuccess('API key copied'); setTimeout(() => setSuccess(null), 2000); }}
-                        className="text-xs text-[#cc6600] hover:underline"
+                        className="text-xs text-accent-text hover:underline"
                       >
                         copy
                       </button>
@@ -418,7 +418,7 @@ function WalletManagePage() {
                             setShowKeyInput(null);
                           }
                         }}
-                        className="text-xs text-[#cc6600] hover:underline"
+                        className="text-xs text-accent-text hover:underline"
                       >
                         save
                       </button>
@@ -429,7 +429,7 @@ function WalletManagePage() {
                   ) : (
                     <button
                       onClick={() => { setShowKeyInput(wallet.wallet_pubkey); setKeyInput(''); }}
-                      className="text-xs text-[#cc6600] hover:underline mb-2"
+                      className="text-xs text-accent-text hover:underline mb-2"
                     >
                       + Save API key to browser
                     </button>

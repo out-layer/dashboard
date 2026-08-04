@@ -247,7 +247,7 @@ export function CreateKeyForm({
         {isSubmitting && (
           <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
             <div className="flex items-center gap-2">
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-[#cc6600]"></div>
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-accent"></div>
               <span className="text-blue-700">
                 {creationState.step === 'generating' && 'Generating secure key...'}
                 {creationState.step === 'storing' && 'Transaction 1/2: Storing encrypted key...'}
@@ -280,7 +280,7 @@ export function CreateKeyForm({
               value={projectIds}
               onChange={(e) => setProjectIds(e.target.value)}
               placeholder="owner.near/project1, owner.near/project2"
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-[#cc6600] focus:border-transparent"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-accent focus:border-transparent"
               disabled={isSubmitting}
             />
             <p className="text-xs text-gray-500 mt-1">
@@ -298,7 +298,7 @@ export function CreateKeyForm({
               value={maxPerCall}
               onChange={(e) => setMaxPerCall(e.target.value)}
               placeholder="100.00"
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-[#cc6600] focus:border-transparent"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-accent focus:border-transparent"
               disabled={isSubmitting}
             />
             <p className="text-xs text-gray-500 mt-1">
@@ -316,7 +316,7 @@ export function CreateKeyForm({
               value={initialDeposit}
               onChange={(e) => setInitialDeposit(e.target.value)}
               placeholder="2.00"
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-[#cc6600] focus:border-transparent"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-accent focus:border-transparent"
               disabled={isSubmitting}
             />
             <p className="text-xs text-gray-500 mt-1">
@@ -349,7 +349,7 @@ export function CreateKeyForm({
           </button>
           <button
             onClick={handleCreate}
-            className="flex-1 bg-gradient-to-r from-[#cc6600] to-[#d4a017] hover:from-[#b35900] hover:to-[#c49016] text-white px-4 py-2 rounded-lg font-medium disabled:opacity-50 transition-colors"
+            className="flex-1 bg-accent hover:bg-accent-hover text-white px-4 py-2 rounded-lg font-medium disabled:opacity-50 transition-colors"
             disabled={isSubmitting || !prefetchedPubkey}
           >
             {isSubmitting ? 'Creating...' : !prefetchedPubkey ? 'Preparing...' : 'Create Key'}

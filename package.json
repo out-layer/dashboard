@@ -23,11 +23,14 @@
     "@stablelib/x25519": "^2.0.1",
     "@types/react-syntax-highlighter": "^15.5.13",
     "axios": "^1.12.2",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
     "next": "16.0.7",
     "next-themes": "^0.4.6",
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "react-syntax-highlighter": "^16.1.0",
+    "tailwind-merge": "^3.6.0",
     "zod": "^3.24.1"
   },
   "devDependencies": {

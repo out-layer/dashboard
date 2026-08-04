@@ -181,7 +181,7 @@ function ApprovalDetailContent() {
  <span className="ml-3 text-muted-foreground">Loading...</span>
         </div>
       ) : !approval ? (
- <div className="bg-card border border-border rounded-lg p-8 text-center">
+ <div className="bg-card border border-border rounded-lg p-6">
  <p className="text-muted-foreground">Approval not found.</p>
         </div>
       ) : (

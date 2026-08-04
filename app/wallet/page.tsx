@@ -289,7 +289,7 @@ function WalletHandoffContent() {
     return (
  <div className="max-w-2xl mx-auto py-12">
  <h1 className="text-xl font-bold tracking-tight mb-4">Wallet Handoff</h1>
- <div className="bg-card border border-border rounded-lg p-8 text-center">
+ <div className="bg-card border border-border rounded-lg p-6">
  <p className="text-muted-foreground mb-4">
             This page is used to take control of an AI agent wallet.
           </p>

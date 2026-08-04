@@ -332,7 +332,7 @@ function WalletAuditContent() {
  <span className="ml-3 text-muted-foreground">Loading audit log...</span>
         </div>
       ) : mergedEvents.length === 0 ? (
- <div className="bg-card border border-border rounded-lg p-8 text-center">
+ <div className="bg-card border border-border rounded-lg p-6">
  <p className="text-muted-foreground">No audit events found.</p>
         </div>
       ) : (

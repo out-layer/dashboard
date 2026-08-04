@@ -327,7 +327,7 @@ deploy requires at least ${(Number(VAULT_PARENT_BUDGET_YOCTO) / 1e24).toFixed(2)
 
   // ── Render ────────────────────────────────────────────────────────────
   return (
- <div className="container mx-auto p-6 max-w-5xl">
+ <div className="w-full">
  <h1 className="text-xl font-bold tracking-tight mb-2">Vaults</h1>
  <p className="text-foreground mb-2">
         Deploy a CKD-issuer contract bound to your NEAR account. OutLayer&apos;s

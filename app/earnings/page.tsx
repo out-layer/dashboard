@@ -298,7 +298,7 @@ export default function EarningsPage() {
  <>Withdraw to Wallet</>
               )}
             </button>
- <p className="mt-2 text-xs text-muted-foreground text-center">
+ <p className="mt-2 text-xs text-muted-foreground">
               Stored in OutLayer contract
             </p>
           </div>
@@ -328,7 +328,7 @@ export default function EarningsPage() {
             >
               Withdraw (Coming Soon)
             </button>
- <p className="mt-2 text-xs text-success-text text-center">
+ <p className="mt-2 text-xs text-success-text">
               Stored in coordinator database
             </p>
           </div>

@@ -450,7 +450,7 @@ function WalletApprovalsContent() {
           description="Approvals appear here when a wallet operation crosses a policy threshold and needs your multisig confirmation."
         />
       ) : (
- <div className="space-y-4">
+ <div className="max-w-3xl space-y-4">
           {approvals.map((approval) => (
             <div
               key={approval.id}

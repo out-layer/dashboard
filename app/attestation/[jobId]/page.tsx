@@ -60,7 +60,7 @@ export default function AttestationPage() {
   if (loading) {
     return (
  <div className="flex justify-center items-center min-h-[600px]">
- <div className="text-center">
+ <div>
  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
  <p className="text-muted-foreground">Loading attestation #{jobId}...</p>
         </div>
@@ -154,7 +154,7 @@ export default function AttestationPage() {
       </div>
 
       {/* Share Section */}
- <div className="mt-6 bg-card-muted rounded-lg p-4 text-center">
+ <div className="mt-6 bg-card-muted rounded-lg p-4">
  <p className="text-sm text-muted-foreground mb-3">Share this verifiable attestation:</p>
  <div className="flex justify-center gap-3">
           <button

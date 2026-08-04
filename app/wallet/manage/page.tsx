@@ -282,7 +282,7 @@ function WalletManagePage() {
           }
         />
       ) : (
- <div className="space-y-4">
+ <div className="max-w-3xl space-y-4">
           {wallets.map((wallet) => {
             const walletKey = getWalletApiKey(wallet.wallet_pubkey);
             return (

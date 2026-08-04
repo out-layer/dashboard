@@ -94,7 +94,7 @@ function FundContent() {
   if (!to || !amount) {
     return (
  <div className="max-w-lg mx-auto mt-12">
- <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-6 text-center">
+ <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-6">
  <h2 className="text-lg font-semibold text-destructive-text mb-2">Invalid Fund Link</h2>
  <p className="text-destructive-text text-sm">
  Missing required parameters. The link should include <code className="bg-destructive/15 px-1 rounded">to</code> and <code className="bg-destructive/15 px-1 rounded">amount</code>.
@@ -108,7 +108,7 @@ function FundContent() {
   if (isNaN(parsedAmount) || parsedAmount <= 0) {
     return (
  <div className="max-w-lg mx-auto mt-12">
- <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-6 text-center">
+ <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-6">
  <h2 className="text-lg font-semibold text-destructive-text mb-2">Invalid Amount</h2>
  <p className="text-destructive-text text-sm">Amount must be a positive number.</p>
         </div>
@@ -324,7 +324,7 @@ function FundContent() {
   if (txHash) {
     return (
  <div className="max-w-lg mx-auto mt-12">
- <div className="bg-card border border-border rounded-lg p-6 text-center">
+ <div className="bg-card border border-border rounded-lg p-6">
  <div className="w-16 h-16 bg-success/15 rounded-full flex items-center justify-center mx-auto mb-4">
  <svg className="w-8 h-8 text-success-text" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />

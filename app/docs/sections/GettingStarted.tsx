@@ -156,84 +156,84 @@ export default function GettingStartedSection() {
  <div className="hidden md:block bg-card border-2 border-border-strong rounded-lg p-6 mb-4 overflow-x-auto">
  <svg viewBox="0 0 800 600" className="w-full" style={{ maxWidth: '800px', margin: '0 auto' }}>
               {/* Participant boxes */}
-              <rect x="50" y="20" width="100" height="50" fill="#3b82f6" rx="8" />
+              <rect x="50" y="20" width="100" height="50" fill="var(--info)" rx="8" />
  <text x="100" y="50" textAnchor="middle" fill="white" fontSize="14" fontWeight="bold">User</text>
 
               <rect x="250" y="20" width="120" height="50" fill="#a855f7" rx="8" />
  <text x="310" y="40" textAnchor="middle" fill="white" fontSize="12" fontWeight="bold">Your</text>
  <text x="310" y="55" textAnchor="middle" fill="white" fontSize="12" fontWeight="bold">Contract</text>
 
-              <rect x="450" y="20" width="120" height="50" fill="#f97316" rx="8" />
+              <rect x="450" y="20" width="120" height="50" fill="var(--accent)" rx="8" />
  <text x="510" y="40" textAnchor="middle" fill="white" fontSize="12" fontWeight="bold">OutLayer</text>
  <text x="510" y="55" textAnchor="middle" fill="white" fontSize="12" fontWeight="bold">Contract</text>
 
-              <rect x="650" y="20" width="100" height="50" fill="#16a34a" rx="8" />
+              <rect x="650" y="20" width="100" height="50" fill="var(--success)" rx="8" />
  <text x="700" y="50" textAnchor="middle" fill="white" fontSize="14" fontWeight="bold">TEE Worker</text>
 
               {/* Lifelines */}
-              <line x1="100" y1="70" x2="100" y2="570" stroke="#d1d5db" strokeWidth="2" strokeDasharray="5,5" />
-              <line x1="310" y1="70" x2="310" y2="570" stroke="#d1d5db" strokeWidth="2" strokeDasharray="5,5" />
-              <line x1="510" y1="70" x2="510" y2="570" stroke="#d1d5db" strokeWidth="2" strokeDasharray="5,5" />
-              <line x1="700" y1="70" x2="700" y2="570" stroke="#d1d5db" strokeWidth="2" strokeDasharray="5,5" />
+              <line x1="100" y1="70" x2="100" y2="570" stroke="var(--border-strong)" strokeWidth="2" strokeDasharray="5,5" />
+              <line x1="310" y1="70" x2="310" y2="570" stroke="var(--border-strong)" strokeWidth="2" strokeDasharray="5,5" />
+              <line x1="510" y1="70" x2="510" y2="570" stroke="var(--border-strong)" strokeWidth="2" strokeDasharray="5,5" />
+              <line x1="700" y1="70" x2="700" y2="570" stroke="var(--border-strong)" strokeWidth="2" strokeDasharray="5,5" />
 
               {/* Step 1: User -> Your Contract */}
               <defs>
                 <marker id="arrowBlue" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
-                  <path d="M0,0 L0,6 L9,3 z" fill="#3b82f6" />
+                  <path d="M0,0 L0,6 L9,3 z" fill="var(--info)" />
                 </marker>
                 <marker id="arrowPurple" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
                   <path d="M0,0 L0,6 L9,3 z" fill="#a855f7" />
                 </marker>
                 <marker id="arrowOrange" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
-                  <path d="M0,0 L0,6 L9,3 z" fill="#f97316" />
+                  <path d="M0,0 L0,6 L9,3 z" fill="var(--accent)" />
                 </marker>
                 <marker id="arrowGreen" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
-                  <path d="M0,0 L0,6 L9,3 z" fill="#16a34a" />
+                  <path d="M0,0 L0,6 L9,3 z" fill="var(--success)" />
                 </marker>
               </defs>
 
-              <line x1="100" y1="100" x2="310" y2="100" stroke="#3b82f6" strokeWidth="2" markerEnd="url(#arrowBlue)" />
- <text x="205" y="95" textAnchor="middle" fontSize="11" fill="#1e40af" fontWeight="bold">1. call contract</text>
+              <line x1="100" y1="100" x2="310" y2="100" stroke="var(--info)" strokeWidth="2" markerEnd="url(#arrowBlue)" />
+ <text x="205" y="95" textAnchor="middle" fontSize="11" fill="var(--info)" fontWeight="bold">1. call contract</text>
 
               {/* Step 2: Your Contract -> OutLayer */}
               <line x1="310" y1="140" x2="510" y2="140" stroke="#a855f7" strokeWidth="2" markerEnd="url(#arrowPurple)" />
  <text x="410" y="135" textAnchor="middle" fontSize="11" fill="#7e22ce" fontWeight="bold">2. request_execution()</text>
- <text x="410" y="150" textAnchor="middle" fontSize="9" fill="#6b21a8">(repo, input_data, limits, secrets)</text>
+ <text x="410" y="150" textAnchor="middle" fontSize="9" fill="var(--info)">(repo, input_data, limits, secrets)</text>
 
               {/* YIELD STATE box */}
-              <rect x="450" y="160" width="120" height="40" fill="#fef3c7" stroke="#f59e0b" strokeWidth="2" rx="4" />
- <text x="510" y="175" textAnchor="middle" fontSize="10" fontWeight="bold" fill="#92400e">⏸ YIELD STATE</text>
- <text x="510" y="190" textAnchor="middle" fontSize="9" fill="#92400e">Transaction paused</text>
+              <rect x="450" y="160" width="120" height="40" fill="#fef3c7" stroke="var(--warning)" strokeWidth="2" rx="4" />
+ <text x="510" y="175" textAnchor="middle" fontSize="10" fontWeight="bold" fill="var(--accent-text)">⏸ YIELD STATE</text>
+ <text x="510" y="190" textAnchor="middle" fontSize="9" fill="var(--accent-text)">Transaction paused</text>
 
               {/* Step 3: OutLayer -> Worker */}
-              <line x1="510" y1="230" x2="700" y2="230" stroke="#f97316" strokeWidth="2" markerEnd="url(#arrowOrange)" />
- <text x="605" y="225" textAnchor="middle" fontSize="11" fill="#c2410c" fontWeight="bold">3. emit event</text>
+              <line x1="510" y1="230" x2="700" y2="230" stroke="var(--accent)" strokeWidth="2" markerEnd="url(#arrowOrange)" />
+ <text x="605" y="225" textAnchor="middle" fontSize="11" fill="var(--accent)" fontWeight="bold">3. emit event</text>
 
               {/* Worker execution box */}
-              <rect x="630" y="250" width="140" height="100" fill="#f0fdf4" stroke="#16a34a" strokeWidth="2" rx="4" />
- <text x="640" y="268" textAnchor="start" fontSize="10" fontWeight="bold" fill="#166534"> Off-chain worker:</text>
- <text x="640" y="283" textAnchor="start" fontSize="9" fill="#166534">• Clone GitHub</text>
- <text x="640" y="298" textAnchor="start" fontSize="9" fill="#166534">• Compile WASM</text>
- <text x="640" y="313" textAnchor="start" fontSize="9" fill="#166534">• Execute with tx input</text>
+              <rect x="630" y="250" width="140" height="100" fill="var(--card-muted)" stroke="var(--success)" strokeWidth="2" rx="4" />
+ <text x="640" y="268" textAnchor="start" fontSize="10" fontWeight="bold" fill="var(--success)"> Off-chain worker:</text>
+ <text x="640" y="283" textAnchor="start" fontSize="9" fill="var(--success)">• Clone GitHub</text>
+ <text x="640" y="298" textAnchor="start" fontSize="9" fill="var(--success)">• Compile WASM</text>
+ <text x="640" y="313" textAnchor="start" fontSize="9" fill="var(--success)">• Execute with tx input</text>
  <text x="645" y="328" textAnchor="start" fontSize="9" fill="#6b7280">(fast / cheap / any code)</text> 
- <text x="640" y="342" textAnchor="start" fontSize="9" fill="#166534">• Read stdout</text> 
+ <text x="640" y="342" textAnchor="start" fontSize="9" fill="var(--success)">• Read stdout</text> 
 
               {/* Step 5: OutLayer -> Your Contract */}
-              <line x1="700" y1="370" x2="510" y2="370" stroke="#16a34a" strokeWidth="2" markerEnd="url(#arrowGreen)" />
- <text x="605" y="385" textAnchor="middle" fontSize="11" fill="#166534" fontWeight="bold">4. yield_resume()</text>
+              <line x1="700" y1="370" x2="510" y2="370" stroke="var(--success)" strokeWidth="2" markerEnd="url(#arrowGreen)" />
+ <text x="605" y="385" textAnchor="middle" fontSize="11" fill="var(--success)" fontWeight="bold">4. yield_resume()</text>
 
               {/* RESUME box */}
-              <rect x="450" y="400" width="120" height="40" fill="#dcfce7" stroke="#16a34a" strokeWidth="2" rx="4" />
- <text x="510" y="415" textAnchor="middle" fontSize="10" fontWeight="bold" fill="#166534">▶ RESUME</text>
- <text x="510" y="430" textAnchor="middle" fontSize="9" fill="#166534">Process result</text>
+              <rect x="450" y="400" width="120" height="40" fill="var(--card-muted)" stroke="var(--success)" strokeWidth="2" rx="4" />
+ <text x="510" y="415" textAnchor="middle" fontSize="10" fontWeight="bold" fill="var(--success)">▶ RESUME</text>
+ <text x="510" y="430" textAnchor="middle" fontSize="9" fill="var(--success)">Process result</text>
 
               {/* Step 4: Worker -> OutLayer */}
-              <line x1="510" y1="470" x2="310" y2="470" stroke="#c2410c" strokeWidth="2" markerEnd="url(#arrowOrange)" />
- <text x="410" y="465" textAnchor="middle" fontSize="11" fill="#92400e" fontWeight="bold">5. return result</text>
+              <line x1="510" y1="470" x2="310" y2="470" stroke="var(--accent)" strokeWidth="2" markerEnd="url(#arrowOrange)" />
+ <text x="410" y="465" textAnchor="middle" fontSize="11" fill="var(--accent-text)" fontWeight="bold">5. return result</text>
 
               {/* Final result */}
-              <rect x="100" y="500" width="380" height="40" fill="#dcfce7" stroke="#16a34a" strokeWidth="2" rx="8" />
- <text x="300" y="525" textAnchor="middle" fontSize="12" fontWeight="bold" fill="#166534"> Transaction Complete - User receives final result</text>
+              <rect x="100" y="500" width="380" height="40" fill="var(--card-muted)" stroke="var(--success)" strokeWidth="2" rx="8" />
+ <text x="300" y="525" textAnchor="middle" fontSize="12" fontWeight="bold" fill="var(--success)"> Transaction Complete - User receives final result</text>
             </svg>
           </div>
 
@@ -348,64 +348,64 @@ export default function GettingStartedSection() {
  <div className="hidden md:block bg-card border-2 border-border-strong rounded-lg p-6 mb-4 overflow-x-auto">
  <svg viewBox="0 0 700 400" className="w-full" style={{ maxWidth: '700px', margin: '0 auto' }}>
               {/* Participant boxes */}
-              <rect x="50" y="20" width="120" height="50" fill="#3b82f6" rx="8" />
+              <rect x="50" y="20" width="120" height="50" fill="var(--info)" rx="8" />
  <text x="110" y="40" textAnchor="middle" fill="white" fontSize="12" fontWeight="bold">Your App</text>
  <text x="110" y="55" textAnchor="middle" fill="white" fontSize="10">(Web/Mobile/API)</text>
 
-              <rect x="280" y="20" width="120" height="50" fill="#f97316" rx="8" />
+              <rect x="280" y="20" width="120" height="50" fill="var(--accent)" rx="8" />
  <text x="340" y="40" textAnchor="middle" fill="white" fontSize="12" fontWeight="bold">OutLayer</text>
  <text x="340" y="55" textAnchor="middle" fill="white" fontSize="12" fontWeight="bold">API</text>
 
-              <rect x="510" y="20" width="120" height="50" fill="#16a34a" rx="8" />
+              <rect x="510" y="20" width="120" height="50" fill="var(--success)" rx="8" />
  <text x="570" y="50" textAnchor="middle" fill="white" fontSize="14" fontWeight="bold">TEE Worker</text>
 
               {/* Lifelines */}
-              <line x1="110" y1="70" x2="110" y2="370" stroke="#d1d5db" strokeWidth="2" strokeDasharray="5,5" />
-              <line x1="340" y1="70" x2="340" y2="370" stroke="#d1d5db" strokeWidth="2" strokeDasharray="5,5" />
-              <line x1="570" y1="70" x2="570" y2="370" stroke="#d1d5db" strokeWidth="2" strokeDasharray="5,5" />
+              <line x1="110" y1="70" x2="110" y2="370" stroke="var(--border-strong)" strokeWidth="2" strokeDasharray="5,5" />
+              <line x1="340" y1="70" x2="340" y2="370" stroke="var(--border-strong)" strokeWidth="2" strokeDasharray="5,5" />
+              <line x1="570" y1="70" x2="570" y2="370" stroke="var(--border-strong)" strokeWidth="2" strokeDasharray="5,5" />
 
               {/* Arrows */}
               <defs>
                 <marker id="arrowBlue2" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
-                  <path d="M0,0 L0,6 L9,3 z" fill="#3b82f6" />
+                  <path d="M0,0 L0,6 L9,3 z" fill="var(--info)" />
                 </marker>
                 <marker id="arrowOrange2" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
-                  <path d="M0,0 L0,6 L9,3 z" fill="#f97316" />
+                  <path d="M0,0 L0,6 L9,3 z" fill="var(--accent)" />
                 </marker>
                 <marker id="arrowGreen2" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
-                  <path d="M0,0 L0,6 L9,3 z" fill="#16a34a" />
+                  <path d="M0,0 L0,6 L9,3 z" fill="var(--success)" />
                 </marker>
               </defs>
 
               {/* Step 1: App -> API */}
-              <line x1="110" y1="100" x2="340" y2="100" stroke="#3b82f6" strokeWidth="2" markerEnd="url(#arrowBlue2)" />
- <text x="225" y="90" textAnchor="middle" fontSize="11" fill="#1e40af" fontWeight="bold">1. POST /call/owner/project</text>
+              <line x1="110" y1="100" x2="340" y2="100" stroke="var(--info)" strokeWidth="2" markerEnd="url(#arrowBlue2)" />
+ <text x="225" y="90" textAnchor="middle" fontSize="11" fill="var(--info)" fontWeight="bold">1. POST /call/owner/project</text>
  <text x="225" y="113" textAnchor="middle" fontSize="9" fill="#6b7280">X-Payment-Key + X-Attached-Deposit</text>
  <text x="225" y="125" textAnchor="middle" fontSize="8" fill="#9ca3af">(payment goes to app author)</text>
 
               {/* Step 2: API -> Worker */}
-              <line x1="340" y1="150" x2="570" y2="150" stroke="#f97316" strokeWidth="2" markerEnd="url(#arrowOrange2)" />
- <text x="455" y="145" textAnchor="middle" fontSize="11" fill="#c2410c" fontWeight="bold">2. Execute in TEE</text>
+              <line x1="340" y1="150" x2="570" y2="150" stroke="var(--accent)" strokeWidth="2" markerEnd="url(#arrowOrange2)" />
+ <text x="455" y="145" textAnchor="middle" fontSize="11" fill="var(--accent)" fontWeight="bold">2. Execute in TEE</text>
 
               {/* Worker execution box */}
-              <rect x="490" y="170" width="160" height="90" fill="#f0fdf4" stroke="#16a34a" strokeWidth="2" rx="4" />
- <text x="500" y="188" textAnchor="start" fontSize="10" fontWeight="bold" fill="#166534"> TEE Worker:</text>
- <text x="500" y="205" textAnchor="start" fontSize="9" fill="#166534">• Load WASM (cached)</text>
- <text x="500" y="220" textAnchor="start" fontSize="9" fill="#166534">• Execute with input</text>
- <text x="500" y="235" textAnchor="start" fontSize="9" fill="#166534">• Generate attestation</text>
- <text x="500" y="250" textAnchor="start" fontSize="9" fill="#166534">• Return result + proof</text>
+              <rect x="490" y="170" width="160" height="90" fill="var(--card-muted)" stroke="var(--success)" strokeWidth="2" rx="4" />
+ <text x="500" y="188" textAnchor="start" fontSize="10" fontWeight="bold" fill="var(--success)"> TEE Worker:</text>
+ <text x="500" y="205" textAnchor="start" fontSize="9" fill="var(--success)">• Load WASM (cached)</text>
+ <text x="500" y="220" textAnchor="start" fontSize="9" fill="var(--success)">• Execute with input</text>
+ <text x="500" y="235" textAnchor="start" fontSize="9" fill="var(--success)">• Generate attestation</text>
+ <text x="500" y="250" textAnchor="start" fontSize="9" fill="var(--success)">• Return result + proof</text>
 
               {/* Step 3: Worker -> API */}
-              <line x1="570" y1="280" x2="340" y2="280" stroke="#16a34a" strokeWidth="2" markerEnd="url(#arrowGreen2)" />
- <text x="455" y="295" textAnchor="middle" fontSize="11" fill="#166534" fontWeight="bold">3. Result + attestation</text>
+              <line x1="570" y1="280" x2="340" y2="280" stroke="var(--success)" strokeWidth="2" markerEnd="url(#arrowGreen2)" />
+ <text x="455" y="295" textAnchor="middle" fontSize="11" fill="var(--success)" fontWeight="bold">3. Result + attestation</text>
 
               {/* Step 4: API -> App */}
-              <line x1="340" y1="320" x2="110" y2="320" stroke="#f97316" strokeWidth="2" markerEnd="url(#arrowOrange2)" />
- <text x="225" y="315" textAnchor="middle" fontSize="11" fill="#c2410c" fontWeight="bold">4. JSON response</text>
+              <line x1="340" y1="320" x2="110" y2="320" stroke="var(--accent)" strokeWidth="2" markerEnd="url(#arrowOrange2)" />
+ <text x="225" y="315" textAnchor="middle" fontSize="11" fill="var(--accent)" fontWeight="bold">4. JSON response</text>
 
               {/* Final result */}
-              <rect x="110" y="340" width="280" height="35" fill="#dcfce7" stroke="#16a34a" strokeWidth="2" rx="8" />
- <text x="250" y="362" textAnchor="middle" fontSize="11" fontWeight="bold" fill="#166534"> Instant response with verifiable proof</text>
+              <rect x="110" y="340" width="280" height="35" fill="var(--card-muted)" stroke="var(--success)" strokeWidth="2" rx="8" />
+ <text x="250" y="362" textAnchor="middle" fontSize="11" fontWeight="bold" fill="var(--success)"> Instant response with verifiable proof</text>
             </svg>
           </div>
 
@@ -515,7 +515,7 @@ export default function GettingStartedSection() {
  <AnchorHeading id="quick-start">Quick Start: 4 Steps</AnchorHeading>
  <div className="space-y-4">
  <div className="bg-card border-2 border-border rounded-lg p-4">
- <h4 className="font-semibold text-foreground mb-2">1⃣ Write Your Code</h4>
+ <h4 className="font-semibold text-foreground mb-2">1 Write Your Code</h4>
  <p className="text-sm text-foreground mb-2">
                 Create a project that compiles to WebAssembly. Rust recommended, other languages supported.
               </p>
@@ -525,7 +525,7 @@ export default function GettingStartedSection() {
             </div>
 
  <div className="bg-card border-2 border-border rounded-lg p-4">
- <h4 className="font-semibold text-foreground mb-2">2⃣ Push to GitHub or Provide WASM URL</h4>
+ <h4 className="font-semibold text-foreground mb-2">2 Push to GitHub or Provide WASM URL</h4>
  <p className="text-sm text-foreground mb-2">
  <strong>Option A:</strong> Push to GitHub (public or private with access tokens). OutLayer will clone and compile on-demand.
               </p>
@@ -538,7 +538,7 @@ export default function GettingStartedSection() {
             </div>
 
  <div className="bg-card border-2 border-border rounded-lg p-4">
- <h4 className="font-semibold text-foreground mb-2">3⃣ Call OutLayer</h4>
+ <h4 className="font-semibold text-foreground mb-2">3 Call OutLayer</h4>
  <p className="text-sm text-foreground mb-2">
  <strong>Option A:</strong> HTTPS API — call directly from any app
               </p>
@@ -568,7 +568,7 @@ export default function GettingStartedSection() {
             </div>
 
  <div className="bg-card border-2 border-border rounded-lg p-4">
- <h4 className="font-semibold text-foreground mb-2">4⃣ Receive Result</h4>
+ <h4 className="font-semibold text-foreground mb-2">4 Receive Result</h4>
  <p className="text-sm text-foreground">
                 HTTPS returns JSON response instantly. NEAR contract receives callback automatically.
                 Excess payment refunded based on actual resources used.
@@ -576,7 +576,7 @@ export default function GettingStartedSection() {
             </div>
 
  <div className="bg-card border-2 border-border rounded-lg p-4">
- <h4 className="font-semibold text-foreground mb-2">5⃣ Verify Attestation</h4>
+ <h4 className="font-semibold text-foreground mb-2">5 Verify Attestation</h4>
  <p className="text-sm text-foreground mb-2">
                 Every execution produces TEE attestation — cryptographic proof of what code ran with what inputs.
               </p>

@@ -211,20 +211,20 @@ export default function SecretsSection() {
                 <defs>
                   <linearGradient id="teeGradient" x1="0%" y1="0%" x2="0%" y2="100%">
                     <stop offset="0%" stopColor="#fbbf24" stopOpacity="0.8" />
-                    <stop offset="100%" stopColor="#f59e0b" stopOpacity="0.8" />
+                    <stop offset="100%" stopColor="var(--warning)" stopOpacity="0.8" />
                   </linearGradient>
                   <linearGradient id="daoGradient" x1="0%" y1="0%" x2="0%" y2="100%">
                     <stop offset="0%" stopColor="#a78bfa" stopOpacity="0.8" />
-                    <stop offset="100%" stopColor="#8b5cf6" stopOpacity="0.8" />
+                    <stop offset="100%" stopColor="var(--info)" stopOpacity="0.8" />
                   </linearGradient>
                   <marker id="arrowPurple" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto">
-                    <polygon points="0 0, 10 5, 0 10" fill="#8b5cf6" />
+                    <polygon points="0 0, 10 5, 0 10" fill="var(--info)" />
                   </marker>
                   <marker id="arrowGreen" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto">
-                    <polygon points="0 0, 10 5, 0 10" fill="#10b981" />
+                    <polygon points="0 0, 10 5, 0 10" fill="var(--success)" />
                   </marker>
                   <marker id="arrowOrange" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto">
-                    <polygon points="0 0, 10 5, 0 10" fill="#f97316" />
+                    <polygon points="0 0, 10 5, 0 10" fill="var(--accent)" />
                   </marker>
                 </defs>
 
@@ -235,17 +235,17 @@ export default function SecretsSection() {
 
                 {/* Keystore TEE */}
                 <g transform="translate(50, 60)">
-                  <rect x="0" y="0" width="180" height="120" fill="url(#teeGradient)" rx="8" stroke="#f59e0b" strokeWidth="2" />
- <text x="90" y="25" textAnchor="middle" fill="#7c2d12" fontSize="14" fontWeight="bold">Keystore TEE</text>
-                  <line x1="10" y1="35" x2="170" y2="35" stroke="#92400e" strokeOpacity="0.5" />
- <text x="90" y="55" textAnchor="middle" fill="#7c2d12" fontSize="11">1. Generate keypair</text>
- <text x="90" y="75" textAnchor="middle" fill="#7c2d12" fontSize="11">2. Generate attestation</text>
- <text x="90" y="95" textAnchor="middle" fill="#7c2d12" fontSize="11">3. TDX measurements (MRTD+RTMR0-3)</text>
+                  <rect x="0" y="0" width="180" height="120" fill="url(#teeGradient)" rx="8" stroke="var(--warning)" strokeWidth="2" />
+ <text x="90" y="25" textAnchor="middle" fill="var(--accent-text)" fontSize="14" fontWeight="bold">Keystore TEE</text>
+                  <line x1="10" y1="35" x2="170" y2="35" stroke="var(--accent-text)" strokeOpacity="0.5" />
+ <text x="90" y="55" textAnchor="middle" fill="var(--accent-text)" fontSize="11">1. Generate keypair</text>
+ <text x="90" y="75" textAnchor="middle" fill="var(--accent-text)" fontSize="11">2. Generate attestation</text>
+ <text x="90" y="95" textAnchor="middle" fill="var(--accent-text)" fontSize="11">3. TDX measurements (MRTD+RTMR0-3)</text>
                 </g>
 
                 {/* DAO Contract */}
                 <g transform="translate(360, 60)">
-                  <rect x="0" y="0" width="180" height="120" fill="url(#daoGradient)" rx="8" stroke="#8b5cf6" strokeWidth="2" />
+                  <rect x="0" y="0" width="180" height="120" fill="url(#daoGradient)" rx="8" stroke="var(--info)" strokeWidth="2" />
  <text x="90" y="25" textAnchor="middle" fill="white" fontSize="14" fontWeight="bold">DAO Contract</text>
                   <line x1="10" y1="35" x2="170" y2="35" stroke="white" strokeOpacity="0.5" />
  <text x="90" y="55" textAnchor="middle" fill="white" fontSize="11">Verifies TEE attestation</text>
@@ -255,40 +255,40 @@ export default function SecretsSection() {
 
                 {/* DAO Members */}
                 <g transform="translate(670, 60)">
-                  <rect x="0" y="0" width="180" height="120" fill="#e9d5ff" stroke="#8b5cf6" strokeWidth="2" rx="8" />
- <text x="90" y="25" textAnchor="middle" fontSize="14" fontWeight="bold" fill="#6b21a8">DAO Members</text>
-                  <line x1="10" y1="35" x2="170" y2="35" stroke="#8b5cf6" strokeOpacity="0.5" />
- <text x="90" y="55" textAnchor="middle" fontSize="11" fill="#6b21a8">Review input data</text>
- <text x="90" y="75" textAnchor="middle" fontSize="11" fill="#6b21a8">Vote on proposal</text>
- <text x="90" y="95" textAnchor="middle" fontSize="11" fill="#6b21a8">Need &gt;50% approval</text>
+                  <rect x="0" y="0" width="180" height="120" fill="#e9d5ff" stroke="var(--info)" strokeWidth="2" rx="8" />
+ <text x="90" y="25" textAnchor="middle" fontSize="14" fontWeight="bold" fill="var(--info)">DAO Members</text>
+                  <line x1="10" y1="35" x2="170" y2="35" stroke="var(--info)" strokeOpacity="0.5" />
+ <text x="90" y="55" textAnchor="middle" fontSize="11" fill="var(--info)">Review input data</text>
+ <text x="90" y="75" textAnchor="middle" fontSize="11" fill="var(--info)">Vote on proposal</text>
+ <text x="90" y="95" textAnchor="middle" fontSize="11" fill="var(--info)">Need &gt;50% approval</text>
                 </g>
 
                 {/* Arrows */}
                 {/* 1: Submit attestation */}
-                <path d="M 230 120 L 355 120" stroke="#8b5cf6" strokeWidth="2" markerEnd="url(#arrowPurple)" />
- <text x="295" y="135" textAnchor="middle" fontSize="11" fill="#8b5cf6">1. Submit</text>
- <text x="295" y="150" textAnchor="middle" fontSize="11" fill="#8b5cf6">attestation</text>
+                <path d="M 230 120 L 355 120" stroke="var(--info)" strokeWidth="2" markerEnd="url(#arrowPurple)" />
+ <text x="295" y="135" textAnchor="middle" fontSize="11" fill="var(--info)">1. Submit</text>
+ <text x="295" y="150" textAnchor="middle" fontSize="11" fill="var(--info)">attestation</text>
 
                 {/* 2: Create proposal */}
-                <path d="M 540 120 L 665 120" stroke="#8b5cf6" strokeWidth="2" markerEnd="url(#arrowPurple)" />
- <text x="605" y="135" textAnchor="middle" fontSize="11" fill="#8b5cf6">2. Create</text>
- <text x="605" y="150" textAnchor="middle" fontSize="11" fill="#8b5cf6">proposal</text>
+                <path d="M 540 120 L 665 120" stroke="var(--info)" strokeWidth="2" markerEnd="url(#arrowPurple)" />
+ <text x="605" y="135" textAnchor="middle" fontSize="11" fill="var(--info)">2. Create</text>
+ <text x="605" y="150" textAnchor="middle" fontSize="11" fill="var(--info)">proposal</text>
 
                 {/* 3: Vote approval */}
-                <path d="M 760 180 L 760 225" stroke="#10b981" strokeWidth="2" markerEnd="url(#arrowGreen)" />
- <text x="770" y="200" fontSize="11" fill="#166534">3. Approve</text>
+                <path d="M 760 180 L 760 225" stroke="var(--success)" strokeWidth="2" markerEnd="url(#arrowGreen)" />
+ <text x="770" y="200" fontSize="11" fill="var(--success)">3. Approve</text>
 
                 {/* Result: Functional Key */}
                 <g transform="translate(400, 230)">
-                  <rect x="0" y="0" width="400" height="70" fill="#f0fdf4" stroke="#166534" strokeWidth="2" rx="8" />
- <text x="200" y="25" textAnchor="middle" fontSize="14" fontWeight="bold" fill="#166534">Registration Complete</text>
-                  <line x1="20" y1="35" x2="380" y2="35" stroke="#166534" strokeOpacity="0.5" />
- <text x="200" y="55" textAnchor="middle" fontSize="12" fill="#166534">Functional key added to DAO contract. Keystore can now call CKD</text>
+                  <rect x="0" y="0" width="400" height="70" fill="var(--card-muted)" stroke="var(--success)" strokeWidth="2" rx="8" />
+ <text x="200" y="25" textAnchor="middle" fontSize="14" fontWeight="bold" fill="var(--success)">Registration Complete</text>
+                  <line x1="20" y1="35" x2="380" y2="35" stroke="var(--success)" strokeOpacity="0.5" />
+ <text x="200" y="55" textAnchor="middle" fontSize="12" fill="var(--success)">Functional key added to DAO contract. Keystore can now call CKD</text>
                 </g>
 
                 {/* 4: Adds key */}
-                <path d="M 460 230 L 460 185" stroke="#10b981" strokeWidth="2" markerEnd="url(#arrowGreen)" />
- <text x="470" y="215" fontSize="11" fill="#166534">4. Adds key</text>
+                <path d="M 460 230 L 460 185" stroke="var(--success)" strokeWidth="2" markerEnd="url(#arrowGreen)" />
+ <text x="470" y="215" fontSize="11" fill="var(--success)">4. Adds key</text>
               </svg>
             </div>
 
@@ -299,24 +299,24 @@ export default function SecretsSection() {
                 <defs>
                   <linearGradient id="teeGradient2" x1="0%" y1="0%" x2="0%" y2="100%">
                     <stop offset="0%" stopColor="#fbbf24" stopOpacity="0.8" />
-                    <stop offset="100%" stopColor="#f59e0b" stopOpacity="0.8" />
+                    <stop offset="100%" stopColor="var(--warning)" stopOpacity="0.8" />
                   </linearGradient>
                   <linearGradient id="daoGradient2" x1="0%" y1="0%" x2="0%" y2="100%">
                     <stop offset="0%" stopColor="#a78bfa" stopOpacity="0.8" />
-                    <stop offset="100%" stopColor="#8b5cf6" stopOpacity="0.8" />
+                    <stop offset="100%" stopColor="var(--info)" stopOpacity="0.8" />
                   </linearGradient>
                   <linearGradient id="mpcGradient2" x1="0%" y1="0%" x2="0%" y2="100%">
                     <stop offset="0%" stopColor="#60a5fa" stopOpacity="0.8" />
-                    <stop offset="100%" stopColor="#3b82f6" stopOpacity="0.8" />
+                    <stop offset="100%" stopColor="var(--info)" stopOpacity="0.8" />
                   </linearGradient>
                   <marker id="arrowBlue2" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto">
-                    <polygon points="0 0, 10 5, 0 10" fill="#3b82f6" />
+                    <polygon points="0 0, 10 5, 0 10" fill="var(--info)" />
                   </marker>
                   <marker id="arrowPurple2" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto">
-                    <polygon points="0 0, 10 5, 0 10" fill="#8b5cf6" />
+                    <polygon points="0 0, 10 5, 0 10" fill="var(--info)" />
                   </marker>
                   <marker id="arrowGreen2" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto">
-                    <polygon points="0 0, 10 5, 0 10" fill="#10b981" />
+                    <polygon points="0 0, 10 5, 0 10" fill="var(--success)" />
                   </marker>
                 </defs>
 
@@ -327,18 +327,18 @@ export default function SecretsSection() {
 
                 {/* Keystore TEE with functional key */}
                 <g transform="translate(50, 60)">
-                  <rect x="0" y="0" width="160" height="120" fill="url(#teeGradient2)" rx="8" stroke="#f59e0b" strokeWidth="2" />
- <text x="80" y="25" textAnchor="middle" fill="#7c2d12" fontSize="14" fontWeight="bold">Keystore TEE</text>
+                  <rect x="0" y="0" width="160" height="120" fill="url(#teeGradient2)" rx="8" stroke="var(--warning)" strokeWidth="2" />
+ <text x="80" y="25" textAnchor="middle" fill="var(--accent-text)" fontSize="14" fontWeight="bold">Keystore TEE</text>
                   <rect x="20" y="35" width="120" height="25" fill="#fff7ed" rx="5" />
- <text x="80" y="52" textAnchor="middle" fontSize="10" fill="#7c2d12" fontWeight="bold">Has limited key</text>
-                  <line x1="10" y1="70" x2="150" y2="70" stroke="#92400e" strokeOpacity="0.5" />
- <text x="80" y="90" textAnchor="middle" fill="#7c2d12" fontSize="11">Needs CKD for</text>
- <text x="80" y="108" textAnchor="middle" fill="#7c2d12" fontSize="11">app secrets</text>
+ <text x="80" y="52" textAnchor="middle" fontSize="10" fill="var(--accent-text)" fontWeight="bold">Has limited key</text>
+                  <line x1="10" y1="70" x2="150" y2="70" stroke="var(--accent-text)" strokeOpacity="0.5" />
+ <text x="80" y="90" textAnchor="middle" fill="var(--accent-text)" fontSize="11">Needs CKD for</text>
+ <text x="80" y="108" textAnchor="middle" fill="var(--accent-text)" fontSize="11">app secrets</text>
                 </g>
 
                 {/* DAO Contract Gateway */}
                 <g transform="translate(300, 60)">
-                  <rect x="0" y="0" width="160" height="120" fill="url(#daoGradient2)" rx="8" stroke="#8b5cf6" strokeWidth="2" />
+                  <rect x="0" y="0" width="160" height="120" fill="url(#daoGradient2)" rx="8" stroke="var(--info)" strokeWidth="2" />
  <text x="80" y="25" textAnchor="middle" fill="white" fontSize="14" fontWeight="bold">DAO Contract</text>
  <text x="80" y="45" textAnchor="middle" fill="white" fontSize="10">(Gateway)</text>
                   <line x1="10" y1="55" x2="150" y2="55" stroke="white" strokeOpacity="0.5" />
@@ -349,7 +349,7 @@ export default function SecretsSection() {
 
                 {/* MPC Contract */}
                 <g transform="translate(540, 60)">
-                  <rect x="0" y="0" width="160" height="120" fill="url(#mpcGradient2)" rx="8" stroke="#3b82f6" strokeWidth="2" />
+                  <rect x="0" y="0" width="160" height="120" fill="url(#mpcGradient2)" rx="8" stroke="var(--info)" strokeWidth="2" />
  <text x="80" y="25" textAnchor="middle" fill="white" fontSize="14" fontWeight="bold">MPC Contract</text>
  <text x="80" y="45" textAnchor="middle" fill="white" fontSize="10">v1.signer-prod</text>
                   <line x1="10" y1="55" x2="150" y2="55" stroke="white" strokeOpacity="0.5" />
@@ -359,29 +359,29 @@ export default function SecretsSection() {
 
                 {/* MPC Network */}
                 <g transform="translate(710, 60)">
- <text x="110" y="15" textAnchor="middle" fontSize="13" fontWeight="bold" fill="#1e40af">MPC Network</text>
+ <text x="110" y="15" textAnchor="middle" fontSize="13" fontWeight="bold" fill="var(--info)">MPC Network</text>
 
                   {/* Nodes in circle */}
                   <g transform="translate(110, 70)">
-                    <circle cx="0" cy="-30" r="15" fill="#dbeafe" stroke="#3b82f6" strokeWidth="2" />
- <text x="0" y="-26" textAnchor="middle" fontSize="8" fill="#1e40af">N1</text>
+                    <circle cx="0" cy="-30" r="15" fill="var(--card-muted)" stroke="var(--info)" strokeWidth="2" />
+ <text x="0" y="-26" textAnchor="middle" fontSize="8" fill="var(--info)">N1</text>
 
-                    <circle cx="26" cy="-15" r="15" fill="#dbeafe" stroke="#3b82f6" strokeWidth="2" />
- <text x="26" y="-11" textAnchor="middle" fontSize="8" fill="#1e40af">N2</text>
+                    <circle cx="26" cy="-15" r="15" fill="var(--card-muted)" stroke="var(--info)" strokeWidth="2" />
+ <text x="26" y="-11" textAnchor="middle" fontSize="8" fill="var(--info)">N2</text>
 
-                    <circle cx="26" cy="15" r="15" fill="#dbeafe" stroke="#3b82f6" strokeWidth="2" />
- <text x="26" y="19" textAnchor="middle" fontSize="8" fill="#1e40af">N3</text>
+                    <circle cx="26" cy="15" r="15" fill="var(--card-muted)" stroke="var(--info)" strokeWidth="2" />
+ <text x="26" y="19" textAnchor="middle" fontSize="8" fill="var(--info)">N3</text>
 
-                    <circle cx="0" cy="30" r="15" fill="#dbeafe" stroke="#3b82f6" strokeWidth="2" />
- <text x="0" y="34" textAnchor="middle" fontSize="8" fill="#1e40af">N4</text>
+                    <circle cx="0" cy="30" r="15" fill="var(--card-muted)" stroke="var(--info)" strokeWidth="2" />
+ <text x="0" y="34" textAnchor="middle" fontSize="8" fill="var(--info)">N4</text>
 
-                    <circle cx="-26" cy="15" r="15" fill="#dbeafe" stroke="#3b82f6" strokeWidth="2" />
- <text x="-26" y="19" textAnchor="middle" fontSize="8" fill="#1e40af">N5</text>
+                    <circle cx="-26" cy="15" r="15" fill="var(--card-muted)" stroke="var(--info)" strokeWidth="2" />
+ <text x="-26" y="19" textAnchor="middle" fontSize="8" fill="var(--info)">N5</text>
 
-                    <circle cx="-26" cy="-15" r="15" fill="#dbeafe" stroke="#3b82f6" strokeWidth="2" />
- <text x="-26" y="-11" textAnchor="middle" fontSize="8" fill="#1e40af">N6</text>
+                    <circle cx="-26" cy="-15" r="15" fill="var(--card-muted)" stroke="var(--info)" strokeWidth="2" />
+ <text x="-26" y="-11" textAnchor="middle" fontSize="8" fill="var(--info)">N6</text>
 
-                    <circle cx="0" cy="0" r="15" fill="#60a5fa" stroke="#3b82f6" strokeWidth="2" />
+                    <circle cx="0" cy="0" r="15" fill="#60a5fa" stroke="var(--info)" strokeWidth="2" />
  <text x="0" y="4" textAnchor="middle" fontSize="8" fill="white">N7</text>
                   </g>
 
@@ -391,34 +391,34 @@ export default function SecretsSection() {
 
                 {/* Flow arrows */}
                 {/* 1: Request CKD */}
-                <path d="M 210 120 L 300 120" stroke="#8b5cf6" strokeWidth="2" markerEnd="url(#arrowPurple2)" />
- <text x="255" y="140" textAnchor="middle" fontSize="11" fill="#8b5cf6">1. Request CKD</text>
- <text x="255" y="155" textAnchor="middle" fontSize="11" fill="#8b5cf6">(limited key)</text>
+                <path d="M 210 120 L 300 120" stroke="var(--info)" strokeWidth="2" markerEnd="url(#arrowPurple2)" />
+ <text x="255" y="140" textAnchor="middle" fontSize="11" fill="var(--info)">1. Request CKD</text>
+ <text x="255" y="155" textAnchor="middle" fontSize="11" fill="var(--info)">(limited key)</text>
 
                 {/* 2: Forward to MPC */}
-                <path d="M 460 120 L 540 120" stroke="#3b82f6" strokeWidth="2" markerEnd="url(#arrowBlue2)" />
- <text x="495" y="140" textAnchor="middle" fontSize="11" fill="#3b82f6">2. Forward</text>
- <text x="495" y="155" textAnchor="middle" fontSize="11" fill="#3b82f6">to MPC</text>
+                <path d="M 460 120 L 540 120" stroke="var(--info)" strokeWidth="2" markerEnd="url(#arrowBlue2)" />
+ <text x="495" y="140" textAnchor="middle" fontSize="11" fill="var(--info)">2. Forward</text>
+ <text x="495" y="155" textAnchor="middle" fontSize="11" fill="var(--info)">to MPC</text>
 
                 {/* 3: Distribute */}
-                <path d="M 710 120 L 770 120" stroke="#3b82f6" strokeWidth="2" markerEnd="url(#arrowBlue2)" />
- <text x="740" y="140" textAnchor="middle" fontSize="11" fill="#3b82f6">3. Compute</text>
+                <path d="M 710 120 L 770 120" stroke="var(--info)" strokeWidth="2" markerEnd="url(#arrowBlue2)" />
+ <text x="740" y="140" textAnchor="middle" fontSize="11" fill="var(--info)">3. Compute</text>
 
                 {/* 4: Return encrypted key */}
                 <path d="M 820 190 Q 480 320 130 190"
                       fill="none"
-                      stroke="#10b981"
+                      stroke="var(--success)"
                       strokeWidth="3"
                       strokeDasharray="8,4"
                       markerEnd="url(#arrowGreen2)" />
 
-                <rect x="350" y="270" width="300" height="50" fill="white" stroke="#10b981" strokeWidth="2" rx="8" />
- <text x="500" y="290" textAnchor="middle" fontSize="14" fontWeight="bold" fill="#166534">4. Encrypted Derivation Key</text>
- <text x="500" y="308" textAnchor="middle" fontSize="14" fill="#166534">(Only TEE can decrypt)</text>
+                <rect x="350" y="270" width="300" height="50" fill="white" stroke="var(--success)" strokeWidth="2" rx="8" />
+ <text x="500" y="290" textAnchor="middle" fontSize="14" fontWeight="bold" fill="var(--success)">4. Encrypted Derivation Key</text>
+ <text x="500" y="308" textAnchor="middle" fontSize="14" fill="var(--success)">(Only TEE can decrypt)</text>
 
                 {/* Properties */}
-                <rect x="100" y="340" width="800" height="30" fill="#f0fdf4" stroke="#10b981" strokeWidth="2" rx="8" />
-                <text x="500" y="360" textAnchor="middle" fontSize="12" fill="#166534" fontWeight="bold">
+                <rect x="100" y="340" width="800" height="30" fill="var(--card-muted)" stroke="var(--success)" strokeWidth="2" rx="8" />
+                <text x="500" y="360" textAnchor="middle" fontSize="12" fill="var(--success)" fontWeight="bold">
                   Deterministic  |  Persistent  |  Survives restarts  |  No single point of failure
                 </text>
               </svg>

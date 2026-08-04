@@ -4,9 +4,9 @@ import { ExampleCard, UseCasesSection, KeyFeaturesSection, TechnicalDetailsSecti
 export function WeatherExample() {
   const badges = (
     <>
-      <span className="ml-3 text-sm bg-info/10 text-info px-3 py-1 rounded">WASI P2</span>
-      <span className="ml-2 text-sm bg-purple-100 text-purple-800 px-3 py-1 rounded">Secrets</span>
-      <span className="ml-2 text-sm bg-warning/10 text-warning px-3 py-1 rounded">Intermediate</span>
+ <span className="ml-3 text-sm bg-card-muted text-foreground px-3 py-1 rounded">WASI P2</span>
+ <span className="ml-2 text-sm bg-card-muted text-foreground px-3 py-1 rounded">Secrets</span>
+ <span className="ml-2 text-sm bg-card-muted text-foreground px-3 py-1 rounded">Intermediate</span>
     </>
   );
 
@@ -18,7 +18,7 @@ export function WeatherExample() {
       githubUrl="https://github.com/out-layer/weather-example"
       playgroundId="weather"
     >
-      <p className="text-foreground mb-4">
+ <p className="text-foreground mb-4">
         Fetch real-world weather data from OpenWeatherMap API and bring it on-chain. Perfect for parametric insurance, prediction markets, and climate-dependent DeFi.
       </p>
 
@@ -33,7 +33,7 @@ export function WeatherExample() {
         'Fetches temperature, humidity, pressure, wind speed',
         'Supports city name or coordinates lookup',
         'Returns structured weather data with timestamps',
-        <>Encrypted API key via OutLayer secrets (<code>OPENWEATHER_API_KEY</code>)</>
+ <>Encrypted API key via OutLayer secrets (<code>OPENWEATHER_API_KEY</code>)</>
       ]} />
 
       <CodeExampleSection
@@ -66,7 +66,7 @@ export function WeatherExample() {
       />
 
       <HowItWorksSection items={[
-        <>WASM reads <code>OPENWEATHER_API_KEY</code> from encrypted secrets</>,
+ <>WASM reads <code>OPENWEATHER_API_KEY</code> from encrypted secrets</>,
         'Constructs HTTP request to OpenWeatherMap API',
         'Sends GET request via WASI HTTP interface',
         'Parses JSON response with serde',
@@ -75,57 +75,57 @@ export function WeatherExample() {
       ]} />
 
       <TechnicalDetailsSection items={[
-        <><strong>WASI Version:</strong> Preview 2 (component model)</>,
-        <><strong>Language:</strong> Rust</>,
-        <><strong>HTTP Client:</strong> <code>reqwest</code> with WASI sockets</>,
-        <><strong>Secrets:</strong> Required (<code>OPENWEATHER_API_KEY</code>)</>,
-        <><strong>Network:</strong> Required (outbound HTTPS to api.openweathermap.org)</>,
-        <><strong>API:</strong> OpenWeatherMap Current Weather API</>,
-        <><strong>Build:</strong> <code>cargo component build --release</code></>,
-        <><strong>Size:</strong> ~2.2MB compiled WASM</>
+ <><strong>WASI Version:</strong> Preview 2 (component model)</>,
+ <><strong>Language:</strong> Rust</>,
+ <><strong>HTTP Client:</strong> <code>reqwest</code> with WASI sockets</>,
+ <><strong>Secrets:</strong> Required (<code>OPENWEATHER_API_KEY</code>)</>,
+ <><strong>Network:</strong> Required (outbound HTTPS to api.openweathermap.org)</>,
+ <><strong>API:</strong> OpenWeatherMap Current Weather API</>,
+ <><strong>Build:</strong> <code>cargo component build --release</code></>,
+ <><strong>Size:</strong> ~2.2MB compiled WASM</>
       ]} />
 
-      <div className="mt-4 p-4 bg-info/10 border-l-4 border-info/50">
-        <h4 className="font-semibold text-foreground mb-2">Setting Up Secrets</h4>
-        <ol className="list-decimal list-inside text-sm text-foreground space-y-1">
+ <div className="mt-4 p-4 bg-card-muted border-l-4 border-border">
+ <h4 className="font-semibold text-foreground mb-2">Setting Up Secrets</h4>
+ <ol className="list-decimal list-inside text-sm text-foreground space-y-1">
           <li>
-            Get free API key from <a href="https://openweathermap.org/api" target="_blank" rel="noopener noreferrer" className="text-[var(--primary-orange)] hover:underline">OpenWeatherMap</a>
+ Get free API key from <a href="https://openweathermap.org/api" target="_blank" rel="noopener noreferrer" className="text-[var(--primary-orange)] hover:underline">OpenWeatherMap</a>
           </li>
           <li>
-            Navigate to <Link href="/secrets" className="text-[var(--primary-orange)] hover:underline">Secrets Management</Link>
+ Navigate to <Link href="/secrets" className="text-[var(--primary-orange)] hover:underline">Secrets Management</Link>
           </li>
-          <li>Create secret: key = <code>OPENWEATHER_API_KEY</code>, value = your API key</li>
-          <li>Set repo to your GitHub project</li>
-          <li>Choose access condition (AllowAll for public data, Whitelist for production)</li>
+ <li>Create secret: key = <code>OPENWEATHER_API_KEY</code>, value = your API key</li>
+ <li>Set repo to your GitHub project</li>
+ <li>Choose access condition (AllowAll for public data, Whitelist for production)</li>
         </ol>
       </div>
 
       <SecurityNotesSection items={[
-        <>✅ Free tier: 60 calls/minute, 1M calls/month</>,
-        <>⚠️ Monitor API usage to stay within limits</>,
-        <>✅ API keys encrypted and only decrypted in TEE</>,
-        <>⚠️ Weather data typically updates every 10 minutes - avoid excessive calls</>
+ <> Free tier: 60 calls/minute, 1M calls/month</>,
+ <> Monitor API usage to stay within limits</>,
+ <> API keys encrypted and only decrypted in TEE</>,
+ <> Weather data typically updates every 10 minutes - avoid excessive calls</>
       ]} />
 
       <LearnMoreSection>
-        <ul className="text-sm text-foreground space-y-1">
+ <ul className="text-sm text-foreground space-y-1">
           <li>
-            📖 <Link href="/docs/wasi#wasi-preview-2" className="text-[var(--primary-orange)] hover:underline">
+ <Link href="/docs/wasi#wasi-preview-2" className="text-[var(--primary-orange)] hover:underline">
               WASI Preview 2 Documentation
             </Link>
           </li>
           <li>
-            🔐 <Link href="/docs/secrets" className="text-[var(--primary-orange)] hover:underline">
+ <Link href="/docs/secrets" className="text-[var(--primary-orange)] hover:underline">
               Secrets Management Guide
             </Link>
           </li>
           <li>
-            🎮 <Link href="/playground#weather" className="text-[var(--primary-orange)] hover:underline">
+ <Link href="/playground#weather" className="text-[var(--primary-orange)] hover:underline">
               Try in Playground
             </Link>
           </li>
           <li>
-            💻 <a href="https://github.com/out-layer/weather-example" target="_blank" rel="noopener noreferrer" className="text-[var(--primary-orange)] hover:underline">
+ <a href="https://github.com/out-layer/weather-example" target="_blank" rel="noopener noreferrer" className="text-[var(--primary-orange)] hover:underline">
               View Source Code
             </a>
           </li>

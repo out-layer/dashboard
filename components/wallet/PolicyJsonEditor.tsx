@@ -7,11 +7,11 @@ interface PolicyJsonEditorProps {
 
 export function PolicyJsonEditor({ policyJsonText, onChangeText, jsonEdited, onReset }: PolicyJsonEditorProps) {
   return (
-    <div className="mt-4 pt-4 border-t">
-      <div className="flex items-center justify-between mb-2">
-        <h3 className="text-sm font-semibold text-foreground">Policy JSON</h3>
+ <div className="mt-4 pt-4 border-t">
+ <div className="flex items-center justify-between mb-2">
+ <h3 className="text-sm font-semibold text-foreground">Policy JSON</h3>
         {jsonEdited && (
-          <button onClick={onReset} className="text-xs text-accent-text hover:underline">
+ <button onClick={onReset} className="text-xs text-accent-text hover:underline">
             Reset from form
           </button>
         )}
@@ -20,10 +20,10 @@ export function PolicyJsonEditor({ policyJsonText, onChangeText, jsonEdited, onR
         value={policyJsonText}
         onChange={(e) => onChangeText(e.target.value)}
         rows={Math.min(20, Math.max(6, policyJsonText.split('\n').length + 1))}
-        className="w-full border border-border-strong rounded px-3 py-2 text-xs font-mono bg-card-muted focus:bg-card"
+ className="w-full border border-border-strong rounded px-3 py-2 text-xs font-mono bg-card-muted focus:bg-card"
         spellCheck={false}
       />
-      <p className="text-xs text-faint-foreground mt-1">
+ <p className="text-xs text-faint-foreground mt-1">
         You can edit JSON directly &mdash; this is what will be submitted.
       </p>
     </div>

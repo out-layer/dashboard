@@ -12,7 +12,7 @@ interface CreateKeyFormProps {
   stablecoin: StablecoinConfig;
   nextNonce: number;
   coordinatorUrl: string;
-  signAndSendTransaction: (params: unknown) => Promise<unknown>;
+ signAndSendTransaction: (params: unknown) => Promise<unknown>;
   onComplete: (generatedKey: string, nonce: number) => void;
   onError: (error: string) => void;
   onCancel: () => void;
@@ -239,16 +239,16 @@ export function CreateKeyForm({
   const isSubmitting = creationState.step !== 'form' && creationState.step !== 'error';
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-card rounded-lg border border-border-xl p-6 max-w-lg w-full">
-        <h2 className="text-xl font-bold text-foreground mb-4">Create Payment Key</h2>
+ <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+ <div className="bg-card rounded-lg border border-border-xl p-6 max-w-lg w-full">
+ <h2 className="text-xl font-bold text-foreground mb-4">Create Payment Key</h2>
 
         {/* Progress indicator */}
         {isSubmitting && (
-          <div className="mb-4 p-3 bg-info/10 border border-info/30 rounded-lg">
-            <div className="flex items-center gap-2">
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-accent"></div>
-              <span className="text-info">
+ <div className="mb-4 p-3 bg-info/10 border border-info/30 rounded-lg">
+ <div className="flex items-center gap-2">
+ <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-accent"></div>
+ <span className="text-info">
                 {creationState.step === 'generating' && 'Generating secure key...'}
                 {creationState.step === 'storing' && 'Transaction 1/2: Storing encrypted key...'}
                 {creationState.step === 'topping_up' && 'Transaction 2/2: Adding initial balance...'}
@@ -258,21 +258,21 @@ export function CreateKeyForm({
         )}
 
         {/* Info */}
-        <div className="mb-4 p-3 bg-warning/10 border border-warning/30 rounded-lg">
-          <p className="text-sm text-warning">
+ <div className="mb-4 p-3 bg-warning/10 border border-warning/30 rounded-lg">
+ <p className="text-sm text-warning">
             Creating a Payment Key requires 2 transactions:
           </p>
-          <ol className="text-sm text-warning mt-2 ml-4 list-decimal">
-            <li>Store encrypted key on contract (NEAR storage deposit)</li>
-            <li>Top up balance with {stablecoin.symbol} (initial deposit)</li>
+ <ol className="text-sm text-warning mt-2 ml-4 list-decimal">
+ <li>Store encrypted key on contract (NEAR storage deposit)</li>
+ <li>Top up balance with {stablecoin.symbol} (initial deposit)</li>
           </ol>
         </div>
 
         {/* Form */}
-        <div className="space-y-4">
+ <div className="space-y-4">
           {/* Project restrictions */}
           <div>
-            <label className="block text-sm font-medium text-foreground mb-1">
+ <label className="block text-sm font-medium text-foreground mb-1">
               Allowed Projects (optional)
             </label>
             <input
@@ -280,17 +280,17 @@ export function CreateKeyForm({
               value={projectIds}
               onChange={(e) => setProjectIds(e.target.value)}
               placeholder="owner.near/project1, owner.near/project2"
-              className="w-full border border-border-strong rounded-lg px-3 py-2 text-foreground placeholder:text-faint-foreground focus:ring-2 focus:ring-accent"
+ className="w-full border border-border-strong rounded-lg px-3 py-2 text-foreground placeholder:text-faint-foreground focus:ring-2 focus:ring-accent"
               disabled={isSubmitting}
             />
-            <p className="text-xs text-muted-foreground mt-1">
+ <p className="text-xs text-muted-foreground mt-1">
               Leave empty to allow all projects. Comma-separated list.
             </p>
           </div>
 
           {/* Max per call */}
           <div>
-            <label className="block text-sm font-medium text-foreground mb-1">
+ <label className="block text-sm font-medium text-foreground mb-1">
               Max per Call ({stablecoin.symbol}, optional)
             </label>
             <input
@@ -298,17 +298,17 @@ export function CreateKeyForm({
               value={maxPerCall}
               onChange={(e) => setMaxPerCall(e.target.value)}
               placeholder="100.00"
-              className="w-full border border-border-strong rounded-lg px-3 py-2 text-foreground placeholder:text-faint-foreground focus:ring-2 focus:ring-accent"
+ className="w-full border border-border-strong rounded-lg px-3 py-2 text-foreground placeholder:text-faint-foreground focus:ring-2 focus:ring-accent"
               disabled={isSubmitting}
             />
-            <p className="text-xs text-muted-foreground mt-1">
+ <p className="text-xs text-muted-foreground mt-1">
               Maximum spend per single API call. Leave empty for no limit.
             </p>
           </div>
 
           {/* Initial deposit */}
           <div>
-            <label className="block text-sm font-medium text-foreground mb-1">
+ <label className="block text-sm font-medium text-foreground mb-1">
               Initial Deposit ({stablecoin.symbol}) *
             </label>
             <input
@@ -316,10 +316,10 @@ export function CreateKeyForm({
               value={initialDeposit}
               onChange={(e) => setInitialDeposit(e.target.value)}
               placeholder="2.00"
-              className="w-full border border-border-strong rounded-lg px-3 py-2 text-foreground placeholder:text-faint-foreground focus:ring-2 focus:ring-accent"
+ className="w-full border border-border-strong rounded-lg px-3 py-2 text-foreground placeholder:text-faint-foreground focus:ring-2 focus:ring-accent"
               disabled={isSubmitting}
             />
-            <p className="text-xs text-muted-foreground mt-1">
+ <p className="text-xs text-muted-foreground mt-1">
               Minimum $0.01. This will be your starting balance.
             </p>
           </div>
@@ -327,29 +327,29 @@ export function CreateKeyForm({
 
         {/* Pubkey loading/error indicator */}
         {!prefetchedPubkey && !pubkeyError && (
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-border-strong"></div>
+ <div className="flex items-center gap-2 text-sm text-muted-foreground">
+ <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-border-strong"></div>
             Preparing encryption...
           </div>
         )}
         {pubkeyError && (
-          <div className="text-sm text-destructive-text">
+ <div className="text-sm text-destructive-text">
             Failed to load encryption key: {pubkeyError}
           </div>
         )}
 
         {/* Actions */}
-        <div className="flex gap-3 mt-6">
+ <div className="flex gap-3 mt-6">
           <button
             onClick={onCancel}
-            className="flex-1 bg-card-muted hover:bg-card-muted text-foreground px-4 py-2 rounded-lg font-medium transition-colors"
+ className="flex-1 bg-card-muted hover:bg-card-muted text-foreground px-4 py-2 rounded-lg font-medium transition-colors"
             disabled={isSubmitting}
           >
             Cancel
           </button>
           <button
             onClick={handleCreate}
-            className="flex-1 bg-accent hover:bg-accent-hover text-white px-4 py-2 rounded-lg font-medium disabled:opacity-50 transition-colors"
+ className="flex-1 bg-accent hover:bg-accent-hover text-white px-4 py-2 rounded-lg font-medium disabled:opacity-50 transition-colors"
             disabled={isSubmitting || !prefetchedPubkey}
           >
             {isSubmitting ? 'Creating...' : !prefetchedPubkey ? 'Preparing...' : 'Create Key'}
@@ -357,7 +357,7 @@ export function CreateKeyForm({
         </div>
 
         {/* Nonce info */}
-        <p className="text-xs text-muted-foreground mt-4 text-center">
+ <p className="text-xs text-muted-foreground mt-4 text-center">
           This will be key #{nextNonce} for your account
         </p>
       </div>

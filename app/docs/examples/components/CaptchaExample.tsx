@@ -5,8 +5,8 @@ import { ExampleCard, KeyFeaturesSection, TechnicalDetailsSection, LearnMoreSect
 export function CaptchaExample() {
   const badges = (
     <>
-      <span className="ml-3 text-sm bg-purple-100 text-purple-800 px-3 py-1 rounded">WASI P2</span>
-      <span className="ml-2 text-sm bg-success/10 text-success-text px-3 py-1 rounded">Full Stack</span>
+ <span className="ml-3 text-sm bg-card-muted text-foreground px-3 py-1 rounded">WASI P2</span>
+ <span className="ml-2 text-sm bg-card-muted text-foreground px-3 py-1 rounded">Full Stack</span>
     </>
   );
 
@@ -17,7 +17,7 @@ export function CaptchaExample() {
       badges={badges}
       githubUrl="https://github.com/out-layer/captcha-example"
     >
-      <p className="text-foreground mb-4">
+ <p className="text-foreground mb-4">
         Token sale with mandatory CAPTCHA verification. Transaction won&apos;t complete until user solves CAPTCHA. WASI worker receives session ID from backend and waits for verification signal. Example implementation demonstrating async human verification pattern.
       </p>
 
@@ -31,7 +31,7 @@ export function CaptchaExample() {
         'Node.js backend with Express + WebSocket server'
       ]} />
 
-      <h4 className="font-semibold mt-4 mb-2">Architecture:</h4>
+ <h4 className="font-semibold mt-4 mb-2">Architecture:</h4>
       <SyntaxHighlighter language="text" style={vscDarkPlus} customStyle={{ borderRadius: '0.5rem', fontSize: '0.75rem' }}>
 {`User Browser → Token Sale Contract → OutLayer → WASI Worker
       ↑                                              ↓
@@ -50,15 +50,15 @@ Flow:
 8. Transaction resumes - user receives tokens`}
       </SyntaxHighlighter>
 
-      <h4 className="font-semibold mt-4 mb-2">Components:</h4>
-      <ul className="list-disc list-inside text-foreground space-y-1 mb-4 ml-4">
-        <li><strong>WASI Worker:</strong> Rust WASM that verifies CAPTCHA (wasm32-wasip2)</li>
-        <li><strong>Smart Contract:</strong> Token sale logic with OutLayer integration</li>
-        <li><strong>Backend:</strong> Node.js Express server with WebSocket support</li>
-        <li><strong>Frontend:</strong> React app with hCaptcha widget</li>
+ <h4 className="font-semibold mt-4 mb-2">Components:</h4>
+ <ul className="list-disc list-inside text-foreground space-y-1 mb-4 ml-4">
+ <li><strong>WASI Worker:</strong> Rust WASM that verifies CAPTCHA (wasm32-wasip2)</li>
+ <li><strong>Smart Contract:</strong> Token sale logic with OutLayer integration</li>
+ <li><strong>Backend:</strong> Node.js Express server with WebSocket support</li>
+ <li><strong>Frontend:</strong> React app with hCaptcha widget</li>
       </ul>
 
-      <h4 className="font-semibold mt-4 mb-2">How to Use:</h4>
+ <h4 className="font-semibold mt-4 mb-2">How to Use:</h4>
       <SyntaxHighlighter language="bash" style={vscDarkPlus} customStyle={{ borderRadius: '0.5rem', fontSize: '0.875rem' }}>
 {`# 1. Get hCaptcha account (free at hcaptcha.com)
 # - Create site and get Site Key + Secret Key
@@ -108,9 +108,9 @@ near deploy tokensale.testnet \\
 # Visit https://launchpad.yourdomain.com and click "Buy Tokens"`}
       </SyntaxHighlighter>
 
-      <div className="mt-4 p-3 bg-info/10 border-l-4 border-info/50">
-        <p className="text-sm text-foreground mb-2">
-          <strong>Production Setup:</strong> Requires SSL certificates for both frontend and backend domains. See <a href="https://github.com/out-layer/captcha-example/blob/main/CONFIGURATION.md" target="_blank" rel="noopener noreferrer" className="text-[var(--primary-orange)] hover:underline">CONFIGURATION.md</a> for complete deployment guide.
+ <div className="mt-4 p-3 bg-card-muted border-l-4 border-border">
+ <p className="text-sm text-foreground mb-2">
+ <strong>Production Setup:</strong> Requires SSL certificates for both frontend and backend domains. See <a href="https://github.com/out-layer/captcha-example/blob/main/CONFIGURATION.md" target="_blank" rel="noopener noreferrer" className="text-[var(--primary-orange)] hover:underline">CONFIGURATION.md</a> for complete deployment guide.
         </p>
       </div>
 
@@ -122,35 +122,35 @@ near deploy tokensale.testnet \\
       ]} />
 
       <TechnicalDetailsSection items={[
-        <><strong>WASI Version:</strong> Preview 2 (component model)</>,
-        <><strong>Language:</strong> Rust (WASM), TypeScript (Frontend/Backend)</>,
-        <><strong>HTTP Client:</strong> <code>reqwest</code> for backend communication</>,
-        <><strong>Backend:</strong> Node.js + Express + WebSocket</>,
-        <><strong>Frontend:</strong> React with NEAR Wallet Selector</>,
-        <><strong>CAPTCHA:</strong> hCaptcha integration</>,
-        <><strong>Build:</strong> <code>cargo component build --release</code></>,
-        <><strong>Size:</strong> ~2.8MB compiled WASM</>
+ <><strong>WASI Version:</strong> Preview 2 (component model)</>,
+ <><strong>Language:</strong> Rust (WASM), TypeScript (Frontend/Backend)</>,
+ <><strong>HTTP Client:</strong> <code>reqwest</code> for backend communication</>,
+ <><strong>Backend:</strong> Node.js + Express + WebSocket</>,
+ <><strong>Frontend:</strong> React with NEAR Wallet Selector</>,
+ <><strong>CAPTCHA:</strong> hCaptcha integration</>,
+ <><strong>Build:</strong> <code>cargo component build --release</code></>,
+ <><strong>Size:</strong> ~2.8MB compiled WASM</>
       ]} />
 
       <LearnMoreSection>
-        <ul className="text-sm text-foreground space-y-1">
+ <ul className="text-sm text-foreground space-y-1">
           <li>
-            📖 <Link href="/docs/wasi#wasi-preview-2" className="text-[var(--primary-orange)] hover:underline">
+ <Link href="/docs/wasi#wasi-preview-2" className="text-[var(--primary-orange)] hover:underline">
               WASI Preview 2 Documentation
             </Link>
           </li>
           <li>
-            💻 <a href="https://github.com/out-layer/captcha-example" target="_blank" rel="noopener noreferrer" className="text-[var(--primary-orange)] hover:underline">
+ <a href="https://github.com/out-layer/captcha-example" target="_blank" rel="noopener noreferrer" className="text-[var(--primary-orange)] hover:underline">
               View Source Code
             </a>
           </li>
           <li>
-            📋 <a href="https://github.com/out-layer/captcha-example/blob/main/CONFIGURATION.md" target="_blank" rel="noopener noreferrer" className="text-[var(--primary-orange)] hover:underline">
+ <a href="https://github.com/out-layer/captcha-example/blob/main/CONFIGURATION.md" target="_blank" rel="noopener noreferrer" className="text-[var(--primary-orange)] hover:underline">
               Deployment Configuration Guide
             </a>
           </li>
           <li>
-            🤖 <a href="https://hcaptcha.com" target="_blank" rel="noopener noreferrer" className="text-[var(--primary-orange)] hover:underline">
+ <a href="https://hcaptcha.com" target="_blank" rel="noopener noreferrer" className="text-[var(--primary-orange)] hover:underline">
               hCaptcha (Free Tier Available)
             </a>
           </li>

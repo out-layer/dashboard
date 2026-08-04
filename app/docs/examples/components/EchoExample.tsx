@@ -4,8 +4,8 @@ import { ExampleCard, UseCasesSection, KeyFeaturesSection, TechnicalDetailsSecti
 export function EchoExample() {
   const badges = (
     <>
-      <span className="ml-3 text-sm bg-info/10 text-info px-3 py-1 rounded">WASI P1</span>
-      <span className="ml-2 text-sm bg-success/10 text-success-text px-3 py-1 rounded">Beginner</span>
+ <span className="ml-3 text-sm bg-card-muted text-foreground px-3 py-1 rounded">WASI P1</span>
+ <span className="ml-2 text-sm bg-card-muted text-foreground px-3 py-1 rounded">Beginner</span>
     </>
   );
 
@@ -17,7 +17,7 @@ export function EchoExample() {
       githubUrl="https://github.com/out-layer/echo-example"
       playgroundId="echo"
     >
-      <p className="text-foreground mb-4">
+ <p className="text-foreground mb-4">
         Simple echo service that accepts JSON input and returns it with a timestamp. Demonstrates basic WASI I/O and data processing.
       </p>
 
@@ -68,28 +68,28 @@ export function EchoExample() {
       ]} />
 
       <TechnicalDetailsSection items={[
-        <><strong>WASI Version:</strong> Preview 1 (<code>wasm32-wasip1</code>)</>,
-        <><strong>Language:</strong> Rust</>,
-        <><strong>Entry Point:</strong> <code>main()</code></>,
-        <><strong>Dependencies:</strong> <code>serde</code>, <code>serde_json</code>, <code>chrono</code></>,
-        <><strong>Build:</strong> <code>cargo build --target wasm32-wasip1 --release</code></>,
-        <><strong>Size:</strong> ~180KB compiled WASM</>
+ <><strong>WASI Version:</strong> Preview 1 (<code>wasm32-wasip1</code>)</>,
+ <><strong>Language:</strong> Rust</>,
+ <><strong>Entry Point:</strong> <code>main()</code></>,
+ <><strong>Dependencies:</strong> <code>serde</code>, <code>serde_json</code>, <code>chrono</code></>,
+ <><strong>Build:</strong> <code>cargo build --target wasm32-wasip1 --release</code></>,
+ <><strong>Size:</strong> ~180KB compiled WASM</>
       ]} />
 
       <LearnMoreSection>
-        <ul className="text-sm text-foreground space-y-1">
+ <ul className="text-sm text-foreground space-y-1">
           <li>
-            📖 <Link href="/docs/wasi#wasi-preview-1" className="text-[var(--primary-orange)] hover:underline">
+ <Link href="/docs/wasi#wasi-preview-1" className="text-[var(--primary-orange)] hover:underline">
               WASI Preview 1 Documentation
             </Link>
           </li>
           <li>
-            🎮 <Link href="/playground#echo" className="text-[var(--primary-orange)] hover:underline">
+ <Link href="/playground#echo" className="text-[var(--primary-orange)] hover:underline">
               Try in Playground
             </Link>
           </li>
           <li>
-            💻 <a href="https://github.com/out-layer/echo-example" target="_blank" rel="noopener noreferrer" className="text-[var(--primary-orange)] hover:underline">
+ <a href="https://github.com/out-layer/echo-example" target="_blank" rel="noopener noreferrer" className="text-[var(--primary-orange)] hover:underline">
               View Source Code
             </a>
           </li>

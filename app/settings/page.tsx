@@ -97,23 +97,23 @@ export default function SettingsPage() {
 
   if (!isConnected) {
     return (
-      <div className="w-full">
+ <div className="w-full">
         <RequireWallet subject="your settings and earnings" />
       </div>
     );
   }
 
   return (
-    <div className="w-full">
-      <div className="sm:flex sm:items-center sm:justify-between">
-        <div className="sm:flex-auto">
-          <h1 className="text-xl font-bold tracking-tight">Settings</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Manage your account and view usage statistics</p>
+ <div className="w-full">
+ <div className="sm:flex sm:items-center sm:justify-between">
+ <div className="sm:flex-auto">
+ <h1 className="text-xl font-bold tracking-tight">Settings</h1>
+ <p className="mt-1 text-sm text-muted-foreground">Manage your account and view usage statistics</p>
         </div>
-        <div className="mt-4 sm:mt-0">
+ <div className="mt-4 sm:mt-0">
           <button
             onClick={disconnect}
-            className="inline-flex items-center px-4 py-2 border border-border-strong shadow-sm text-sm font-medium rounded-md text-foreground bg-card hover:bg-card-muted"
+ className="inline-flex items-center px-4 py-2 border border-border-strong shadow-sm text-sm font-medium rounded-md text-foreground bg-card hover:bg-card-muted"
           >
             Disconnect
           </button>
@@ -121,22 +121,22 @@ export default function SettingsPage() {
       </div>
 
       {/* Account Information */}
-      <div className="mt-8 bg-card border border-border overflow-hidden rounded-md">
-        <div className="px-4 py-5 sm:px-6">
-          <h3 className="text-lg leading-6 font-medium text-foreground">Account Information</h3>
-          <p className="mt-1 max-w-2xl text-sm text-muted-foreground">Your NEAR wallet details</p>
+ <div className="mt-8 bg-card border border-border overflow-hidden rounded-md">
+ <div className="px-4 py-5 sm:px-6">
+ <h3 className="text-lg leading-6 font-medium text-foreground">Account Information</h3>
+ <p className="mt-1 max-w-2xl text-sm text-muted-foreground">Your NEAR wallet details</p>
         </div>
-        <div className="border-t border-border px-4 py-5 sm:p-0">
-          <dl className="sm:divide-y sm:divide-border">
-            <div className="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-              <dt className="text-sm font-medium text-muted-foreground">Account ID</dt>
-              <dd className="mt-1 text-sm text-foreground sm:mt-0 sm:col-span-2 font-mono">
+ <div className="border-t border-border px-4 py-5 sm:p-0">
+ <dl className="sm:divide-y sm:divide-border">
+ <div className="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+ <dt className="text-sm font-medium text-muted-foreground">Account ID</dt>
+ <dd className="mt-1 text-sm text-foreground sm:mt-0 sm:col-span-2 font-mono">
                 {accountId}
               </dd>
             </div>
-            <div className="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-              <dt className="text-sm font-medium text-muted-foreground">Network</dt>
-              <dd className="mt-1 text-sm text-foreground sm:mt-0 sm:col-span-2">
+ <div className="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+ <dt className="text-sm font-medium text-muted-foreground">Network</dt>
+ <dd className="mt-1 text-sm text-foreground sm:mt-0 sm:col-span-2">
                 <NetworkSwitcher />
               </dd>
             </div>
@@ -146,29 +146,29 @@ export default function SettingsPage() {
 
       {/* API Key Section - only show if required */}
       {process.env.NEXT_PUBLIC_REQUIRE_ATTESTATION_API_KEY === 'true' && (
-        <div className="mt-8 bg-card border border-border overflow-hidden rounded-md">
-          <div className="px-4 py-5 sm:px-6">
-            <h3 className="text-lg leading-6 font-medium text-foreground">API Key</h3>
-            <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
+ <div className="mt-8 bg-card border border-border overflow-hidden rounded-md">
+ <div className="px-4 py-5 sm:px-6">
+ <h3 className="text-lg leading-6 font-medium text-foreground">API Key</h3>
+ <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
               Generate an API key to access attestation data
             </p>
           </div>
-        <div className="border-t border-border px-4 py-5 sm:px-6">
+ <div className="border-t border-border px-4 py-5 sm:px-6">
           {!apiKey ? (
             <div>
-              <p className="text-sm text-muted-foreground mb-4">
+ <p className="text-sm text-muted-foreground mb-4">
                 You need an API key to view TEE attestations for your executions.
               </p>
               <button
                 onClick={handleGenerateApiKey}
                 disabled={generatingKey}
-                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-accent hover:bg-accent-hover disabled:opacity-50 disabled:cursor-not-allowed"
+ className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-on-accent bg-accent hover:bg-accent-hover disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {generatingKey ? (
                   <>
-                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+ <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+ <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+ <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                     </svg>
                     Generating...
                   </>
@@ -177,39 +177,39 @@ export default function SettingsPage() {
                 )}
               </button>
               {keyError && (
-                <p className="mt-2 text-sm text-destructive-text">{keyError}</p>
+ <p className="mt-2 text-sm text-destructive-text">{keyError}</p>
               )}
             </div>
           ) : (
             <div>
-              <div className="flex items-center justify-between mb-2">
-                <label className="text-sm font-medium text-muted-foreground">Your API Key</label>
+ <div className="flex items-center justify-between mb-2">
+ <label className="text-sm font-medium text-muted-foreground">Your API Key</label>
                 <button
                   onClick={() => setShowApiKey(!showApiKey)}
-                  className="text-sm text-accent-text"
+ className="text-sm text-accent-text"
                 >
                   {showApiKey ? 'Hide' : 'Show'}
                 </button>
               </div>
-              <div className="flex items-center gap-2">
+ <div className="flex items-center gap-2">
                 <input
                   type={showApiKey ? 'text' : 'password'}
                   value={apiKey}
                   readOnly
-                  className="flex-1 px-3 py-2 border border-border-strong rounded-md font-mono text-sm bg-card-muted"
+ className="flex-1 px-3 py-2 border border-border-strong rounded-md font-mono text-sm bg-card-muted"
                 />
                 <button
                   onClick={() => {
                     navigator.clipboard.writeText(apiKey);
                     alert('API key copied to clipboard!');
                   }}
-                  className="px-3 py-2 bg-card-muted hover:bg-card-muted rounded-md text-sm font-medium"
+ className="px-3 py-2 bg-card-muted hover:bg-card-muted rounded-md text-sm font-medium"
                   title="Copy to clipboard"
                 >
                   Copy
                 </button>
               </div>
-              <p className="mt-2 text-xs text-muted-foreground">
+ <p className="mt-2 text-xs text-muted-foreground">
                 Keep your API key secure. It&apos;s stored locally in your browser.
               </p>
             </div>
@@ -220,58 +220,57 @@ export default function SettingsPage() {
 
       {/* Usage Statistics */}
       {loading ? (
-        <div className="mt-8 flex justify-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+ <div className="mt-8 flex justify-center">
+ <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
         </div>
       ) : error ? (
-        <div className="mt-8 bg-destructive/10 border border-destructive/30 rounded-md p-4">
-          <p className="text-destructive-text">{error}</p>
+ <div className="mt-8 bg-destructive/10 border border-destructive/30 rounded-md p-4">
+ <p className="text-destructive-text">{error}</p>
         </div>
       ) : earnings ? (
         <>
-          <div className="mt-8 bg-card border border-border overflow-hidden rounded-md">
-            <div className="px-4 py-5 sm:px-6">
-              <h3 className="text-lg leading-6 font-medium text-foreground">Usage Statistics</h3>
-              <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
+ <div className="mt-8 bg-card border border-border overflow-hidden rounded-md">
+ <div className="px-4 py-5 sm:px-6">
+ <h3 className="text-lg leading-6 font-medium text-foreground">Usage Statistics</h3>
+ <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
                 Your off-chain execution history and spending
               </p>
             </div>
-            <div className="border-t border-border px-4 py-5 sm:p-0">
-              <dl className="sm:divide-y sm:divide-border">
-                <div className="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-                  <dt className="text-sm font-medium text-muted-foreground">Total Executions</dt>
-                  <dd className="mt-1 text-sm text-foreground sm:mt-0 sm:col-span-2">
+ <div className="border-t border-border px-4 py-5 sm:p-0">
+ <dl className="sm:divide-y sm:divide-border">
+ <div className="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+ <dt className="text-sm font-medium text-muted-foreground">Total Executions</dt>
+ <dd className="mt-1 text-sm text-foreground sm:mt-0 sm:col-span-2">
                     {earnings.total_executions}
                   </dd>
                 </div>
-                <div className="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-                  <dt className="text-sm font-medium text-muted-foreground">Successful Executions</dt>
-                  <dd className="mt-1 text-sm text-foreground sm:mt-0 sm:col-span-2">
-                    {earnings.successful_executions}{' '}
-                    {earnings.total_executions > 0 && (
-                      <span className="text-muted-foreground">
+ <div className="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+ <dt className="text-sm font-medium text-muted-foreground">Successful Executions</dt>
+ <dd className="mt-1 text-sm text-foreground sm:mt-0 sm:col-span-2">
+                    {earnings.successful_executions}                    {earnings.total_executions > 0 && (
+ <span className="text-muted-foreground">
                         ({((earnings.successful_executions / earnings.total_executions) * 100).toFixed(1)}%)
                       </span>
                     )}
                   </dd>
                 </div>
-                <div className="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-                  <dt className="text-sm font-medium text-muted-foreground">Total NEAR Spent</dt>
-                  <dd className="mt-1 text-sm text-foreground sm:mt-0 sm:col-span-2">
-                    <span className="text-lg font-semibold">
+ <div className="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+ <dt className="text-sm font-medium text-muted-foreground">Total NEAR Spent</dt>
+ <dd className="mt-1 text-sm text-foreground sm:mt-0 sm:col-span-2">
+ <span className="text-lg font-semibold">
                       {formatYoctoNEAR(earnings.total_near_spent_yocto)} NEAR
                     </span>
                   </dd>
                 </div>
-                <div className="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-                  <dt className="text-sm font-medium text-muted-foreground">Total Instructions Used</dt>
-                  <dd className="mt-1 text-sm text-foreground sm:mt-0 sm:col-span-2">
+ <div className="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+ <dt className="text-sm font-medium text-muted-foreground">Total Instructions Used</dt>
+ <dd className="mt-1 text-sm text-foreground sm:mt-0 sm:col-span-2">
                     {formatInstructions(earnings.total_instructions_used)}
                   </dd>
                 </div>
-                <div className="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-                  <dt className="text-sm font-medium text-muted-foreground">Average Execution Time</dt>
-                  <dd className="mt-1 text-sm text-foreground sm:mt-0 sm:col-span-2">
+ <div className="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+ <dt className="text-sm font-medium text-muted-foreground">Average Execution Time</dt>
+ <dd className="mt-1 text-sm text-foreground sm:mt-0 sm:col-span-2">
                     {earnings.average_execution_time_ms} ms
                   </dd>
                 </div>
@@ -281,11 +280,11 @@ export default function SettingsPage() {
 
           {/* Cost Breakdown */}
           {earnings.total_executions > 0 && (
-            <div className="mt-8 bg-info/10 border border-info/30 rounded-lg p-4">
-              <div className="flex">
-                <div className="flex-shrink-0">
+ <div className="mt-8 bg-info/10 border border-info/30 rounded-lg p-4">
+ <div className="flex">
+ <div className="flex-shrink-0">
                   <svg
-                    className="h-5 w-5 text-blue-400"
+ className="h-5 w-5 text-blue-400"
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
@@ -298,9 +297,9 @@ export default function SettingsPage() {
                     />
                   </svg>
                 </div>
-                <div className="ml-3">
-                  <h3 className="text-sm font-medium text-info">Average Cost Per Execution</h3>
-                  <div className="mt-2 text-sm text-info">
+ <div className="ml-3">
+ <h3 className="text-sm font-medium text-info">Average Cost Per Execution</h3>
+ <div className="mt-2 text-sm text-info">
                     <p>
                       ~{(parseFloat(earnings.total_near_spent_yocto) / 1e24 / earnings.total_executions).toFixed(6)} NEAR per execution
                     </p>

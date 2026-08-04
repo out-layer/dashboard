@@ -193,27 +193,27 @@ function WalletManagePage() {
 
   if (!isConnected) {
     return (
-      <div className="w-full">
-        <h1 className="text-xl font-bold tracking-tight mb-6">Wallets</h1>
+ <div className="w-full">
+ <h1 className="text-xl font-bold tracking-tight mb-6">Wallets</h1>
         <RequireWallet subject="your wallet policies" />
       </div>
     );
   }
 
   return (
-    <div className="w-full">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-xl font-bold tracking-tight">Wallets</h1>
-        <div className="flex items-center space-x-3">
+ <div className="w-full">
+ <div className="flex items-center justify-between mb-6">
+ <h1 className="text-xl font-bold tracking-tight">Wallets</h1>
+ <div className="flex items-center space-x-3">
           <Link
             href="/wallet/approvals"
-            className="text-sm text-accent-text hover:text-accent-text font-medium"
+ className="text-sm text-accent-text hover:text-accent-text font-medium"
           >
             Approvals
           </Link>
           <Link
             href="/wallet/audit"
-            className="text-sm text-accent-text hover:text-accent-text font-medium"
+ className="text-sm text-accent-text hover:text-accent-text font-medium"
           >
             Audit Log
           </Link>
@@ -221,40 +221,40 @@ function WalletManagePage() {
       </div>
 
       {error && (
-        <div className="mb-4 rounded-md border border-destructive/30 bg-destructive/10 p-3">
-          <p className="text-sm text-destructive-text">{error}</p>
+ <div className="mb-4 rounded-md border border-destructive/30 bg-destructive/10 p-3">
+ <p className="text-sm text-destructive-text">{error}</p>
         </div>
       )}
 
       {success && (
-        <div className="mb-4 rounded-md border border-success/30 bg-success/10 p-3">
-          <p className="text-sm text-success-text">{success}</p>
+ <div className="mb-4 rounded-md border border-success/30 bg-success/10 p-3">
+ <p className="text-sm text-success-text">{success}</p>
         </div>
       )}
 
       {/* API key wallet (from ?key= param) — new wallet without policy yet */}
       {apiKeyWallet && !wallets.some((w) => w.wallet_pubkey === `ed25519:${apiKeyWallet.address}`) && (
-        <div className="mb-4 bg-card rounded-lg border-2 border-dashed border-accent">
-          <div className="px-4 py-4 sm:px-6">
-            <div className="flex items-center justify-between">
+ <div className="mb-4 bg-card rounded-lg border-2 border-dashed border-accent">
+ <div className="px-4 py-4 sm:px-6">
+ <div className="flex items-center justify-between">
               <div>
-                <div className="flex items-center space-x-2">
-                  <span className="text-sm font-medium">New Wallet</span>
-                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-warning/10 text-warning">
-                    <svg viewBox="0 0 16 16" fill="currentColor" className="h-3 w-3"><path d="M8 1.5 15 14H1zM7.25 6v4h1.5V6zm0 5v1.5h1.5V11z" /></svg>
+ <div className="flex items-center space-x-2">
+ <span className="text-sm font-medium">New Wallet</span>
+ <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-warning/10 text-warning">
+ <svg viewBox="0 0 16 16" fill="currentColor" className="h-3 w-3"><path d="M8 1.5 15 14H1zM7.25 6v4h1.5V6zm0 5v1.5h1.5V11z" /></svg>
                     No Policy
                   </span>
                 </div>
-                <p className="mt-1 text-xs text-muted-foreground font-mono break-all">
+ <p className="mt-1 text-xs text-muted-foreground font-mono break-all">
                   ed25519:{apiKeyWallet.address}
                 </p>
-                <p className="text-xs text-faint-foreground mt-1">
+ <p className="text-xs text-faint-foreground mt-1">
                   NEAR address: {apiKeyWallet.address}
                 </p>
               </div>
               <Link
                 href={`/wallet?key=${searchParams.get('key')}`}
-                className="px-3 py-1.5 text-sm bg-accent text-white rounded hover:bg-accent-hover"
+ className="px-3 py-1.5 text-sm bg-accent text-on-accent rounded hover:bg-accent-hover"
               >
                 Set Policy
               </Link>
@@ -264,68 +264,68 @@ function WalletManagePage() {
       )}
 
       {loading ? (
-        <div className="flex items-center justify-center py-12">
-          <svg className="animate-spin h-8 w-8 text-accent-text" fill="none" viewBox="0 0 24 24">
-            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+ <div className="flex items-center justify-center py-12">
+ <svg className="animate-spin h-8 w-8 text-accent-text" fill="none" viewBox="0 0 24 24">
+ <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+ <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
           </svg>
-          <span className="ml-3 text-muted-foreground">Loading wallets...</span>
+ <span className="ml-3 text-muted-foreground">Loading wallets...</span>
         </div>
       ) : wallets.length === 0 && !apiKeyWallet ? (
         <EmptyState
           title="No wallet policies yet"
           description="Wallet policies appear here when an AI agent registers a wallet with your account as controller."
           action={
-            <Link href="/docs/agent-custody" className="text-sm font-semibold text-accent-text hover:underline">
+ <Link href="/docs/agent-custody" className="text-sm font-semibold text-accent-text hover:underline">
               How agent custody works →
             </Link>
           }
         />
       ) : (
-        <div className="space-y-4">
+ <div className="space-y-4">
           {wallets.map((wallet) => {
             const walletKey = getWalletApiKey(wallet.wallet_pubkey);
             return (
             <div
               key={wallet.wallet_pubkey}
-              className={`rounded-lg border ${
+ className={`rounded-lg border ${
                 wallet.frozen ? 'border-info/40 bg-info/5' : 'border-border bg-card'
               }`}
             >
-              <div className="px-4 py-4 sm:px-6">
-                <div className="flex items-center justify-between">
+ <div className="px-4 py-4 sm:px-6">
+ <div className="flex items-center justify-between">
                   <div>
-                    <div className="flex items-center space-x-2">
-                      <span className="inline-flex items-center px-2 py-0.5 rounded border border-border-strong text-xs font-semibold text-muted-foreground">
+ <div className="flex items-center space-x-2">
+ <span className="inline-flex items-center px-2 py-0.5 rounded border border-border-strong text-xs font-semibold text-muted-foreground">
                         {wallet.wallet_pubkey.startsWith('ed25519:') ? 'NEAR' : wallet.wallet_pubkey.split(':')[0]}
                       </span>
                       {wallet.frozen ? (
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-info/10 text-info">
+ <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-info/10 text-info">
                           FROZEN
                         </span>
                       ) : (
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-success/10 text-success-text">
+ <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-success/10 text-success-text">
                           Active
                         </span>
                       )}
                     </div>
-                    <p className="mt-1 text-xs text-muted-foreground font-mono break-all">
+ <p className="mt-1 text-xs text-muted-foreground font-mono break-all">
                       {wallet.wallet_pubkey.split(':').slice(1).join(':') || wallet.wallet_pubkey}
                     </p>
-                    <p className="text-xs text-faint-foreground mt-1">
+ <p className="text-xs text-faint-foreground mt-1">
                       Updated: {formatTimestamp(wallet.updated_at)}
                     </p>
                   </div>
-                  <div className="flex items-center space-x-2">
+ <div className="flex items-center space-x-2">
                     {walletKey ? (
                       <Link
                         href={`/wallet?key=${walletKey}`}
-                        className="px-3 py-1.5 text-sm border border-accent text-accent-text rounded hover:bg-accent/10"
+ className="px-3 py-1.5 text-sm border border-accent text-accent-text rounded hover:bg-accent/10"
                       >
                         Edit Policy
                       </Link>
                     ) : (
-                      <span className="px-3 py-1.5 text-sm border border-border-strong text-faint-foreground rounded cursor-not-allowed" title="Save an API key first to edit policy">
+ <span className="px-3 py-1.5 text-sm border border-border-strong text-faint-foreground rounded cursor-not-allowed" title="Save an API key first to edit policy">
                         Edit Policy
                       </span>
                     )}
@@ -333,7 +333,7 @@ function WalletManagePage() {
                       <button
                         onClick={() => handleUnfreeze(wallet.wallet_pubkey)}
                         disabled={submitting}
-                        className="px-3 py-1.5 text-sm bg-success text-white rounded hover:opacity-90 disabled:opacity-50 cursor-pointer"
+ className="px-3 py-1.5 text-sm bg-success text-white rounded hover:opacity-90 disabled:opacity-50 cursor-pointer"
                       >
                         Unfreeze
                       </button>
@@ -341,7 +341,7 @@ function WalletManagePage() {
                       <button
                         onClick={() => handleFreeze(wallet.wallet_pubkey)}
                         disabled={submitting}
-                        className="px-3 py-1.5 text-sm bg-destructive text-white rounded hover:opacity-90 disabled:opacity-50 cursor-pointer"
+ className="px-3 py-1.5 text-sm bg-destructive text-white rounded hover:opacity-90 disabled:opacity-50 cursor-pointer"
                       >
                         Freeze
                       </button>
@@ -350,16 +350,16 @@ function WalletManagePage() {
                 </div>
 
                 {/* API Key (local browser storage) */}
-                <div className="mt-3 pt-3 border-t border-border">
-                  <div className="mb-2">
-                    <span className="text-xs font-semibold text-muted-foreground">API Key</span>
+ <div className="mt-3 pt-3 border-t border-border">
+ <div className="mb-2">
+ <span className="text-xs font-semibold text-muted-foreground">API Key</span>
                   </div>
 
                   {/* Local saved key */}
                   {savedKeys[wallet.wallet_pubkey] ? (
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="text-xs text-muted-foreground">Local:</span>
-                      <code className="text-xs font-mono bg-card-muted px-2 py-0.5 rounded select-all">
+ <div className="flex items-center gap-2 mb-2">
+ <span className="text-xs text-muted-foreground">Local:</span>
+ <code className="text-xs font-mono bg-card-muted px-2 py-0.5 rounded select-all">
                         {revealedKeys.has(wallet.wallet_pubkey)
                           ? savedKeys[wallet.wallet_pubkey]
                           : savedKeys[wallet.wallet_pubkey].substring(0, 6) + '...' + savedKeys[wallet.wallet_pubkey].slice(-4)}
@@ -370,25 +370,25 @@ function WalletManagePage() {
                           next.has(wallet.wallet_pubkey) ? next.delete(wallet.wallet_pubkey) : next.add(wallet.wallet_pubkey);
                           return next;
                         })}
-                        className="text-xs text-faint-foreground hover:text-foreground cursor-pointer"
+ className="text-xs text-faint-foreground hover:text-foreground cursor-pointer"
                       >
                         {revealedKeys.has(wallet.wallet_pubkey) ? 'hide' : 'show'}
                       </button>
                       <button
                         onClick={() => { navigator.clipboard.writeText(savedKeys[wallet.wallet_pubkey]); setSuccess('API key copied'); setTimeout(() => setSuccess(null), 2000); }}
-                        className="text-xs text-accent-text hover:underline"
+ className="text-xs text-accent-text hover:underline"
                       >
                         copy
                       </button>
                       <button
                         onClick={() => { removeWalletKey(wallet.wallet_pubkey); setSavedKeys((prev) => { const n = { ...prev }; delete n[wallet.wallet_pubkey]; return n; }); }}
-                        className="text-xs text-destructive-text hover:opacity-80 cursor-pointer"
+ className="text-xs text-destructive-text hover:opacity-80 cursor-pointer"
                       >
                         remove
                       </button>
                     </div>
                   ) : showKeyInput === wallet.wallet_pubkey ? (
-                    <div className="flex items-center gap-2 mb-2">
+ <div className="flex items-center gap-2 mb-2">
                       <input
                         type="text"
                         value={keyInput}
@@ -402,7 +402,7 @@ function WalletManagePage() {
                           }
                         }}
                         placeholder="wk_..."
-                        className="flex-1 px-2 py-1 border border-border-strong bg-background rounded text-xs font-mono outline-none focus:border-accent"
+ className="flex-1 px-2 py-1 border border-border-strong bg-background rounded text-xs font-mono outline-none focus:border-accent"
                         autoFocus
                       />
                       <button
@@ -414,25 +414,25 @@ function WalletManagePage() {
                             setShowKeyInput(null);
                           }
                         }}
-                        className="text-xs text-accent-text hover:underline"
+ className="text-xs text-accent-text hover:underline"
                       >
                         save
                       </button>
-                      <button onClick={() => { setShowKeyInput(null); setKeyInput(''); }} className="text-xs text-faint-foreground hover:text-foreground cursor-pointer">
+ <button onClick={() => { setShowKeyInput(null); setKeyInput(''); }} className="text-xs text-faint-foreground hover:text-foreground cursor-pointer">
                         cancel
                       </button>
                     </div>
                   ) : (
                     <button
                       onClick={() => { setShowKeyInput(wallet.wallet_pubkey); setKeyInput(''); }}
-                      className="text-xs text-accent-text hover:underline mb-2"
+ className="text-xs text-accent-text hover:underline mb-2"
                     >
                       + Save API key to browser
                     </button>
                   )}
 
-                  <p className="text-xs text-faint-foreground mt-2">
-                    Key is stored in this browser only. To add/rotate keys, update <code>authorized_key_hashes</code> in the policy.
+ <p className="text-xs text-faint-foreground mt-2">
+ Key is stored in this browser only. To add/rotate keys, update <code>authorized_key_hashes</code> in the policy.
                   </p>
                 </div>
               </div>

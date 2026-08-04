@@ -44,7 +44,7 @@ function countApprovers(primaryOwner: string, additional: string): number {
 
 export default function WalletHandoffPage() {
   return (
-    <Suspense fallback={<div className="w-full py-8 text-faint-foreground">Loading...</div>}>
+ <Suspense fallback={<div className="w-full py-8 text-faint-foreground">Loading...</div>}>
       <WalletHandoffContent />
     </Suspense>
   );
@@ -287,22 +287,22 @@ function WalletHandoffContent() {
   // No API key provided
   if (!apiKey) {
     return (
-      <div className="max-w-2xl mx-auto py-12">
-        <h1 className="text-xl font-bold tracking-tight mb-4">Wallet Handoff</h1>
-        <div className="bg-card border border-border rounded-lg p-8 text-center">
-          <p className="text-muted-foreground mb-4">
+ <div className="max-w-2xl mx-auto py-12">
+ <h1 className="text-xl font-bold tracking-tight mb-4">Wallet Handoff</h1>
+ <div className="bg-card border border-border rounded-lg p-8 text-center">
+ <p className="text-muted-foreground mb-4">
             This page is used to take control of an AI agent wallet.
           </p>
-          <p className="text-sm text-muted-foreground">
+ <p className="text-sm text-muted-foreground">
             Your agent should have given you a handoff URL like:<br />
-            <code className="text-xs bg-card-muted px-2 py-1 rounded mt-1 inline-block">
+ <code className="text-xs bg-card-muted px-2 py-1 rounded mt-1 inline-block">
               /wallet?key=wk_...
             </code>
           </p>
-          <div className="mt-6">
+ <div className="mt-6">
             <Link
               href="/wallet/manage"
-              className="text-accent-text hover:text-accent-text font-medium"
+ className="text-accent-text hover:text-accent-text font-medium"
             >
               Or manage existing wallets &rarr;
             </Link>
@@ -313,64 +313,64 @@ function WalletHandoffContent() {
   }
 
   return (
-    <div className="max-w-3xl mx-auto py-8">
-      <h1 className="text-xl font-bold tracking-tight mb-2">Wallet Handoff</h1>
-      <p className="text-muted-foreground mb-6">
+ <div className="max-w-3xl mx-auto py-8">
+ <h1 className="text-xl font-bold tracking-tight mb-2">Wallet Handoff</h1>
+ <p className="text-muted-foreground mb-6">
         Take control of your AI agent&apos;s wallet by setting a spending policy.
       </p>
 
       {error && (
-        <div className="mb-4 bg-destructive/10 border border-destructive/30 rounded-md p-3">
-          <p className="text-sm text-destructive-text">{error}</p>
+ <div className="mb-4 bg-destructive/10 border border-destructive/30 rounded-md p-3">
+ <p className="text-sm text-destructive-text">{error}</p>
         </div>
       )}
 
       {success && (
-        <div className="mb-4 bg-success/10 border border-success/30 rounded-md p-3">
-          <p className="text-sm text-success-text">{success}</p>
+ <div className="mb-4 bg-success/10 border border-success/30 rounded-md p-3">
+ <p className="text-sm text-success-text">{success}</p>
         </div>
       )}
 
       {/* Step 1: Wallet Info */}
-      <div className="bg-card border border-border rounded-lg p-6 mb-6">
-        <h2 className="text-lg font-semibold text-foreground mb-3">
-          <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-accent text-white text-xs mr-2">1</span>
+ <div className="bg-card border border-border rounded-lg p-6 mb-6">
+ <h2 className="text-lg font-semibold text-foreground mb-3">
+ <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-accent text-on-accent text-xs mr-2">1</span>
           Wallet Info
         </h2>
 
         {loading ? (
-          <div className="flex items-center py-4">
-            <svg className="animate-spin h-5 w-5 text-accent-text mr-3" fill="none" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+ <div className="flex items-center py-4">
+ <svg className="animate-spin h-5 w-5 text-accent-text mr-3" fill="none" viewBox="0 0 24 24">
+ <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+ <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
             </svg>
-            <span className="text-muted-foreground">Loading wallet...</span>
+ <span className="text-muted-foreground">Loading wallet...</span>
           </div>
         ) : walletInfo ? (
-          <div className="space-y-2">
+ <div className="space-y-2">
             <div>
-              <span className="text-xs text-muted-foreground uppercase">Wallet ID</span>
-              <p className="text-sm font-mono text-foreground break-all">{walletInfo.wallet_id}</p>
+ <span className="text-xs text-muted-foreground uppercase">Wallet ID</span>
+ <p className="text-sm font-mono text-foreground break-all">{walletInfo.wallet_id}</p>
             </div>
             <div>
-              <span className="text-xs text-muted-foreground uppercase">NEAR Address (implicit)</span>
-              <p className="text-sm font-mono text-foreground break-all">{walletInfo.address}</p>
+ <span className="text-xs text-muted-foreground uppercase">NEAR Address (implicit)</span>
+ <p className="text-sm font-mono text-foreground break-all">{walletInfo.address}</p>
             </div>
             <div>
-              <span className="text-xs text-muted-foreground uppercase">Master key</span>
+ <span className="text-xs text-muted-foreground uppercase">Master key</span>
               {walletInfo.vault_id ? (
-                <p className="text-sm font-mono text-success-text break-all">
-                  Vault <code>{walletInfo.vault_id}</code> — recoverable through cessation or unilateral exit
+ <p className="text-sm font-mono text-success-text break-all">
+ Vault <code>{walletInfo.vault_id}</code> — recoverable through cessation or unilateral exit
                 </p>
               ) : (
-                <p className="text-sm text-foreground">
-                  OutLayer default master <span className="text-xs text-muted-foreground">(not recoverable if OutLayer ceases)</span>
+ <p className="text-sm text-foreground">
+ OutLayer default master <span className="text-xs text-muted-foreground">(not recoverable if OutLayer ceases)</span>
                 </p>
               )}
             </div>
             {existingPolicy === true && (
-              <div className="mt-2 bg-info/10 border border-info/30 rounded p-2">
-                <p className="text-sm text-info">This wallet already has a policy on-chain. Submitting a new one will replace it.</p>
+ <div className="mt-2 bg-info/10 border border-info/30 rounded p-2">
+ <p className="text-sm text-info">This wallet already has a policy on-chain. Submitting a new one will replace it.</p>
               </div>
             )}
           </div>
@@ -379,23 +379,23 @@ function WalletHandoffContent() {
 
       {/* Step 2: Policy Owner */}
       {walletInfo && (
-        <div className="bg-card border border-border rounded-lg p-6 mb-6">
-          <h2 className="text-lg font-semibold text-foreground mb-3">
-            <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-accent text-white text-xs mr-2">2</span>
+ <div className="bg-card border border-border rounded-lg p-6 mb-6">
+ <h2 className="text-lg font-semibold text-foreground mb-3">
+ <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-accent text-on-accent text-xs mr-2">2</span>
             Policy Owner
           </h2>
 
-          <p className="text-sm text-muted-foreground mb-4">
+ <p className="text-sm text-muted-foreground mb-4">
             The owner can freeze the wallet, update the policy, and approve transactions.
           </p>
 
-          <div className="flex space-x-3 mb-4">
+ <div className="flex space-x-3 mb-4">
             <button
               type="button"
               onClick={() => setOwnerMode('wallet')}
-              className={`px-4 py-2 text-sm rounded-lg border ${
+ className={`px-4 py-2 text-sm rounded-lg border ${
                 ownerMode === 'wallet'
-                  ? 'bg-accent text-white border-accent'
+                  ? 'bg-accent text-on-accent border-accent'
                   : 'bg-card text-foreground border-border-strong hover:bg-card-muted'
               }`}
             >
@@ -404,9 +404,9 @@ function WalletHandoffContent() {
             <button
               type="button"
               onClick={() => setOwnerMode('manual')}
-              className={`px-4 py-2 text-sm rounded-lg border ${
+ className={`px-4 py-2 text-sm rounded-lg border ${
                 ownerMode === 'manual'
-                  ? 'bg-accent text-white border-accent'
+                  ? 'bg-accent text-on-accent border-accent'
                   : 'bg-card text-foreground border-border-strong hover:bg-card-muted'
               }`}
             >
@@ -416,14 +416,14 @@ function WalletHandoffContent() {
 
           {ownerMode === 'wallet' ? (
             isConnected ? (
-              <p className="text-sm text-success-text">
-                Connected as <span className="font-mono font-medium">{accountId}</span>
+ <p className="text-sm text-success-text">
+ Connected as <span className="font-mono font-medium">{accountId}</span>
               </p>
             ) : (
               <div>
                 <button
                   onClick={() => setShowWalletModal(true)}
-                  className="px-4 py-2 bg-accent text-white rounded-lg font-medium"
+ className="px-4 py-2 bg-accent text-on-accent rounded-lg font-medium"
                 >
                   Connect Wallet
                 </button>
@@ -436,16 +436,16 @@ function WalletHandoffContent() {
                 value={manualOwner}
                 onChange={(e) => setManualOwner(e.target.value)}
                 placeholder="e.g. alice.near"
-                className="w-full border border-border-strong rounded px-3 py-2 text-sm font-mono"
+ className="w-full border border-border-strong rounded px-3 py-2 text-sm font-mono"
               />
-              <p className="text-xs text-faint-foreground mt-1">
+ <p className="text-xs text-faint-foreground mt-1">
                 This NEAR account will be the policy owner. You still need to connect a wallet to sign the transaction.
               </p>
               {manualOwner.trim() && !isConnected && (
-                <div className="mt-3">
+ <div className="mt-3">
                   <button
                     onClick={() => setShowWalletModal(true)}
-                    className="px-4 py-2 text-sm border border-accent text-accent-text rounded-lg hover:bg-orange-50"
+ className="px-4 py-2 text-sm border border-accent text-accent-text rounded-lg hover:bg-card-muted"
                   >
                     Connect wallet to sign transaction
                   </button>
@@ -458,62 +458,62 @@ function WalletHandoffContent() {
 
       {/* Step 3: Set Policy */}
       {walletInfo && ownerReady && (
-        <div className="bg-card border border-border rounded-lg p-6 mb-6">
-          <h2 className="text-lg font-semibold text-foreground mb-6">
-            <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-accent text-white text-xs mr-2">3</span>
+ <div className="bg-card border border-border rounded-lg p-6 mb-6">
+ <h2 className="text-lg font-semibold text-foreground mb-6">
+ <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-accent text-on-accent text-xs mr-2">3</span>
             Set Spending Policy
           </h2>
 
-          <div className="space-y-6">
+ <div className="space-y-6">
             {/* Transaction Approval */}
             <div>
-              <h3 className="text-sm font-semibold text-foreground mb-3">Transaction Approval</h3>
+ <h3 className="text-sm font-semibold text-foreground mb-3">Transaction Approval</h3>
               <div
-                className={`border-2 rounded-lg p-4 cursor-pointer transition-colors ${
+ className={`border-2 rounded-lg p-4 cursor-pointer transition-colors ${
                   requireApproval
-                    ? 'border-accent bg-orange-50'
+                    ? 'border-accent bg-card-muted'
                     : 'border-border hover:border-border-strong'
                 }`}
                 onClick={() => setRequireApproval(!requireApproval)}
               >
-                <div className="flex items-start">
+ <div className="flex items-start">
                   <input
                     type="checkbox"
                     checked={requireApproval}
                     onChange={(e) => setRequireApproval(e.target.checked)}
-                    className="mt-1 mr-3 h-4 w-4 accent-accent"
+ className="mt-1 mr-3 h-4 w-4 accent-accent"
                   />
-                  <div className="flex-1">
-                    <p className="font-medium text-foreground">Require personal approval</p>
-                    <p className="text-sm text-muted-foreground mt-1">
+ <div className="flex-1">
+ <p className="font-medium text-foreground">Require personal approval</p>
+ <p className="text-sm text-muted-foreground mt-1">
                       Transactions will need approval before being executed. You can approve or reject from the dashboard.
                     </p>
                   </div>
                 </div>
 
                 {requireApproval && (
-                  <div className="mt-4 ml-7 space-y-3" onClick={(e) => e.stopPropagation()}>
-                    <div className="grid grid-cols-2 gap-3">
+ <div className="mt-4 ml-7 space-y-3" onClick={(e) => e.stopPropagation()}>
+ <div className="grid grid-cols-2 gap-3">
                       <div>
-                        <label className="block text-xs font-medium text-muted-foreground mb-1">Required Approvals</label>
+ <label className="block text-xs font-medium text-muted-foreground mb-1">Required Approvals</label>
                         <input
                           type="number"
                           min="1"
                           value={approvalRequired}
                           onChange={(e) => setApprovalRequired(e.target.value)}
-                          className="w-full border border-border-strong rounded px-3 py-2 text-sm"
+ className="w-full border border-border-strong rounded px-3 py-2 text-sm"
                         />
                       </div>
                       <div>
-                        <label className="block text-xs font-medium text-muted-foreground mb-1">Primary Approver</label>
-                        <div className="px-3 py-2 text-sm bg-card-muted border border-border rounded font-mono truncate">
+ <label className="block text-xs font-medium text-muted-foreground mb-1">Primary Approver</label>
+ <div className="px-3 py-2 text-sm bg-card-muted border border-border rounded font-mono truncate">
                           {effectiveOwner} (admin)
                         </div>
                       </div>
                     </div>
 
                     <div>
-                      <label className="block text-xs font-medium text-muted-foreground mb-1">
+ <label className="block text-xs font-medium text-muted-foreground mb-1">
                         Additional Approvers (one per line: account_id, role)
                       </label>
                       <textarea
@@ -521,13 +521,13 @@ function WalletHandoffContent() {
                         onChange={(e) => setAdditionalApprovers(e.target.value)}
                         placeholder={"alice.near, signer\nbob.near, signer"}
                         rows={3}
-                        className="w-full border border-border-strong rounded px-3 py-2 text-sm font-mono"
+ className="w-full border border-border-strong rounded px-3 py-2 text-sm font-mono"
                       />
-                      <p className="text-xs text-faint-foreground mt-1">Roles: admin (can update policy), signer (can only approve)</p>
+ <p className="text-xs text-faint-foreground mt-1">Roles: admin (can update policy), signer (can only approve)</p>
                       {(() => {
                         const total = countApprovers(effectiveOwner ?? '', additionalApprovers);
                         return total > MAX_APPROVERS ? (
-                          <p className="text-xs text-destructive-text mt-1">
+ <p className="text-xs text-destructive-text mt-1">
                             {total} approvers — the limit is {MAX_APPROVERS} including the primary one.
                             A signing request cannot carry more votes than that, so this policy could
                             never reach its threshold.
@@ -537,7 +537,7 @@ function WalletHandoffContent() {
                     </div>
 
                     <div>
-                      <label className="block text-xs font-medium text-muted-foreground mb-2">Require approval for:</label>
+ <label className="block text-xs font-medium text-muted-foreground mb-2">Require approval for:</label>
                       {(() => {
                         const txTypeLabels: Record<string, string> = {
                           transfer: 'Transfer (send native currency)',
@@ -550,7 +550,7 @@ function WalletHandoffContent() {
                         const directTypes = ['transfer', 'call', 'delete'] as const;
                         const intentsTypes = ['intents_withdraw', 'intents_swap', 'cross_chain_withdraw'] as const;
                         const renderCheckbox = (txType: string) => (
-                          <label key={txType} className="flex items-center gap-1.5 text-sm cursor-pointer">
+ <label key={txType} className="flex items-center gap-1.5 text-sm cursor-pointer">
                             <input
                               type="checkbox"
                               checked={approvalTypes.has(txType)}
@@ -561,29 +561,29 @@ function WalletHandoffContent() {
                                   return next;
                                 });
                               }}
-                              className="rounded border-border-strong"
+ className="rounded border-border-strong"
                             />
-                            <span>{txTypeLabels[txType] || txType}</span>
+ <span>{txTypeLabels[txType] || txType}</span>
                           </label>
                         );
                         return (
-                          <div className="space-y-3">
+ <div className="space-y-3">
                             <div>
-                              <span className="text-xs text-faint-foreground">Direct on-chain operations:</span>
-                              <div className="flex flex-col gap-1 mt-1">
+ <span className="text-xs text-faint-foreground">Direct on-chain operations:</span>
+ <div className="flex flex-col gap-1 mt-1">
                                 {directTypes.map(renderCheckbox)}
                               </div>
                             </div>
                             <div>
-                              <span className="text-xs text-faint-foreground">NEAR Intents:</span>
-                              <div className="flex flex-col gap-1 mt-1">
+ <span className="text-xs text-faint-foreground">NEAR Intents:</span>
+ <div className="flex flex-col gap-1 mt-1">
                                 {intentsTypes.map(renderCheckbox)}
                               </div>
                             </div>
                           </div>
                         );
                       })()}
-                      <p className="text-xs text-faint-foreground mt-1">
+ <p className="text-xs text-faint-foreground mt-1">
                         Unchecked types execute immediately without approval. Swap and cross-chain
                         quotes are re-fetched fresh at execution, so approval delays don&apos;t
                         invalidate them. (Swap / cross-chain / confidential also need their
@@ -607,14 +607,14 @@ function WalletHandoffContent() {
             onReset={resetJson}
           />
 
-          <div className="mt-4 pt-4 border-t flex items-center justify-between">
-            <p className="text-xs text-faint-foreground">
-              Policy will be encrypted in TEE and stored on-chain with <span className="font-mono">{effectiveOwner}</span> as owner.
+ <div className="mt-4 pt-4 border-t flex items-center justify-between">
+ <p className="text-xs text-faint-foreground">
+ Policy will be encrypted in TEE and stored on-chain with <span className="font-mono">{effectiveOwner}</span> as owner.
             </p>
             <button
               onClick={handleSubmitPolicy}
               disabled={submitting || !isConnected}
-              className="px-5 py-2 bg-accent text-white rounded-lg font-medium disabled:opacity-50"
+ className="px-5 py-2 bg-accent text-on-accent rounded-lg font-medium disabled:opacity-50"
             >
               {submitting ? 'Encrypting & Storing...' : 'Store Policy On-Chain'}
             </button>
@@ -624,23 +624,23 @@ function WalletHandoffContent() {
 
       {/* After success — next steps */}
       {success && (
-        <div className="bg-card border border-border rounded-lg p-6">
-          <h2 className="text-lg font-semibold text-foreground mb-3">Next Steps</h2>
-          <ul className="space-y-2 text-sm text-foreground">
+ <div className="bg-card border border-border rounded-lg p-6">
+ <h2 className="text-lg font-semibold text-foreground mb-3">Next Steps</h2>
+ <ul className="space-y-2 text-sm text-foreground">
             <li>
-              <Link href={`/wallet/approvals?key=${apiKey}`} className="text-accent-text hover:text-accent-text font-medium">
+ <Link href={`/wallet/approvals?key=${apiKey}`} className="text-accent-text hover:text-accent-text font-medium">
                 Approvals
               </Link>
               {' '}&mdash; review and approve pending transactions
             </li>
             <li>
-              <Link href={`/wallet/manage?key=${apiKey}`} className="text-accent-text hover:text-accent-text font-medium">
+ <Link href={`/wallet/manage?key=${apiKey}`} className="text-accent-text hover:text-accent-text font-medium">
                 Manage Wallets
               </Link>
               {' '}&mdash; edit policy, freeze wallet
             </li>
             <li>
-              <Link href={`/wallet/audit?key=${apiKey}`} className="text-accent-text hover:text-accent-text font-medium">
+ <Link href={`/wallet/audit?key=${apiKey}`} className="text-accent-text hover:text-accent-text font-medium">
                 Audit Log
               </Link>
               {' '}&mdash; view transaction history

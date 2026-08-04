@@ -4,8 +4,8 @@ import { ExampleCard, UseCasesSection, KeyFeaturesSection, TechnicalDetailsSecti
 export function RandomExample() {
   const badges = (
     <>
-      <span className="ml-3 text-sm bg-info/10 text-info px-3 py-1 rounded">WASI P1</span>
-      <span className="ml-2 text-sm bg-success/10 text-success-text px-3 py-1 rounded">Beginner</span>
+ <span className="ml-3 text-sm bg-card-muted text-foreground px-3 py-1 rounded">WASI P1</span>
+ <span className="ml-2 text-sm bg-card-muted text-foreground px-3 py-1 rounded">Beginner</span>
     </>
   );
 
@@ -17,7 +17,7 @@ export function RandomExample() {
       githubUrl="https://github.com/out-layer/random-example"
       playgroundId="random"
     >
-      <p className="text-foreground mb-4">
+ <p className="text-foreground mb-4">
         Generate cryptographically secure random numbers inside TEE (Trusted Execution Environment) using WASI&apos;s random_get interface.
       </p>
 
@@ -29,7 +29,7 @@ export function RandomExample() {
       ]} />
 
       <KeyFeaturesSection items={[
-        <>Uses <code>getrandom</code> crate for secure randomness</>,
+ <>Uses <code>getrandom</code> crate for secure randomness</>,
         'TEE environment ensures entropy source cannot be manipulated',
         'Simple JSON input/output interface',
         'Perfect starter example for WASI development'
@@ -53,7 +53,7 @@ export function RandomExample() {
       />
 
       <HowItWorksSection items={[
-        <>WASM calls <code>random_get</code> WASI function</>,
+ <>WASM calls <code>random_get</code> WASI function</>,
         'Worker runtime requests entropy from TEE hardware',
         "Random bytes are generated using CPU's secure random number generator",
         'Numbers are scaled to requested range (min-max)',
@@ -61,28 +61,28 @@ export function RandomExample() {
       ]} />
 
       <TechnicalDetailsSection items={[
-        <><strong>WASI Version:</strong> Preview 1 (<code>wasm32-wasip1</code>)</>,
-        <><strong>Language:</strong> Rust with <code>getrandom</code> crate</>,
-        <><strong>Entry Point:</strong> <code>main()</code> reads stdin, writes stdout</>,
-        <><strong>Dependencies:</strong> <code>serde_json</code> for JSON parsing</>,
-        <><strong>Build:</strong> <code>cargo build --target wasm32-wasip1 --release</code></>,
-        <><strong>Size:</strong> ~200KB compiled WASM</>
+ <><strong>WASI Version:</strong> Preview 1 (<code>wasm32-wasip1</code>)</>,
+ <><strong>Language:</strong> Rust with <code>getrandom</code> crate</>,
+ <><strong>Entry Point:</strong> <code>main()</code> reads stdin, writes stdout</>,
+ <><strong>Dependencies:</strong> <code>serde_json</code> for JSON parsing</>,
+ <><strong>Build:</strong> <code>cargo build --target wasm32-wasip1 --release</code></>,
+ <><strong>Size:</strong> ~200KB compiled WASM</>
       ]} />
 
       <LearnMoreSection>
-        <ul className="text-sm text-foreground space-y-1">
+ <ul className="text-sm text-foreground space-y-1">
           <li>
-            📖 <Link href="/docs/wasi#wasi-preview-1" className="text-[var(--primary-orange)] hover:underline">
+ <Link href="/docs/wasi#wasi-preview-1" className="text-[var(--primary-orange)] hover:underline">
               WASI Preview 1 Documentation
             </Link>
           </li>
           <li>
-            🎮 <Link href="/playground#random" className="text-[var(--primary-orange)] hover:underline">
+ <Link href="/playground#random" className="text-[var(--primary-orange)] hover:underline">
               Try in Playground
             </Link>
           </li>
           <li>
-            💻 <a href="https://github.com/out-layer/random-example" target="_blank" rel="noopener noreferrer" className="text-[var(--primary-orange)] hover:underline">
+ <a href="https://github.com/out-layer/random-example" target="_blank" rel="noopener noreferrer" className="text-[var(--primary-orange)] hover:underline">
               View Source Code
             </a>
           </li>

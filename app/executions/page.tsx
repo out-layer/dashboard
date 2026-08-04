@@ -317,61 +317,61 @@ export default function JobsPage() {
 
   if (error && !loading) {
     return (
-      <div className="rounded-md border border-destructive/30 bg-destructive/10 p-4">
-        <p className="text-sm text-destructive-text">{error}</p>
+ <div className="rounded-md border border-destructive/30 bg-destructive/10 p-4">
+ <p className="text-sm text-destructive-text">{error}</p>
       </div>
     );
   }
 
   return (
-    <div className="w-full">
-      <div className="sm:flex sm:items-center sm:justify-between">
-        <div className="sm:flex-auto">
-          <h1 className="text-xl font-bold tracking-tight">Executions</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
+ <div className="w-full">
+ <div className="sm:flex sm:items-center sm:justify-between">
+ <div className="sm:flex-auto">
+ <h1 className="text-xl font-bold tracking-tight">Executions</h1>
+ <p className="mt-1 text-sm text-muted-foreground">
             Compilation and execution jobs. Click an id to open its TEE attestation.
           </p>
         </div>
 
         {/* Controls (hidden when testnet workers are offline — nothing to filter) */}
         {!testnetDisabled && (
-        <div className="mt-4 sm:mt-0 flex items-center gap-4">
+ <div className="mt-4 sm:mt-0 flex items-center gap-4">
           {/* Source filter checkboxes */}
-          <div className="flex items-center gap-4">
-            <label className="flex items-center gap-2 cursor-pointer">
+ <div className="flex items-center gap-4">
+ <label className="flex items-center gap-2 cursor-pointer">
               <input
                 type="checkbox"
                 checked={settings.showNear}
                 onChange={toggleNear}
                 disabled={settings.showNear && !settings.showHttps}
-                className="w-4 h-4 rounded accent-accent disabled:opacity-50"
+ className="w-4 h-4 rounded accent-accent disabled:opacity-50"
               />
-              <span className={`text-sm font-medium ${settings.showNear ? 'text-foreground' : 'text-faint-foreground'}`}>
+ <span className={`text-sm font-medium ${settings.showNear ? 'text-foreground' : 'text-faint-foreground'}`}>
                 NEAR
               </span>
             </label>
-            <label className="flex items-center gap-2 cursor-pointer">
+ <label className="flex items-center gap-2 cursor-pointer">
               <input
                 type="checkbox"
                 checked={settings.showHttps}
                 onChange={toggleHttps}
                 disabled={settings.showHttps && !settings.showNear}
-                className="w-4 h-4 rounded accent-accent disabled:opacity-50"
+ className="w-4 h-4 rounded accent-accent disabled:opacity-50"
               />
-              <span className={`text-sm font-medium ${settings.showHttps ? 'text-foreground' : 'text-faint-foreground'}`}>
+ <span className={`text-sm font-medium ${settings.showHttps ? 'text-foreground' : 'text-faint-foreground'}`}>
                 HTTPS
               </span>
             </label>
           </div>
 
           {/* Column settings dropdown */}
-          <div className="relative">
+ <div className="relative">
             <button
               onClick={() => setShowColumnSettings(!showColumnSettings)}
-              className="px-3 py-1.5 text-sm font-medium text-muted-foreground bg-card-muted hover:text-foreground border border-border rounded-lg flex items-center gap-1 cursor-pointer"
+ className="px-3 py-1.5 text-sm font-medium text-muted-foreground bg-card-muted hover:text-foreground border border-border rounded-lg flex items-center gap-1 cursor-pointer"
               title="Column settings"
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+ <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
               </svg>
               Columns
@@ -380,22 +380,22 @@ export default function JobsPage() {
             {showColumnSettings && (
               <>
                 <div
-                  className="fixed inset-0 z-10"
+ className="fixed inset-0 z-10"
                   onClick={() => setShowColumnSettings(false)}
                 />
-                <div className="absolute right-0 mt-2 w-48 bg-card rounded-lg border border-border-lg border border-border z-20 py-2">
+ <div className="absolute right-0 mt-2 w-48 bg-card rounded-lg border border-border-lg border border-border z-20 py-2">
                   {(Object.keys(COLUMN_LABELS) as Array<keyof TableSettings['visibleColumns']>).map((col) => (
                     <label
                       key={col}
-                      className="flex items-center px-4 py-2 hover:bg-card-muted cursor-pointer"
+ className="flex items-center px-4 py-2 hover:bg-card-muted cursor-pointer"
                     >
                       <input
                         type="checkbox"
                         checked={settings.visibleColumns[col]}
                         onChange={() => toggleColumn(col)}
-                        className="w-4 h-4 rounded accent-accent"
+ className="w-4 h-4 rounded accent-accent"
                       />
-                      <span className="ml-2 text-sm">{COLUMN_LABELS[col]}</span>
+ <span className="ml-2 text-sm">{COLUMN_LABELS[col]}</span>
                     </label>
                   ))}
                 </div>
@@ -407,71 +407,71 @@ export default function JobsPage() {
       </div>
 
       {testnetDisabled && (
-        <div className="mt-8">
+ <div className="mt-8">
           <TestnetDisabledNotice variant="block" />
         </div>
       )}
 
       {!testnetDisabled && (
-      <div className="mt-8 flex flex-col">
-        <div className="-my-2 -mx-4 overflow-x-auto sm:-mx-6 lg:-mx-8">
-          <div className="inline-block min-w-full py-2 align-middle md:px-6 lg:px-8">
-            <div className="overflow-hidden rounded-md border border-border bg-card">
-              <table className="min-w-full">
-                <thead className="border-b border-border">
+ <div className="mt-8 flex flex-col">
+ <div className="-my-2 -mx-4 overflow-x-auto sm:-mx-6 lg:-mx-8">
+ <div className="inline-block min-w-full py-2 align-middle md:px-6 lg:px-8">
+ <div className="overflow-hidden rounded-md border border-border bg-card">
+ <table className="min-w-full">
+ <thead className="border-b border-border">
                   <tr>
                     {effectiveColumns.id && (
                       <th
-                        className="px-3 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-faint-foreground"
+ className="px-3 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-faint-foreground"
                         title="Click an id to view its TEE attestation quote"
                       >
                         ID
                       </th>
                     )}
                     {effectiveColumns.type && (
-                      <th className="px-3 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-faint-foreground">Type</th>
+ <th className="px-3 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-faint-foreground">Type</th>
                     )}
                     {effectiveColumns.status && (
-                      <th className="px-3 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-faint-foreground">Status</th>
+ <th className="px-3 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-faint-foreground">Status</th>
                     )}
                     {effectiveColumns.worker && (
-                      <th className="px-3 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-faint-foreground">Worker</th>
+ <th className="px-3 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-faint-foreground">Worker</th>
                     )}
                     {effectiveColumns.source && (
-                      <th className="px-3 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-faint-foreground">Source</th>
+ <th className="px-3 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-faint-foreground">Source</th>
                     )}
                     {effectiveColumns.user && (
-                      <th className="px-3 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-faint-foreground">User</th>
+ <th className="px-3 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-faint-foreground">User</th>
                     )}
                     {effectiveColumns.time && (
-                      <th className="px-3 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-faint-foreground">Time (ms)</th>
+ <th className="px-3 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-faint-foreground">Time (ms)</th>
                     )}
                     {effectiveColumns.fuel && (
-                      <th className="px-3 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-faint-foreground" title="Instructions">Fuel</th>
+ <th className="px-3 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-faint-foreground" title="Instructions">Fuel</th>
                     )}
                     {effectiveColumns.payment && (
-                      <th className="px-3 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-faint-foreground" title="In NEAR tokens">Payment</th>
+ <th className="px-3 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-faint-foreground" title="In NEAR tokens">Payment</th>
                     )}
                     {effectiveColumns.tx && (
-                      <th className="px-3 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-faint-foreground">TX</th>
+ <th className="px-3 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-faint-foreground">TX</th>
                     )}
                     {effectiveColumns.created && (
-                      <th className="px-3 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-faint-foreground">Created</th>
+ <th className="px-3 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-faint-foreground">Created</th>
                     )}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-border">
+ <tbody className="divide-y divide-border">
                   {loading ? (
                     <tr>
-                      <td colSpan={visibleColumnCount} className="px-3 py-8 text-center">
-                        <div className="flex justify-center">
-                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-accent"></div>
+ <td colSpan={visibleColumnCount} className="px-3 py-8 text-center">
+ <div className="flex justify-center">
+ <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-accent"></div>
                         </div>
                       </td>
                     </tr>
                   ) : jobs.length === 0 ? (
                     <tr>
-                      <td colSpan={visibleColumnCount} className="px-3 py-8 text-center text-sm text-muted-foreground">
+ <td colSpan={visibleColumnCount} className="px-3 py-8 text-center text-sm text-muted-foreground">
                         No jobs found
                       </td>
                     </tr>
@@ -484,7 +484,7 @@ export default function JobsPage() {
                         <>
                           <tr key={job.id}>
                             {effectiveColumns.id && (
-                              <td className="whitespace-nowrap px-3 py-4 text-sm font-mono">
+ <td className="whitespace-nowrap px-3 py-4 text-sm font-mono">
                                 {/* The id itself opens the attestation report. Discovery was the
                                     problem with a separate icon column: people never connected the
                                     shield to "this execution can be proven". Attached to the row's
@@ -495,14 +495,14 @@ export default function JobsPage() {
                                 {job.job_id && job.job_type !== 'compile' ? (
                                   <button
                                     onClick={() => loadAttestation(job)}
-                                    className="inline-flex items-center gap-1 text-accent-text cursor-pointer group"
+ className="inline-flex items-center gap-1 text-accent-text cursor-pointer group"
                                     title="Click to view the TEE attestation quote for this execution"
                                   >
-                                    <span className="underline decoration-dotted underline-offset-2">{job.id}</span>
+ <span className="underline decoration-dotted underline-offset-2">{job.id}</span>
                                     {/* Sized in `em` so it tracks the digits next to it instead of
                                         towering over them at a fixed pixel size. */}
                                     <svg
-                                      className="w-[0.9em] h-[0.9em] shrink-0 text-accent-text"
+ className="w-[0.9em] h-[0.9em] shrink-0 text-accent-text"
                                       fill="none"
                                       stroke="currentColor"
                                       viewBox="0 0 24 24"
@@ -512,15 +512,15 @@ export default function JobsPage() {
                                     </svg>
                                   </button>
                                 ) : (
-                                  <span>{job.id}</span>
+ <span>{job.id}</span>
                                 )}
                               </td>
                             )}
                             {effectiveColumns.type && (
-                              <td className="whitespace-nowrap px-3 py-4 text-sm">
-                                <div className="flex items-center gap-1">
+ <td className="whitespace-nowrap px-3 py-4 text-sm">
+ <div className="flex items-center gap-1">
                                   <span
-                                    className={`inline-flex rounded-full px-2 text-xs font-semibold leading-5 ${
+ className={`inline-flex rounded-full px-2 text-xs font-semibold leading-5 ${
                                       job.job_type === 'compile'
                                         ? 'bg-info/10 text-info'
                                         : 'bg-accent/10 text-accent-text'
@@ -529,7 +529,7 @@ export default function JobsPage() {
                                     {job.job_type || 'N/A'}
                                   </span>
                                   <span
-                                    className={`inline-flex rounded-full px-2 text-xs font-semibold leading-5 border ${
+ className={`inline-flex rounded-full px-2 text-xs font-semibold leading-5 border ${
                                       job.is_https_call
                                         ? 'border-border-strong text-muted-foreground'
                                         : 'border-success/40 text-success-text'
@@ -547,35 +547,35 @@ export default function JobsPage() {
                               // No `whitespace-nowrap` here, and a width cap: the longest label
                               // ("Insufficient Payment", "Compilation Failed") otherwise stretches
                               // this column and squeezes every other one on the row.
-                              <td className="px-3 py-4 text-sm">
+ <td className="px-3 py-4 text-sm">
                                 <span
-                                  className={`inline-flex max-w-[7.5rem] rounded-2xl px-2 py-0.5 text-xs font-semibold leading-4 ${
+ className={`inline-flex max-w-[7.5rem] rounded-2xl px-2 py-0.5 text-xs font-semibold leading-4 ${
                                     getStatusDisplay(job.status, job.success).color
                                   } ${hasErrorDetails ? 'cursor-pointer hover:opacity-80' : ''}`}
                                   onClick={() => hasErrorDetails && setExpandedJobId(isExpanded ? null : job.id)}
                                   title={hasErrorDetails ? 'Click to show error details' : undefined}
                                 >
-                                  <span className="min-w-0">
+ <span className="min-w-0">
                                     {getStatusDisplay(job.status, job.success).text}
                                     {/* Kept inside the text run so the caret wraps with the last
                                         word instead of being stranded on a line of its own. */}
-                                    {hasErrorDetails && <span className="ml-1">{isExpanded ? '▼' : '▶'}</span>}
+ {hasErrorDetails && <span className="ml-1">{isExpanded ? '▼' : '▶'}</span>}
                                   </span>
                                 </span>
                               </td>
                             )}
                             {effectiveColumns.worker && (
-                              <td className="px-3 py-4 text-sm text-muted-foreground font-mono">
-                                <div className="max-w-[100px] truncate" title={job.worker_id || 'N/A'}>
+ <td className="px-3 py-4 text-sm text-muted-foreground font-mono">
+ <div className="max-w-[100px] truncate" title={job.worker_id || 'N/A'}>
                                   {job.worker_id ? job.worker_id.split('-').pop() : 'N/A'}
                                 </div>
                               </td>
                             )}
                             {effectiveColumns.source && (
-                              <td className="px-3 py-4 text-sm text-muted-foreground">
+ <td className="px-3 py-4 text-sm text-muted-foreground">
                                 {job.project_id ? (
                                   <span
-                                    className="max-w-[120px] truncate block"
+ className="max-w-[120px] truncate block"
                                     title={job.project_id}
                                   >
                                     {job.project_id.split('/').pop() || job.project_id}
@@ -585,7 +585,7 @@ export default function JobsPage() {
                                     href={`${job.github_repo}/tree/${job.github_commit}`}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="text-accent-text hover:underline max-w-[120px] truncate block"
+ className="text-accent-text hover:underline max-w-[120px] truncate block"
                                     title={`${job.github_repo} @ ${job.github_commit}`}
                                   >
                                     {job.github_repo.replace(/^https?:\/\/(www\.)?github\.com\//, '')}
@@ -596,14 +596,14 @@ export default function JobsPage() {
                               </td>
                             )}
                             {effectiveColumns.user && (
-                              <td className="whitespace-nowrap px-3 py-4 text-sm text-muted-foreground font-mono">
+ <td className="whitespace-nowrap px-3 py-4 text-sm text-muted-foreground font-mono">
                                 {job.user_account_id
                                   ? job.user_account_id.substring(0, 12) + '...'
                                   : 'N/A'}
                               </td>
                             )}
                             {effectiveColumns.time && (
-                              <td className="whitespace-nowrap px-3 py-4 text-sm">
+ <td className="whitespace-nowrap px-3 py-4 text-sm">
                                 {job.compile_time_ms && job.execution_time_ms
                                   ? `${job.compile_time_ms}ms + ${job.execution_time_ms}ms`
                                   : job.compile_time_ms
@@ -614,25 +614,25 @@ export default function JobsPage() {
                               </td>
                             )}
                             {effectiveColumns.fuel && (
-                              <td className="whitespace-nowrap px-3 py-4 text-sm">
+ <td className="whitespace-nowrap px-3 py-4 text-sm">
                                 {job.job_type === 'compile' ? '-' : formatInstructions(job.instructions_used)}
                               </td>
                             )}
                             {effectiveColumns.payment && (
-                              <td className="whitespace-nowrap px-3 py-4 text-sm">
+ <td className="whitespace-nowrap px-3 py-4 text-sm">
                                 {job.is_https_call
                                   ? formatUsd(job.compute_cost_usd)
                                   : formatYoctoNEAR(getDisplayPayment(job))}
                               </td>
                             )}
                             {effectiveColumns.tx && (
-                              <td className="whitespace-nowrap px-3 py-4 text-sm">
+ <td className="whitespace-nowrap px-3 py-4 text-sm">
                                 {job.transaction_hash ? (
                                   <a
                                     href={getTransactionUrl(job.transaction_hash, network)}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="text-accent-text hover:underline"
+ className="text-accent-text hover:underline"
                                     title={job.transaction_hash}
                                   >
                                     {job.transaction_hash.substring(0, 8)}...
@@ -644,7 +644,7 @@ export default function JobsPage() {
                             )}
                             {effectiveColumns.created && (
                               <td
-                                className="whitespace-nowrap px-3 py-4 text-sm text-muted-foreground"
+ className="whitespace-nowrap px-3 py-4 text-sm text-muted-foreground"
                                 title={new Date(job.created_at).toLocaleString()}
                               >
                                 {formatTimestamp(job.created_at)}
@@ -654,10 +654,10 @@ export default function JobsPage() {
                           {/* Error details row - only shown when expanded */}
                           {isExpanded && hasErrorDetails && (
                             <tr key={`${job.id}-details`}>
-                              <td colSpan={visibleColumnCount} className="px-3 py-4 bg-card-muted">
-                                <div className="text-sm">
-                                  <span className="font-semibold">Error Details:</span>
-                                  <pre className="mt-2 p-3 bg-background border border-border rounded text-xs overflow-x-auto text-destructive-text">
+ <td colSpan={visibleColumnCount} className="px-3 py-4 bg-card-muted">
+ <div className="text-sm">
+ <span className="font-semibold">Error Details:</span>
+ <pre className="mt-2 p-3 bg-background border border-border rounded text-xs overflow-x-auto text-destructive-text">
                                     {job.error_details}
                                   </pre>
                                 </div>
@@ -679,24 +679,24 @@ export default function JobsPage() {
       {/* Attestation Modal */}
       {attestationModal && (
         <div
-          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+ className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
           onClick={() => {
             setAttestationModal(null);
             setShowAttestationHelp(false);
           }}
         >
           <div
-            className="bg-card border border-border rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto"
+ className="bg-card border border-border rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="p-6">
-              <div className="flex justify-between items-center mb-4">
-                <div className="flex items-center gap-3">
-                  <h2 className="text-xl font-bold">
+ <div className="p-6">
+ <div className="flex justify-between items-center mb-4">
+ <div className="flex items-center gap-3">
+ <h2 className="text-xl font-bold">
                     TEE Attestation - {attestationModal.isHttpsCall ? 'HTTPS' : 'NEAR'} Job #{attestationModal.jobId}
                   </h2>
                   <span
-                    className={`inline-flex rounded-full px-2 text-xs font-semibold leading-5 border ${
+ className={`inline-flex rounded-full px-2 text-xs font-semibold leading-5 border ${
                       attestationModal.isHttpsCall
                         ? 'border-border-strong text-muted-foreground'
                         : 'border-success/40 text-success-text'
@@ -708,7 +708,7 @@ export default function JobsPage() {
                     <Link
                       href={`/attestation/${attestationModal.jobId}?network=${network}`}
                       target="_blank"
-                      className="px-3 py-1 bg-accent/10 hover:bg-accent/20 text-accent-text text-sm font-medium rounded"
+ className="px-3 py-1 bg-accent/10 hover:bg-accent/20 text-accent-text text-sm font-medium rounded"
                       title="Open in new tab"
                     >
                       Direct Link
@@ -720,23 +720,23 @@ export default function JobsPage() {
                     setAttestationModal(null);
                     setShowAttestationHelp(false);
                   }}
-                  className="text-faint-foreground hover:text-foreground"
+ className="text-faint-foreground hover:text-foreground"
                 >
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+ <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                   </svg>
                 </button>
               </div>
 
               {attestationModal.loading && (
-                <div className="flex justify-center items-center py-12">
-                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-accent"></div>
+ <div className="flex justify-center items-center py-12">
+ <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-accent"></div>
                 </div>
               )}
 
               {attestationModal.error && (
-                <div className="rounded-md border border-destructive/30 bg-destructive/10 p-4 mb-4">
-                  <p className="text-sm text-destructive-text">{attestationModal.error}</p>
+ <div className="rounded-md border border-destructive/30 bg-destructive/10 p-4 mb-4">
+ <p className="text-sm text-destructive-text">{attestationModal.error}</p>
                 </div>
               )}
 

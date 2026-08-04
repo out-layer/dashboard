@@ -18,15 +18,15 @@ import { BarChart } from '@/components/ui/bar-chart';
 
 function Tile({ label, value, sub, href }: { label: string; value: string; sub?: string; href?: string }) {
   const body = (
-    <Card className={href ? 'h-full transition-colors hover:border-border-strong' : 'h-full'}>
-      <CardContent className="p-5">
-        <p className="text-xs text-muted-foreground">{label}</p>
-        <p className="mt-1 text-2xl font-semibold tabular-nums tracking-tight">{value}</p>
-        {sub && <p className="mt-1 text-xs text-faint-foreground">{sub}</p>}
+ <Card className={href ? 'h-full transition-colors hover:border-border-strong' : 'h-full'}>
+ <CardContent className="p-5">
+ <p className="text-xs text-muted-foreground">{label}</p>
+ <p className="mt-1 text-2xl font-semibold tabular-nums tracking-tight">{value}</p>
+ {sub && <p className="mt-1 text-xs text-faint-foreground">{sub}</p>}
       </CardContent>
     </Card>
   );
-  return href ? <Link href={href}>{body}</Link> : body;
+ return href ? <Link href={href}>{body}</Link> : body;
 }
 
 export default function StatsPage() {
@@ -92,16 +92,16 @@ export default function StatsPage() {
 
   if (loading) {
     return (
-      <div className="flex min-h-[400px] items-center justify-center">
-        <div className="h-10 w-10 animate-spin rounded-full border-b-2 border-accent" />
+ <div className="flex min-h-[400px] items-center justify-center">
+ <div className="h-10 w-10 animate-spin rounded-full border-b-2 border-accent" />
       </div>
     );
   }
 
   if (error || !stats) {
     return (
-      <div className="rounded-md border border-destructive/30 bg-destructive/10 p-4">
-        <p className="text-sm text-destructive-text">{error}</p>
+ <div className="rounded-md border border-destructive/30 bg-destructive/10 p-4">
+ <p className="text-sm text-destructive-text">{error}</p>
       </div>
     );
   }
@@ -140,16 +140,16 @@ export default function StatsPage() {
   ];
 
   return (
-    <div className="w-full">
+ <div className="w-full">
       <div>
-        <h1 className="text-xl font-bold tracking-tight">Stats</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
+ <h1 className="text-xl font-bold tracking-tight">Stats</h1>
+ <p className="mt-1 text-sm text-muted-foreground">
           Platform-wide metrics, refreshed every 30 seconds.
         </p>
       </div>
 
       {/* KPI tiles */}
-      <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+ <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Tile label="Total executions" value={stats.total_executions.toLocaleString('en-US')} />
         <Tile
           label="Platform success rate"
@@ -159,16 +159,16 @@ export default function StatsPage() {
         <Tile label="Active workers" value={String(stats.active_workers)} href="/workers" sub="view fleet →" />
         <Tile label="Unique users" value={stats.unique_users.toLocaleString('en-US')} />
       </div>
-      <div className="mt-4 grid gap-4 sm:grid-cols-3">
+ <div className="mt-4 grid gap-4 sm:grid-cols-3">
         <Tile label="Instructions executed" value={formatInstructions(stats.total_instructions_used)} />
         <Tile label="Avg execution time" value={`${stats.average_execution_time_ms} ms`} />
         <Tile label="Total NEAR paid" value={formatYoctoNEAR(stats.total_near_paid_yocto)} />
       </div>
 
       {/* Execution outcomes */}
-      <Card className="mt-6">
+ <Card className="mt-6">
         <CardHeader>
-          <CardTitle>Execution outcomes</CardTitle>
+ <CardTitle>Execution outcomes</CardTitle>
           <CardDescription>
             All {stats.total_executions.toLocaleString('en-US')} executions. The platform rate counts
             only infrastructure errors as failures — user-side outcomes (wrong repo, denied access,
@@ -177,23 +177,23 @@ export default function StatsPage() {
         </CardHeader>
         <CardContent>
           {outcomeTotal > 0 && (
-            <div className="flex h-4 w-full gap-0.5 overflow-hidden rounded-full">
+ <div className="flex h-4 w-full gap-0.5 overflow-hidden rounded-full">
               {outcomeSegments.map((s) => (
                 <div
                   key={s.label}
                   title={`${s.label}: ${s.value.toLocaleString('en-US')}`}
                   style={{ width: `${(s.value / outcomeTotal) * 100}%`, background: s.color }}
-                  className="min-w-[3px]"
+ className="min-w-[3px]"
                 />
               ))}
             </div>
           )}
-          <div className="mt-4 grid gap-x-6 gap-y-1.5 text-sm sm:grid-cols-2 lg:grid-cols-3">
+ <div className="mt-4 grid gap-x-6 gap-y-1.5 text-sm sm:grid-cols-2 lg:grid-cols-3">
             {outcomeDetail.map(([label, value], i) => (
-              <div key={label} className="flex items-center justify-between gap-3">
-                <span className="flex items-center gap-2 text-muted-foreground">
+ <div key={label} className="flex items-center justify-between gap-3">
+ <span className="flex items-center gap-2 text-muted-foreground">
                   <span
-                    className="h-2 w-2 shrink-0 rounded-full"
+ className="h-2 w-2 shrink-0 rounded-full"
                     style={{
                       background:
                         i === 0
@@ -205,7 +205,7 @@ export default function StatsPage() {
                   />
                   {label}
                 </span>
-                <span className="font-semibold tabular-nums">{value.toLocaleString('en-US')}</span>
+ <span className="font-semibold tabular-nums">{value.toLocaleString('en-US')}</span>
               </div>
             ))}
           </div>
@@ -214,18 +214,18 @@ export default function StatsPage() {
 
       {/* Popular repositories */}
       {repos.filter((repo) => repo.successful_executions > 0).length > 0 && (
-        <Card className="mt-6 overflow-hidden rounded-md">
+ <Card className="mt-6 overflow-hidden rounded-md">
           <CardHeader>
-            <CardTitle>Popular repositories</CardTitle>
+ <CardTitle>Popular repositories</CardTitle>
           </CardHeader>
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-sm">
+ <div className="overflow-x-auto">
+ <table className="min-w-full text-sm">
               <thead>
-                <tr className="border-t border-border text-left text-[11px] font-semibold uppercase tracking-wider text-faint-foreground">
-                  <th className="px-5 py-3">Repository</th>
-                  <th className="px-5 py-3 text-right">Executions</th>
-                  <th className="px-5 py-3">Success rate</th>
-                  <th className="px-5 py-3">Last commit</th>
+ <tr className="border-t border-border text-left text-[11px] font-semibold uppercase tracking-wider text-faint-foreground">
+ <th className="px-5 py-3">Repository</th>
+ <th className="px-5 py-3 text-right">Executions</th>
+ <th className="px-5 py-3">Success rate</th>
+ <th className="px-5 py-3">Last commit</th>
                 </tr>
               </thead>
               <tbody>
@@ -240,29 +240,29 @@ export default function StatsPage() {
                         ? ((repoPlatformSuccesses / actualExecutions) * 100).toFixed(1)
                         : '0';
                     return (
-                      <tr key={idx} className="border-t border-border hover:bg-card-muted/60">
-                        <td className="px-5 py-3">
+ <tr key={idx} className="border-t border-border hover:bg-card-muted/60">
+ <td className="px-5 py-3">
                           <a
                             href={repo.github_repo}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="font-medium text-accent-text hover:underline"
+ className="font-medium text-accent-text hover:underline"
                           >
                             {repo.github_repo.replace(/^https?:\/\/(www\.)?github\.com\//, '')}
                           </a>
                         </td>
-                        <td className="px-5 py-3 text-right tabular-nums">{actualExecutions}</td>
-                        <td className="px-5 py-3">
+ <td className="px-5 py-3 text-right tabular-nums">{actualExecutions}</td>
+ <td className="px-5 py-3">
                           <Badge variant={parseFloat(repoRate) > 90 ? 'success' : 'warning'}>
                             {parseFloat(repoRate) <= 90 && (
-                              <svg viewBox="0 0 16 16" fill="currentColor" className="h-3 w-3">
+ <svg viewBox="0 0 16 16" fill="currentColor" className="h-3 w-3">
                                 <path d="M8 1.5 15 14H1zM7.25 6v4h1.5V6zm0 5v1.5h1.5V11z" />
                               </svg>
                             )}
                             {repoRate}%
                           </Badge>
                         </td>
-                        <td className="px-5 py-3 font-mono text-xs text-muted-foreground">
+ <td className="px-5 py-3 font-mono text-xs text-muted-foreground">
                           {repo.last_commit ? repo.last_commit.substring(0, 8) : '—'}
                         </td>
                       </tr>
@@ -276,80 +276,78 @@ export default function StatsPage() {
 
       {/* Pricing & limits */}
       {pricing && (
-        <Card className="mt-6">
+ <Card className="mt-6">
           <CardHeader>
-            <CardTitle>Pricing &amp; limits</CardTitle>
+ <CardTitle>Pricing &amp; limits</CardTitle>
             <CardDescription>
-              Live platform configuration.{' '}
-              <Link href="/docs/pricing" className="text-accent-text hover:underline">
+              Live platform configuration. <Link href="/docs/pricing" className="text-accent-text hover:underline">
                 How pricing works →
               </Link>
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-6">
+ <CardContent className="space-y-6">
             <div>
-              <h3 className="text-sm font-semibold">NEAR pricing (blockchain transactions)</h3>
-              <dl className="mt-2 grid gap-x-6 gap-y-3 text-sm sm:grid-cols-2">
+ <h3 className="text-sm font-semibold">NEAR pricing (blockchain transactions)</h3>
+ <dl className="mt-2 grid gap-x-6 gap-y-3 text-sm sm:grid-cols-2">
                 <div>
-                  <dt className="text-muted-foreground">Base fee</dt>
-                  <dd className="tabular-nums">{formatYoctoNEAR(pricing.base_fee)}</dd>
+ <dt className="text-muted-foreground">Base fee</dt>
+ <dd className="tabular-nums">{formatYoctoNEAR(pricing.base_fee)}</dd>
                 </div>
                 <div>
-                  <dt className="text-muted-foreground">Per million instructions</dt>
-                  <dd className="tabular-nums">{formatYoctoNEAR(pricing.per_instruction_fee)}</dd>
+ <dt className="text-muted-foreground">Per million instructions</dt>
+ <dd className="tabular-nums">{formatYoctoNEAR(pricing.per_instruction_fee)}</dd>
                 </div>
                 <div>
-                  <dt className="text-muted-foreground">Per millisecond (execution)</dt>
-                  <dd className="tabular-nums">{formatYoctoNEAR(pricing.per_ms_fee)}</dd>
+ <dt className="text-muted-foreground">Per millisecond (execution)</dt>
+ <dd className="tabular-nums">{formatYoctoNEAR(pricing.per_ms_fee)}</dd>
                 </div>
                 <div>
-                  <dt className="text-muted-foreground">Per millisecond (compilation)</dt>
-                  <dd className="tabular-nums">{formatYoctoNEAR(pricing.per_compile_ms_fee)}</dd>
+ <dt className="text-muted-foreground">Per millisecond (compilation)</dt>
+ <dd className="tabular-nums">{formatYoctoNEAR(pricing.per_compile_ms_fee)}</dd>
                 </div>
               </dl>
             </div>
             <div>
-              <h3 className="text-sm font-semibold">USD pricing (payment keys)</h3>
-              <p className="mt-1 text-xs text-muted-foreground">
-                For HTTPS API calls.{' '}
-                <Link href="/docs/payment-keys" className="text-accent-text hover:underline">
+ <h3 className="text-sm font-semibold">USD pricing (payment keys)</h3>
+ <p className="mt-1 text-xs text-muted-foreground">
+                For HTTPS API calls. <Link href="/docs/payment-keys" className="text-accent-text hover:underline">
                   Payment keys →
                 </Link>
               </p>
-              <dl className="mt-2 grid gap-x-6 gap-y-3 text-sm sm:grid-cols-2">
+ <dl className="mt-2 grid gap-x-6 gap-y-3 text-sm sm:grid-cols-2">
                 <div>
-                  <dt className="text-muted-foreground">Base fee</dt>
-                  <dd className="tabular-nums">{formatUsdMinimal(pricing.base_fee_usd)}</dd>
+ <dt className="text-muted-foreground">Base fee</dt>
+ <dd className="tabular-nums">{formatUsdMinimal(pricing.base_fee_usd)}</dd>
                 </div>
                 <div>
-                  <dt className="text-muted-foreground">Per million instructions</dt>
-                  <dd className="tabular-nums">{formatUsdMinimal(pricing.per_instruction_fee_usd)}</dd>
+ <dt className="text-muted-foreground">Per million instructions</dt>
+ <dd className="tabular-nums">{formatUsdMinimal(pricing.per_instruction_fee_usd)}</dd>
                 </div>
                 <div>
-                  <dt className="text-muted-foreground">Per second (execution)</dt>
-                  <dd className="tabular-nums">{formatUsdMinimal(pricing.per_sec_fee_usd)}</dd>
+ <dt className="text-muted-foreground">Per second (execution)</dt>
+ <dd className="tabular-nums">{formatUsdMinimal(pricing.per_sec_fee_usd)}</dd>
                 </div>
                 <div>
-                  <dt className="text-muted-foreground">Per millisecond (compilation)</dt>
-                  <dd className="tabular-nums">{formatUsdMinimal(pricing.per_compile_ms_fee_usd)}</dd>
+ <dt className="text-muted-foreground">Per millisecond (compilation)</dt>
+ <dd className="tabular-nums">{formatUsdMinimal(pricing.per_compile_ms_fee_usd)}</dd>
                 </div>
               </dl>
             </div>
             <div>
-              <h3 className="text-sm font-semibold">Resource limits</h3>
-              <dl className="mt-2 grid gap-x-6 gap-y-3 text-sm sm:grid-cols-3">
+ <h3 className="text-sm font-semibold">Resource limits</h3>
+ <dl className="mt-2 grid gap-x-6 gap-y-3 text-sm sm:grid-cols-3">
                 <div>
-                  <dt className="text-muted-foreground">Max instructions</dt>
-                  <dd className="tabular-nums">{formatInstructions(pricing.max_instructions)}</dd>
-                  <dd className="text-xs text-faint-foreground">hard cap per execution</dd>
+ <dt className="text-muted-foreground">Max instructions</dt>
+ <dd className="tabular-nums">{formatInstructions(pricing.max_instructions)}</dd>
+ <dd className="text-xs text-faint-foreground">hard cap per execution</dd>
                 </div>
                 <div>
-                  <dt className="text-muted-foreground">Max execution time</dt>
-                  <dd className="tabular-nums">{pricing.max_execution_seconds} s</dd>
+ <dt className="text-muted-foreground">Max execution time</dt>
+ <dd className="tabular-nums">{pricing.max_execution_seconds} s</dd>
                 </div>
                 <div>
-                  <dt className="text-muted-foreground">Max compilation time</dt>
-                  <dd className="tabular-nums">{pricing.max_compilation_seconds} s</dd>
+ <dt className="text-muted-foreground">Max compilation time</dt>
+ <dd className="tabular-nums">{pricing.max_compilation_seconds} s</dd>
                 </div>
               </dl>
             </div>
@@ -359,11 +357,11 @@ export default function StatsPage() {
 
       {/* Agent custody */}
       {walletStats && (
-        <div className="mt-6">
-          <h2 className="text-sm font-semibold uppercase tracking-wider text-faint-foreground">
+ <div className="mt-6">
+ <h2 className="text-sm font-semibold uppercase tracking-wider text-faint-foreground">
             Agent custody
           </h2>
-          <div className="mt-3 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+ <div className="mt-3 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <Tile label="Total wallets" value={walletStats.wallets.total.toLocaleString('en-US')} />
             <Tile label="Active wallets" value={walletStats.wallets.active.toLocaleString('en-US')} />
             <Tile label="Deleted" value={walletStats.wallets.deleted.toLocaleString('en-US')} />
@@ -379,29 +377,29 @@ export default function StatsPage() {
           </div>
 
           {Object.keys(walletStats.transactions.by_type).length > 0 && (
-            <div className="mt-4 flex flex-wrap gap-2">
+ <div className="mt-4 flex flex-wrap gap-2">
               {Object.entries(walletStats.transactions.by_type)
                 .sort(([, a], [, b]) => b - a)
                 .map(([type, count]) => (
-                  <Badge key={type} variant="outline" className="gap-1.5">
+ <Badge key={type} variant="outline" className="gap-1.5">
                     {type.replace(/_/g, ' ')}
-                    <span className="font-bold tabular-nums text-foreground">{count}</span>
+ <span className="font-bold tabular-nums text-foreground">{count}</span>
                   </Badge>
                 ))}
             </div>
           )}
 
           {Object.keys(walletStats.transactions.by_status).length > 0 && (
-            <div className="mt-2 flex flex-wrap gap-2">
+ <div className="mt-2 flex flex-wrap gap-2">
               {Object.entries(walletStats.transactions.by_status)
                 .sort(([, a], [, b]) => b - a)
                 .map(([status, count]) => {
                   const variant =
                     status === 'completed' ? 'success' : status === 'failed' ? 'destructive' : 'warning';
                   return (
-                    <Badge key={status} variant={variant} className="gap-1.5">
+ <Badge key={status} variant={variant} className="gap-1.5">
                       {status}
-                      <span className="font-bold tabular-nums">{count}</span>
+ <span className="font-bold tabular-nums">{count}</span>
                     </Badge>
                   );
                 })}
@@ -410,11 +408,11 @@ export default function StatsPage() {
 
           {(walletStats.registrations_per_day.length > 0 ||
             walletStats.transactions_per_day.length > 0) && (
-            <div className="mt-4 grid gap-4 lg:grid-cols-2">
+ <div className="mt-4 grid gap-4 lg:grid-cols-2">
               {walletStats.registrations_per_day.length > 0 && (
                 <Card>
                   <CardHeader>
-                    <CardTitle>Wallet registrations — last 30 days</CardTitle>
+ <CardTitle>Wallet registrations — last 30 days</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <BarChart
@@ -429,7 +427,7 @@ export default function StatsPage() {
               {walletStats.transactions_per_day.length > 0 && (
                 <Card>
                   <CardHeader>
-                    <CardTitle>Custody transactions — last 30 days</CardTitle>
+ <CardTitle>Custody transactions — last 30 days</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <BarChart

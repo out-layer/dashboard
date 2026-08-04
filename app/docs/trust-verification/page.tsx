@@ -5,58 +5,58 @@ import { SyntaxHighlighter, vscDarkPlus } from '@/components/ui/syntax';
 
 function AnchorHeading({ id, children, level = 2 }: { id: string; children: React.ReactNode; level?: 2 | 3 | 4 }) {
   const sizeClass = level === 2 ? 'text-2xl' : level === 3 ? 'text-xl' : 'text-lg';
-  const className = `${sizeClass} font-bold text-foreground mb-4 scroll-mt-4 group`;
+ const className = `${sizeClass} font-bold text-foreground mb-4 scroll-mt-4 group`;
   const anchor = (
-    <a href={`#${id}`} className="ml-2 text-faint-foreground hover:text-[var(--primary-orange)] opacity-0 group-hover:opacity-100 transition-opacity">
+ <a href={`#${id}`} className="ml-2 text-faint-foreground hover:text-[var(--primary-orange)] opacity-0 group-hover:opacity-100 transition-opacity">
       #
     </a>
   );
 
-  if (level === 3) return <h3 id={id} className={className}>{children}{anchor}</h3>;
-  if (level === 4) return <h4 id={id} className={className}>{children}{anchor}</h4>;
-  return <h2 id={id} className={className}>{children}{anchor}</h2>;
+ if (level === 3) return <h3 id={id} className={className}>{children}{anchor}</h3>;
+ if (level === 4) return <h4 id={id} className={className}>{children}{anchor}</h4>;
+ return <h2 id={id} className={className}>{children}{anchor}</h2>;
 }
 
 export default function TrustVerificationPage() {
   return (
-    <div className="prose prose-lg max-w-none">
-      <h1 className="text-3xl font-bold text-foreground mb-6">Why Trust OutLayer?</h1>
+ <div className="prose prose-lg max-w-none">
+ <h1 className="text-3xl font-bold text-foreground mb-6">Why Trust OutLayer?</h1>
 
-      <p className="text-foreground mb-8 text-lg">
+ <p className="text-foreground mb-8 text-lg">
         OutLayer runs your code inside Intel TDX confidential VMs where even the operator cannot
         access your secrets or tamper with execution. Here&apos;s how to verify this yourself.
       </p>
 
       {/* Overview */}
-      <section className="mb-12">
-        <AnchorHeading id="overview">Trust Architecture</AnchorHeading>
+ <section className="mb-12">
+ <AnchorHeading id="overview">Trust Architecture</AnchorHeading>
 
-        <p className="text-foreground mb-4">
+ <p className="text-foreground mb-4">
           OutLayer&apos;s security rests on three independently verifiable pillars:
         </p>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <div className="border border-info/30 rounded-lg p-4 bg-info/10">
-            <h4 className="font-semibold text-info mb-2">1. Hardware (Intel TDX)</h4>
-            <p className="text-sm text-foreground">
+ <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+ <div className="border border-border rounded-lg p-4 bg-card-muted">
+ <h4 className="font-semibold text-foreground mb-2">1. Hardware (Intel TDX)</h4>
+ <p className="text-sm text-foreground">
               Confidential VMs with hardware-encrypted memory. Host OS cannot read worker memory.
             </p>
           </div>
-          <div className="border border-success/30 rounded-lg p-4 bg-success/10">
-            <h4 className="font-semibold text-success-text mb-2">2. Open Source Code</h4>
-            <p className="text-sm text-foreground">
+ <div className="border border-border rounded-lg p-4 bg-card-muted">
+ <h4 className="font-semibold text-foreground mb-2">2. Open Source Code</h4>
+ <p className="text-sm text-foreground">
               All worker code is public on GitHub with Sigstore-certified release binaries.
             </p>
           </div>
-          <div className="border border-purple-200 rounded-lg p-4 bg-purple-50">
-            <h4 className="font-semibold text-purple-900 mb-2">3. On-Chain Verification</h4>
-            <p className="text-sm text-foreground">
+ <div className="border border-border rounded-lg p-4 bg-card-muted">
+ <h4 className="font-semibold text-foreground mb-2">3. On-Chain Verification</h4>
+ <p className="text-sm text-foreground">
               NEAR smart contract verifies TDX quotes and stores approved measurements on-chain.
             </p>
           </div>
         </div>
 
-        <p className="text-foreground mb-4">
+ <p className="text-foreground mb-4">
           Whatever hardware a worker runs on, these three pillars hold. The next two sections show
           that the cryptographic guarantee is the same across both deployment methods, and how to
           verify any individual execution yourself.
@@ -64,35 +64,32 @@ export default function TrustVerificationPage() {
       </section>
 
       {/* Two ways workers run */}
-      <section className="mb-12">
-        <AnchorHeading id="deployment-methods">Two Ways Workers Run</AnchorHeading>
+ <section className="mb-12">
+ <AnchorHeading id="deployment-methods">Two Ways Workers Run</AnchorHeading>
 
-        <p className="text-foreground mb-4">
-          OutLayer workers are deployed in two ways. <strong>Both are genuine Intel TDX</strong> —
+ <p className="text-foreground mb-4">
+ OutLayer workers are deployed in two ways. <strong>Both are genuine Intel TDX</strong> —
           they differ only in who hosts the hardware and which portal renders the human-readable
           attestation.
         </p>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-          <div className="border border-success/30 rounded-lg p-4 bg-success/10">
-            <h4 className="font-semibold text-success-text mb-2">Self-hosted TDX</h4>
-            <p className="text-sm text-foreground mb-2">
-              A self-hosted bare-metal dstack node. Human-verifiable attestation is rendered at{' '}
-              <a href="https://workers.outlayer.ai" target="_blank" rel="noopener noreferrer" className="text-[var(--primary-orange)] hover:underline">
+ <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+ <div className="border border-border rounded-lg p-4 bg-card-muted">
+ <h4 className="font-semibold text-foreground mb-2">Self-hosted TDX</h4>
+ <p className="text-sm text-foreground mb-2">
+              A self-hosted bare-metal dstack node. Human-verifiable attestation is rendered at <a href="https://workers.outlayer.ai" target="_blank" rel="noopener noreferrer" className="text-[var(--primary-orange)] hover:underline">
                 workers.outlayer.ai
               </a>
               .
             </p>
           </div>
-          <div className="border border-info/30 rounded-lg p-4 bg-info/10">
-            <h4 className="font-semibold text-info mb-2">Phala Cloud</h4>
-            <p className="text-sm text-foreground mb-2">
-              Managed dstack hosted by{' '}
-              <a href="https://phala.network" target="_blank" rel="noopener noreferrer" className="text-[var(--primary-orange)] hover:underline">
+ <div className="border border-border rounded-lg p-4 bg-card-muted">
+ <h4 className="font-semibold text-foreground mb-2">Phala Cloud</h4>
+ <p className="text-sm text-foreground mb-2">
+              Managed dstack hosted by <a href="https://phala.network" target="_blank" rel="noopener noreferrer" className="text-[var(--primary-orange)] hover:underline">
                 Phala Cloud
               </a>
-              . Human-verifiable attestation is rendered at{' '}
-              <a href="https://trust.phala.com" target="_blank" rel="noopener noreferrer" className="text-[var(--primary-orange)] hover:underline">
+              . Human-verifiable attestation is rendered at <a href="https://trust.phala.com" target="_blank" rel="noopener noreferrer" className="text-[var(--primary-orange)] hover:underline">
                 trust.phala.com
               </a>
               .
@@ -100,19 +97,19 @@ export default function TrustVerificationPage() {
           </div>
         </div>
 
-        <p className="text-foreground mb-4">
+ <p className="text-foreground mb-4">
           In both cases the worker runs in an Intel TDX confidential VM via dstack and emits a TDX
-          quote that binds the worker&apos;s public key in <code>report_data</code> (the raw key for
+ quote that binds the worker&apos;s public key in <code>report_data</code> (the raw key for
           ed25519, or its SHA-256 for post-quantum ml-dsa-65) plus
-          all 5 measurements. Both register on the <strong>same on-chain register-contract</strong>
-          {' '}(<code>worker.outlayer.near</code> on mainnet, <code>worker.outlayer.testnet</code> on
+ all 5 measurements. Both register on the <strong>same on-chain register-contract</strong>
+ {' '}(<code>worker.outlayer.near</code> on mainnet, <code>worker.outlayer.testnet</code> on
           testnet), which verifies the Intel TDX quote signature (Intel DCAP) and checks the 5
           measurements against an admin allowlist.
         </p>
 
-        <div className="bg-info/10 border-l-4 border-info/50 p-4 mb-6">
-          <p className="text-sm text-info">
-            <strong>Workers complement each other — location doesn&apos;t matter.</strong> Workers from
+ <div className="bg-card-muted border-l-4 border-border p-4 mb-6">
+ <p className="text-sm text-foreground">
+ <strong>Workers complement each other — location doesn&apos;t matter.</strong> Workers from
             both deployment methods join the same pool; the coordinator dispatches each task to
             whichever worker is free, regardless of whether it runs on a self-hosted TDX node or on
             Phala Cloud. You don&apos;t pick a host, and you don&apos;t need to — every execution
@@ -123,94 +120,94 @@ export default function TrustVerificationPage() {
       </section>
 
       {/* Verifying each deployment */}
-      <section className="mb-12">
-        <AnchorHeading id="verify-deployments">Verifying Each Deployment</AnchorHeading>
+ <section className="mb-12">
+ <AnchorHeading id="verify-deployments">Verifying Each Deployment</AnchorHeading>
 
-        <p className="text-foreground mb-4">
+ <p className="text-foreground mb-4">
           Side by side, the two deployment methods are cryptographically identical. Only the last
           two rows differ.
         </p>
 
-        <div className="overflow-x-auto mb-6">
-          <table className="min-w-full divide-y divide-border">
-            <thead className="bg-card-muted">
+ <div className="overflow-x-auto mb-6">
+ <table className="min-w-full divide-y divide-border">
+ <thead className="bg-card-muted">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Aspect</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Self-hosted TDX</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Phala Cloud</th>
+ <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Aspect</th>
+ <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Self-hosted TDX</th>
+ <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Phala Cloud</th>
               </tr>
             </thead>
-            <tbody className="bg-card divide-y divide-border">
+ <tbody className="bg-card divide-y divide-border">
               <tr>
-                <td colSpan={3} className="px-4 py-2 text-xs font-bold uppercase tracking-wide text-success-text bg-success/10">Identical across both — the trust model</td>
-              </tr>
-              <tr>
-                <td className="px-4 py-3 text-sm font-semibold text-foreground">TEE hardware</td>
-                <td className="px-4 py-3 text-sm text-muted-foreground">Intel TDX (Xeon)</td>
-                <td className="px-4 py-3 text-sm text-muted-foreground">Intel TDX (Xeon)</td>
-              </tr>
-              <tr className="bg-card-muted">
-                <td className="px-4 py-3 text-sm font-semibold text-foreground">Runtime</td>
-                <td className="px-4 py-3 text-sm text-muted-foreground">dstack confidential VM</td>
-                <td className="px-4 py-3 text-sm text-muted-foreground">dstack confidential VM</td>
+ <td colSpan={3} className="px-4 py-2 text-xs font-bold uppercase tracking-wide text-foreground bg-card-muted">Identical across both — the trust model</td>
               </tr>
               <tr>
-                <td className="px-4 py-3 text-sm font-semibold text-foreground">Attestation</td>
-                <td className="px-4 py-3 text-sm text-muted-foreground">Intel TDX quote (DCAP)</td>
-                <td className="px-4 py-3 text-sm text-muted-foreground">Intel TDX quote (DCAP)</td>
+ <td className="px-4 py-3 text-sm font-semibold text-foreground">TEE hardware</td>
+ <td className="px-4 py-3 text-sm text-muted-foreground">Intel TDX (Xeon)</td>
+ <td className="px-4 py-3 text-sm text-muted-foreground">Intel TDX (Xeon)</td>
               </tr>
-              <tr className="bg-card-muted">
-                <td className="px-4 py-3 text-sm font-semibold text-foreground">Quote signature</td>
-                <td className="px-4 py-3 text-sm text-muted-foreground">Intel-signed, verified via Intel DCAP</td>
-                <td className="px-4 py-3 text-sm text-muted-foreground">Intel-signed, verified via Intel DCAP</td>
-              </tr>
-              <tr>
-                <td className="px-4 py-3 text-sm font-semibold text-foreground">Measurements</td>
-                <td className="px-4 py-3 text-sm text-muted-foreground">MRTD + RTMR0&ndash;3 (5 registers)</td>
-                <td className="px-4 py-3 text-sm text-muted-foreground">MRTD + RTMR0&ndash;3 (5 registers)</td>
-              </tr>
-              <tr className="bg-card-muted">
-                <td className="px-4 py-3 text-sm font-semibold text-foreground">On-chain registration</td>
-                <td className="px-4 py-3 text-sm text-muted-foreground"><code>worker.outlayer.{'{near,testnet}'}</code> — same register-contract, 5-measurement allowlist</td>
-                <td className="px-4 py-3 text-sm text-muted-foreground"><code>worker.outlayer.{'{near,testnet}'}</code> — same register-contract, 5-measurement allowlist</td>
+ <tr className="bg-card-muted">
+ <td className="px-4 py-3 text-sm font-semibold text-foreground">Runtime</td>
+ <td className="px-4 py-3 text-sm text-muted-foreground">dstack confidential VM</td>
+ <td className="px-4 py-3 text-sm text-muted-foreground">dstack confidential VM</td>
               </tr>
               <tr>
-                <td className="px-4 py-3 text-sm font-semibold text-foreground">Secret custody</td>
-                <td className="px-4 py-3 text-sm text-muted-foreground">NEAR MPC keystore (CKD)</td>
-                <td className="px-4 py-3 text-sm text-muted-foreground">NEAR MPC keystore (CKD)</td>
+ <td className="px-4 py-3 text-sm font-semibold text-foreground">Attestation</td>
+ <td className="px-4 py-3 text-sm text-muted-foreground">Intel TDX quote (DCAP)</td>
+ <td className="px-4 py-3 text-sm text-muted-foreground">Intel TDX quote (DCAP)</td>
+              </tr>
+ <tr className="bg-card-muted">
+ <td className="px-4 py-3 text-sm font-semibold text-foreground">Quote signature</td>
+ <td className="px-4 py-3 text-sm text-muted-foreground">Intel-signed, verified via Intel DCAP</td>
+ <td className="px-4 py-3 text-sm text-muted-foreground">Intel-signed, verified via Intel DCAP</td>
               </tr>
               <tr>
-                <td colSpan={3} className="px-4 py-2 text-xs font-bold uppercase tracking-wide text-orange-700 bg-orange-50">Differs — who operates the infrastructure (each component itself TDX-attested)</td>
+ <td className="px-4 py-3 text-sm font-semibold text-foreground">Measurements</td>
+ <td className="px-4 py-3 text-sm text-muted-foreground">MRTD + RTMR0&ndash;3 (5 registers)</td>
+ <td className="px-4 py-3 text-sm text-muted-foreground">MRTD + RTMR0&ndash;3 (5 registers)</td>
+              </tr>
+ <tr className="bg-card-muted">
+ <td className="px-4 py-3 text-sm font-semibold text-foreground">On-chain registration</td>
+ <td className="px-4 py-3 text-sm text-muted-foreground"><code>worker.outlayer.{'{near,testnet}'}</code> — same register-contract, 5-measurement allowlist</td>
+ <td className="px-4 py-3 text-sm text-muted-foreground"><code>worker.outlayer.{'{near,testnet}'}</code> — same register-contract, 5-measurement allowlist</td>
               </tr>
               <tr>
-                <td className="px-4 py-3 text-sm font-semibold text-foreground">Who hosts the hardware</td>
-                <td className="px-4 py-3 text-sm text-foreground font-medium">Bare-metal node</td>
-                <td className="px-4 py-3 text-sm text-foreground font-medium">Phala Cloud</td>
-              </tr>
-              <tr className="bg-card-muted">
-                <td className="px-4 py-3 text-sm font-semibold text-foreground">Deploy-time KMS</td>
-                <td className="px-4 py-3 text-sm text-foreground font-medium">Self-hosted dstack-kms (in TEE)</td>
-                <td className="px-4 py-3 text-sm text-foreground font-medium">Phala&apos;s dstack KMS</td>
+ <td className="px-4 py-3 text-sm font-semibold text-foreground">Secret custody</td>
+ <td className="px-4 py-3 text-sm text-muted-foreground">NEAR MPC keystore (CKD)</td>
+ <td className="px-4 py-3 text-sm text-muted-foreground">NEAR MPC keystore (CKD)</td>
               </tr>
               <tr>
-                <td className="px-4 py-3 text-sm font-semibold text-foreground">Network gateway (TLS-in-TEE)</td>
-                <td className="px-4 py-3 text-sm text-foreground font-medium"><code>gateway.dstack.outlayer.ai</code></td>
-                <td className="px-4 py-3 text-sm text-foreground font-medium">Phala gateway</td>
-              </tr>
-              <tr className="bg-card-muted">
-                <td className="px-4 py-3 text-sm font-semibold text-foreground">Platform (FMSPC collateral)</td>
-                <td className="px-4 py-3 text-sm text-foreground font-medium">Self-hosted node&apos;s FMSPC</td>
-                <td className="px-4 py-3 text-sm text-foreground font-medium">Phala platform FMSPC</td>
+ <td colSpan={3} className="px-4 py-2 text-xs font-bold uppercase tracking-wide text-muted-foreground bg-card-muted">Differs — who operates the infrastructure (each component itself TDX-attested)</td>
               </tr>
               <tr>
-                <td className="px-4 py-3 text-sm font-semibold text-foreground">Attestation portal</td>
-                <td className="px-4 py-3 text-sm text-foreground font-medium">
-                  <a href="https://workers.outlayer.ai" target="_blank" rel="noopener noreferrer" className="text-[var(--primary-orange)] hover:underline">
+ <td className="px-4 py-3 text-sm font-semibold text-foreground">Who hosts the hardware</td>
+ <td className="px-4 py-3 text-sm text-foreground font-medium">Bare-metal node</td>
+ <td className="px-4 py-3 text-sm text-foreground font-medium">Phala Cloud</td>
+              </tr>
+ <tr className="bg-card-muted">
+ <td className="px-4 py-3 text-sm font-semibold text-foreground">Deploy-time KMS</td>
+ <td className="px-4 py-3 text-sm text-foreground font-medium">Self-hosted dstack-kms (in TEE)</td>
+ <td className="px-4 py-3 text-sm text-foreground font-medium">Phala&apos;s dstack KMS</td>
+              </tr>
+              <tr>
+ <td className="px-4 py-3 text-sm font-semibold text-foreground">Network gateway (TLS-in-TEE)</td>
+ <td className="px-4 py-3 text-sm text-foreground font-medium"><code>gateway.dstack.outlayer.ai</code></td>
+ <td className="px-4 py-3 text-sm text-foreground font-medium">Phala gateway</td>
+              </tr>
+ <tr className="bg-card-muted">
+ <td className="px-4 py-3 text-sm font-semibold text-foreground">Platform (FMSPC collateral)</td>
+ <td className="px-4 py-3 text-sm text-foreground font-medium">Self-hosted node&apos;s FMSPC</td>
+ <td className="px-4 py-3 text-sm text-foreground font-medium">Phala platform FMSPC</td>
+              </tr>
+              <tr>
+ <td className="px-4 py-3 text-sm font-semibold text-foreground">Attestation portal</td>
+ <td className="px-4 py-3 text-sm text-foreground font-medium">
+ <a href="https://workers.outlayer.ai" target="_blank" rel="noopener noreferrer" className="text-[var(--primary-orange)] hover:underline">
                     workers.outlayer.ai
                   </a>
                 </td>
-                <td className="px-4 py-3 text-sm text-foreground font-medium">
-                  <a href="https://trust.phala.com" target="_blank" rel="noopener noreferrer" className="text-[var(--primary-orange)] hover:underline">
+ <td className="px-4 py-3 text-sm text-foreground font-medium">
+ <a href="https://trust.phala.com" target="_blank" rel="noopener noreferrer" className="text-[var(--primary-orange)] hover:underline">
                     trust.phala.com
                   </a>
                 </td>
@@ -219,19 +216,17 @@ export default function TrustVerificationPage() {
           </table>
         </div>
 
-        <div className="bg-success/10 border-l-4 border-success/50 p-4 mb-6">
-          <p className="text-sm text-success-text">
-            <strong>Takeaway:</strong> Every row that matters for the cryptographic guarantee — the
+ <div className="bg-card-muted border-l-4 border-border p-4 mb-6">
+ <p className="text-sm text-foreground">
+ <strong>Takeaway:</strong> Every row that matters for the cryptographic guarantee — the
             TDX hardware, the Intel-signed quote, the 5 measurements, the on-chain register-contract,
-            and NEAR-MPC secret custody — is <strong>identical</strong> on both. What differs is purely
+ and NEAR-MPC secret custody — is <strong>identical</strong> on both. What differs is purely
             operational (who runs the hardware, KMS, and gateway), and each of those is itself a
             TDX-attested component with its own on-chain-approved measurements — not a trusted third
-            party. Verify the self-hosted node at{' '}
-            <a href="https://workers.outlayer.ai" target="_blank" rel="noopener noreferrer" className="underline">
+            party. Verify the self-hosted node at <a href="https://workers.outlayer.ai" target="_blank" rel="noopener noreferrer" className="underline">
               workers.outlayer.ai
             </a>
-            {' '}and Phala Cloud at{' '}
-            <a href="https://trust.phala.com" target="_blank" rel="noopener noreferrer" className="underline">
+            {' '}and Phala Cloud at <a href="https://trust.phala.com" target="_blank" rel="noopener noreferrer" className="underline">
               trust.phala.com
             </a>
             .
@@ -240,44 +235,44 @@ export default function TrustVerificationPage() {
       </section>
 
       {/* Verify any execution */}
-      <section className="mb-12">
-        <AnchorHeading id="verify-execution">Verify Any Execution</AnchorHeading>
+ <section className="mb-12">
+ <AnchorHeading id="verify-execution">Verify Any Execution</AnchorHeading>
 
-        <p className="text-foreground mb-4">
+ <p className="text-foreground mb-4">
           Beyond verifying that a worker is genuine, you can verify <strong>any individual
           execution</strong> — for both NEAR blockchain and HTTPS calls — directly from the
           dashboard.
         </p>
 
-        <div className="bg-card border-2 border-purple-300 rounded-lg p-6 mb-6">
-          <ol className="space-y-3">
-            <li className="flex items-start">
-              <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-purple-500 text-white text-sm font-bold mr-3 flex-shrink-0">1</span>
+ <div className="bg-card border-2 border-border rounded-lg p-6 mb-6">
+ <ol className="space-y-3">
+ <li className="flex items-start">
+ <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-card-muted text-white text-sm font-bold mr-3 flex-shrink-0">1</span>
               <div>
-                <p className="font-semibold text-foreground">Open Executions</p>
-                <p className="text-foreground text-sm">
-                  Go to <Link href="/executions" className="text-[var(--primary-orange)] hover:underline">Executions</Link>
-                  {' '}(the page is titled <strong>Job History</strong>).
+ <p className="font-semibold text-foreground">Open Executions</p>
+ <p className="text-foreground text-sm">
+ Go to <Link href="/executions" className="text-[var(--primary-orange)] hover:underline">Executions</Link>
+ {' '}(the page is titled <strong>Job History</strong>).
                 </p>
               </div>
             </li>
-            <li className="flex items-start">
-              <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-purple-500 text-white text-sm font-bold mr-3 flex-shrink-0">2</span>
+ <li className="flex items-start">
+ <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-card-muted text-white text-sm font-bold mr-3 flex-shrink-0">2</span>
               <div>
-                <p className="font-semibold text-foreground">Click the execution ID</p>
-                <p className="text-foreground text-sm">
-                  Rows with an attestation show a green <strong>shield-check</strong> next to the ID
+ <p className="font-semibold text-foreground">Click the execution ID</p>
+ <p className="text-foreground text-sm">
+ Rows with an attestation show a green <strong>shield-check</strong> next to the ID
                   in the first column; click either. This works for both NEAR blockchain and HTTPS
                   executions.
                 </p>
               </div>
             </li>
-            <li className="flex items-start">
-              <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-purple-500 text-white text-sm font-bold mr-3 flex-shrink-0">3</span>
+ <li className="flex items-start">
+ <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-card-muted text-white text-sm font-bold mr-3 flex-shrink-0">3</span>
               <div>
-                <p className="font-semibold text-foreground">Read the TEE Attestation report</p>
-                <p className="text-foreground text-sm">
-                  The <strong>TEE Attestation</strong> report opens, showing the worker measurement,
+ <p className="font-semibold text-foreground">Read the TEE Attestation report</p>
+ <p className="text-foreground text-sm">
+ The <strong>TEE Attestation</strong> report opens, showing the worker measurement,
                   source code, hashes, and the raw quote (detailed below).
                 </p>
               </div>
@@ -285,86 +280,83 @@ export default function TrustVerificationPage() {
           </ol>
         </div>
 
-        <AnchorHeading id="report-contents" level={3}>What the Report Shows</AnchorHeading>
+ <AnchorHeading id="report-contents" level={3}>What the Report Shows</AnchorHeading>
 
-        <div className="overflow-x-auto mb-6">
-          <table className="min-w-full divide-y divide-border">
-            <thead className="bg-card-muted">
+ <div className="overflow-x-auto mb-6">
+ <table className="min-w-full divide-y divide-border">
+ <thead className="bg-card-muted">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Field</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">What It Proves</th>
+ <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Field</th>
+ <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">What It Proves</th>
               </tr>
             </thead>
-            <tbody className="bg-card divide-y divide-border">
+ <tbody className="bg-card divide-y divide-border">
               <tr>
-                <td className="px-4 py-3 text-sm font-semibold text-foreground">Worker Measurement (RTMR3)</td>
-                <td className="px-4 py-3 text-sm text-muted-foreground">The TEE environment hash. Ties the run to a registered worker.</td>
+ <td className="px-4 py-3 text-sm font-semibold text-foreground">Worker Measurement (RTMR3)</td>
+ <td className="px-4 py-3 text-sm text-muted-foreground">The TEE environment hash. Ties the run to a registered worker.</td>
               </tr>
-              <tr className="bg-card-muted">
-                <td className="px-4 py-3 text-sm font-semibold text-foreground">Source Code</td>
-                <td className="px-4 py-3 text-sm text-muted-foreground">Link to the exact <code>repo@commit</code> that was executed.</td>
+ <tr className="bg-card-muted">
+ <td className="px-4 py-3 text-sm font-semibold text-foreground">Source Code</td>
+ <td className="px-4 py-3 text-sm text-muted-foreground">Link to the exact <code>repo@commit</code> that was executed.</td>
               </tr>
               <tr>
-                <td className="px-4 py-3 text-sm font-semibold text-foreground">WASM Hash / Input Hash / Output Hash</td>
-                <td className="px-4 py-3 text-sm text-muted-foreground">Content-addressable hashes of the binary, the input, and the output.</td>
+ <td className="px-4 py-3 text-sm font-semibold text-foreground">WASM Hash / Input Hash / Output Hash</td>
+ <td className="px-4 py-3 text-sm text-muted-foreground">Content-addressable hashes of the binary, the input, and the output.</td>
               </tr>
-              <tr className="bg-card-muted">
-                <td className="px-4 py-3 text-sm font-semibold text-foreground">TDX Quote</td>
-                <td className="px-4 py-3 text-sm text-muted-foreground">The raw Intel-signed quote, plus a verify button (below).</td>
+ <tr className="bg-card-muted">
+ <td className="px-4 py-3 text-sm font-semibold text-foreground">TDX Quote</td>
+ <td className="px-4 py-3 text-sm text-muted-foreground">The raw Intel-signed quote, plus a verify button (below).</td>
               </tr>
             </tbody>
           </table>
         </div>
 
-        <p className="text-foreground mb-4">
-          The report includes a <strong>&quot;Verify&quot;</strong> button that runs the whole check in
+ <p className="text-foreground mb-4">
+ The report includes a <strong>&quot;Verify&quot;</strong> button that runs the whole check in
           your browser, using Intel&apos;s DCAP quote-verification library compiled to WebAssembly:
         </p>
 
-        <ul className="list-disc list-inside space-y-1 text-foreground mb-4 ml-2">
+ <ul className="list-disc list-inside space-y-1 text-foreground mb-4 ml-2">
           <li>
-            <strong>Authenticity</strong> — the quote&apos;s signature chain is verified to the Intel SGX
+ <strong>Authenticity</strong> — the quote&apos;s signature chain is verified to the Intel SGX
             Root CA against Intel-issued collateral, and the platform&apos;s TCB status is reported.
             Collateral is fetched for the platform and the moment the execution ran, so past executions
             are judged by the material that was current at the time.
           </li>
           <li>
-            <strong>Identity</strong> — all five measurements (MRTD + RTMR0&ndash;3) are read from the
-            verified quote and checked against the on-chain approved-build list via{' '}
-            <code>is_measurements_approved</code>.
+ <strong>Identity</strong> — all five measurements (MRTD + RTMR0&ndash;3) are read from the
+            verified quote and checked against the on-chain approved-build list via <code>is_measurements_approved</code>.
           </li>
           <li>
-            <strong>Binding</strong> — the Task Hash inside the signed quote commits to this
+ <strong>Binding</strong> — the Task Hash inside the signed quote commits to this
             execution&apos;s input, output, WASM, commit, caller and payment, so an Intel-signed quote
             cannot be reused for a different run.
           </li>
         </ul>
 
-        <div className="bg-purple-50 border-l-4 border-purple-400 p-4 mb-6">
-          <p className="text-sm text-purple-800">
-            <strong>Input/Output verification:</strong> For NEAR jobs, click{' '}
-            <strong>&quot;Load &amp; Verify from Blockchain&quot;</strong> — it fetches the
+ <div className="bg-card-muted border-l-4 border-border p-4 mb-6">
+ <p className="text-sm text-foreground">
+ <strong>Input/Output verification:</strong> For NEAR jobs, click <strong>&quot;Load &amp; Verify from Blockchain&quot;</strong> — it fetches the
             transaction, re-hashes the input/output, and compares against the report. For HTTPS jobs,
             paste the request/response to verify them against the hashes.
           </p>
         </div>
 
-        <p className="text-foreground mb-4">
-          For NEAR jobs, a <strong>Direct Link</strong> opens a shareable standalone page at{' '}
-          <code>/attestation/{'{jobId}'}</code>.
+ <p className="text-foreground mb-4">
+ For NEAR jobs, a <strong>Direct Link</strong> opens a shareable standalone page at <code>/attestation/{'{jobId}'}</code>.
         </p>
 
-        <div className="bg-success/10 border-l-4 border-success/50 p-4 mb-6">
-          <p className="text-sm text-success-text">
-            <strong>Takeaway:</strong> Anyone can open any execution, read the worker measurement,
+ <div className="bg-card-muted border-l-4 border-border p-4 mb-6">
+ <p className="text-sm text-foreground">
+ <strong>Takeaway:</strong> Anyone can open any execution, read the worker measurement,
             find the exact sources, and confirm the action ran inside a TEE.
           </p>
         </div>
 
-        <div className="bg-warning/10 border-l-4 border-yellow-500 p-4 mb-6">
-          <p className="text-sm text-warning">
-            <strong>Two places, one measurement set:</strong> the contract checks all five
-            measurements when a worker <strong>registers</strong>, and the per-execution view checks
+ <div className="bg-card-muted border-l-4 border-yellow-500 p-4 mb-6">
+ <p className="text-sm text-foreground">
+ <strong>Two places, one measurement set:</strong> the contract checks all five
+ measurements when a worker <strong>registers</strong>, and the per-execution view checks
             the same five against the same on-chain list when you verify an attestation. The next
             section explains what each measurement covers.
           </p>
@@ -372,21 +364,21 @@ export default function TrustVerificationPage() {
       </section>
 
       {/* Independent CLI verification */}
-      <section className="mb-12">
-        <AnchorHeading id="outlayer-verify"><code>outlayer-verify</code>: Proof That Does Not Depend on Us</AnchorHeading>
+ <section className="mb-12">
+ <AnchorHeading id="outlayer-verify"><code>outlayer-verify</code>: Proof That Does Not Depend on Us</AnchorHeading>
 
-        <p className="text-foreground mb-4">
+ <p className="text-foreground mb-4">
           Everything above runs on a page we serve. For an internal review that is the wrong shape of
           evidence: a vendor&apos;s own website asserting the vendor&apos;s own trustworthiness is a
-          claim, not an artifact. <strong>outlayer-verify</strong> is the same three checks as a
+ claim, not an artifact. <strong>outlayer-verify</strong> is the same three checks as a
           standalone open-source binary your engineers run on their own machines, so the result does
           not depend on anything we say, host or sign.
         </p>
 
-        <div className="bg-card border-2 border-purple-300 rounded-lg p-6 mb-6">
-          <p className="font-semibold text-foreground mb-2">What it does not need</p>
-          <ul className="list-disc list-inside space-y-1 text-foreground text-sm ml-2">
-            <li>No account with us, no API key, no configuration file, no key material.</li>
+ <div className="bg-card border-2 border-border rounded-lg p-6 mb-6">
+ <p className="font-semibold text-foreground mb-2">What it does not need</p>
+ <ul className="list-disc list-inside space-y-1 text-foreground text-sm ml-2">
+ <li>No account with us, no API key, no configuration file, no key material.</li>
             <li>
               No trust in our servers for the answer: Intel&apos;s root certificate is compiled into
               the binary, so a signature chain that does not end at Intel fails regardless of what we
@@ -399,17 +391,16 @@ export default function TrustVerificationPage() {
           </ul>
         </div>
 
-        <p className="text-foreground mb-4">
+ <p className="text-foreground mb-4">
           It reaches three places: our public API for the attestation record and the archived Intel
           collateral, public NEAR RPC for the on-chain approved-build list, and a NEAR archival node
           for on-chain payloads. Only the first is ours, and the collateral it serves is Intel-signed
-          — altering it breaks the chain, so we cannot influence the verdict through it. Use{' '}
-          <code>--collateral</code> to supply your own copy if you would rather not take even that.
+          — altering it breaks the chain, so we cannot influence the verdict through it. Use <code>--collateral</code> to supply your own copy if you would rather not take even that.
         </p>
 
-        <AnchorHeading id="outlayer-verify-install" level={3}>Install and run</AnchorHeading>
+ <AnchorHeading id="outlayer-verify-install" level={3}>Install and run</AnchorHeading>
 
-        <pre className="bg-gray-900 text-gray-100 p-4 rounded-lg overflow-x-auto text-sm mb-4">
+ <pre className="bg-gray-900 text-gray-100 p-4 rounded-lg overflow-x-auto text-sm mb-4">
 {`cargo install --git https://github.com/out-layer/outlayer-verify outlayer-verify
 
 # a live production execution: Ref Finance calling a price oracle on OutLayer.
@@ -426,53 +417,51 @@ outlayer-verify call <call-id> --input '{"city":"Paris"}' --output '{"temp":21}'
 outlayer-verify run owner.near/agent --input '{"city":"Paris"}' --payment-key "$KEY"`}
         </pre>
 
-        <p className="text-foreground mb-4">
+ <p className="text-foreground mb-4">
           The default output shows its working rather than a verdict: the record as published, the
-          measurements and both halves of <code>report_data</code> read out of the quote{' '}
-          <em>after</em> the signature was checked, which collateral was used and whether its
+ measurements and both halves of <code>report_data</code> read out of the quote <em>after</em> the signature was checked, which collateral was used and whether its
           validity window really covers the execution, and — for every comparison — both values.
-          Exit codes make it usable in a pipeline: <code>0</code> proven, <code>1</code> a check
-          failed, <code>2</code> the proof could not be completed, and <code>--json</code> emits the
+ Exit codes make it usable in a pipeline: <code>0</code> proven, <code>1</code> a check
+ failed, <code>2</code> the proof could not be completed, and <code>--json</code> emits the
           same values for a control that needs machine evidence.
         </p>
 
-        <div className="bg-info/10 border-l-4 border-info/50 p-4 mb-6">
-          <p className="text-sm text-info">
-            <strong>For the audit file:</strong> <code>--bundle proof.json</code> writes one
+ <div className="bg-card-muted border-l-4 border-border p-4 mb-6">
+ <p className="text-sm text-foreground">
+ <strong>For the audit file:</strong> <code>--bundle proof.json</code> writes one
             self-contained file holding the record, the Intel-signed collateral, the payloads and the
-            chain&apos;s answer. <code>outlayer-verify bundle proof.json --offline</code> re-checks it
+ chain&apos;s answer. <code>outlayer-verify bundle proof.json --offline</code> re-checks it
             with no network at all — so an execution stays provable to your auditor years later, and
             it does not depend on OutLayer, or this website, still existing. The verdict stored in
             the file is ignored on re-check; it is recomputed from the evidence.
           </p>
         </div>
 
-        <AnchorHeading id="outlayer-verify-limits" level={3}>What a passing verdict does not mean</AnchorHeading>
+ <AnchorHeading id="outlayer-verify-limits" level={3}>What a passing verdict does not mean</AnchorHeading>
 
-        <p className="text-foreground mb-4">
+ <p className="text-foreground mb-4">
           Worth reading before it reaches a risk register, because the gaps are the part a technical
           reviewer will find on their own:
         </p>
 
-        <ul className="list-disc list-inside space-y-2 text-foreground mb-6 ml-2">
+ <ul className="list-disc list-inside space-y-2 text-foreground mb-6 ml-2">
           <li>
-            <strong>It does not prove the approved build came from the published source.</strong> The
+ <strong>It does not prove the approved build came from the published source.</strong> The
             attestation identifies which binary ran, not which source it was compiled from. Closing
             that gap needs a reproducible build and a published digest-to-commit map.
           </li>
           <li>
-            <strong>It does not say who may approve a build.</strong> The tool reports which contract
+ <strong>It does not say who may approve a build.</strong> The tool reports which contract
             it asked. Who controls that account, and under what governance, is a question to put to
             us — and one you should put to us.
           </li>
           <li>
-            <strong>HTTPS payloads are not recoverable.</strong> Only their hashes are stored, so if
+ <strong>HTTPS payloads are not recoverable.</strong> Only their hashes are stored, so if
             the caller did not keep the request and response, the bytes of that execution can never
-            be checked again — by anyone, including us. Keep them, or make the call through{' '}
-            <code>run</code>.
+            be checked again — by anyone, including us. Keep them, or make the call through <code>run</code>.
           </li>
           <li>
-            <strong>Verification is as of the execution&apos;s own timestamp.</strong> Intel
+ <strong>Verification is as of the execution&apos;s own timestamp.</strong> Intel
             collateral is valid only inside a window, and Intel serves only the current one, so
             executions are judged against the archived material that was current when they ran. Where
             no archived window covers an execution, the tool reports it as unproven rather than
@@ -480,85 +469,83 @@ outlayer-verify run owner.near/agent --input '{"city":"Paris"}' --payment-key "$
           </li>
         </ul>
 
-        <div className="bg-success/10 border-l-4 border-success/50 p-4 mb-6">
-          <p className="text-sm text-success-text">
-            <strong>Source and issues:</strong>{' '}
-            <a
+ <div className="bg-card-muted border-l-4 border-border p-4 mb-6">
+ <p className="text-sm text-foreground">
+ <strong>Source and issues:</strong>            <a
               href="https://github.com/out-layer/outlayer-verify"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-[var(--primary-orange)] hover:underline"
+ className="text-[var(--primary-orange)] hover:underline"
             >
               github.com/out-layer/outlayer-verify
-            </a>{' '}
-            — Apache-2.0, with the attestation format&apos;s test vectors taken from real production
-            records. A <code>FAIL</code> on a record served by our API is a security finding: please
-            send the evidence bundle to <code>security@outlayer.ai</code> before publishing it.
+            </a>            — Apache-2.0, with the attestation format&apos;s test vectors taken from real production
+ records. A <code>FAIL</code> on a record served by our API is a security finding: please
+ send the evidence bundle to <code>security@outlayer.ai</code> before publishing it.
           </p>
         </div>
       </section>
 
       {/* 5-Measurement Verification */}
-      <section className="mb-12">
-        <AnchorHeading id="measurements">5-Measurement TDX Verification</AnchorHeading>
+ <section className="mb-12">
+ <AnchorHeading id="measurements">5-Measurement TDX Verification</AnchorHeading>
 
-        <p className="text-foreground mb-4">
+ <p className="text-foreground mb-4">
           Intel TDX produces 5 cryptographic measurements that together uniquely identify the TEE environment.
-          The register-contract (<code>worker.outlayer.near</code>) verifies <strong>all 5</strong> at
+ The register-contract (<code>worker.outlayer.near</code>) verifies <strong>all 5</strong> at
           worker registration, for both deployment methods:
         </p>
 
-        <div className="overflow-x-auto mb-6">
-          <table className="min-w-full divide-y divide-border">
-            <thead className="bg-card-muted">
+ <div className="overflow-x-auto mb-6">
+ <table className="min-w-full divide-y divide-border">
+ <thead className="bg-card-muted">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Measurement</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">What It Measures</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Size</th>
+ <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Measurement</th>
+ <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">What It Measures</th>
+ <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Size</th>
               </tr>
             </thead>
-            <tbody className="bg-card divide-y divide-border">
+ <tbody className="bg-card divide-y divide-border">
               <tr>
-                <td className="px-4 py-3 text-sm font-mono font-semibold">MRTD</td>
-                <td className="px-4 py-3 text-sm text-muted-foreground">TD (Trust Domain) measurement — code + configuration</td>
-                <td className="px-4 py-3 text-sm text-muted-foreground">48 bytes (96 hex chars)</td>
+ <td className="px-4 py-3 text-sm font-mono font-semibold">MRTD</td>
+ <td className="px-4 py-3 text-sm text-muted-foreground">TD (Trust Domain) measurement — code + configuration</td>
+ <td className="px-4 py-3 text-sm text-muted-foreground">48 bytes (96 hex chars)</td>
               </tr>
-              <tr className="bg-card-muted">
-                <td className="px-4 py-3 text-sm font-mono font-semibold">RTMR0</td>
-                <td className="px-4 py-3 text-sm text-muted-foreground">Firmware measurement</td>
-                <td className="px-4 py-3 text-sm text-muted-foreground">48 bytes (96 hex chars)</td>
-              </tr>
-              <tr>
-                <td className="px-4 py-3 text-sm font-mono font-semibold">RTMR1</td>
-                <td className="px-4 py-3 text-sm text-muted-foreground">OS/kernel measurement</td>
-                <td className="px-4 py-3 text-sm text-muted-foreground">48 bytes (96 hex chars)</td>
-              </tr>
-              <tr className="bg-card-muted">
-                <td className="px-4 py-3 text-sm font-mono font-semibold">RTMR2</td>
-                <td className="px-4 py-3 text-sm text-muted-foreground">Application measurement</td>
-                <td className="px-4 py-3 text-sm text-muted-foreground">48 bytes (96 hex chars)</td>
+ <tr className="bg-card-muted">
+ <td className="px-4 py-3 text-sm font-mono font-semibold">RTMR0</td>
+ <td className="px-4 py-3 text-sm text-muted-foreground">Firmware measurement</td>
+ <td className="px-4 py-3 text-sm text-muted-foreground">48 bytes (96 hex chars)</td>
               </tr>
               <tr>
-                <td className="px-4 py-3 text-sm font-mono font-semibold">RTMR3</td>
-                <td className="px-4 py-3 text-sm text-muted-foreground">Runtime measurement</td>
-                <td className="px-4 py-3 text-sm text-muted-foreground">48 bytes (96 hex chars)</td>
+ <td className="px-4 py-3 text-sm font-mono font-semibold">RTMR1</td>
+ <td className="px-4 py-3 text-sm text-muted-foreground">OS/kernel measurement</td>
+ <td className="px-4 py-3 text-sm text-muted-foreground">48 bytes (96 hex chars)</td>
+              </tr>
+ <tr className="bg-card-muted">
+ <td className="px-4 py-3 text-sm font-mono font-semibold">RTMR2</td>
+ <td className="px-4 py-3 text-sm text-muted-foreground">Application measurement</td>
+ <td className="px-4 py-3 text-sm text-muted-foreground">48 bytes (96 hex chars)</td>
+              </tr>
+              <tr>
+ <td className="px-4 py-3 text-sm font-mono font-semibold">RTMR3</td>
+ <td className="px-4 py-3 text-sm text-muted-foreground">Runtime measurement</td>
+ <td className="px-4 py-3 text-sm text-muted-foreground">48 bytes (96 hex chars)</td>
               </tr>
             </tbody>
           </table>
         </div>
 
-        <div className="bg-warning/10 border-l-4 border-yellow-500 p-4 mb-6">
-          <p className="text-sm text-warning">
-            <strong>Why all 5 matter:</strong> Checking only RTMR3 (as some systems do) is not sufficient.
+ <div className="bg-card-muted border-l-4 border-yellow-500 p-4 mb-6">
+ <p className="text-sm text-foreground">
+ <strong>Why all 5 matter:</strong> Checking only RTMR3 (as some systems do) is not sufficient.
             A development dstack image with SSH access enabled would have a different MRTD/RTMR0/RTMR1 but
             could share the same RTMR3. By checking all 5 measurements, OutLayer ensures the entire
             environment — from firmware to application — matches the approved configuration.
           </p>
         </div>
 
-        <AnchorHeading id="check-onchain" level={3}>Check Approved Measurements On-Chain</AnchorHeading>
+ <AnchorHeading id="check-onchain" level={3}>Check Approved Measurements On-Chain</AnchorHeading>
 
-        <SyntaxHighlighter language="bash" style={vscDarkPlus} className="rounded-lg mb-4">
+ <SyntaxHighlighter language="bash" style={vscDarkPlus} className="rounded-lg mb-4">
           {`# View all approved measurement sets
 near view worker.outlayer.near get_approved_measurements
 
@@ -576,90 +563,88 @@ near view worker.outlayer.near is_measurements_approved '{
       </section>
 
       {/* GitHub Releases & Sigstore */}
-      <section className="mb-12">
-        <AnchorHeading id="sigstore">GitHub Releases & Sigstore</AnchorHeading>
+ <section className="mb-12">
+ <AnchorHeading id="sigstore">GitHub Releases & Sigstore</AnchorHeading>
 
-        <p className="text-foreground mb-4">
-          OutLayer publishes releases on GitHub with{' '}
-          <a href="https://www.sigstore.dev/" target="_blank" rel="noopener noreferrer" className="text-[var(--primary-orange)] hover:underline">
+ <p className="text-foreground mb-4">
+          OutLayer publishes releases on GitHub with <a href="https://www.sigstore.dev/" target="_blank" rel="noopener noreferrer" className="text-[var(--primary-orange)] hover:underline">
             Sigstore
           </a>
           {' '}certification. Sigstore provides cryptographic proof that a binary was built from specific source code.
         </p>
 
-        <div className="bg-success/10 border-l-4 border-success/50 p-4 mb-6">
-          <p className="text-sm text-success-text">
-            <strong>What Sigstore proves:</strong> The release binary was built by GitHub Actions CI
+ <div className="bg-card-muted border-l-4 border-border p-4 mb-6">
+ <p className="text-sm text-foreground">
+ <strong>What Sigstore proves:</strong> The release binary was built by GitHub Actions CI
             from the exact source code at that git tag. No one — not even the project maintainers —
             can substitute a different binary without the Sigstore signature failing.
           </p>
         </div>
 
-        <AnchorHeading id="verify-release" level={3}>How to Verify a Release</AnchorHeading>
+ <AnchorHeading id="verify-release" level={3}>How to Verify a Release</AnchorHeading>
 
-        <ol className="list-decimal list-inside text-foreground space-y-2 mb-6">
+ <ol className="list-decimal list-inside text-foreground space-y-2 mb-6">
           <li>
-            Go to{' '}
-            <a href="https://github.com/fastnear/near-outlayer/releases" target="_blank" rel="noopener noreferrer" className="text-[var(--primary-orange)] hover:underline">
+            Go to <a href="https://github.com/fastnear/near-outlayer/releases" target="_blank" rel="noopener noreferrer" className="text-[var(--primary-orange)] hover:underline">
               github.com/fastnear/near-outlayer/releases
             </a>
           </li>
-          <li>Find the release matching the version running in the TEE</li>
-          <li>Check the Sigstore certification badge on the release</li>
-          <li>Review the source code at that release tag</li>
-          <li>Optionally: rebuild from source and compare the hash</li>
+ <li>Find the release matching the version running in the TEE</li>
+ <li>Check the Sigstore certification badge on the release</li>
+ <li>Review the source code at that release tag</li>
+ <li>Optionally: rebuild from source and compare the hash</li>
         </ol>
       </section>
 
       {/* Worker Registration */}
-      <section className="mb-12">
-        <AnchorHeading id="registration-flow">Worker Registration Flow</AnchorHeading>
+ <section className="mb-12">
+ <AnchorHeading id="registration-flow">Worker Registration Flow</AnchorHeading>
 
-        <p className="text-foreground mb-4">
+ <p className="text-foreground mb-4">
           Every worker — self-hosted or on Phala Cloud — must prove its TEE identity before it can
           execute code or access secrets:
         </p>
 
-        <div className="bg-card border-2 border-purple-300 rounded-lg p-6 mb-6">
-          <ol className="space-y-3">
-            <li className="flex items-start">
-              <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-purple-500 text-white text-sm font-bold mr-3 flex-shrink-0">1</span>
+ <div className="bg-card border-2 border-border rounded-lg p-6 mb-6">
+ <ol className="space-y-3">
+ <li className="flex items-start">
+ <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-card-muted text-white text-sm font-bold mr-3 flex-shrink-0">1</span>
               <div>
-                <p className="font-semibold text-foreground">Generate Keypair in TEE</p>
-                <p className="text-foreground text-sm">
+ <p className="font-semibold text-foreground">Generate Keypair in TEE</p>
+ <p className="text-foreground text-sm">
                   Worker generates an ed25519 keypair inside the TDX confidential VM. The private key never leaves TEE memory.
                 </p>
               </div>
             </li>
-            <li className="flex items-start">
-              <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-purple-500 text-white text-sm font-bold mr-3 flex-shrink-0">2</span>
+ <li className="flex items-start">
+ <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-card-muted text-white text-sm font-bold mr-3 flex-shrink-0">2</span>
               <div>
-                <p className="font-semibold text-foreground">Generate TDX Quote</p>
-                <p className="text-foreground text-sm">
-                  TDX hardware produces a cryptographic quote with the worker&apos;s public key in <code>report_data</code>
+ <p className="font-semibold text-foreground">Generate TDX Quote</p>
+ <p className="text-foreground text-sm">
+ TDX hardware produces a cryptographic quote with the worker&apos;s public key in <code>report_data</code>
                   and all 5 measurements. The quote is signed by Intel.
                 </p>
               </div>
             </li>
-            <li className="flex items-start">
-              <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-purple-500 text-white text-sm font-bold mr-3 flex-shrink-0">3</span>
+ <li className="flex items-start">
+ <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-card-muted text-white text-sm font-bold mr-3 flex-shrink-0">3</span>
               <div>
-                <p className="font-semibold text-foreground">On-Chain Verification</p>
-                <p className="text-foreground text-sm">
-                  Worker calls <code>register_worker_key()</code> on the register-contract (<code>worker.outlayer.near</code>). The contract verifies
+ <p className="font-semibold text-foreground">On-Chain Verification</p>
+ <p className="text-foreground text-sm">
+ Worker calls <code>register_worker_key()</code> on the register-contract (<code>worker.outlayer.near</code>). The contract verifies
                   the Intel signature, extracts all 5 measurements, checks them against the approved list,
-                  and confirms the public key matches <code>report_data</code>.
+ and confirms the public key matches <code>report_data</code>.
                 </p>
               </div>
             </li>
-            <li className="flex items-start">
-              <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-purple-500 text-white text-sm font-bold mr-3 flex-shrink-0">4</span>
+ <li className="flex items-start">
+ <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-card-muted text-white text-sm font-bold mr-3 flex-shrink-0">4</span>
               <div>
-                <p className="font-semibold text-foreground">Scoped Access Key</p>
-                <p className="text-foreground text-sm">
+ <p className="font-semibold text-foreground">Scoped Access Key</p>
+ <p className="text-foreground text-sm">
                   The contract adds the worker&apos;s public key as an access key scoped to specific methods only:
-                  <code> resolve_execution</code>, <code>submit_execution_output_and_resolve</code>,
-                  <code> resume_topup</code>, <code>resume_delete_payment_key</code>.
+ <code> resolve_execution</code>, <code>submit_execution_output_and_resolve</code>,
+ <code> resume_topup</code>, <code>resume_delete_payment_key</code>.
                 </p>
               </div>
             </li>
@@ -668,18 +653,18 @@ near view worker.outlayer.near is_measurements_approved '{
       </section>
 
       {/* Ephemeral Worker Keys */}
-      <section className="mb-12">
-        <AnchorHeading id="ephemeral-keys">Ephemeral Worker Keys & Blockchain Trail</AnchorHeading>
+ <section className="mb-12">
+ <AnchorHeading id="ephemeral-keys">Ephemeral Worker Keys & Blockchain Trail</AnchorHeading>
 
-        <p className="text-foreground mb-4">
-          Worker signing keys are <strong>ephemeral</strong> — they are generated fresh inside the TEE on every
-          restart and <strong>never saved to disk or exported</strong>. When a worker restarts, it generates a
+ <p className="text-foreground mb-4">
+ Worker signing keys are <strong>ephemeral</strong> — they are generated fresh inside the TEE on every
+ restart and <strong>never saved to disk or exported</strong>. When a worker restarts, it generates a
           completely new keypair and re-registers on the blockchain.
         </p>
 
-        <div className="bg-success/10 border-l-4 border-success/50 p-4 mb-6">
-          <p className="text-sm text-success-text">
-            <strong>Why this matters:</strong> Every worker registration leaves a permanent trail on the blockchain.
+ <div className="bg-card-muted border-l-4 border-border p-4 mb-6">
+ <p className="text-sm text-foreground">
+ <strong>Why this matters:</strong> Every worker registration leaves a permanent trail on the blockchain.
             The operator cannot secretly spin up a worker, request a key, or access secrets without it being
             visible on-chain. If an admin tried to run unauthorized code, it would fail the 5-measurement check
             during registration — and even if they used legitimate code, the registration transaction would be
@@ -687,7 +672,7 @@ near view worker.outlayer.near is_measurements_approved '{
           </p>
         </div>
 
-        <p className="text-foreground mb-4">
+ <p className="text-foreground mb-4">
           Additionally, every worker&apos;s WASM code is tracked through GitHub — you can verify exactly which code
           a worker executed by checking the source repository and commit hash. This means even a backdoor cannot
           be introduced without leaving a visible trace in the git history.
@@ -695,50 +680,50 @@ near view worker.outlayer.near is_measurements_approved '{
       </section>
 
       {/* CKD: Deterministic Keystore Secrets */}
-      <section className="mb-12">
-        <AnchorHeading id="ckd">Deterministic Keystore Secrets (CKD)</AnchorHeading>
+ <section className="mb-12">
+ <AnchorHeading id="ckd">Deterministic Keystore Secrets (CKD)</AnchorHeading>
 
-        <p className="text-foreground mb-4">
-          The keystore worker uses <strong>Confidential Key Derivation (CKD)</strong> via NEAR&apos;s MPC network
+ <p className="text-foreground mb-4">
+ The keystore worker uses <strong>Confidential Key Derivation (CKD)</strong> via NEAR&apos;s MPC network
           to derive a deterministic master secret. This means that when the keystore restarts or upgrades,
           it recovers the same master secret — all previously encrypted secrets remain accessible.
         </p>
 
-        <div className="bg-card border-2 border-info/40 rounded-lg p-6 mb-6">
-          <ol className="space-y-3">
-            <li className="flex items-start">
-              <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-info/100 text-white text-sm font-bold mr-3 flex-shrink-0">1</span>
+ <div className="bg-card border-2 border-border rounded-lg p-6 mb-6">
+ <ol className="space-y-3">
+ <li className="flex items-start">
+ <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-card-muted0 text-white text-sm font-bold mr-3 flex-shrink-0">1</span>
               <div>
-                <p className="font-semibold text-foreground">TEE Startup</p>
-                <p className="text-foreground text-sm">
+ <p className="font-semibold text-foreground">TEE Startup</p>
+ <p className="text-foreground text-sm">
                   Keystore generates a new ephemeral keypair in TEE memory and submits TDX attestation to the DAO contract.
                 </p>
               </div>
             </li>
-            <li className="flex items-start">
-              <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-info/100 text-white text-sm font-bold mr-3 flex-shrink-0">2</span>
+ <li className="flex items-start">
+ <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-card-muted0 text-white text-sm font-bold mr-3 flex-shrink-0">2</span>
               <div>
-                <p className="font-semibold text-foreground">DAO Approval</p>
-                <p className="text-foreground text-sm">
-                  DAO members (<code>dao.outlayer.near</code>) vote to approve the keystore&apos;s public key, confirming its TEE attestation.
+ <p className="font-semibold text-foreground">DAO Approval</p>
+ <p className="text-foreground text-sm">
+ DAO members (<code>dao.outlayer.near</code>) vote to approve the keystore&apos;s public key, confirming its TEE attestation.
                 </p>
               </div>
             </li>
-            <li className="flex items-start">
-              <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-info/100 text-white text-sm font-bold mr-3 flex-shrink-0">3</span>
+ <li className="flex items-start">
+ <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-card-muted0 text-white text-sm font-bold mr-3 flex-shrink-0">3</span>
               <div>
-                <p className="font-semibold text-foreground">MPC Key Derivation</p>
-                <p className="text-foreground text-sm">
+ <p className="font-semibold text-foreground">MPC Key Derivation</p>
+ <p className="text-foreground text-sm">
                   After approval, keystore requests its master secret from the NEAR MPC network using BLS12-381 key exchange.
                   The derived secret is deterministic — same DAO account + same derivation path always produces the same secret.
                 </p>
               </div>
             </li>
-            <li className="flex items-start">
-              <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-info/100 text-white text-sm font-bold mr-3 flex-shrink-0">4</span>
+ <li className="flex items-start">
+ <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-card-muted0 text-white text-sm font-bold mr-3 flex-shrink-0">4</span>
               <div>
-                <p className="font-semibold text-foreground">Secret Recovery</p>
-                <p className="text-foreground text-sm">
+ <p className="font-semibold text-foreground">Secret Recovery</p>
+ <p className="text-foreground text-sm">
                   The master secret exists only in TEE memory (never persisted to disk). All per-project keys are
                   derived from it using HMAC-SHA256. On restart, the same master secret is re-derived, so all
                   secrets are automatically recoverable.
@@ -750,49 +735,49 @@ near view worker.outlayer.near is_measurements_approved '{
       </section>
 
       {/* What Operator Cannot Do */}
-      <section className="mb-12">
-        <AnchorHeading id="operator-limits">What the Operator Cannot Do</AnchorHeading>
+ <section className="mb-12">
+ <AnchorHeading id="operator-limits">What the Operator Cannot Do</AnchorHeading>
 
-        <p className="text-foreground mb-4">
+ <p className="text-foreground mb-4">
           Even if the operator is malicious or compromised, Intel TDX hardware prevents:
         </p>
 
-        <div className="overflow-x-auto mb-6">
-          <table className="min-w-full divide-y divide-border">
-            <thead className="bg-card-muted">
+ <div className="overflow-x-auto mb-6">
+ <table className="min-w-full divide-y divide-border">
+ <thead className="bg-card-muted">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Action</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Protection</th>
+ <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Action</th>
+ <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Protection</th>
               </tr>
             </thead>
-            <tbody className="bg-card divide-y divide-border">
+ <tbody className="bg-card divide-y divide-border">
               <tr>
-                <td className="px-4 py-3 text-sm text-muted-foreground">Extract decrypted secrets</td>
-                <td className="px-4 py-3 text-sm text-muted-foreground">TEE memory encryption — host OS cannot read worker memory</td>
+ <td className="px-4 py-3 text-sm text-muted-foreground">Extract decrypted secrets</td>
+ <td className="px-4 py-3 text-sm text-muted-foreground">TEE memory encryption — host OS cannot read worker memory</td>
               </tr>
-              <tr className="bg-card-muted">
-                <td className="px-4 py-3 text-sm text-muted-foreground">Modify execution results</td>
-                <td className="px-4 py-3 text-sm text-muted-foreground">Results signed with TEE-generated key registered on-chain</td>
-              </tr>
-              <tr>
-                <td className="px-4 py-3 text-sm text-muted-foreground">Run different code</td>
-                <td className="px-4 py-3 text-sm text-muted-foreground">All 5 TDX measurements must match approved set</td>
-              </tr>
-              <tr className="bg-card-muted">
-                <td className="px-4 py-3 text-sm text-muted-foreground">Forge attestation reports</td>
-                <td className="px-4 py-3 text-sm text-muted-foreground">TDX quotes signed by Intel&apos;s private key (hardware-embedded)</td>
+ <tr className="bg-card-muted">
+ <td className="px-4 py-3 text-sm text-muted-foreground">Modify execution results</td>
+ <td className="px-4 py-3 text-sm text-muted-foreground">Results signed with TEE-generated key registered on-chain</td>
               </tr>
               <tr>
-                <td className="px-4 py-3 text-sm text-muted-foreground">Register unauthorized worker</td>
-                <td className="px-4 py-3 text-sm text-muted-foreground">Register-contract verifies TDX quote before adding access key; every registration is visible on-chain</td>
+ <td className="px-4 py-3 text-sm text-muted-foreground">Run different code</td>
+ <td className="px-4 py-3 text-sm text-muted-foreground">All 5 TDX measurements must match approved set</td>
+              </tr>
+ <tr className="bg-card-muted">
+ <td className="px-4 py-3 text-sm text-muted-foreground">Forge attestation reports</td>
+ <td className="px-4 py-3 text-sm text-muted-foreground">TDX quotes signed by Intel&apos;s private key (hardware-embedded)</td>
+              </tr>
+              <tr>
+ <td className="px-4 py-3 text-sm text-muted-foreground">Register unauthorized worker</td>
+ <td className="px-4 py-3 text-sm text-muted-foreground">Register-contract verifies TDX quote before adding access key; every registration is visible on-chain</td>
               </tr>
             </tbody>
           </table>
         </div>
 
-        <div className="bg-orange-50 border-l-4 border-orange-400 p-4 mb-6">
-          <p className="text-sm text-orange-800">
-            <strong>What the operator CAN do:</strong> Refuse to execute code (censorship) or shut down
+ <div className="bg-card-muted border-l-4 border-border p-4 mb-6">
+ <p className="text-sm text-foreground">
+ <strong>What the operator CAN do:</strong> Refuse to execute code (censorship) or shut down
             infrastructure (availability). These are mitigated by the ability to run multiple independent
             operators — workers are stateless and can be redeployed anywhere.
           </p>
@@ -800,19 +785,19 @@ near view worker.outlayer.near is_measurements_approved '{
       </section>
 
       {/* Related */}
-      <section className="bg-card-muted rounded-lg p-6">
-        <h3 className="text-lg font-semibold text-foreground mb-4">Related Documentation</h3>
-        <ul className="space-y-2 text-sm">
+ <section className="bg-card-muted rounded-lg p-6">
+ <h3 className="text-lg font-semibold text-foreground mb-4">Related Documentation</h3>
+ <ul className="space-y-2 text-sm">
           <li>
-            <Link href="/docs/tee-attestation" className="text-[var(--primary-orange)] hover:underline">TEE Attestation</Link>
+ <Link href="/docs/tee-attestation" className="text-[var(--primary-orange)] hover:underline">TEE Attestation</Link>
             {' '}- Technical details of execution attestation
           </li>
           <li>
-            <Link href="/docs/secrets" className="text-[var(--primary-orange)] hover:underline">Secrets</Link>
+ <Link href="/docs/secrets" className="text-[var(--primary-orange)] hover:underline">Secrets</Link>
             {' '}- How secrets are encrypted and decrypted in TEE
           </li>
           <li>
-            <a href="https://github.com/fastnear/near-outlayer/releases" target="_blank" rel="noopener noreferrer" className="text-[var(--primary-orange)] hover:underline">
+ <a href="https://github.com/fastnear/near-outlayer/releases" target="_blank" rel="noopener noreferrer" className="text-[var(--primary-orange)] hover:underline">
               GitHub Releases
             </a>
             {' '}- Release binaries with Sigstore certification

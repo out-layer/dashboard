@@ -71,58 +71,58 @@ export default function WorkersPage() {
 
   if (loading) {
     return (
-      <div className="flex min-h-[400px] items-center justify-center">
-        <div className="h-10 w-10 animate-spin rounded-full border-b-2 border-accent" />
+ <div className="flex min-h-[400px] items-center justify-center">
+ <div className="h-10 w-10 animate-spin rounded-full border-b-2 border-accent" />
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="rounded-md border border-destructive/30 bg-destructive/10 p-4">
-        <p className="text-sm text-destructive-text">{error}</p>
+ <div className="rounded-md border border-destructive/30 bg-destructive/10 p-4">
+ <p className="text-sm text-destructive-text">{error}</p>
       </div>
     );
   }
 
   return (
-    <div className="w-full">
-      <div className="flex flex-wrap items-end justify-between gap-3">
+ <div className="w-full">
+ <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-xl font-bold tracking-tight">Workers</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
+ <h1 className="text-xl font-bold tracking-tight">Workers</h1>
+ <p className="mt-1 text-sm text-muted-foreground">
             The TEE fleet executing off-chain computation. Every worker&apos;s enclave is
             independently verifiable.
           </p>
         </div>
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <span className="tabular-nums font-semibold text-foreground">{online}</span> online ·
+ <div className="flex items-center gap-2 text-sm text-muted-foreground">
+ <span className="tabular-nums font-semibold text-foreground">{online}</span> online ·
           <a href="https://workers.outlayer.ai" target="_blank" rel="noreferrer">
             <AttestationBadge label="Fleet attestation" />
           </a>
         </div>
       </div>
 
-      <Card className="mt-6 overflow-hidden rounded-md">
+ <Card className="mt-6 overflow-hidden rounded-md">
         {workers.length === 0 ? (
           <EmptyState
             title="No workers found"
             description="The coordinator reported an empty fleet for this network."
-            className="border-0"
+ className="border-0"
           />
         ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-sm">
+ <div className="overflow-x-auto">
+ <table className="min-w-full text-sm">
               <thead>
-                <tr className="border-b border-border text-left text-[11px] font-semibold uppercase tracking-wider text-faint-foreground">
-                  <th className="px-4 py-3">Worker</th>
-                  <th className="px-4 py-3">Instance</th>
-                  <th className="px-4 py-3">Status</th>
-                  <th className="px-4 py-3">Attestation</th>
-                  <th className="px-4 py-3 text-right">Completed</th>
-                  <th className="px-4 py-3 text-right">Failed</th>
-                  <th className="px-4 py-3">Uptime</th>
-                  <th className="px-4 py-3">Last heartbeat</th>
+ <tr className="border-b border-border text-left text-[11px] font-semibold uppercase tracking-wider text-faint-foreground">
+ <th className="px-4 py-3">Worker</th>
+ <th className="px-4 py-3">Instance</th>
+ <th className="px-4 py-3">Status</th>
+ <th className="px-4 py-3">Attestation</th>
+ <th className="px-4 py-3 text-right">Completed</th>
+ <th className="px-4 py-3 text-right">Failed</th>
+ <th className="px-4 py-3">Uptime</th>
+ <th className="px-4 py-3">Last heartbeat</th>
                 </tr>
               </thead>
               <tbody>
@@ -134,32 +134,32 @@ export default function WorkersPage() {
                     // the machine), so the attested instance key is part of the row key.
                     <tr
                       key={`${worker.worker_id}:${worker.instance ?? ''}`}
-                      className="border-b border-border last:border-0 hover:bg-card-muted/60"
+ className="border-b border-border last:border-0 hover:bg-card-muted/60"
                     >
-                      <td className="px-4 py-3 font-mono text-xs">{worker.worker_id}</td>
-                      <td className="px-4 py-3">
+ <td className="px-4 py-3 font-mono text-xs">{worker.worker_id}</td>
+ <td className="px-4 py-3">
                         {worker.instance ? (
                           <HashChip value={worker.instance} trim={0} title="Prefix of this worker's attested public key (registered on-chain)" />
                         ) : (
-                          <span className="text-faint-foreground">—</span>
+ <span className="text-faint-foreground">—</span>
                         )}
                       </td>
-                      <td className="px-4 py-3">
-                        <Badge variant={alive ? 'success' : 'outline'}>{worker.status}</Badge>
+ <td className="px-4 py-3">
+ <Badge variant={alive ? 'success' : 'outline'}>{worker.status}</Badge>
                       </td>
-                      <td className="px-4 py-3">
+ <td className="px-4 py-3">
                         {attestationUrl ? (
                           <a href={attestationUrl} target="_blank" rel="noopener noreferrer">
                             <AttestationBadge label="Verify" href={undefined} />
                           </a>
                         ) : (
-                          <span className="text-faint-foreground">—</span>
+ <span className="text-faint-foreground">—</span>
                         )}
                       </td>
-                      <td className="px-4 py-3 text-right tabular-nums">{worker.total_tasks_completed}</td>
-                      <td className="px-4 py-3 text-right tabular-nums">{worker.total_tasks_failed}</td>
-                      <td className="px-4 py-3 tabular-nums text-muted-foreground">{formatUptime(worker.uptime_seconds)}</td>
-                      <td className="px-4 py-3 text-xs text-muted-foreground">
+ <td className="px-4 py-3 text-right tabular-nums">{worker.total_tasks_completed}</td>
+ <td className="px-4 py-3 text-right tabular-nums">{worker.total_tasks_failed}</td>
+ <td className="px-4 py-3 tabular-nums text-muted-foreground">{formatUptime(worker.uptime_seconds)}</td>
+ <td className="px-4 py-3 text-xs text-muted-foreground">
                         {new Date(worker.last_heartbeat_at).toLocaleString()}
                       </td>
                     </tr>

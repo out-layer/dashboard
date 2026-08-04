@@ -350,22 +350,22 @@ export default function ProjectsPage() {
   };
 
   return (
-    <div className="w-full">
+ <div className="w-full">
       {/* Header */}
-      <div className="sm:flex sm:items-center sm:justify-between">
+ <div className="sm:flex sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-xl font-bold tracking-tight">Projects</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
+ <h1 className="text-xl font-bold tracking-tight">Projects</h1>
+ <p className="mt-1 text-sm text-muted-foreground">
             Manage your OutLayer projects with persistent storage across versions
           </p>
         </div>
         {isConnected && (
-          <div className="mt-4 sm:mt-0">
+ <div className="mt-4 sm:mt-0">
             <button
               onClick={() => setShowCreateForm(true)}
-              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-accent hover:bg-accent-hover shadow-sm"
+ className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-on-accent bg-accent hover:bg-accent-hover shadow-sm"
             >
-              <svg className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+ <svg className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
               </svg>
               New Project
@@ -376,10 +376,10 @@ export default function ProjectsPage() {
 
       {/* Connect Wallet Button */}
       {!isConnected && (
-        <div className="mt-8 flex justify-center">
+ <div className="mt-8 flex justify-center">
           <button
             onClick={() => setShowWalletModal(true)}
-            className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-accent hover:bg-accent-hover shadow-sm hover:shadow-md transition-all"
+ className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-on-accent bg-accent hover:bg-accent-hover shadow-sm hover:shadow-md transition-all"
           >
             Connect Wallet
           </button>
@@ -394,21 +394,21 @@ export default function ProjectsPage() {
 
       {/* Error Display */}
       {error && (
-        <div className="mt-4 bg-destructive/10 border border-destructive/30 rounded-md p-3">
-          <p className="text-sm text-destructive-text">{error}</p>
+ <div className="mt-4 bg-destructive/10 border border-destructive/30 rounded-md p-3">
+ <p className="text-sm text-destructive-text">{error}</p>
         </div>
       )}
 
       {/* Success Display */}
       {success && (
-        <div className="mt-4 bg-success/10 border border-success/30 rounded-md p-3">
-          <p className="text-sm text-success-text">{success}</p>
+ <div className="mt-4 bg-success/10 border border-success/30 rounded-md p-3">
+ <p className="text-sm text-success-text">{success}</p>
         </div>
       )}
 
       {/* Create Project Form */}
       {showCreateForm && (
-        <div className="mt-6">
+ <div className="mt-6">
           <CreateProjectForm
             onSubmit={handleCreateProject}
             onCancel={() => setShowCreateForm(false)}
@@ -419,28 +419,28 @@ export default function ProjectsPage() {
 
       {/* Projects List */}
       {isConnected && (
-        <div className="mt-8">
+ <div className="mt-8">
           {loadingProjects ? (
-            <div className="flex items-center justify-center py-12">
-              <svg className="animate-spin h-8 w-8 text-accent-text" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+ <div className="flex items-center justify-center py-12">
+ <svg className="animate-spin h-8 w-8 text-accent-text" fill="none" viewBox="0 0 24 24">
+ <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+ <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
               </svg>
-              <span className="ml-3 text-muted-foreground">Loading projects...</span>
+ <span className="ml-3 text-muted-foreground">Loading projects...</span>
             </div>
           ) : projects.length === 0 ? (
-            <div className="text-center py-12">
-              <svg className="mx-auto h-12 w-12 text-faint-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+ <div className="text-center py-12">
+ <svg className="mx-auto h-12 w-12 text-faint-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
               </svg>
-              <h3 className="mt-2 text-sm font-medium text-foreground">No projects</h3>
-              <p className="mt-1 text-sm text-muted-foreground">Get started by creating a new project.</p>
-              <div className="mt-6">
+ <h3 className="mt-2 text-sm font-medium text-foreground">No projects</h3>
+ <p className="mt-1 text-sm text-muted-foreground">Get started by creating a new project.</p>
+ <div className="mt-6">
                 <button
                   onClick={() => setShowCreateForm(true)}
-                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-accent hover:bg-accent-hover"
+ className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-on-accent bg-accent hover:bg-accent-hover"
                 >
-                  <svg className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+ <svg className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                   </svg>
                   Create Project
@@ -448,7 +448,7 @@ export default function ProjectsPage() {
               </div>
             </div>
           ) : (
-            <div className="space-y-4">
+ <div className="space-y-4">
               {projects.map((project) => (
                 <div key={project.project_id}>
                   <ProjectCard
@@ -467,7 +467,7 @@ export default function ProjectsPage() {
                     onDeleteProject={() => handleDeleteProject(project.name)}
                   />
                   {addVersionForProject === project.name && (
-                    <div className="mt-2">
+ <div className="mt-2">
                       <AddVersionForm
                         projectName={addVersionForProject}
                         onSubmit={handleAddVersion}
@@ -483,12 +483,12 @@ export default function ProjectsPage() {
 
           {/* Refresh Button */}
           {projects.length > 0 && (
-            <div className="mt-4 flex justify-center">
+ <div className="mt-4 flex justify-center">
               <button
                 onClick={loadProjects}
-                className="text-sm text-muted-foreground hover:text-accent-text flex items-center"
+ className="text-sm text-muted-foreground hover:text-accent-text flex items-center"
               >
-                <svg className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+ <svg className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                 </svg>
                 Refresh
@@ -499,28 +499,28 @@ export default function ProjectsPage() {
       )}
 
       {/* Info Section */}
-      <div className="mt-8 bg-info/10 border border-info/30 rounded-lg p-6">
-        <h3 className="text-sm font-semibold text-foreground mb-3">
+ <div className="mt-8 bg-info/10 border border-info/30 rounded-lg p-6">
+ <h3 className="text-sm font-semibold text-foreground mb-3">
           About Projects
         </h3>
-        <ul className="text-sm text-muted-foreground space-y-2 list-disc list-inside">
+ <ul className="text-sm text-muted-foreground space-y-2 list-disc list-inside">
           <li>
-            <strong>Persistent Storage</strong>: Data persists across version updates within a project
+ <strong>Persistent Storage</strong>: Data persists across version updates within a project
           </li>
           <li>
-            <strong>Version Management</strong>: Add multiple versions, switch active version anytime
+ <strong>Version Management</strong>: Add multiple versions, switch active version anytime
           </li>
           <li>
-            <strong>Project Secrets</strong>: Store secrets for the whole project (not per-version)
+ <strong>Project Secrets</strong>: Store secrets for the whole project (not per-version)
           </li>
           <li>
-            <strong>Storage Deposit</strong>: Pay for on-chain storage, refunded when deleted
+ <strong>Storage Deposit</strong>: Pay for on-chain storage, refunded when deleted
           </li>
         </ul>
 
-        <div className="mt-4 p-3 bg-card rounded border border-info/30">
-          <h4 className="text-xs font-semibold text-foreground mb-2">Project ID Format</h4>
-          <code className="text-xs text-accent-text font-mono">
+ <div className="mt-4 p-3 bg-card rounded border border-info/30">
+ <h4 className="text-xs font-semibold text-foreground mb-2">Project ID Format</h4>
+ <code className="text-xs text-accent-text font-mono">
             {accountId || 'yourname.near'}/project-name
           </code>
         </div>

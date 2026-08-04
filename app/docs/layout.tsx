@@ -43,19 +43,19 @@ export default function DocsLayout({
   };
 
   return (
-    <div className="w-full">
-      <h1 className="text-3xl font-bold mb-8 text-foreground">OutLayer Documentation</h1>
+ <div className="w-full">
+ <h1 className="text-3xl font-bold mb-8 text-foreground">OutLayer Documentation</h1>
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+ <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
         {/* Sidebar Navigation */}
-        <div className="lg:col-span-1">
-          <div className="bg-card border border-border rounded-lg p-2">
-            <nav className="space-y-0.5">
+ <div className="lg:col-span-1">
+ <div className="bg-card border border-border rounded-lg p-2">
+ <nav className="space-y-0.5">
               {DOCS_NAV.map((group) => (
                 <div key={group.group ?? 'root'}>
                   {group.group && (
-                    <div className="pt-3 pb-1">
-                      <span className="px-3 text-xs font-semibold text-faint-foreground uppercase tracking-wider">
+ <div className="pt-3 pb-1">
+ <span className="px-3 text-xs font-semibold text-faint-foreground uppercase tracking-wider">
                         {group.group}
                       </span>
                     </div>
@@ -64,9 +64,9 @@ export default function DocsLayout({
                     <div key={page.href}>
                       <Link
                         href={page.href}
-                        className={`flex items-center justify-between w-full text-left px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+ className={`flex items-center justify-between w-full text-left px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
                           isActive(page.href)
-                            ? 'bg-accent text-on-accent'
+                            ? 'bg-accent/10 text-accent-text font-semibold'
                             : 'text-foreground hover:bg-card-muted'
                         }`}
                         onClick={(e) => {
@@ -76,10 +76,10 @@ export default function DocsLayout({
                           }
                         }}
                       >
-                        <span>{page.label}</span>
+ <span>{page.label}</span>
                         {hasSections(page.href) && (
                           <svg
-                            className={`w-4 h-4 transition-transform ${expandedPages[page.href] ? 'rotate-90' : ''}`}
+ className={`w-4 h-4 transition-transform ${expandedPages[page.href] ? 'rotate-90' : ''}`}
                             fill="none"
                             stroke="currentColor"
                             viewBox="0 0 24 24"
@@ -89,12 +89,12 @@ export default function DocsLayout({
                         )}
                       </Link>
                       {expandedPages[page.href] && page.sections.length > 0 && (
-                        <div className="ml-4 mt-1 space-y-0.5">
+ <div className="ml-4 mt-1 space-y-0.5">
                           {page.sections.map((section) => (
                             <button
                               key={section.id}
                               onClick={() => scrollToSection(section.id)}
-                              className="block w-full text-left px-3 py-1 text-xs text-muted-foreground hover:text-accent-text hover:bg-card-muted rounded transition-colors cursor-pointer"
+ className="block w-full text-left px-3 py-1 text-xs text-muted-foreground hover:text-accent-text hover:bg-card-muted rounded transition-colors cursor-pointer"
                             >
                               {section.title}
                             </button>
@@ -110,8 +110,8 @@ export default function DocsLayout({
         </div>
 
         {/* Main Content */}
-        <div className="lg:col-span-3">
-          <div className="bg-card border border-border rounded-lg p-8">{children}</div>
+ <div className="lg:col-span-3">
+ <div className="bg-card border border-border rounded-lg p-8">{children}</div>
         </div>
       </div>
     </div>

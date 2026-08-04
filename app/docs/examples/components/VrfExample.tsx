@@ -4,8 +4,8 @@ import { ExampleCard, UseCasesSection, KeyFeaturesSection, TechnicalDetailsSecti
 export function VrfExample() {
   const badges = (
     <>
-      <span className="ml-3 text-sm bg-info/10 text-info px-3 py-1 rounded">WASI P1</span>
-      <span className="ml-2 text-sm bg-warning/10 text-warning px-3 py-1 rounded">Intermediate</span>
+ <span className="ml-3 text-sm bg-card-muted text-foreground px-3 py-1 rounded">WASI P1</span>
+ <span className="ml-2 text-sm bg-card-muted text-foreground px-3 py-1 rounded">Intermediate</span>
     </>
   );
 
@@ -17,8 +17,8 @@ export function VrfExample() {
       githubUrl="https://github.com/out-layer/vrf-example"
       playgroundId="vrf-coin-flip"
     >
-      <p className="text-foreground mb-4">
-        Generate <strong>verifiable random numbers</strong> with cryptographic proof. Unlike plain randomness,
+ <p className="text-foreground mb-4">
+ Generate <strong>verifiable random numbers</strong> with cryptographic proof. Unlike plain randomness,
         each VRF output includes an Ed25519 signature that anyone can verify on-chain &mdash; no trust in the server required.
         Includes a companion NEAR smart contract for provably fair coin flip with on-chain proof verification.
       </p>
@@ -32,10 +32,10 @@ export function VrfExample() {
       ]} />
 
       <KeyFeaturesSection items={[
-        <>Cryptographic proof via <strong>Ed25519 signature</strong> &mdash; verifiable by anyone</>,
-        <>On-chain verification using native <code>env::ed25519_verify</code> (~1 TGas)</>,
+ <>Cryptographic proof via <strong>Ed25519 signature</strong> &mdash; verifiable by anyone</>,
+ <>On-chain verification using native <code>env::ed25519_verify</code> (~1 TGas)</>,
         'Generate up to 10 random values per execution with unique sub-seeds',
-        <>Range mapping: map raw output to <code>0..=max</code> (e.g. coin flip: max=1)</>,
+ <>Range mapping: map raw output to <code>0..=max</code> (e.g. coin flip: max=1)</>,
         'Non-manipulable alpha: request_id + sender_id auto-injected by worker',
         'Includes VRF public key and verification instructions in output'
       ]} />
@@ -87,49 +87,49 @@ let side = (bytes as u64 * 2 / (u32::MAX as u64 + 1)) as u32; // 0 or 1`}
       />
 
       <HowItWorksSection items={[
-        <>WASM module calls <code>vrf::random(&quot;coin-flip&quot;)</code> via OutLayer SDK</>,
-        <>Worker constructs alpha: <code>vrf:&#123;request_id&#125;:&#123;sender_id&#125;:coin-flip</code></>,
+ <>WASM module calls <code>vrf::random(&quot;coin-flip&quot;)</code> via OutLayer SDK</>,
+ <>Worker constructs alpha: <code>vrf:&#123;request_id&#125;:&#123;sender_id&#125;:coin-flip</code></>,
         'Worker sends alpha to Keystore TEE for signing',
-        <>Keystore signs with Ed25519: <code>signature = sign(vrf_sk, alpha)</code></>,
-        <>Output derived: <code>SHA256(signature)</code> &rarr; 32 random bytes</>,
-        <>Contract callback verifies proof: <code>env::ed25519_verify(sig, alpha, pubkey)</code></>
+ <>Keystore signs with Ed25519: <code>signature = sign(vrf_sk, alpha)</code></>,
+ <>Output derived: <code>SHA256(signature)</code> &rarr; 32 random bytes</>,
+ <>Contract callback verifies proof: <code>env::ed25519_verify(sig, alpha, pubkey)</code></>
       ]} />
 
       <TechnicalDetailsSection items={[
-        <><strong>WASI Version:</strong> Preview 1 (<code>wasm32-wasip1</code>)</>,
-        <><strong>Language:</strong> Rust with <code>outlayer</code> SDK</>,
-        <><strong>Entry Point:</strong> <code>main()</code> reads stdin JSON, writes stdout JSON</>,
-        <><strong>Crypto:</strong> Ed25519 (deterministic, RFC 8032) + SHA-256</>,
-        <><strong>Verification Cost:</strong> ~1 TGas (native NEAR ed25519_verify)</>,
-        <><strong>Rate Limit:</strong> Max 10 VRF calls per execution</>
+ <><strong>WASI Version:</strong> Preview 1 (<code>wasm32-wasip1</code>)</>,
+ <><strong>Language:</strong> Rust with <code>outlayer</code> SDK</>,
+ <><strong>Entry Point:</strong> <code>main()</code> reads stdin JSON, writes stdout JSON</>,
+ <><strong>Crypto:</strong> Ed25519 (deterministic, RFC 8032) + SHA-256</>,
+ <><strong>Verification Cost:</strong> ~1 TGas (native NEAR ed25519_verify)</>,
+ <><strong>Rate Limit:</strong> Max 10 VRF calls per execution</>
       ]} />
 
       <SecurityNotesSection items={[
-        <>Alpha includes <code>request_id</code> and <code>sender_id</code> auto-injected by the worker &mdash; WASM module cannot forge these values</>,
+ <>Alpha includes <code>request_id</code> and <code>sender_id</code> auto-injected by the worker &mdash; WASM module cannot forge these values</>,
         'Ed25519 is deterministic: same key + same alpha = same output, preventing re-rolling',
         'VRF private key lives only inside TEE (Intel TDX), derived via MPC key ceremony',
-        <>Anyone can verify: <code>ed25519_verify(pubkey, alpha, signature)</code> + <code>SHA256(signature) == output</code></>
+ <>Anyone can verify: <code>ed25519_verify(pubkey, alpha, signature)</code> + <code>SHA256(signature) == output</code></>
       ]} />
 
       <LearnMoreSection>
-        <ul className="text-sm text-foreground space-y-1">
+ <ul className="text-sm text-foreground space-y-1">
           <li>
-            <Link href="/docs/vrf" className="text-[var(--primary-orange)] hover:underline">
+ <Link href="/docs/vrf" className="text-[var(--primary-orange)] hover:underline">
               VRF Documentation &mdash; full technical guide
             </Link>
           </li>
           <li>
-            <Link href="/playground#vrf-coin-flip" className="text-[var(--primary-orange)] hover:underline">
+ <Link href="/playground#vrf-coin-flip" className="text-[var(--primary-orange)] hover:underline">
               Try VRF in Playground
             </Link>
           </li>
           <li>
-            <a href="https://github.com/out-layer/vrf-example" target="_blank" rel="noopener noreferrer" className="text-[var(--primary-orange)] hover:underline">
+ <a href="https://github.com/out-layer/vrf-example" target="_blank" rel="noopener noreferrer" className="text-[var(--primary-orange)] hover:underline">
               View Source Code
             </a>
           </li>
           <li>
-            <a href="https://github.com/out-layer/vrf-example/tree/main/vrf-contract" target="_blank" rel="noopener noreferrer" className="text-[var(--primary-orange)] hover:underline">
+ <a href="https://github.com/out-layer/vrf-example/tree/main/vrf-contract" target="_blank" rel="noopener noreferrer" className="text-[var(--primary-orange)] hover:underline">
               Coin Flip Contract Example
             </a>
           </li>

@@ -14,7 +14,7 @@ type UpdateMode = 'append' | 'reset';
 interface SecretsFormProps {
   isConnected: boolean;
   accountId: string | null;
-  onSubmit: (formData: FormData, encryptedSecrets: number[]) => Promise<void>;
+ onSubmit: (formData: FormData, encryptedSecrets: number[]) => Promise<void>;
   coordinatorUrl: string;
   // For edit mode (replace all secrets - old behavior)
   initialData?: {
@@ -442,7 +442,7 @@ export function SecretsForm({
 
         setGeneratedKeys(allKeys);
 
-        console.log('🔑 ENCRYPTED SECRETS:', {
+        console.log(' ENCRYPTED SECRETS:', {
           total_keys: allKeys.length,
           all_keys: allKeys,
           encrypted_data_length: data.encrypted_data_base64.length,
@@ -630,9 +630,9 @@ export function SecretsForm({
       }
 
       // 3. Sign with NEAR wallet (NEP-413)
-      console.log('📝 Message to sign:', messageToSign);
-      console.log('📝 Secret keys in message:', secretKeys);
-      console.log('📝 Protected names in message:', protectedNames);
+      console.log(' Message to sign:', messageToSign);
+      console.log(' Secret keys in message:', secretKeys);
+      console.log(' Protected names in message:', protectedNames);
 
       const signed = await signMessage({
         message: messageToSign,
@@ -774,18 +774,18 @@ export function SecretsForm({
   };
 
   return (
-    <div className="bg-card border border-border sm:rounded-lg">
-      <div className="px-4 py-5 sm:p-6">
+ <div className="bg-card border border-border sm:rounded-lg">
+ <div className="px-4 py-5 sm:p-6">
         {/* Header with cancel button for update mode */}
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-lg font-medium text-foreground">
+ <div className="flex justify-between items-center mb-4">
+ <h2 className="text-lg font-medium text-foreground">
             {isUpdateMode ? 'Update Secrets (Preserve PROTECTED_)' : initialData ? 'Replace Secrets' : 'Create New Secrets'}
           </h2>
           {isUpdateMode && onCancelUpdate && (
             <button
               onClick={onCancelUpdate}
               disabled={encrypting}
-              className="text-sm text-muted-foreground hover:text-foreground"
+ className="text-sm text-muted-foreground hover:text-foreground"
             >
               Cancel
             </button>
@@ -794,78 +794,78 @@ export function SecretsForm({
 
         {/* Update mode info banner */}
         {isUpdateMode && (
-          <div className="mb-4 p-3 bg-purple-50 border border-purple-200 rounded-lg">
-            <p className="text-sm text-purple-800">
-              <strong>Update Mode:</strong> Your existing <code className="bg-purple-100 px-1 rounded">PROTECTED_*</code> entries will remain unchanged and cannot be modified.
-              You can add or update user secrets (non-PROTECTED) and generate new <code className="bg-purple-100 px-1 rounded">PROTECTED_*</code> secrets.
+ <div className="mb-4 p-3 bg-card-muted border border-border rounded-lg">
+ <p className="text-sm text-foreground">
+ <strong>Update Mode:</strong> Your existing <code className="bg-card-muted px-1 rounded">PROTECTED_*</code> entries will remain unchanged and cannot be modified.
+ You can add or update user secrets (non-PROTECTED) and generate new <code className="bg-card-muted px-1 rounded">PROTECTED_*</code> secrets.
             </p>
           </div>
         )}
 
         {/* Update mode selector (append/reset) - only in update mode */}
         {isUpdateMode && (
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-foreground mb-2">
+ <div className="mb-4">
+ <label className="block text-sm font-medium text-foreground mb-2">
               Update Mode *
             </label>
             <select
               value={secretsUpdateMode}
               onChange={(e) => setSecretsUpdateMode(e.target.value as UpdateMode)}
-              className="w-full px-3 py-2 border border-border-strong rounded-md shadow-sm focus:outline-none focus:ring-accent focus:border-accent"
+ className="w-full px-3 py-2 border border-border-strong rounded-md shadow-sm focus:outline-none focus:ring-accent focus:border-accent"
               disabled={encrypting}
             >
-              <option value="append">Append - Add or update secrets, keep existing user secrets</option>
-              <option value="reset">Reset - Replace all user secrets (keeps PROTECTED_)</option>
+ <option value="append">Append - Add or update secrets, keep existing user secrets</option>
+ <option value="reset">Reset - Replace all user secrets (keeps PROTECTED_)</option>
             </select>
             {secretsUpdateMode === 'reset' && (
-              <p className="mt-1 text-xs text-amber-600">
-                ⚠️ This will remove all current user secrets except PROTECTED_ ones
+ <p className="mt-1 text-xs text-muted-foreground">
+                 This will remove all current user secrets except PROTECTED_ ones
               </p>
             )}
           </div>
         )}
 
         {/* Source Type Selector */}
-        <div className="mb-4">
-          <label className="block text-sm font-medium text-foreground mb-2">
+ <div className="mb-4">
+ <label className="block text-sm font-medium text-foreground mb-2">
             Secret Binding Type *
           </label>
-          <div className="flex flex-wrap gap-4">
-            <label className="inline-flex items-center">
+ <div className="flex flex-wrap gap-4">
+ <label className="inline-flex items-center">
               <input
                 type="radio"
                 value="repo"
                 checked={sourceType === 'repo'}
                 onChange={(e) => setSourceType(e.target.value as SecretSourceType)}
-                className="form-radio h-4 w-4 text-accent-text"
+ className="form-radio h-4 w-4 text-accent-text"
                 disabled={encrypting}
               />
-              <span className="ml-2 text-sm text-foreground">GitHub Repository</span>
+ <span className="ml-2 text-sm text-foreground">GitHub Repository</span>
             </label>
-            <label className="inline-flex items-center">
+ <label className="inline-flex items-center">
               <input
                 type="radio"
                 value="wasm_hash"
                 checked={sourceType === 'wasm_hash'}
                 onChange={(e) => setSourceType(e.target.value as SecretSourceType)}
-                className="form-radio h-4 w-4 text-accent-text"
+ className="form-radio h-4 w-4 text-accent-text"
                 disabled={encrypting}
               />
-              <span className="ml-2 text-sm text-foreground">WASM Hash</span>
+ <span className="ml-2 text-sm text-foreground">WASM Hash</span>
             </label>
-            <label className="inline-flex items-center">
+ <label className="inline-flex items-center">
               <input
                 type="radio"
                 value="project"
                 checked={sourceType === 'project'}
                 onChange={(e) => setSourceType(e.target.value as SecretSourceType)}
-                className="form-radio h-4 w-4 text-accent-text"
+ className="form-radio h-4 w-4 text-accent-text"
                 disabled={encrypting}
               />
-              <span className="ml-2 text-sm text-foreground">Project</span>
+ <span className="ml-2 text-sm text-foreground">Project</span>
             </label>
           </div>
-          <p className="mt-1 text-xs text-muted-foreground">
+ <p className="mt-1 text-xs text-muted-foreground">
             {sourceType === 'repo'
               ? 'Bind secrets to a GitHub repository (for CodeSource::GitHub)'
               : sourceType === 'wasm_hash'
@@ -893,16 +893,16 @@ export function SecretsForm({
 
         {/* Warning when accessor changed in update mode */}
         {accessorChanged && (
-          <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
-            <p className="text-sm text-amber-800">
-              ⚠️ <strong>Migration mode!</strong> Accessor changed - secrets will be decrypted with old accessor and re-encrypted with new accessor.
-              This will create a <strong>new</strong> secret entry. You can delete the old secret manually after saving.
+ <div className="mb-4 p-3 bg-card-muted border border-border rounded-lg">
+ <p className="text-sm text-foreground">
+ <strong>Migration mode!</strong> Accessor changed - secrets will be decrypted with old accessor and re-encrypted with new accessor.
+ This will create a <strong>new</strong> secret entry. You can delete the old secret manually after saving.
             </p>
-            <p className="text-xs text-amber-700 mt-1">
-              💡 You can leave secrets empty to just migrate existing secrets to the new accessor.
+ <p className="text-xs text-muted-foreground mt-1">
+               You can leave secrets empty to just migrate existing secrets to the new accessor.
             </p>
-            <p className="text-xs text-amber-700 mt-1">
-              ℹ️ Note: Migration only works between different repos/branches or WASM files. To copy secrets to a different profile, create a new secret manually.
+ <p className="text-xs text-muted-foreground mt-1">
+              ℹ Note: Migration only works between different repos/branches or WASM files. To copy secrets to a different profile, create a new secret manually.
             </p>
           </div>
         )}
@@ -910,8 +910,8 @@ export function SecretsForm({
         {/* Repository fields - shown when sourceType is 'repo' */}
         {sourceType === 'repo' && (
           <>
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-foreground mb-2">
+ <div className="mb-4">
+ <label className="block text-sm font-medium text-foreground mb-2">
                 GitHub Repository *
               </label>
               <input
@@ -919,16 +919,16 @@ export function SecretsForm({
                 value={repo}
                 onChange={(e) => setRepo(e.target.value)}
                 placeholder="owner/repo or https://github.com/owner/repo"
-                className="w-full px-3 py-2 border border-border-strong rounded-md shadow-sm focus:outline-none focus:ring-accent focus:border-accent"
+ className="w-full px-3 py-2 border border-border-strong rounded-md shadow-sm focus:outline-none focus:ring-accent focus:border-accent"
                 disabled={encrypting}
               />
-              <p className="mt-1 text-xs text-muted-foreground">
+ <p className="mt-1 text-xs text-muted-foreground">
                 Examples: alice/project, https://github.com/alice/project
               </p>
             </div>
 
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-foreground mb-2">
+ <div className="mb-4">
+ <label className="block text-sm font-medium text-foreground mb-2">
                 Branch (optional)
               </label>
               <input
@@ -936,7 +936,7 @@ export function SecretsForm({
                 value={branch}
                 onChange={(e) => setBranch(e.target.value)}
                 placeholder="main, develop, etc. (leave empty for all branches)"
-                className="w-full px-3 py-2 border border-border-strong rounded-md shadow-sm focus:outline-none focus:ring-accent focus:border-accent"
+ className="w-full px-3 py-2 border border-border-strong rounded-md shadow-sm focus:outline-none focus:ring-accent focus:border-accent"
                 disabled={encrypting}
               />
             </div>
@@ -945,8 +945,8 @@ export function SecretsForm({
 
         {/* WASM Hash field - shown when sourceType is 'wasm_hash' */}
         {sourceType === 'wasm_hash' && (
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-foreground mb-2">
+ <div className="mb-4">
+ <label className="block text-sm font-medium text-foreground mb-2">
               WASM SHA256 Hash *
             </label>
             <input
@@ -954,11 +954,11 @@ export function SecretsForm({
               value={wasmHash}
               onChange={(e) => setWasmHash(e.target.value.toLowerCase())}
               placeholder="64-character hex hash (e.g., a1b2c3d4...)"
-              className="w-full px-3 py-2 border border-border-strong rounded-md shadow-sm font-mono text-sm focus:outline-none focus:ring-accent focus:border-accent"
+ className="w-full px-3 py-2 border border-border-strong rounded-md shadow-sm font-mono text-sm focus:outline-none focus:ring-accent focus:border-accent"
               disabled={encrypting}
               maxLength={64}
             />
-            <p className="mt-1 text-xs text-muted-foreground">
+ <p className="mt-1 text-xs text-muted-foreground">
               The SHA256 hash of your compiled WASM binary (used with CodeSource::WasmUrl)
             </p>
           </div>
@@ -966,32 +966,32 @@ export function SecretsForm({
 
         {/* Project selector - shown when sourceType is 'project' */}
         {sourceType === 'project' && (
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-foreground mb-2">
+ <div className="mb-4">
+ <label className="block text-sm font-medium text-foreground mb-2">
               Project *
             </label>
             {loadingProjects ? (
-              <div className="flex items-center py-2">
-                <svg className="animate-spin h-4 w-4 text-faint-foreground mr-2" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+ <div className="flex items-center py-2">
+ <svg className="animate-spin h-4 w-4 text-faint-foreground mr-2" fill="none" viewBox="0 0 24 24">
+ <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+ <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                 </svg>
-                <span className="text-sm text-muted-foreground">Loading your projects...</span>
+ <span className="text-sm text-muted-foreground">Loading your projects...</span>
               </div>
             ) : userProjects.length === 0 ? (
-              <div className="p-3 bg-warning/10 border border-warning/30 rounded-md">
-                <p className="text-sm text-warning">
-                  You don&apos;t have any projects yet. <a href="/projects" className="text-accent-text hover:underline">Create a project first</a>.
+ <div className="p-3 bg-warning/10 border border-warning/30 rounded-md">
+ <p className="text-sm text-warning">
+ You don&apos;t have any projects yet. <a href="/projects" className="text-accent-text hover:underline">Create a project first</a>.
                 </p>
               </div>
             ) : (
               <select
                 value={projectId}
                 onChange={(e) => setProjectId(e.target.value)}
-                className="w-full px-3 py-2 border border-border-strong rounded-md shadow-sm focus:outline-none focus:ring-accent focus:border-accent"
+ className="w-full px-3 py-2 border border-border-strong rounded-md shadow-sm focus:outline-none focus:ring-accent focus:border-accent"
                 disabled={encrypting}
               >
-                <option value="">Select a project...</option>
+ <option value="">Select a project...</option>
                 {userProjects.map((p) => (
                   <option key={p.project_id} value={p.project_id}>
                     {p.name} ({p.project_id})
@@ -999,15 +999,15 @@ export function SecretsForm({
                 ))}
               </select>
             )}
-            <p className="mt-1 text-xs text-muted-foreground">
+ <p className="mt-1 text-xs text-muted-foreground">
               Secrets will be available to all versions of this project
             </p>
           </div>
         )}
 
         {/* Profile */}
-        <div className="mb-4">
-          <label className="block text-sm font-medium text-foreground mb-2">
+ <div className="mb-4">
+ <label className="block text-sm font-medium text-foreground mb-2">
             Profile *
           </label>
           <input
@@ -1015,63 +1015,63 @@ export function SecretsForm({
             value={profile}
             onChange={(e) => setProfile(e.target.value)}
             placeholder="default, prod, staging, etc."
-            className="w-full px-3 py-2 border border-border-strong rounded-md shadow-sm focus:outline-none focus:ring-accent focus:border-accent"
+ className="w-full px-3 py-2 border border-border-strong rounded-md shadow-sm focus:outline-none focus:ring-accent focus:border-accent"
             disabled={encrypting}
           />
-          <p className="mt-1 text-xs text-muted-foreground">
+ <p className="mt-1 text-xs text-muted-foreground">
             Profile name for organizing multiple secret sets per repo
           </p>
         </div>
 
         {/* Plaintext Secrets (JSON) */}
-        <div className="mb-4">
-          <label className="block text-sm font-medium text-foreground mb-2">
+ <div className="mb-4">
+ <label className="block text-sm font-medium text-foreground mb-2">
             Secrets (JSON format, optional)
           </label>
           <textarea
             value={plaintextSecrets}
             onChange={(e) => setPlaintextSecrets(e.target.value)}
             rows={8}
-            className="w-full px-3 py-2 border border-border-strong rounded-md shadow-sm font-mono text-sm focus:outline-none focus:ring-accent focus:border-accent"
+ className="w-full px-3 py-2 border border-border-strong rounded-md shadow-sm font-mono text-sm focus:outline-none focus:ring-accent focus:border-accent"
             placeholder='{\n  "OPENAI_KEY": "sk-...",\n  "DATABASE_URL": "postgres://..."\n}'
             disabled={encrypting}
           />
-          <p className="mt-1 text-xs text-muted-foreground">
+ <p className="mt-1 text-xs text-muted-foreground">
             JSON object with key-value pairs. Keys will be available as environment variables in WASM execution.
           </p>
-          <p className="mt-1 text-xs text-amber-600">
-            ⚠️ Cannot use <code className="bg-amber-100 px-1 rounded">PROTECTED_*</code> prefix (reserved for auto-generated secrets)
+ <p className="mt-1 text-xs text-muted-foreground">
+ Cannot use <code className="bg-card-muted px-1 rounded">PROTECTED_*</code> prefix (reserved for auto-generated secrets)
           </p>
         </div>
 
         {/* Secrets to Generate */}
-        <div className="mb-4">
-          <label className="block text-sm font-medium text-foreground mb-2">
+ <div className="mb-4">
+ <label className="block text-sm font-medium text-foreground mb-2">
             Secrets to Generate (optional)
           </label>
-          <p className="text-xs text-muted-foreground mb-2">
+ <p className="text-xs text-muted-foreground mb-2">
             Auto-generate cryptographically secure secrets without seeing their values. Perfect for MASTER_KEY, API tokens, passwords, and ED25519 keys.
           </p>
-          <p className="text-xs text-success-text mb-2">
-            ✅ Must start with <code className="bg-success/15 px-1 rounded">PROTECTED_*</code> prefix (proves secret was generated in TEE)
+ <p className="text-xs text-success-text mb-2">
+ Must start with <code className="bg-success/15 px-1 rounded">PROTECTED_*</code> prefix (proves secret was generated in TEE)
           </p>
 
           {secretsToGenerate.length > 0 && (
-            <div className="space-y-2 mb-2">
+ <div className="space-y-2 mb-2">
               {secretsToGenerate.map((secret) => (
-                <div key={secret.id} className="flex gap-2">
+ <div key={secret.id} className="flex gap-2">
                   <input
                     type="text"
                     value={secret.name}
                     onChange={(e) => updateSecretRow(secret.id, 'name', e.target.value)}
                     placeholder="e.g., PROTECTED_MASTER_KEY"
-                    className="flex-1 px-3 py-2 border border-border-strong rounded-md shadow-sm focus:outline-none focus:ring-accent focus:border-accent"
+ className="flex-1 px-3 py-2 border border-border-strong rounded-md shadow-sm focus:outline-none focus:ring-accent focus:border-accent"
                     disabled={encrypting}
                   />
                   <select
                     value={secret.generationType}
                     onChange={(e) => updateSecretRow(secret.id, 'generationType', e.target.value)}
-                    className="w-64 px-3 py-2 border border-border-strong rounded-md shadow-sm focus:outline-none focus:ring-accent focus:border-accent"
+ className="w-64 px-3 py-2 border border-border-strong rounded-md shadow-sm focus:outline-none focus:ring-accent focus:border-accent"
                     disabled={encrypting}
                   >
                     {GENERATION_TYPES.map((type) => (
@@ -1083,9 +1083,9 @@ export function SecretsForm({
                   <button
                     onClick={() => removeSecretRow(secret.id)}
                     disabled={encrypting}
-                    className="px-3 py-2 border border-destructive/40 text-destructive-text rounded-md hover:bg-destructive/10 disabled:opacity-50"
+ className="px-3 py-2 border border-destructive/40 text-destructive-text rounded-md hover:bg-destructive/10 disabled:opacity-50"
                   >
-                    ✕
+                    
                   </button>
                 </div>
               ))}
@@ -1095,7 +1095,7 @@ export function SecretsForm({
           <button
             onClick={addSecretRow}
             disabled={encrypting}
-            className="px-3 py-1 text-sm border border-border-strong text-foreground rounded-md hover:bg-card-muted disabled:opacity-50"
+ className="px-3 py-1 text-sm border border-border-strong text-foreground rounded-md hover:bg-card-muted disabled:opacity-50"
           >
             + Add Generated Secret
           </button>
@@ -1103,24 +1103,24 @@ export function SecretsForm({
 
         {/* All Encrypted Keys Display */}
         {generatedKeys.length > 0 && (
-          <div className="mb-4 bg-success/10 border border-success/30 rounded-lg p-4">
-            <h3 className="text-sm font-medium text-success-text mb-2">
-              ✅ Encrypted Keys ({generatedKeys.length} total)
+ <div className="mb-4 bg-success/10 border border-success/30 rounded-lg p-4">
+ <h3 className="text-sm font-medium text-success-text mb-2">
+               Encrypted Keys ({generatedKeys.length} total)
             </h3>
-            <ul className="text-xs text-success-text space-y-1 list-disc list-inside">
+ <ul className="text-xs text-success-text space-y-1 list-disc list-inside">
               {generatedKeys.map((key) => (
-                <li key={key}>{key}</li>
+ <li key={key}>{key}</li>
               ))}
             </ul>
-            <p className="mt-2 text-xs text-success-text">
+ <p className="mt-2 text-xs text-success-text">
               All secrets are now encrypted and stored. You cannot retrieve their values later.
             </p>
           </div>
         )}
 
         {/* Access Condition */}
-        <div className="mb-6">
-          <label className="block text-sm font-medium text-foreground mb-2">
+ <div className="mb-6">
+ <label className="block text-sm font-medium text-foreground mb-2">
             Access Control *
           </label>
           <AccessConditionBuilder condition={accessCondition} onChange={setAccessCondition} />
@@ -1128,34 +1128,34 @@ export function SecretsForm({
 
         {/* Error Display */}
         {error && (
-          <div className="mb-4 bg-destructive/10 border border-destructive/30 rounded-lg p-4">
-            <p className="text-sm text-destructive-text">{error}</p>
+ <div className="mb-4 bg-destructive/10 border border-destructive/30 rounded-lg p-4">
+ <p className="text-sm text-destructive-text">{error}</p>
           </div>
         )}
 
         {/* Pending Update Banner - Step 2 */}
         {pendingUpdate && (
-          <div className="mb-4 p-4 bg-success/10 border border-success/30 rounded-lg">
-            <h4 className="text-sm font-semibold text-success-text mb-2">
-              ✅ Secrets encrypted by TEE keystore. Ready to store in contract.
+ <div className="mb-4 p-4 bg-success/10 border border-success/30 rounded-lg">
+ <h4 className="text-sm font-semibold text-success-text mb-2">
+               Secrets encrypted by TEE keystore. Ready to store in contract.
             </h4>
-            <p className="text-xs text-success-text mb-3">
+ <p className="text-xs text-success-text mb-3">
               PROTECTED_ preserved: {pendingUpdate.summary.protected_preserved} |
               Updated/added: {pendingUpdate.summary.updated} |
               Removed: {pendingUpdate.summary.removed}
             </p>
-            <div className="flex space-x-3">
+ <div className="flex space-x-3">
               <button
                 onClick={handleStorePendingUpdate}
                 disabled={encrypting}
-                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-success hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-accent disabled:opacity-50"
+ className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-success hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-accent disabled:opacity-50"
               >
-                {encrypting ? '🔄 Storing...' : '🔐 Store Secrets'}
+                {encrypting ? ' Storing...' : ' Store Secrets'}
               </button>
               <button
                 onClick={() => setPendingUpdate(null)}
                 disabled={encrypting}
-                className="inline-flex items-center px-4 py-2 border border-border-strong text-sm font-medium rounded-md text-foreground bg-card hover:bg-card-muted focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 disabled:bg-card-muted"
+ className="inline-flex items-center px-4 py-2 border border-border-strong text-sm font-medium rounded-md text-foreground bg-card hover:bg-card-muted focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 disabled:bg-card-muted"
               >
                 Cancel
               </button>
@@ -1165,7 +1165,7 @@ export function SecretsForm({
 
         {/* Submit Button */}
         {!pendingUpdate && (
-          <div className="flex items-center justify-between">
+ <div className="flex items-center justify-between">
             <button
               onClick={isUpdateMode ? handleUpdateWithSignature : handleEncryptAndSubmit}
               // Phase 7 audit H3: in update mode, block submission
@@ -1178,23 +1178,23 @@ export function SecretsForm({
                 encrypting ||
                 (isUpdateMode && updateModeVaultLookupPending)
               }
-              className={`inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed ${
+ className={`inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed ${
                 isUpdateMode
-                  ? 'bg-purple-600 hover:bg-purple-700 focus:ring-purple-500'
+                  ? 'bg-card-muted hover:bg-card-muted focus:ring-purple-500'
                   : 'bg-info hover:opacity-90 focus:ring-accent'
               }`}
             >
               {encrypting
-                ? '🔄 Processing...'
+                ? ' Processing...'
                 : isUpdateMode
-                ? '✍️ Sign Message to Update'
+                ? ' Sign Message to Update'
                 : initialData
-                ? '💾 Replace Secrets'
-                : '🔐 Encrypt & Store Secrets'}
+                ? ' Replace Secrets'
+                : ' Encrypt & Store Secrets'}
             </button>
 
             {!isConnected && (
-              <p className="text-sm text-destructive-text">
+ <p className="text-sm text-destructive-text">
                 Please connect your wallet to {isUpdateMode ? 'update' : 'create'} secrets
               </p>
             )}
@@ -1203,17 +1203,17 @@ export function SecretsForm({
 
         {/* Step indicator for update mode */}
         {isUpdateMode && isConnected && !pendingUpdate && (
-          <div className="mt-4 p-3 bg-purple-50 border border-purple-200 rounded-lg">
-            <p className="text-xs text-purple-700 mb-2 font-medium">Update requires 2 steps:</p>
-            <div className="flex items-center space-x-3">
-              <div className="flex items-center space-x-2">
-                <span className="flex items-center justify-center w-6 h-6 rounded-full bg-purple-600 text-white text-xs font-bold">1</span>
-                <span className="text-sm font-medium text-purple-800">Sign message</span>
+ <div className="mt-4 p-3 bg-card-muted border border-border rounded-lg">
+ <p className="text-xs text-muted-foreground mb-2 font-medium">Update requires 2 steps:</p>
+ <div className="flex items-center space-x-3">
+ <div className="flex items-center space-x-2">
+ <span className="flex items-center justify-center w-6 h-6 rounded-full bg-card-muted text-white text-xs font-bold">1</span>
+ <span className="text-sm font-medium text-foreground">Sign message</span>
               </div>
-              <span className="text-purple-400">→</span>
-              <div className="flex items-center space-x-2">
-                <span className="flex items-center justify-center w-6 h-6 rounded-full bg-card-muted text-muted-foreground text-xs font-bold">2</span>
-                <span className="text-sm text-muted-foreground">Store in contract</span>
+ <span className="text-muted-foreground">→</span>
+ <div className="flex items-center space-x-2">
+ <span className="flex items-center justify-center w-6 h-6 rounded-full bg-card-muted text-muted-foreground text-xs font-bold">2</span>
+ <span className="text-sm text-muted-foreground">Store in contract</span>
               </div>
             </div>
           </div>
@@ -1221,34 +1221,34 @@ export function SecretsForm({
 
         {/* Step 2 indicator when pending */}
         {pendingUpdate && (
-          <div className="mt-4 p-3 bg-success/10 border border-success/30 rounded-lg">
-            <p className="text-xs text-success-text mb-2 font-medium">Step 2 of 2:</p>
-            <div className="flex items-center space-x-3">
-              <div className="flex items-center space-x-2">
-                <span className="flex items-center justify-center w-6 h-6 rounded-full bg-success/100 text-white text-xs">✓</span>
-                <span className="text-sm text-success-text">Signed</span>
+ <div className="mt-4 p-3 bg-success/10 border border-success/30 rounded-lg">
+ <p className="text-xs text-success-text mb-2 font-medium">Step 2 of 2:</p>
+ <div className="flex items-center space-x-3">
+ <div className="flex items-center space-x-2">
+ <span className="flex items-center justify-center w-6 h-6 rounded-full bg-success/100 text-white text-xs"></span>
+ <span className="text-sm text-success-text">Signed</span>
               </div>
-              <span className="text-green-400">→</span>
-              <div className="flex items-center space-x-2">
-                <span className="flex items-center justify-center w-6 h-6 rounded-full bg-success text-white text-xs font-bold">2</span>
-                <span className="text-sm font-medium text-success-text">Store in contract</span>
+ <span className="text-green-400">→</span>
+ <div className="flex items-center space-x-2">
+ <span className="flex items-center justify-center w-6 h-6 rounded-full bg-success text-white text-xs font-bold">2</span>
+ <span className="text-sm font-medium text-success-text">Store in contract</span>
               </div>
             </div>
           </div>
         )}
 
         {/* Info Box */}
-        <div className="mt-6 bg-info/10 border border-info/30 rounded-lg p-4">
-          <h3 className="text-sm font-medium text-info mb-2">💡 How it works</h3>
-          <ul className="text-xs text-info space-y-1 list-disc list-inside">
-            <li><strong>Manual secrets</strong>: Encrypted in this browser with ECIES — ephemeral X25519 ECDH + HKDF-SHA256 + ChaCha20-Poly1305 AEAD</li>
-            <li><strong>Generated secrets</strong>: Keystore generates inside TEE (you never see values)</li>
-            <li><strong>Combined flow</strong>: Manual secrets encrypted → sent with generation specs → keystore decrypts, generates, merges, re-encrypts</li>
-            <li>Uses the keystore&apos;s public key — it can encrypt but not decrypt, so the coordinator never sees plaintext and neither can this browser once the secret is sent</li>
-            <li>Encrypted data is stored on NEAR contract</li>
-            <li>Only verified TEE workers can decrypt secrets during execution</li>
-            <li>You can provide manual secrets, generated secrets, or both</li>
-            <li>Storage costs ~0.01 NEAR per secret set</li>
+ <div className="mt-6 bg-info/10 border border-info/30 rounded-lg p-4">
+ <h3 className="text-sm font-medium text-info mb-2"> How it works</h3>
+ <ul className="text-xs text-info space-y-1 list-disc list-inside">
+ <li><strong>Manual secrets</strong>: Encrypted in this browser with ECIES — ephemeral X25519 ECDH + HKDF-SHA256 + ChaCha20-Poly1305 AEAD</li>
+ <li><strong>Generated secrets</strong>: Keystore generates inside TEE (you never see values)</li>
+ <li><strong>Combined flow</strong>: Manual secrets encrypted → sent with generation specs → keystore decrypts, generates, merges, re-encrypts</li>
+ <li>Uses the keystore&apos;s public key — it can encrypt but not decrypt, so the coordinator never sees plaintext and neither can this browser once the secret is sent</li>
+ <li>Encrypted data is stored on NEAR contract</li>
+ <li>Only verified TEE workers can decrypt secrets during execution</li>
+ <li>You can provide manual secrets, generated secrets, or both</li>
+ <li>Storage costs ~0.01 NEAR per secret set</li>
           </ul>
         </div>
 

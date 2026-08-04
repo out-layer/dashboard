@@ -16,9 +16,9 @@ export default function AccountChip() {
       <Link
         href="/settings"
         title={accountId}
-        className="inline-flex h-9 items-center gap-2 rounded-lg border border-border bg-card px-3 font-mono text-xs text-foreground transition-colors hover:border-border-strong"
+ className="inline-flex h-9 items-center gap-2 rounded-lg border border-border bg-card px-3 font-mono text-xs text-foreground transition-colors hover:border-border-strong"
       >
-        <span className="h-4 w-4 shrink-0 rounded bg-gradient-to-br from-accent to-accent-hover" aria-hidden="true" />
+ <span className="h-4 w-4 shrink-0 rounded bg-gradient-to-br from-accent to-accent-hover" aria-hidden="true" />
         {shown}
       </Link>
     );
@@ -26,7 +26,7 @@ export default function AccountChip() {
 
   return (
     <>
-      <Button size="sm" className="h-9" onClick={() => setModalOpen(true)}>
+ <Button size="sm" className="h-9" onClick={() => setModalOpen(true)}>
         Connect
       </Button>
       <WalletConnectionModal isOpen={modalOpen} onClose={() => setModalOpen(false)} />

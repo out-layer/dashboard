@@ -149,7 +149,7 @@ export function GenerateSecretsForm({
       // Store generated keys for display
       setGeneratedKeys(data.generated_keys || []);
 
-      console.log('🔑 GENERATED SECRETS:', {
+      console.log(' GENERATED SECRETS:', {
         generated_keys: data.generated_keys,
         encrypted_data_length: data.encrypted_data_base64.length,
       });
@@ -171,20 +171,20 @@ export function GenerateSecretsForm({
   };
 
   return (
-    <div className="bg-card border border-border sm:rounded-lg">
-      <div className="px-4 py-5 sm:p-6">
-        <h2 className="text-lg font-medium text-foreground mb-4">
-          🔑 Generate Secrets
+ <div className="bg-card border border-border sm:rounded-lg">
+ <div className="px-4 py-5 sm:p-6">
+ <h2 className="text-lg font-medium text-foreground mb-4">
+           Generate Secrets
         </h2>
 
-        <p className="text-sm text-muted-foreground mb-4">
+ <p className="text-sm text-muted-foreground mb-4">
           Auto-generate cryptographically secure secrets without seeing their values.
           Perfect for MASTER_KEY, API tokens, passwords, and ED25519 keys.
         </p>
 
         {/* Repository */}
-        <div className="mb-4">
-          <label className="block text-sm font-medium text-foreground mb-2">
+ <div className="mb-4">
+ <label className="block text-sm font-medium text-foreground mb-2">
             GitHub Repository *
           </label>
           <input
@@ -192,14 +192,14 @@ export function GenerateSecretsForm({
             value={repo}
             onChange={(e) => setRepo(e.target.value)}
             placeholder="owner/repo or https://github.com/owner/repo"
-            className="w-full px-3 py-2 border border-border-strong rounded-md shadow-sm focus:outline-none focus:ring-accent focus:border-accent"
+ className="w-full px-3 py-2 border border-border-strong rounded-md shadow-sm focus:outline-none focus:ring-accent focus:border-accent"
             disabled={generating}
           />
         </div>
 
         {/* Branch (optional) */}
-        <div className="mb-4">
-          <label className="block text-sm font-medium text-foreground mb-2">
+ <div className="mb-4">
+ <label className="block text-sm font-medium text-foreground mb-2">
             Branch (optional)
           </label>
           <input
@@ -207,32 +207,32 @@ export function GenerateSecretsForm({
             value={branch}
             onChange={(e) => setBranch(e.target.value)}
             placeholder="main, develop, etc. (leave empty for all branches)"
-            className="w-full px-3 py-2 border border-border-strong rounded-md shadow-sm focus:outline-none focus:ring-accent focus:border-accent"
+ className="w-full px-3 py-2 border border-border-strong rounded-md shadow-sm focus:outline-none focus:ring-accent focus:border-accent"
             disabled={generating}
           />
         </div>
 
         {/* Secrets to Generate */}
-        <div className="mb-4">
-          <label className="block text-sm font-medium text-foreground mb-2">
+ <div className="mb-4">
+ <label className="block text-sm font-medium text-foreground mb-2">
             Secrets to Generate *
           </label>
 
-          <div className="space-y-2">
+ <div className="space-y-2">
             {secretsToGenerate.map((secret) => (
-              <div key={secret.id} className="flex gap-2">
+ <div key={secret.id} className="flex gap-2">
                 <input
                   type="text"
                   value={secret.name}
                   onChange={(e) => updateSecretRow(secret.id, 'name', e.target.value)}
                   placeholder="Secret name (e.g., MASTER_KEY)"
-                  className="flex-1 px-3 py-2 border border-border-strong rounded-md shadow-sm focus:outline-none focus:ring-accent focus:border-accent"
+ className="flex-1 px-3 py-2 border border-border-strong rounded-md shadow-sm focus:outline-none focus:ring-accent focus:border-accent"
                   disabled={generating}
                 />
                 <select
                   value={secret.generationType}
                   onChange={(e) => updateSecretRow(secret.id, 'generationType', e.target.value)}
-                  className="w-64 px-3 py-2 border border-border-strong rounded-md shadow-sm focus:outline-none focus:ring-accent focus:border-accent"
+ className="w-64 px-3 py-2 border border-border-strong rounded-md shadow-sm focus:outline-none focus:ring-accent focus:border-accent"
                   disabled={generating}
                 >
                   {GENERATION_TYPES.map((type) => (
@@ -245,9 +245,9 @@ export function GenerateSecretsForm({
                   <button
                     onClick={() => removeSecretRow(secret.id)}
                     disabled={generating}
-                    className="px-3 py-2 border border-destructive/40 text-destructive-text rounded-md hover:bg-destructive/10 disabled:opacity-50"
+ className="px-3 py-2 border border-destructive/40 text-destructive-text rounded-md hover:bg-destructive/10 disabled:opacity-50"
                   >
-                    ✕
+                    
                   </button>
                 )}
               </div>
@@ -262,7 +262,7 @@ export function GenerateSecretsForm({
                 ? `Limit is ${MAX_GENERATED_SECRETS} per batch — generate the rest in another batch`
                 : undefined
             }
-            className="mt-2 px-3 py-1 text-sm border border-border-strong text-foreground rounded-md hover:bg-card-muted disabled:opacity-50"
+ className="mt-2 px-3 py-1 text-sm border border-border-strong text-foreground rounded-md hover:bg-card-muted disabled:opacity-50"
           >
             + Add Another Secret
           </button>
@@ -270,16 +270,16 @@ export function GenerateSecretsForm({
 
         {/* Generated Keys Display */}
         {generatedKeys.length > 0 && (
-          <div className="mb-4 bg-success/10 border border-success/30 rounded-lg p-4">
-            <h3 className="text-sm font-medium text-success-text mb-2">
-              ✅ Generated Keys (never shown again)
+ <div className="mb-4 bg-success/10 border border-success/30 rounded-lg p-4">
+ <h3 className="text-sm font-medium text-success-text mb-2">
+               Generated Keys (never shown again)
             </h3>
-            <ul className="text-xs text-success-text space-y-1 list-disc list-inside">
+ <ul className="text-xs text-success-text space-y-1 list-disc list-inside">
               {generatedKeys.map((key) => (
-                <li key={key}>{key}</li>
+ <li key={key}>{key}</li>
               ))}
             </ul>
-            <p className="mt-2 text-xs text-success-text">
+ <p className="mt-2 text-xs text-success-text">
               These secrets are now encrypted and stored. You cannot retrieve their values later.
             </p>
           </div>
@@ -287,37 +287,37 @@ export function GenerateSecretsForm({
 
         {/* Error Display */}
         {error && (
-          <div className="mb-4 bg-destructive/10 border border-destructive/30 rounded-lg p-4">
-            <p className="text-sm text-destructive-text">{error}</p>
+ <div className="mb-4 bg-destructive/10 border border-destructive/30 rounded-lg p-4">
+ <p className="text-sm text-destructive-text">{error}</p>
           </div>
         )}
 
         {/* Submit Button */}
-        <div className="flex items-center justify-between">
+ <div className="flex items-center justify-between">
           <button
             onClick={handleGenerateAndEncrypt}
             disabled={!isConnected || generating}
-            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-success hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-accent disabled:opacity-50 disabled:cursor-not-allowed"
+ className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-success hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-accent disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {generating ? '🔄 Generating...' : '🔑 Generate & Encrypt Secrets'}
+            {generating ? ' Generating...' : ' Generate & Encrypt Secrets'}
           </button>
 
           {!isConnected && (
-            <p className="text-sm text-destructive-text">
+ <p className="text-sm text-destructive-text">
               Please connect your wallet to generate secrets
             </p>
           )}
         </div>
 
         {/* Info Box */}
-        <div className="mt-6 bg-info/10 border border-info/30 rounded-lg p-4">
-          <h3 className="text-sm font-medium text-info mb-2">💡 How it works</h3>
-          <ul className="text-xs text-info space-y-1 list-disc list-inside">
-            <li>Keystore generates secrets inside TEE (you never see the values)</li>
-            <li>Generated secrets are encrypted inside the TEE before they ever leave it (ChaCha20-Poly1305 AEAD), so the plaintext never reaches your browser or the chain</li>
-            <li>You only see the list of key names (for verification)</li>
-            <li>Secrets can be added incrementally to existing encrypted data</li>
-            <li>Perfect for HKDF seeds, API keys, passwords, and ED25519 keys</li>
+ <div className="mt-6 bg-info/10 border border-info/30 rounded-lg p-4">
+ <h3 className="text-sm font-medium text-info mb-2"> How it works</h3>
+ <ul className="text-xs text-info space-y-1 list-disc list-inside">
+ <li>Keystore generates secrets inside TEE (you never see the values)</li>
+ <li>Generated secrets are encrypted inside the TEE before they ever leave it (ChaCha20-Poly1305 AEAD), so the plaintext never reaches your browser or the chain</li>
+ <li>You only see the list of key names (for verification)</li>
+ <li>Secrets can be added incrementally to existing encrypted data</li>
+ <li>Perfect for HKDF seeds, API keys, passwords, and ED25519 keys</li>
           </ul>
         </div>
 

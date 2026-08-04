@@ -206,22 +206,22 @@ export default function EarningsPage() {
   }, [error, success]);
 
   return (
-    <div className="w-full">
+ <div className="w-full">
       {/* Header */}
-      <div className="sm:flex sm:items-center sm:justify-between">
+ <div className="sm:flex sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-xl font-bold tracking-tight">My Earnings</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
+ <h1 className="text-xl font-bold tracking-tight">My Earnings</h1>
+ <p className="mt-1 text-sm text-muted-foreground">
             Track earnings from blockchain calls and HTTPS API calls to your projects
           </p>
         </div>
         {isConnected && (
-          <div className="mt-4 sm:mt-0">
+ <div className="mt-4 sm:mt-0">
             <button
               onClick={() => { loadBlockchainBalance(); loadHttpsBalance(); loadHistory(); }}
-              className="inline-flex items-center px-4 py-2 border border-border-strong text-sm font-medium rounded-md text-foreground bg-card hover:bg-card-muted shadow-sm"
+ className="inline-flex items-center px-4 py-2 border border-border-strong text-sm font-medium rounded-md text-foreground bg-card hover:bg-card-muted shadow-sm"
             >
-              <svg className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+ <svg className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
               </svg>
               Refresh
@@ -232,10 +232,10 @@ export default function EarningsPage() {
 
       {/* Connect Wallet Button */}
       {!isConnected && (
-        <div className="mt-8 flex justify-center">
+ <div className="mt-8 flex justify-center">
           <button
             onClick={() => setShowWalletModal(true)}
-            className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-accent hover:bg-accent-hover shadow-sm hover:shadow-md transition-all"
+ className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-on-accent bg-accent hover:bg-accent-hover shadow-sm hover:shadow-md transition-all"
           >
             Connect Wallet
           </button>
@@ -250,85 +250,85 @@ export default function EarningsPage() {
 
       {/* Error/Success Display */}
       {error && (
-        <div className="mt-4 bg-destructive/10 border border-destructive/30 rounded-md p-3">
-          <p className="text-sm text-destructive-text">{error}</p>
+ <div className="mt-4 bg-destructive/10 border border-destructive/30 rounded-md p-3">
+ <p className="text-sm text-destructive-text">{error}</p>
         </div>
       )}
       {success && (
-        <div className="mt-4 bg-success/10 border border-success/30 rounded-md p-3">
-          <p className="text-sm text-success-text">{success}</p>
+ <div className="mt-4 bg-success/10 border border-success/30 rounded-md p-3">
+ <p className="text-sm text-success-text">{success}</p>
         </div>
       )}
 
       {/* Balance Cards - Two Columns */}
       {isConnected && (
-        <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-4">
+ <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Blockchain Earnings Card */}
-          <div className="bg-gradient-to-br from-purple-50 to-indigo-50 shadow rounded-lg p-6 border border-purple-200">
-            <div className="flex items-center mb-4">
-              <div className="flex-shrink-0">
-                <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
-                  <svg className="h-6 w-6 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+ <div className="bg-gradient-to-br from-card-muted to-card-muted shadow rounded-lg p-6 border border-border">
+ <div className="flex items-center mb-4">
+ <div className="flex-shrink-0">
+ <div className="w-12 h-12 bg-card-muted rounded-full flex items-center justify-center">
+ <svg className="h-6 w-6 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
                   </svg>
                 </div>
               </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-purple-700">Blockchain Earnings</p>
-                <p className="text-xs text-purple-500">From smart contract calls</p>
+ <div className="ml-4">
+ <p className="text-sm font-medium text-muted-foreground">Blockchain Earnings</p>
+ <p className="text-xs text-muted-foreground">From smart contract calls</p>
               </div>
             </div>
-            <p className="text-3xl font-bold text-accent-text tabular-nums mb-4">
+ <p className="text-3xl font-bold text-accent-text tabular-nums mb-4">
               {formatUsd(blockchainBalance, stablecoin.decimals)}
             </p>
             <button
               onClick={handleWithdraw}
               disabled={withdrawing || BigInt(blockchainBalance || '0') <= BigInt(0)}
-              className="w-full inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+ className="w-full inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-card-muted hover:bg-card-muted disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
             >
               {withdrawing ? (
                 <>
-                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+ <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+ <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+ <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                   </svg>
                   Withdrawing...
                 </>
               ) : (
-                <>Withdraw to Wallet</>
+ <>Withdraw to Wallet</>
               )}
             </button>
-            <p className="mt-2 text-xs text-purple-500 text-center">
+ <p className="mt-2 text-xs text-muted-foreground text-center">
               Stored in OutLayer contract
             </p>
           </div>
 
           {/* HTTPS Earnings Card */}
-          <div className="bg-gradient-to-br from-green-50 to-emerald-50 shadow rounded-lg p-6 border border-success/30">
-            <div className="flex items-center mb-4">
-              <div className="flex-shrink-0">
-                <div className="w-12 h-12 bg-success/15 rounded-full flex items-center justify-center">
-                  <svg className="h-6 w-6 text-success-text" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+ <div className="bg-gradient-to-br from-green-50 to-card-muted shadow rounded-lg p-6 border border-success/30">
+ <div className="flex items-center mb-4">
+ <div className="flex-shrink-0">
+ <div className="w-12 h-12 bg-success/15 rounded-full flex items-center justify-center">
+ <svg className="h-6 w-6 text-success-text" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
                   </svg>
                 </div>
               </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-success-text">HTTPS API Earnings</p>
-                <p className="text-xs text-success-text">From payment key calls</p>
+ <div className="ml-4">
+ <p className="text-sm font-medium text-success-text">HTTPS API Earnings</p>
+ <p className="text-xs text-success-text">From payment key calls</p>
               </div>
             </div>
-            <p className="text-3xl font-bold text-success-text mb-4">
+ <p className="text-3xl font-bold text-success-text mb-4">
               {httpsBalance ? formatUsd(httpsBalance.balance, stablecoin.decimals) : '$0.000000'}
             </p>
             <button
               disabled
-              className="w-full inline-flex justify-center items-center px-4 py-2 border border-border-strong text-sm font-medium rounded-md text-faint-foreground bg-card-muted cursor-not-allowed"
+ className="w-full inline-flex justify-center items-center px-4 py-2 border border-border-strong text-sm font-medium rounded-md text-faint-foreground bg-card-muted cursor-not-allowed"
               title="Withdrawal coming soon"
             >
               Withdraw (Coming Soon)
             </button>
-            <p className="mt-2 text-xs text-success-text text-center">
+ <p className="mt-2 text-xs text-success-text text-center">
               Stored in coordinator database
             </p>
           </div>
@@ -337,10 +337,10 @@ export default function EarningsPage() {
 
       {/* Total Summary */}
       {isConnected && (
-        <div className="mt-4 bg-card border border-border rounded-lg p-4 border border-border">
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-medium text-muted-foreground">Total Available</span>
-            <span className="text-xl font-bold text-foreground">
+ <div className="mt-4 bg-card border border-border rounded-lg p-4 border border-border">
+ <div className="flex items-center justify-between">
+ <span className="text-sm font-medium text-muted-foreground">Total Available</span>
+ <span className="text-xl font-bold text-foreground">
               {formatUsd(
                 (BigInt(blockchainBalance || '0') + BigInt(httpsBalance?.balance || '0')).toString(),
                 stablecoin.decimals
@@ -352,21 +352,21 @@ export default function EarningsPage() {
 
       {/* Earnings History */}
       {isConnected && (
-        <div className="mt-8 bg-card border border-border rounded-lg border border-border overflow-hidden">
-          <div className="px-6 py-4 border-b border-border flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-            <h2 className="text-lg font-semibold text-foreground">
+ <div className="mt-8 bg-card border border-border rounded-lg border border-border overflow-hidden">
+ <div className="px-6 py-4 border-b border-border flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+ <h2 className="text-lg font-semibold text-foreground">
               Earnings History
               {totalCount > 0 && (
-                <span className="text-sm font-normal text-muted-foreground ml-2">
+ <span className="text-sm font-normal text-muted-foreground ml-2">
                   ({totalCount} total)
                 </span>
               )}
             </h2>
             {/* Source Filter */}
-            <div className="flex gap-2">
+ <div className="flex gap-2">
               <button
                 onClick={() => setSourceFilter('all')}
-                className={`px-3 py-1 text-xs font-medium rounded-full ${
+ className={`px-3 py-1 text-xs font-medium rounded-full ${
                   sourceFilter === 'all'
                     ? 'bg-gray-800 text-white'
                     : 'bg-card-muted text-muted-foreground hover:bg-card-muted'
@@ -376,17 +376,17 @@ export default function EarningsPage() {
               </button>
               <button
                 onClick={() => setSourceFilter('blockchain')}
-                className={`px-3 py-1 text-xs font-medium rounded-full ${
+ className={`px-3 py-1 text-xs font-medium rounded-full ${
                   sourceFilter === 'blockchain'
-                    ? 'bg-purple-600 text-white'
-                    : 'bg-purple-100 text-purple-600 hover:bg-purple-200'
+                    ? 'bg-card-muted text-white'
+                    : 'bg-card-muted text-muted-foreground hover:bg-card-muted'
                 }`}
               >
                 Blockchain
               </button>
               <button
                 onClick={() => setSourceFilter('https')}
-                className={`px-3 py-1 text-xs font-medium rounded-full ${
+ className={`px-3 py-1 text-xs font-medium rounded-full ${
                   sourceFilter === 'https'
                     ? 'bg-success text-white'
                     : 'bg-success/15 text-success-text hover:bg-green-200'
@@ -398,77 +398,77 @@ export default function EarningsPage() {
           </div>
 
           {loading ? (
-            <div className="flex items-center justify-center py-12">
-              <svg className="animate-spin h-8 w-8 text-accent-text" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+ <div className="flex items-center justify-center py-12">
+ <svg className="animate-spin h-8 w-8 text-accent-text" fill="none" viewBox="0 0 24 24">
+ <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+ <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
               </svg>
-              <span className="ml-3 text-muted-foreground">Loading history...</span>
+ <span className="ml-3 text-muted-foreground">Loading history...</span>
             </div>
           ) : history.length === 0 ? (
-            <div className="text-center py-12">
-              <svg className="mx-auto h-12 w-12 text-faint-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+ <div className="text-center py-12">
+ <svg className="mx-auto h-12 w-12 text-faint-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
               </svg>
-              <h3 className="mt-2 text-sm font-medium text-foreground">No earnings yet</h3>
-              <p className="mt-1 text-sm text-muted-foreground">
+ <h3 className="mt-2 text-sm font-medium text-foreground">No earnings yet</h3>
+ <p className="mt-1 text-sm text-muted-foreground">
                 Earnings will appear here when users call your projects with attached deposits.
               </p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="bg-card-muted">
-                  <tr className="text-left text-muted-foreground">
-                    <th className="px-6 py-3 font-medium">Date</th>
-                    <th className="px-6 py-3 font-medium">Source</th>
-                    <th className="px-6 py-3 font-medium">Project</th>
-                    <th className="px-6 py-3 font-medium">Details</th>
-                    <th className="px-6 py-3 font-medium text-right">Amount</th>
+ <div className="overflow-x-auto">
+ <table className="w-full text-sm">
+ <thead className="bg-card-muted">
+ <tr className="text-left text-muted-foreground">
+ <th className="px-6 py-3 font-medium">Date</th>
+ <th className="px-6 py-3 font-medium">Source</th>
+ <th className="px-6 py-3 font-medium">Project</th>
+ <th className="px-6 py-3 font-medium">Details</th>
+ <th className="px-6 py-3 font-medium text-right">Amount</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-border">
+ <tbody className="divide-y divide-border">
                   {history.map((record) => (
-                    <tr key={record.id} className="hover:bg-card-muted">
-                      <td className="px-6 py-4 text-foreground">
+ <tr key={record.id} className="hover:bg-card-muted">
+ <td className="px-6 py-4 text-foreground">
                         {new Date(record.created_at * 1000).toLocaleString()}
                       </td>
-                      <td className="px-6 py-4">
+ <td className="px-6 py-4">
                         {record.source === 'blockchain' ? (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800">
+ <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-card-muted text-foreground">
                             Blockchain
                           </span>
                         ) : (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-success/10 text-success-text">
+ <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-success/10 text-success-text">
                             HTTPS
                           </span>
                         )}
                       </td>
-                      <td className="px-6 py-4">
-                        <span className="text-accent-text font-mono text-xs">
+ <td className="px-6 py-4">
+ <span className="text-accent-text font-mono text-xs">
                           {record.project_id.length > 20
                             ? record.project_id.slice(0, 20) + '...'
                             : record.project_id}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-xs text-muted-foreground">
+ <td className="px-6 py-4 text-xs text-muted-foreground">
                         {record.source === 'blockchain' ? (
                           record.caller ? (
-                            <span>by {record.caller.length > 15 ? record.caller.slice(0, 15) + '...' : record.caller}</span>
+ <span>by {record.caller.length > 15 ? record.caller.slice(0, 15) + '...' : record.caller}</span>
                           ) : '-'
                         ) : (
                           record.payment_key_owner ? (
-                            <span>{record.payment_key_owner}#{record.payment_key_nonce}</span>
+ <span>{record.payment_key_owner}#{record.payment_key_nonce}</span>
                           ) : '-'
                         )}
                       </td>
-                      <td className="px-6 py-4 text-right">
+ <td className="px-6 py-4 text-right">
                         <div>
-                          <span className="text-success-text font-semibold">
+ <span className="text-success-text font-semibold">
                             +{formatUsd(record.amount, stablecoin.decimals)}
                           </span>
                           {BigInt(record.refund_usd || '0') > BigInt(0) && (
-                            <span className="text-xs text-faint-foreground ml-1">
+ <span className="text-xs text-faint-foreground ml-1">
                               (refund: {formatUsd(record.refund_usd, stablecoin.decimals)})
                             </span>
                           )}
@@ -484,25 +484,25 @@ export default function EarningsPage() {
       )}
 
       {/* Info Section */}
-      <div className="mt-8 bg-info/10 border border-info/30 rounded-lg p-6">
-        <h3 className="text-sm font-semibold text-foreground mb-3">
+ <div className="mt-8 bg-info/10 border border-info/30 rounded-lg p-6">
+ <h3 className="text-sm font-semibold text-foreground mb-3">
           About Earnings
         </h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-info">
+ <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-info">
           <div>
-            <h4 className="font-medium text-purple-700 mb-1">Blockchain Earnings</h4>
-            <ul className="space-y-1 list-disc list-inside text-xs">
-              <li>From request_execution with attached_usd</li>
-              <li>Stored in OutLayer smart contract</li>
-              <li>Withdraw directly to your wallet</li>
+ <h4 className="font-medium text-muted-foreground mb-1">Blockchain Earnings</h4>
+ <ul className="space-y-1 list-disc list-inside text-xs">
+ <li>From request_execution with attached_usd</li>
+ <li>Stored in OutLayer smart contract</li>
+ <li>Withdraw directly to your wallet</li>
             </ul>
           </div>
           <div>
-            <h4 className="font-medium text-success-text mb-1">HTTPS API Earnings</h4>
-            <ul className="space-y-1 list-disc list-inside text-xs">
-              <li>From payment key calls with X-Attached-Deposit</li>
-              <li>Stored in coordinator database</li>
-              <li>Withdrawal coming soon</li>
+ <h4 className="font-medium text-success-text mb-1">HTTPS API Earnings</h4>
+ <ul className="space-y-1 list-disc list-inside text-xs">
+ <li>From payment key calls with X-Attached-Deposit</li>
+ <li>Stored in coordinator database</li>
+ <li>Withdrawal coming soon</li>
             </ul>
           </div>
         </div>

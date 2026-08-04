@@ -45,49 +45,47 @@ export default function ProductHome() {
   }, []);
 
   return (
-    <div className="mx-auto max-w-5xl">
+ <div className="mx-auto max-w-5xl">
       {/* Hero */}
-      <div className="py-10 sm:py-14">
-        <h1 className="max-w-3xl text-3xl font-bold tracking-tight sm:text-4xl">
+ <div className="py-10 sm:py-14">
+ <h1 className="max-w-3xl text-3xl font-bold tracking-tight sm:text-4xl">
           Verifiable compute and custody for AI agents.
         </h1>
-        <p className="mt-4 max-w-2xl text-base text-muted-foreground">
+ <p className="mt-4 max-w-2xl text-base text-muted-foreground">
           Agents run inside Intel TDX enclaves, hold policy-guarded wallets for NEAR, EVM and
           Solana, and leave cryptographic receipts on-chain for every action. Secrets stay
           encrypted; nobody — including the operator — can tamper with what runs.
         </p>
-        <div className="mt-6 flex flex-wrap items-center gap-3">
-          {!isConnected && <Button onClick={() => setModalOpen(true)}>Connect wallet</Button>}
+ <div className="mt-6 flex flex-wrap items-center gap-3">
+ {!isConnected && <Button onClick={() => setModalOpen(true)}>Connect wallet</Button>}
           <Link href="/playground">
-            <Button variant="outline">Try playground</Button>
+ <Button variant="outline">Try playground</Button>
           </Link>
           <Link href="/docs/getting-started">
-            <Button variant="ghost">Read docs</Button>
+ <Button variant="ghost">Read docs</Button>
           </Link>
         </div>
       </div>
 
       {/* Live strip — real numbers, not claims */}
-      <div className="flex flex-wrap items-center gap-x-6 gap-y-2 rounded-lg border border-border bg-card px-5 py-3 text-sm">
-        <span className="inline-flex items-center gap-2 font-semibold">
-          <span className="h-2 w-2 rounded-full bg-success" />
+ <div className="flex flex-wrap items-center gap-x-6 gap-y-2 rounded-lg border border-border bg-card px-5 py-3 text-sm">
+ <span className="inline-flex items-center gap-2 font-semibold">
+ <span className="h-2 w-2 rounded-full bg-success" />
           Live on NEAR mainnet
         </span>
-        <Link href="/workers" className="text-muted-foreground hover:text-accent-text">
-          <span className="font-semibold tabular-nums text-foreground">
+ <Link href="/workers" className="text-muted-foreground hover:text-accent-text">
+ <span className="font-semibold tabular-nums text-foreground">
             {workersAttested ?? '—'}
-          </span>{' '}
-          workers attested
+          </span>          workers attested
         </Link>
-        <Link href="/stats" className="text-muted-foreground hover:text-accent-text">
-          <span className="font-semibold tabular-nums text-foreground">
+ <Link href="/stats" className="text-muted-foreground hover:text-accent-text">
+ <span className="font-semibold tabular-nums text-foreground">
             {executions === null ? '—' : executions.toLocaleString('en-US')}
-          </span>{' '}
-          executions
+          </span>          executions
         </Link>
         <a
           href="https://workers.outlayer.ai"
-          className="ml-auto inline-flex"
+ className="ml-auto inline-flex"
           target="_blank"
           rel="noreferrer"
         >
@@ -96,39 +94,39 @@ export default function ProductHome() {
       </div>
 
       {/* Pillars */}
-      <div className="mt-8 grid gap-4 lg:grid-cols-3">
+ <div className="mt-8 grid gap-4 lg:grid-cols-3">
         <Card>
           <CardHeader>
-            <CardTitle>Compute</CardTitle>
-            <CardDescription>Run any code with proof it ran unmodified.</CardDescription>
+ <CardTitle>Compute</CardTitle>
+ <CardDescription>Run any code with proof it ran unmodified.</CardDescription>
           </CardHeader>
           <CardContent>
             <CodeBlock code={COMPUTE_SNIPPET} language="bash" filename="curl" />
-            <Link href="/docs/web2-integration" className="mt-3 inline-block text-sm font-semibold text-accent-text hover:underline">
+ <Link href="/docs/web2-integration" className="mt-3 inline-block text-sm font-semibold text-accent-text hover:underline">
               Web2 integration →
             </Link>
           </CardContent>
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle>Custody</CardTitle>
-            <CardDescription>Wallets agents can use but never leak.</CardDescription>
+ <CardTitle>Custody</CardTitle>
+ <CardDescription>Wallets agents can use but never leak.</CardDescription>
           </CardHeader>
           <CardContent>
             <CodeBlock code={CUSTODY_SNIPPET} language="bash" filename="curl" />
-            <Link href="/docs/agent-custody" className="mt-3 inline-block text-sm font-semibold text-accent-text hover:underline">
+ <Link href="/docs/agent-custody" className="mt-3 inline-block text-sm font-semibold text-accent-text hover:underline">
               Agent custody →
             </Link>
           </CardContent>
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle>Payments</CardTitle>
-            <CardDescription>Metered in USD. Developers earn per call.</CardDescription>
+ <CardTitle>Payments</CardTitle>
+ <CardDescription>Metered in USD. Developers earn per call.</CardDescription>
           </CardHeader>
           <CardContent>
             <CodeBlock code={PAYMENTS_SNIPPET} language="bash" filename="pricing" />
-            <Link href="/docs/earnings" className="mt-3 inline-block text-sm font-semibold text-accent-text hover:underline">
+ <Link href="/docs/earnings" className="mt-3 inline-block text-sm font-semibold text-accent-text hover:underline">
               Earnings →
             </Link>
           </CardContent>
@@ -136,24 +134,24 @@ export default function ProductHome() {
       </div>
 
       {/* How verification works */}
-      <div className="mt-8 rounded-lg border border-border bg-card p-5">
-        <h2 className="text-sm font-semibold">How verification works</h2>
-        <div className="mt-3 grid gap-4 text-sm text-muted-foreground sm:grid-cols-3">
+ <div className="mt-8 rounded-lg border border-border bg-card p-5">
+ <h2 className="text-sm font-semibold">How verification works</h2>
+ <div className="mt-3 grid gap-4 text-sm text-muted-foreground sm:grid-cols-3">
           <div>
-            <span className="font-mono text-xs text-faint-foreground">01</span>
-            <p className="mt-1">
+ <span className="font-mono text-xs text-faint-foreground">01</span>
+ <p className="mt-1">
               Every worker boots in an Intel TDX enclave and produces a hardware attestation quote.
             </p>
           </div>
           <div>
-            <span className="font-mono text-xs text-faint-foreground">02</span>
-            <p className="mt-1">
+ <span className="font-mono text-xs text-faint-foreground">02</span>
+ <p className="mt-1">
               The quote is DCAP-verified against Intel PCS; the measurement is approved on-chain.
             </p>
           </div>
           <div>
-            <span className="font-mono text-xs text-faint-foreground">03</span>
-            <p className="mt-1">
+ <span className="font-mono text-xs text-faint-foreground">03</span>
+ <p className="mt-1">
               Each execution returns an enclave-signed receipt you can check on its attestation
               page.
             </p>
@@ -161,7 +159,7 @@ export default function ProductHome() {
         </div>
         <Link
           href="/docs/trust-verification"
-          className="mt-4 inline-block text-sm font-semibold text-accent-text hover:underline"
+ className="mt-4 inline-block text-sm font-semibold text-accent-text hover:underline"
         >
           Trust &amp; verification →
         </Link>

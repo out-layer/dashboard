@@ -116,7 +116,7 @@ const MODE_CONFIG: Record<
     issuerChipColor: ACCENT.vault,
     issuerArrow: 'CKD bound to your vault contract',
     badge: {
-      icon: '✓',
+      icon: '',
       text: 'Self-managed. OutLayer is no longer in the loop. Your end-users keep getting byte-identical keys because the vault binding is yours.',
       bg: '#f0fdf4',
       border: '#bbf7d0',
@@ -173,9 +173,9 @@ export function VaultArchitectureDiagram() {
   const t = 'transition-all duration-500 ease-in-out';
 
   return (
-    <div className="border-2 border-border rounded-lg p-4 mb-6 bg-card-muted">
+ <div className="border-2 border-border rounded-lg p-4 mb-6 bg-card-muted">
       {/* Mode tabs */}
-      <div className="flex flex-col sm:flex-row gap-1 mb-4 border border-border rounded p-1 bg-card">
+ <div className="flex flex-col sm:flex-row gap-1 mb-4 border border-border rounded p-1 bg-card">
         <ModeButton current={mode} value="default" set={setMode}>
           Default (shared OutLayer)
         </ModeButton>
@@ -188,10 +188,10 @@ export function VaultArchitectureDiagram() {
       </div>
 
       {/* SVG diagram */}
-      <div className="bg-card border border-border rounded p-2 overflow-x-auto">
+ <div className="bg-card border border-border rounded p-2 overflow-x-auto">
         <svg
           viewBox={`0 0 760 ${VIEW_HEIGHT}`}
-          className="w-full"
+ className="w-full"
           style={{ maxWidth: '760px', margin: '0 auto', display: 'block' }}
         >
           <defs>
@@ -307,18 +307,18 @@ export function VaultArchitectureDiagram() {
 
       {/* Takeover badge — varies per mode, sits below the outcome block */}
       <div
-        className={`mt-3 px-4 py-3 rounded border text-sm flex items-start gap-3 ${t}`}
+ className={`mt-3 px-4 py-3 rounded border text-sm flex items-start gap-3 ${t}`}
         style={{
           backgroundColor: cfg.badge.bg,
           borderColor: cfg.badge.border,
           color: cfg.badge.fg,
         }}
       >
-        <span className="text-base font-bold leading-none mt-0.5">{cfg.badge.icon}</span>
-        <span>{cfg.badge.text}</span>
+ <span className="text-base font-bold leading-none mt-0.5">{cfg.badge.icon}</span>
+ <span>{cfg.badge.text}</span>
       </div>
 
-      <p className="text-xs text-muted-foreground mt-3 italic">
+ <p className="text-xs text-muted-foreground mt-3 italic">
         Read top-down: end-user triggers a request &rarr; the runtime (TEE)
         derives the requested key from a per-customer master &rarr; on first
         call only, the master comes from NEAR MPC bound to a CKD-issuer
@@ -521,7 +521,7 @@ function Card({ x, y, width, height, accent, icon, title, subLines, chip, chipCo
         fill="#ffffff"
         stroke={accent}
         strokeWidth="2"
-        className={t}
+ className={t}
       />
       {/* Left accent stripe */}
       <rect
@@ -531,7 +531,7 @@ function Card({ x, y, width, height, accent, icon, title, subLines, chip, chipCo
         height={height}
         rx={3}
         fill={accent}
-        className={t}
+ className={t}
       />
       {/* Icon in soft-tinted square */}
       <g transform={`translate(${iconBoxX}, ${iconBoxY})`}>
@@ -541,10 +541,10 @@ function Card({ x, y, width, height, accent, icon, title, subLines, chip, chipCo
           rx={6}
           fill={accent}
           opacity={0.12}
-          className={t}
+ className={t}
         />
         <g transform={`translate(${(iconSize - 18) / 2}, ${(iconSize - 18) / 2})`}>
-          <g style={{ color: accent }} className={t}>
+ <g style={{ color: accent }} className={t}>
             {icon}
           </g>
         </g>
@@ -566,7 +566,7 @@ function Card({ x, y, width, height, accent, icon, title, subLines, chip, chipCo
             rx={10}
             fill={chipColor}
             opacity={0.12}
-            className={t}
+ className={t}
           />
           <rect
             x={x + width - 130}
@@ -577,7 +577,7 @@ function Card({ x, y, width, height, accent, icon, title, subLines, chip, chipCo
             fill="none"
             stroke={chipColor}
             strokeWidth="1"
-            className={t}
+ className={t}
           />
           <text
             x={x + width - 70}
@@ -586,7 +586,7 @@ function Card({ x, y, width, height, accent, icon, title, subLines, chip, chipCo
             fontSize="10"
             fontWeight="700"
             fill={chipColor}
-            className={t}
+ className={t}
           >
             {chip}
           </text>
@@ -683,7 +683,7 @@ function ModeButton({
       type="button"
       onClick={() => set(value)}
       aria-pressed={active}
-      className={`flex-1 px-3 py-2 rounded text-sm font-medium transition-colors ${
+ className={`flex-1 px-3 py-2 rounded text-sm font-medium transition-colors ${
         active
           ? 'bg-gray-900 text-white shadow-sm'
           : 'text-foreground hover:bg-card-muted'

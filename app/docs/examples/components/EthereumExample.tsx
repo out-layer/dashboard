@@ -5,8 +5,8 @@ import { ExampleCard, UseCasesSection, KeyFeaturesSection, TechnicalDetailsSecti
 export function EthereumExample() {
   const badges = (
     <>
-      <span className="ml-3 text-sm bg-purple-100 text-purple-800 px-3 py-1 rounded">WASI P2</span>
-      <span className="ml-2 text-sm bg-destructive/10 text-destructive-text px-3 py-1 rounded">Advanced</span>
+ <span className="ml-3 text-sm bg-card-muted text-foreground px-3 py-1 rounded">WASI P2</span>
+ <span className="ml-2 text-sm bg-destructive/10 text-destructive-text px-3 py-1 rounded">Advanced</span>
     </>
   );
 
@@ -18,7 +18,7 @@ export function EthereumExample() {
       githubUrl="https://github.com/out-layer/oracle-example"
       playgroundId="ethereum-api"
     >
-      <p className="text-foreground mb-4">
+ <p className="text-foreground mb-4">
         Query Ethereum blockchain data via JSON-RPC (balances, smart contracts, transactions). Similar to the previous oracle example but configured for Ethereum node providers like Alchemy. Bridge NEAR with Ethereum data for cross-chain applications.
       </p>
 
@@ -73,7 +73,7 @@ export function EthereumExample() {
 }`}
       />
 
-      <h4 className="font-semibold mt-4 mb-2">Quick Start (Testnet):</h4>
+ <h4 className="font-semibold mt-4 mb-2">Quick Start (Testnet):</h4>
       <SyntaxHighlighter language="bash" style={vscDarkPlus} customStyle={{ borderRadius: '0.5rem', fontSize: '0.875rem' }}>
 {`# Using pre-configured Alchemy secrets on testnet
 near contract call-function as-transaction outlayer.testnet request_execution \\
@@ -104,51 +104,51 @@ near contract call-function as-transaction outlayer.testnet request_execution \\
       </SyntaxHighlighter>
 
       <UseCasesSection items={[
-        <><strong>Cross-Chain Bridges:</strong> Verify Ethereum transactions on NEAR</>,
-        <><strong>DeFi Integration:</strong> Monitor Ethereum token balances from NEAR contracts</>,
-        <><strong>Multi-Chain Wallets:</strong> Display ETH balances in NEAR apps</>,
-        <><strong>Smart Contract State:</strong> Read Ethereum contract data (ERC20, NFTs)</>,
-        <><strong>Block Explorer:</strong> Query Ethereum transaction history</>
+ <><strong>Cross-Chain Bridges:</strong> Verify Ethereum transactions on NEAR</>,
+ <><strong>DeFi Integration:</strong> Monitor Ethereum token balances from NEAR contracts</>,
+ <><strong>Multi-Chain Wallets:</strong> Display ETH balances in NEAR apps</>,
+ <><strong>Smart Contract State:</strong> Read Ethereum contract data (ERC20, NFTs)</>,
+ <><strong>Block Explorer:</strong> Query Ethereum transaction history</>
       ]} />
 
-      <h4 className="font-semibold mt-4 mb-2">Notes:</h4>
-      <ul className="list-disc list-inside text-foreground space-y-1">
-        <li>Same codebase as <code className="bg-card-muted px-2 py-1 rounded">oracle-example</code>, different secrets configuration</li>
-        <li>Requires Alchemy API key (free tier: 300M compute units/month)</li>
-        <li>Supports any Ethereum JSON-RPC method (eth_call, eth_getTransactionReceipt, etc.)</li>
-        <li>Pre-configured secrets available on testnet: <code className="bg-card-muted px-2 py-1 rounded">zavodil2.testnet</code></li>
-        <li>Mainnet secrets: <code className="bg-card-muted px-2 py-1 rounded">zavodil.near</code></li>
+ <h4 className="font-semibold mt-4 mb-2">Notes:</h4>
+ <ul className="list-disc list-inside text-foreground space-y-1">
+ <li>Same codebase as <code className="bg-card-muted px-2 py-1 rounded">oracle-example</code>, different secrets configuration</li>
+ <li>Requires Alchemy API key (free tier: 300M compute units/month)</li>
+ <li>Supports any Ethereum JSON-RPC method (eth_call, eth_getTransactionReceipt, etc.)</li>
+ <li>Pre-configured secrets available on testnet: <code className="bg-card-muted px-2 py-1 rounded">zavodil2.testnet</code></li>
+ <li>Mainnet secrets: <code className="bg-card-muted px-2 py-1 rounded">zavodil.near</code></li>
       </ul>
 
       <TechnicalDetailsSection items={[
-        <><strong>WASI Version:</strong> Preview 2 (component model)</>,
-        <><strong>Language:</strong> Rust</>,
-        <><strong>HTTP Client:</strong> <code>reqwest</code> with WASI sockets</>,
-        <><strong>Secrets:</strong> Required (<code>ALCHEMY_API_KEY</code>)</>,
-        <><strong>Network:</strong> Required (outbound HTTPS to Alchemy/Infura)</>,
-        <><strong>Build:</strong> <code>cargo component build --release</code></>,
-        <><strong>Size:</strong> ~3.5MB compiled WASM</>
+ <><strong>WASI Version:</strong> Preview 2 (component model)</>,
+ <><strong>Language:</strong> Rust</>,
+ <><strong>HTTP Client:</strong> <code>reqwest</code> with WASI sockets</>,
+ <><strong>Secrets:</strong> Required (<code>ALCHEMY_API_KEY</code>)</>,
+ <><strong>Network:</strong> Required (outbound HTTPS to Alchemy/Infura)</>,
+ <><strong>Build:</strong> <code>cargo component build --release</code></>,
+ <><strong>Size:</strong> ~3.5MB compiled WASM</>
       ]} />
 
       <LearnMoreSection>
-        <ul className="text-sm text-foreground space-y-1">
+ <ul className="text-sm text-foreground space-y-1">
           <li>
-            📖 <Link href="/docs/wasi#wasi-preview-2" className="text-[var(--primary-orange)] hover:underline">
+ <Link href="/docs/wasi#wasi-preview-2" className="text-[var(--primary-orange)] hover:underline">
               WASI Preview 2 Documentation
             </Link>
           </li>
           <li>
-            🔐 <Link href="/docs/secrets" className="text-[var(--primary-orange)] hover:underline">
+ <Link href="/docs/secrets" className="text-[var(--primary-orange)] hover:underline">
               Secrets Management Guide
             </Link>
           </li>
           <li>
-            🎮 <Link href="/playground#ethereum-api" className="text-[var(--primary-orange)] hover:underline">
+ <Link href="/playground#ethereum-api" className="text-[var(--primary-orange)] hover:underline">
               Try in Playground
             </Link>
           </li>
           <li>
-            💻 <a href="https://github.com/out-layer/oracle-example" target="_blank" rel="noopener noreferrer" className="text-[var(--primary-orange)] hover:underline">
+ <a href="https://github.com/out-layer/oracle-example" target="_blank" rel="noopener noreferrer" className="text-[var(--primary-orange)] hover:underline">
               View Source Code
             </a>
           </li>

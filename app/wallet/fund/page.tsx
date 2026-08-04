@@ -55,7 +55,7 @@ function truncateAccount(account: string): string {
 
 export default function FundPage() {
   return (
-    <Suspense fallback={<div className="flex justify-center py-20"><LoadingSpinner /></div>}>
+ <Suspense fallback={<div className="flex justify-center py-20"><LoadingSpinner /></div>}>
       <FundContent />
     </Suspense>
   );
@@ -93,11 +93,11 @@ function FundContent() {
   // Validate params
   if (!to || !amount) {
     return (
-      <div className="max-w-lg mx-auto mt-12">
-        <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-6 text-center">
-          <h2 className="text-lg font-semibold text-destructive-text mb-2">Invalid Fund Link</h2>
-          <p className="text-destructive-text text-sm">
-            Missing required parameters. The link should include <code className="bg-destructive/15 px-1 rounded">to</code> and <code className="bg-destructive/15 px-1 rounded">amount</code>.
+ <div className="max-w-lg mx-auto mt-12">
+ <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-6 text-center">
+ <h2 className="text-lg font-semibold text-destructive-text mb-2">Invalid Fund Link</h2>
+ <p className="text-destructive-text text-sm">
+ Missing required parameters. The link should include <code className="bg-destructive/15 px-1 rounded">to</code> and <code className="bg-destructive/15 px-1 rounded">amount</code>.
           </p>
         </div>
       </div>
@@ -107,10 +107,10 @@ function FundContent() {
   const parsedAmount = parseFloat(amount);
   if (isNaN(parsedAmount) || parsedAmount <= 0) {
     return (
-      <div className="max-w-lg mx-auto mt-12">
-        <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-6 text-center">
-          <h2 className="text-lg font-semibold text-destructive-text mb-2">Invalid Amount</h2>
-          <p className="text-destructive-text text-sm">Amount must be a positive number.</p>
+ <div className="max-w-lg mx-auto mt-12">
+ <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-6 text-center">
+ <h2 className="text-lg font-semibold text-destructive-text mb-2">Invalid Amount</h2>
+ <p className="text-destructive-text text-sm">Amount must be a positive number.</p>
         </div>
       </div>
     );
@@ -323,15 +323,15 @@ function FundContent() {
   // Success state
   if (txHash) {
     return (
-      <div className="max-w-lg mx-auto mt-12">
-        <div className="bg-card border border-border rounded-lg p-6 text-center">
-          <div className="w-16 h-16 bg-success/15 rounded-full flex items-center justify-center mx-auto mb-4">
-            <svg className="w-8 h-8 text-success-text" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+ <div className="max-w-lg mx-auto mt-12">
+ <div className="bg-card border border-border rounded-lg p-6 text-center">
+ <div className="w-16 h-16 bg-success/15 rounded-full flex items-center justify-center mx-auto mb-4">
+ <svg className="w-8 h-8 text-success-text" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
             </svg>
           </div>
-          <h2 className="text-xl font-semibold text-foreground mb-2">Transfer Complete</h2>
-          <p className="text-muted-foreground mb-4">
+ <h2 className="text-xl font-semibold text-foreground mb-2">Transfer Complete</h2>
+ <p className="text-muted-foreground mb-4">
             Sent {amount} {symbol} {depositNearViaContract
               ? `via ${viaContract}`
               : depositToIntents
@@ -343,7 +343,7 @@ function FundContent() {
               href={getTransactionUrl(txHash, network)}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-accent-text hover:text-accent-text text-sm font-medium underline"
+ className="text-accent-text hover:text-accent-text text-sm font-medium underline"
             >
               View transaction on explorer
             </a>
@@ -354,46 +354,46 @@ function FundContent() {
   }
 
   return (
-    <div className="max-w-lg mx-auto mt-12">
-      <div className="bg-card border border-border rounded-lg p-6">
+ <div className="max-w-lg mx-auto mt-12">
+ <div className="bg-card border border-border rounded-lg p-6">
         {/* Header */}
-        <div className="text-center mb-6">
-          <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-3">
+ <div className="text-center mb-6">
+ <div className="w-12 h-12 bg-card-muted rounded-full flex items-center justify-center mx-auto mb-3">
             {tokenMeta?.icon ? (
-              <img src={tokenMeta.icon} alt={symbol} className="w-8 h-8 rounded-full" />
+ <img src={tokenMeta.icon} alt={symbol} className="w-8 h-8 rounded-full" />
             ) : (
-              <svg className="w-6 h-6 text-accent-text" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+ <svg className="w-6 h-6 text-accent-text" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             )}
           </div>
-          <h1 className="text-xl font-semibold text-foreground">Fund Request</h1>
-          <p className="text-muted-foreground text-sm mt-1">You are requested to top up a wallet balance</p>
+ <h1 className="text-xl font-semibold text-foreground">Fund Request</h1>
+ <p className="text-muted-foreground text-sm mt-1">You are requested to top up a wallet balance</p>
         </div>
 
         {/* Amount display */}
-        <div className="bg-card-muted rounded-lg p-4 mb-4">
-          <div className="text-center">
-            <span className="text-xl font-bold tracking-tight">{amount}</span>
-            <span className="text-xl text-muted-foreground ml-2">{symbol}</span>
+ <div className="bg-card-muted rounded-lg p-4 mb-4">
+ <div className="text-center">
+ <span className="text-xl font-bold tracking-tight">{amount}</span>
+ <span className="text-xl text-muted-foreground ml-2">{symbol}</span>
           </div>
         </div>
 
         {/* Agent message */}
         {msg && (
-          <div className="bg-info/10 border border-info/30 rounded-lg p-3 mb-4">
-            <p className="text-info text-sm">{msg}</p>
+ <div className="bg-info/10 border border-info/30 rounded-lg p-3 mb-4">
+ <p className="text-info text-sm">{msg}</p>
           </div>
         )}
 
         {/* Recipient */}
-        <div className="mb-4">
-          <label className="block text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">Recipient</label>
-          <div className="flex items-center gap-2 bg-card-muted rounded-lg px-3 py-2">
-            <span className="font-mono text-sm text-foreground flex-1 truncate">{truncateAccount(to)}</span>
+ <div className="mb-4">
+ <label className="block text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">Recipient</label>
+ <div className="flex items-center gap-2 bg-card-muted rounded-lg px-3 py-2">
+ <span className="font-mono text-sm text-foreground flex-1 truncate">{truncateAccount(to)}</span>
             <button
               onClick={copyAddress}
-              className="text-faint-foreground hover:text-foreground text-xs flex-shrink-0"
+ className="text-faint-foreground hover:text-foreground text-xs flex-shrink-0"
               title="Copy full address"
             >
               {copied ? 'Copied!' : 'Copy'}
@@ -403,18 +403,18 @@ function FundContent() {
 
         {/* via error */}
         {viaError && (
-          <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-3 mb-4">
-            <p className="text-destructive-text text-sm">{viaError}</p>
+ <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-3 mb-4">
+ <p className="text-destructive-text text-sm">{viaError}</p>
           </div>
         )}
 
         {/* Intents deposit toggle — FT tokens only */}
         {!isNative && (
-          <div className="mb-4">
-            <label className="flex items-center justify-between bg-card-muted rounded-lg px-3 py-2.5 cursor-pointer">
+ <div className="mb-4">
+ <label className="flex items-center justify-between bg-card-muted rounded-lg px-3 py-2.5 cursor-pointer">
               <div>
-                <span className="text-sm font-medium text-foreground">Deposit to Intents balance</span>
-                <p className="text-xs text-muted-foreground mt-0.5">
+ <span className="text-sm font-medium text-foreground">Deposit to Intents balance</span>
+ <p className="text-xs text-muted-foreground mt-0.5">
                   {depositToIntents
                     ? 'Funds go to Intents balance (swaps, payments)'
                     : 'Funds go directly to recipient\u2019s token account'}
@@ -425,12 +425,12 @@ function FundContent() {
                 role="switch"
                 aria-checked={depositToIntents}
                 onClick={() => setDepositToIntents(!depositToIntents)}
-                className={`relative inline-flex h-6 w-11 flex-shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+ className={`relative inline-flex h-6 w-11 flex-shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
                   depositToIntents ? 'bg-accent' : 'bg-card-muted'
                 }`}
               >
                 <span
-                  className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-card border border-border transform transition duration-200 ease-in-out ${
+ className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-card border border-border transform transition duration-200 ease-in-out ${
                     depositToIntents ? 'translate-x-5' : 'translate-x-0'
                   }`}
                 />
@@ -440,37 +440,37 @@ function FundContent() {
         )}
 
         {/* Transaction details — show exactly what will be signed */}
-        <div className="mb-4">
-          <label className="block text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">Transaction details</label>
-          <div className="bg-card-muted rounded-lg p-3 space-y-1.5 text-xs font-mono text-muted-foreground">
+ <div className="mb-4">
+ <label className="block text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">Transaction details</label>
+ <div className="bg-card-muted rounded-lg p-3 space-y-1.5 text-xs font-mono text-muted-foreground">
             {depositNearViaContract ? (
               <>
-                <div><span className="text-faint-foreground">Contract:</span> {viaContract}</div>
-                <div><span className="text-faint-foreground">Method:</span> {viaMethod}</div>
-                {viaArgs && <div className="break-all"><span className="text-faint-foreground">Args:</span> {viaArgs}</div>}
-                <div><span className="text-faint-foreground">Deposit:</span> {amount} NEAR</div>
-                <div><span className="text-faint-foreground">Gas:</span> {gasParam || '30'} TGas</div>
+ <div><span className="text-faint-foreground">Contract:</span> {viaContract}</div>
+ <div><span className="text-faint-foreground">Method:</span> {viaMethod}</div>
+ {viaArgs && <div className="break-all"><span className="text-faint-foreground">Args:</span> {viaArgs}</div>}
+ <div><span className="text-faint-foreground">Deposit:</span> {amount} NEAR</div>
+ <div><span className="text-faint-foreground">Gas:</span> {gasParam || '30'} TGas</div>
               </>
             ) : isNative ? (
               <>
-                <div><span className="text-faint-foreground">Action:</span> Transfer</div>
-                <div><span className="text-faint-foreground">To:</span> {truncateAccount(to)}</div>
-                <div><span className="text-faint-foreground">Amount:</span> {amount} NEAR</div>
+ <div><span className="text-faint-foreground">Action:</span> Transfer</div>
+ <div><span className="text-faint-foreground">To:</span> {truncateAccount(to)}</div>
+ <div><span className="text-faint-foreground">Amount:</span> {amount} NEAR</div>
               </>
             ) : depositToIntents ? (
               <>
-                <div><span className="text-faint-foreground">Contract:</span> {tokenParam}</div>
-                <div><span className="text-faint-foreground">Method:</span> ft_transfer_call</div>
-                <div><span className="text-faint-foreground">Receiver:</span> intents.near</div>
-                <div><span className="text-faint-foreground">Amount:</span> {amount} {symbol}</div>
-                <div><span className="text-faint-foreground">Msg:</span> {truncateAccount(to)}</div>
+ <div><span className="text-faint-foreground">Contract:</span> {tokenParam}</div>
+ <div><span className="text-faint-foreground">Method:</span> ft_transfer_call</div>
+ <div><span className="text-faint-foreground">Receiver:</span> intents.near</div>
+ <div><span className="text-faint-foreground">Amount:</span> {amount} {symbol}</div>
+ <div><span className="text-faint-foreground">Msg:</span> {truncateAccount(to)}</div>
               </>
             ) : (
               <>
-                <div><span className="text-faint-foreground">Contract:</span> {tokenParam}</div>
-                <div><span className="text-faint-foreground">Method:</span> ft_transfer</div>
-                <div><span className="text-faint-foreground">To:</span> {truncateAccount(to)}</div>
-                <div><span className="text-faint-foreground">Amount:</span> {amount} {symbol}</div>
+ <div><span className="text-faint-foreground">Contract:</span> {tokenParam}</div>
+ <div><span className="text-faint-foreground">Method:</span> ft_transfer</div>
+ <div><span className="text-faint-foreground">To:</span> {truncateAccount(to)}</div>
+ <div><span className="text-faint-foreground">Amount:</span> {amount} {symbol}</div>
               </>
             )}
           </div>
@@ -478,8 +478,8 @@ function FundContent() {
 
         {/* Storage deposit notice */}
         {!isNative && needsStorage && (
-          <div className="bg-warning/10 border border-warning/30 rounded-lg p-3 mb-4">
-            <p className="text-warning text-sm">
+ <div className="bg-warning/10 border border-warning/30 rounded-lg p-3 mb-4">
+ <p className="text-warning text-sm">
               The recipient is not registered on this token contract. A one-time storage deposit of 0.00125 NEAR will be included automatically.
             </p>
           </div>
@@ -487,8 +487,8 @@ function FundContent() {
 
         {/* Error */}
         {error && (
-          <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-3 mb-4">
-            <p className="text-destructive-text text-sm">{error}</p>
+ <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-3 mb-4">
+ <p className="text-destructive-text text-sm">{error}</p>
           </div>
         )}
 
@@ -496,7 +496,7 @@ function FundContent() {
         {!isConnected ? (
           <button
             onClick={() => setShowWalletModal(true)}
-            className="w-full px-4 py-3 bg-accent text-white rounded-lg font-medium transition-colors shadow-sm hover:shadow-md"
+ className="w-full px-4 py-3 bg-accent text-on-accent rounded-lg font-medium transition-colors shadow-sm hover:shadow-md"
           >
             Connect Wallet to Send
           </button>
@@ -504,15 +504,14 @@ function FundContent() {
           <div>
             {/* Balance info */}
             {userBalance !== null && (
-              <div className="text-sm text-muted-foreground mb-3">
-                Your balance:{' '}
-                <span className="font-mono font-medium text-foreground">
+ <div className="text-sm text-muted-foreground mb-3">
+                Your balance: <span className="font-mono font-medium text-foreground">
                   {isNative
                     ? `${formatYocto(userBalance)} NEAR`
                     : `${formatFtAmount(userBalance, decimals)} ${symbol}`}
                 </span>
                 {!hasEnough && (
-                  <span className="text-destructive-text ml-2">
+ <span className="text-destructive-text ml-2">
                     (insufficient{isNative ? ' — keep ~0.05 NEAR for fees' : ''})
                   </span>
                 )}
@@ -522,10 +521,10 @@ function FundContent() {
             <button
               onClick={handleSend}
               disabled={sending || !hasEnough || !tokenMeta || !!viaError}
-              className="w-full px-4 py-3 bg-accent text-white rounded-lg font-medium transition-colors shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+ className="w-full px-4 py-3 bg-accent text-on-accent rounded-lg font-medium transition-colors shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {sending ? (
-                <span className="flex items-center justify-center gap-2">
+ <span className="flex items-center justify-center gap-2">
                   <LoadingSpinner small />
                   Sending...
                 </span>
@@ -538,7 +537,7 @@ function FundContent() {
               )}
             </button>
 
-            <p className="text-xs text-faint-foreground text-center mt-2">
+ <p className="text-xs text-faint-foreground text-center mt-2">
               Connected as {accountId}
             </p>
           </div>
@@ -553,9 +552,9 @@ function FundContent() {
 function LoadingSpinner({ small }: { small?: boolean }) {
   const size = small ? 'h-4 w-4' : 'h-8 w-8';
   return (
-    <svg className={`animate-spin ${size} text-accent-text`} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+ <svg className={`animate-spin ${size} text-accent-text`} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+ <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+ <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
     </svg>
   );
 }

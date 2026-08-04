@@ -141,27 +141,27 @@ print(f"Signed commitment matches: {td['report_data'][:64] == final_hash}")`
     : '';
 
   return (
-    <div className="space-y-4">
+ <div className="space-y-4">
       {/* Help Section */}
       {showHelp && (
-        <div className="bg-info/10 border border-info/30 rounded-lg p-4">
-          <h3 className="text-lg font-semibold text-info mb-3">Understanding TEE Attestations</h3>
-          <div className="space-y-3 text-sm text-info">
+ <div className="bg-info/10 border border-info/30 rounded-lg p-4">
+ <h3 className="text-lg font-semibold text-info mb-3">Understanding TEE Attestations</h3>
+ <div className="space-y-3 text-sm text-info">
             <div>
-              <p className="font-semibold mb-1">🔒 What is a TEE Attestation?</p>
-              <p className="text-info">
+ <p className="font-semibold mb-1"> What is a TEE Attestation?</p>
+ <p className="text-info">
                 A TEE (Trusted Execution Environment) attestation is cryptographic proof that your code
                 was executed inside a secure Intel TDX hardware enclave.
               </p>
             </div>
             <div>
-              <p className="font-semibold mb-1">✅ What Can You Verify?</p>
-              <ul className="list-disc list-inside space-y-1 text-info ml-2">
-                <li><strong>Authenticity</strong> — Intel&apos;s signature over the quote, checked in your browser</li>
-                <li><strong>Identity</strong> — the measurements are an on-chain approved worker build</li>
-                <li><strong>Binding</strong> — the signed quote commits to this exact input, output and code</li>
-                <li>Input/Output — recompute the hashes from the data you sent and received</li>
-                <li>Source Code — the exact GitHub commit that was built</li>
+ <p className="font-semibold mb-1"> What Can You Verify?</p>
+ <ul className="list-disc list-inside space-y-1 text-info ml-2">
+ <li><strong>Authenticity</strong> — Intel&apos;s signature over the quote, checked in your browser</li>
+ <li><strong>Identity</strong> — the measurements are an on-chain approved worker build</li>
+ <li><strong>Binding</strong> — the signed quote commits to this exact input, output and code</li>
+ <li>Input/Output — recompute the hashes from the data you sent and received</li>
+ <li>Source Code — the exact GitHub commit that was built</li>
               </ul>
             </div>
           </div>
@@ -169,15 +169,15 @@ print(f"Signed commitment matches: {td['report_data'][:64] == final_hash}")`
       )}
 
       {/* Verification summary — the three layers, checked in this browser. */}
-      <div className="bg-info/10 border border-info/30 rounded-md p-4">
-        <div className="flex justify-between items-start gap-3">
-          <div className="flex-1">
+ <div className="bg-info/10 border border-info/30 rounded-md p-4">
+ <div className="flex justify-between items-start gap-3">
+ <div className="flex-1">
             {!verification && (
               <>
-                <p className="text-info font-semibold">
+ <p className="text-info font-semibold">
                   Verification runs in your browser
                 </p>
-                <p className="text-info text-sm mt-1">
+ <p className="text-info text-sm mt-1">
                   Intel&apos;s signature, the on-chain approved build list and the commitment to this
                   execution are all checked locally — nothing is taken on trust from this page.
                 </p>
@@ -185,7 +185,7 @@ print(f"Signed commitment matches: {td['report_data'][:64] == final_hash}")`
             )}
 
             {verification && (
-              <div className="space-y-1.5">
+ <div className="space-y-1.5">
                 <VerdictLine
                   ok={verification.authenticity.ok}
                   label="Authenticity"
@@ -227,11 +227,10 @@ print(f"Signed commitment matches: {td['report_data'][:64] == final_hash}")`
                   }
                 />
                 {verification.collateral && !verification.collateral.coversExecutionTime && (
-                  <p className="text-xs text-info pt-1">
+ <p className="text-xs text-info pt-1">
                     Intel publishes its reference data (TCB levels, revocation lists) in time-bounded
                     editions. No edition covering this execution&apos;s date is published on chain, so the
-                    nearest one was used — valid to{' '}
-                    {new Date(verification.collateral.validUntil).toISOString().slice(0, 10)}. The signature
+                    nearest one was used — valid to                    {new Date(verification.collateral.validUntil).toISOString().slice(0, 10)}. The signature
                     check stands; the TCB status is as of that date.
                   </p>
                 )}
@@ -239,21 +238,21 @@ print(f"Signed commitment matches: {td['report_data'][:64] == final_hash}")`
             )}
           </div>
 
-          <div className="flex flex-col gap-2 shrink-0">
+ <div className="flex flex-col gap-2 shrink-0">
             <button
               onClick={runVerification}
               disabled={verifying}
-              className="px-3 py-1 bg-info hover:opacity-90 disabled:opacity-60 text-white text-sm font-medium rounded"
+ className="px-3 py-1 bg-info hover:opacity-90 disabled:opacity-60 text-white text-sm font-medium rounded"
             >
-              {verifying ? 'Verifying…' : verification ? '↻ Re-verify' : '🔐 Verify'}
+              {verifying ? 'Verifying…' : verification ? '↻ Re-verify' : ' Verify'}
             </button>
             {onToggleHelp && (
               <button
                 onClick={onToggleHelp}
-                className="px-3 py-1 bg-card hover:bg-info/15 text-info text-sm font-medium rounded border border-info/40"
+ className="px-3 py-1 bg-card hover:bg-info/15 text-info text-sm font-medium rounded border border-info/40"
                 title="Show help about attestation fields"
               >
-                ❓ Help
+                 Help
               </button>
             )}
           </div>
@@ -261,16 +260,16 @@ print(f"Signed commitment matches: {td['report_data'][:64] == final_hash}")`
       </div>
 
       {/* Basic Info */}
-      <div className="grid grid-cols-2 gap-4">
+ <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-semibold text-foreground mb-1">Task ID</label>
-          <div className="bg-card-muted p-2 rounded border font-mono text-sm">
+ <label className="block text-sm font-semibold text-foreground mb-1">Task ID</label>
+ <div className="bg-card-muted p-2 rounded border font-mono text-sm">
             {attestation.task_id}
           </div>
         </div>
         <div>
-          <label className="block text-sm font-semibold text-foreground mb-1">Task Type</label>
-          <div className="bg-card-muted p-2 rounded border font-mono text-sm">
+ <label className="block text-sm font-semibold text-foreground mb-1">Task Type</label>
+ <div className="bg-card-muted p-2 rounded border font-mono text-sm">
             {attestation.task_type}
           </div>
         </div>
@@ -278,10 +277,10 @@ print(f"Signed commitment matches: {td['report_data'][:64] == final_hash}")`
 
       {/* Worker Measurement */}
       <div>
-        <label className="block text-sm font-semibold text-foreground mb-1">
+ <label className="block text-sm font-semibold text-foreground mb-1">
           Worker Measurement (RTMR3)
         </label>
-        <div className="bg-card-muted p-2 rounded border font-mono text-xs break-all">
+ <div className="bg-card-muted p-2 rounded border font-mono text-xs break-all">
           {formatRtmr3(attestation.worker_measurement)}
         </div>
       </div>
@@ -289,13 +288,13 @@ print(f"Signed commitment matches: {td['report_data'][:64] == final_hash}")`
       {/* Source Code */}
       {attestation.repo_url && (
         <div>
-          <label className="block text-sm font-semibold text-foreground mb-1">Source Code</label>
-          <div className="bg-card-muted p-2 rounded border text-sm">
+ <label className="block text-sm font-semibold text-foreground mb-1">Source Code</label>
+ <div className="bg-card-muted p-2 rounded border text-sm">
             <a
               href={`${attestation.repo_url}/tree/${attestation.commit_hash}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-accent-text hover:underline"
+ className="text-accent-text hover:underline"
             >
               {attestation.repo_url} @ {attestation.commit_hash}
             </a>
@@ -304,19 +303,19 @@ print(f"Signed commitment matches: {td['report_data'][:64] == final_hash}")`
       )}
 
       {/* Hashes */}
-      <div className="grid grid-cols-2 gap-4">
+ <div className="grid grid-cols-2 gap-4">
         {attestation.wasm_hash && (
           <div>
-            <label className="block text-sm font-semibold text-foreground mb-1">WASM Hash</label>
-            <div className="bg-card-muted p-2 rounded border font-mono text-xs break-all">
+ <label className="block text-sm font-semibold text-foreground mb-1">WASM Hash</label>
+ <div className="bg-card-muted p-2 rounded border font-mono text-xs break-all">
               {attestation.wasm_hash}
             </div>
           </div>
         )}
         {attestation.input_hash && (
           <div>
-            <label className="block text-sm font-semibold text-foreground mb-1">Input Hash</label>
-            <div className="bg-card-muted p-2 rounded border font-mono text-xs break-all">
+ <label className="block text-sm font-semibold text-foreground mb-1">Input Hash</label>
+ <div className="bg-card-muted p-2 rounded border font-mono text-xs break-all">
               {attestation.input_hash}
             </div>
           </div>
@@ -324,19 +323,19 @@ print(f"Signed commitment matches: {td['report_data'][:64] == final_hash}")`
       </div>
 
       <div>
-        <label className="block text-sm font-semibold text-foreground mb-1">
+ <label className="block text-sm font-semibold text-foreground mb-1">
           {attestation.task_type === 'compile' ? 'Compiled WASM Hash (Output)' : 'Output Hash'}
         </label>
-        <div className="bg-card-muted p-2 rounded border font-mono text-xs break-all">
+ <div className="bg-card-muted p-2 rounded border font-mono text-xs break-all">
           {attestation.output_hash}
         </div>
       </div>
 
       {/* Input/Output Verification */}
       {attestation.transaction_hash && attestation.task_type === 'execute' && (
-        <div className="border-2 border-info/30 rounded-lg p-4 bg-info/10">
-          <div className="flex justify-between items-center mb-3">
-            <h3 className="text-lg font-semibold text-info">Input/Output Verification</h3>
+ <div className="border-2 border-info/30 rounded-lg p-4 bg-info/10">
+ <div className="flex justify-between items-center mb-3">
+ <h3 className="text-lg font-semibold text-info">Input/Output Verification</h3>
             {!ioValidation && (
               <button
                 onClick={async () => {
@@ -394,15 +393,15 @@ print(f"Signed commitment matches: {td['report_data'][:64] == final_hash}")`
                     });
                   }
                 }}
-                className="px-4 py-2 bg-success hover:opacity-90 text-white text-sm font-medium rounded"
+ className="px-4 py-2 bg-success hover:opacity-90 text-white text-sm font-medium rounded"
               >
-                🔍 Load & Verify from Blockchain
+                 Load & Verify from Blockchain
               </button>
             )}
             {ioValidation && (
               <button
                 onClick={() => setIoValidation(null)}
-                className="px-3 py-1 bg-card-muted hover:bg-card-muted0 text-white text-sm font-medium rounded"
+ className="px-3 py-1 bg-card-muted hover:bg-card-muted0 text-white text-sm font-medium rounded"
               >
                 Close
               </button>
@@ -412,22 +411,22 @@ print(f"Signed commitment matches: {td['report_data'][:64] == final_hash}")`
           {ioValidation && (
             <>
               {ioValidation.loading && (
-                <div className="flex justify-center py-4">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+ <div className="flex justify-center py-4">
+ <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
                 </div>
               )}
 
               {ioValidation.error && (
-                <div className="bg-destructive/10 border border-destructive/40 rounded p-3 mb-3">
-                  <p className="text-destructive-text text-sm">⚠️ Error: {ioValidation.error}</p>
+ <div className="bg-destructive/10 border border-destructive/40 rounded p-3 mb-3">
+ <p className="text-destructive-text text-sm"> Error: {ioValidation.error}</p>
                 </div>
               )}
 
               {!ioValidation.loading && !ioValidation.error && (
-                <div className="space-y-4">
+ <div className="space-y-4">
                   {/* Input Data Section */}
                   <div>
-                    <label className="block text-sm font-semibold text-foreground mb-1">Input Data</label>
+ <label className="block text-sm font-semibold text-foreground mb-1">Input Data</label>
                     <textarea
                       value={ioValidation.inputData}
                       onChange={async (e) => {
@@ -437,21 +436,21 @@ print(f"Signed commitment matches: {td['report_data'][:64] == final_hash}")`
                         const newInputMatch = newInputHash === attestation.input_hash;
                         setIoValidation({ ...ioValidation, inputData: newInputData, inputHash: newInputHash, inputMatch: newInputMatch });
                       }}
-                      className="w-full h-20 p-2 border border-border-strong rounded font-mono text-sm"
+ className="w-full h-20 p-2 border border-border-strong rounded font-mono text-sm"
                       placeholder="Input data from transaction..."
                     />
-                    <div className="mt-2 space-y-1">
-                      <div className="flex items-start gap-2">
-                        <span className="text-xs font-semibold text-muted-foreground w-32">Calculated Hash:</span>
-                        <span className="text-xs font-mono text-foreground break-all flex-1">{ioValidation.inputHash || 'N/A'}</span>
+ <div className="mt-2 space-y-1">
+ <div className="flex items-start gap-2">
+ <span className="text-xs font-semibold text-muted-foreground w-32">Calculated Hash:</span>
+ <span className="text-xs font-mono text-foreground break-all flex-1">{ioValidation.inputHash || 'N/A'}</span>
                       </div>
-                      <div className="flex items-start gap-2">
-                        <span className="text-xs font-semibold text-muted-foreground w-32">Attestation Hash:</span>
-                        <span className="text-xs font-mono text-foreground break-all flex-1">{attestation.input_hash || 'N/A'}</span>
+ <div className="flex items-start gap-2">
+ <span className="text-xs font-semibold text-muted-foreground w-32">Attestation Hash:</span>
+ <span className="text-xs font-mono text-foreground break-all flex-1">{attestation.input_hash || 'N/A'}</span>
                       </div>
-                      <div className={`px-3 py-2 rounded ${ioValidation.inputMatch ? 'bg-success/15 border border-success/40' : 'bg-destructive/15 border border-destructive/40'}`}>
-                        <span className={`text-sm font-semibold ${ioValidation.inputMatch ? 'text-success-text' : 'text-destructive-text'}`}>
-                          {ioValidation.inputMatch ? '✓ Input Hash Matches' : '✗ Input Hash Mismatch'}
+ <div className={`px-3 py-2 rounded ${ioValidation.inputMatch ? 'bg-success/15 border border-success/40' : 'bg-destructive/15 border border-destructive/40'}`}>
+ <span className={`text-sm font-semibold ${ioValidation.inputMatch ? 'text-success-text' : 'text-destructive-text'}`}>
+                          {ioValidation.inputMatch ? ' Input Hash Matches' : ' Input Hash Mismatch'}
                         </span>
                       </div>
                     </div>
@@ -459,7 +458,7 @@ print(f"Signed commitment matches: {td['report_data'][:64] == final_hash}")`
 
                   {/* Output Data Section */}
                   <div>
-                    <label className="block text-sm font-semibold text-foreground mb-1">Output Data</label>
+ <label className="block text-sm font-semibold text-foreground mb-1">Output Data</label>
                     <textarea
                       value={ioValidation.outputData}
                       onChange={async (e) => {
@@ -469,21 +468,21 @@ print(f"Signed commitment matches: {td['report_data'][:64] == final_hash}")`
                         const newOutputMatch = newOutputHash === attestation.output_hash;
                         setIoValidation({ ...ioValidation, outputData: newOutputData, outputHash: newOutputHash, outputMatch: newOutputMatch });
                       }}
-                      className="w-full h-20 p-2 border border-border-strong rounded font-mono text-sm"
+ className="w-full h-20 p-2 border border-border-strong rounded font-mono text-sm"
                       placeholder="Output data from transaction..."
                     />
-                    <div className="mt-2 space-y-1">
-                      <div className="flex items-start gap-2">
-                        <span className="text-xs font-semibold text-muted-foreground w-32">Calculated Hash:</span>
-                        <span className="text-xs font-mono text-foreground break-all flex-1">{ioValidation.outputHash || 'N/A'}</span>
+ <div className="mt-2 space-y-1">
+ <div className="flex items-start gap-2">
+ <span className="text-xs font-semibold text-muted-foreground w-32">Calculated Hash:</span>
+ <span className="text-xs font-mono text-foreground break-all flex-1">{ioValidation.outputHash || 'N/A'}</span>
                       </div>
-                      <div className="flex items-start gap-2">
-                        <span className="text-xs font-semibold text-muted-foreground w-32">Attestation Hash:</span>
-                        <span className="text-xs font-mono text-foreground break-all flex-1">{attestation.output_hash || 'N/A'}</span>
+ <div className="flex items-start gap-2">
+ <span className="text-xs font-semibold text-muted-foreground w-32">Attestation Hash:</span>
+ <span className="text-xs font-mono text-foreground break-all flex-1">{attestation.output_hash || 'N/A'}</span>
                       </div>
-                      <div className={`px-3 py-2 rounded ${ioValidation.outputMatch ? 'bg-success/15 border border-success/40' : 'bg-destructive/15 border border-destructive/40'}`}>
-                        <span className={`text-sm font-semibold ${ioValidation.outputMatch ? 'text-success-text' : 'text-destructive-text'}`}>
-                          {ioValidation.outputMatch ? '✓ Output Hash Matches' : '✗ Output Hash Mismatch'}
+ <div className={`px-3 py-2 rounded ${ioValidation.outputMatch ? 'bg-success/15 border border-success/40' : 'bg-destructive/15 border border-destructive/40'}`}>
+ <span className={`text-sm font-semibold ${ioValidation.outputMatch ? 'text-success-text' : 'text-destructive-text'}`}>
+                          {ioValidation.outputMatch ? ' Output Hash Matches' : ' Output Hash Mismatch'}
                         </span>
                       </div>
                     </div>
@@ -494,7 +493,7 @@ print(f"Signed commitment matches: {td['report_data'][:64] == final_hash}")`
           )}
 
           {!ioValidation && (
-            <p className="text-sm text-foreground">
+ <p className="text-sm text-foreground">
               Click the button to fetch transaction data from NEAR archival RPC and verify input/output hashes.
             </p>
           )}
@@ -504,8 +503,8 @@ print(f"Signed commitment matches: {td['report_data'][:64] == final_hash}")`
       {/* HTTPS Call Context */}
       {attestation.call_id && (
         <div>
-          <label className="block text-sm font-semibold text-foreground mb-1">HTTPS Call ID</label>
-          <div className="bg-orange-50 p-2 rounded border border-orange-200 font-mono text-sm">
+ <label className="block text-sm font-semibold text-foreground mb-1">HTTPS Call ID</label>
+ <div className="bg-card-muted p-2 rounded border border-border font-mono text-sm">
             {attestation.call_id}
           </div>
         </div>
@@ -513,9 +512,9 @@ print(f"Signed commitment matches: {td['report_data'][:64] == final_hash}")`
 
       {/* Manual I/O Verification for HTTPS Calls */}
       {attestation.call_id && attestation.task_type === 'execute' && (
-        <div className="border-2 border-orange-200 rounded-lg p-4 bg-orange-50">
-          <div className="flex justify-between items-center mb-3">
-            <h3 className="text-lg font-semibold text-orange-900">Manual Input/Output Verification</h3>
+ <div className="border-2 border-border rounded-lg p-4 bg-card-muted">
+ <div className="flex justify-between items-center mb-3">
+ <h3 className="text-lg font-semibold text-foreground">Manual Input/Output Verification</h3>
             {!ioValidation && (
               <button
                 onClick={() => {
@@ -530,7 +529,7 @@ print(f"Signed commitment matches: {td['report_data'][:64] == final_hash}")`
                     error: null
                   });
                 }}
-                className="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white text-sm font-medium rounded"
+ className="px-4 py-2 bg-card-muted hover:bg-card-muted text-white text-sm font-medium rounded"
               >
                 Enter Data to Verify
               </button>
@@ -538,7 +537,7 @@ print(f"Signed commitment matches: {td['report_data'][:64] == final_hash}")`
             {ioValidation && (
               <button
                 onClick={() => setIoValidation(null)}
-                className="px-3 py-1 bg-card-muted hover:bg-card-muted0 text-white text-sm font-medium rounded"
+ className="px-3 py-1 bg-card-muted hover:bg-card-muted0 text-white text-sm font-medium rounded"
               >
                 Close
               </button>
@@ -546,10 +545,10 @@ print(f"Signed commitment matches: {td['report_data'][:64] == final_hash}")`
           </div>
 
           {ioValidation && (
-            <div className="space-y-4">
+ <div className="space-y-4">
               {/* Input Data Section */}
               <div>
-                <label className="block text-sm font-semibold text-foreground mb-1">Input Data (paste your request body)</label>
+ <label className="block text-sm font-semibold text-foreground mb-1">Input Data (paste your request body)</label>
                 <textarea
                   value={ioValidation.inputData}
                   onChange={async (e) => {
@@ -559,22 +558,22 @@ print(f"Signed commitment matches: {td['report_data'][:64] == final_hash}")`
                     const newInputMatch = newInputHash === (attestation.input_hash || '');
                     setIoValidation({ ...ioValidation, inputData: newInputData, inputHash: newInputHash, inputMatch: newInputMatch });
                   }}
-                  className="w-full h-20 p-2 border border-border-strong rounded font-mono text-sm"
+ className="w-full h-20 p-2 border border-border-strong rounded font-mono text-sm"
                   placeholder="Paste the JSON input you sent to the API..."
                 />
-                <div className="mt-2 space-y-1">
-                  <div className="flex items-start gap-2">
-                    <span className="text-xs font-semibold text-muted-foreground w-32">Calculated Hash:</span>
-                    <span className="text-xs font-mono text-foreground break-all flex-1">{ioValidation.inputHash || '(enter data above)'}</span>
+ <div className="mt-2 space-y-1">
+ <div className="flex items-start gap-2">
+ <span className="text-xs font-semibold text-muted-foreground w-32">Calculated Hash:</span>
+ <span className="text-xs font-mono text-foreground break-all flex-1">{ioValidation.inputHash || '(enter data above)'}</span>
                   </div>
-                  <div className="flex items-start gap-2">
-                    <span className="text-xs font-semibold text-muted-foreground w-32">Attestation Hash:</span>
-                    <span className="text-xs font-mono text-foreground break-all flex-1">{attestation.input_hash || 'N/A'}</span>
+ <div className="flex items-start gap-2">
+ <span className="text-xs font-semibold text-muted-foreground w-32">Attestation Hash:</span>
+ <span className="text-xs font-mono text-foreground break-all flex-1">{attestation.input_hash || 'N/A'}</span>
                   </div>
                   {ioValidation.inputHash && (
-                    <div className={`px-3 py-2 rounded ${ioValidation.inputMatch ? 'bg-success/15 border border-success/40' : 'bg-destructive/15 border border-destructive/40'}`}>
-                      <span className={`text-sm font-semibold ${ioValidation.inputMatch ? 'text-success-text' : 'text-destructive-text'}`}>
-                        {ioValidation.inputMatch ? '✓ Input Hash Matches' : '✗ Input Hash Mismatch'}
+ <div className={`px-3 py-2 rounded ${ioValidation.inputMatch ? 'bg-success/15 border border-success/40' : 'bg-destructive/15 border border-destructive/40'}`}>
+ <span className={`text-sm font-semibold ${ioValidation.inputMatch ? 'text-success-text' : 'text-destructive-text'}`}>
+                        {ioValidation.inputMatch ? ' Input Hash Matches' : ' Input Hash Mismatch'}
                       </span>
                     </div>
                   )}
@@ -583,7 +582,7 @@ print(f"Signed commitment matches: {td['report_data'][:64] == final_hash}")`
 
               {/* Output Data Section */}
               <div>
-                <label className="block text-sm font-semibold text-foreground mb-1">Output Data (paste API response)</label>
+ <label className="block text-sm font-semibold text-foreground mb-1">Output Data (paste API response)</label>
                 <textarea
                   value={ioValidation.outputData}
                   onChange={async (e) => {
@@ -593,22 +592,22 @@ print(f"Signed commitment matches: {td['report_data'][:64] == final_hash}")`
                     const newOutputMatch = newOutputHash === attestation.output_hash;
                     setIoValidation({ ...ioValidation, outputData: newOutputData, outputHash: newOutputHash, outputMatch: newOutputMatch });
                   }}
-                  className="w-full h-20 p-2 border border-border-strong rounded font-mono text-sm"
+ className="w-full h-20 p-2 border border-border-strong rounded font-mono text-sm"
                   placeholder="Paste the JSON output you received from the API..."
                 />
-                <div className="mt-2 space-y-1">
-                  <div className="flex items-start gap-2">
-                    <span className="text-xs font-semibold text-muted-foreground w-32">Calculated Hash:</span>
-                    <span className="text-xs font-mono text-foreground break-all flex-1">{ioValidation.outputHash || '(enter data above)'}</span>
+ <div className="mt-2 space-y-1">
+ <div className="flex items-start gap-2">
+ <span className="text-xs font-semibold text-muted-foreground w-32">Calculated Hash:</span>
+ <span className="text-xs font-mono text-foreground break-all flex-1">{ioValidation.outputHash || '(enter data above)'}</span>
                   </div>
-                  <div className="flex items-start gap-2">
-                    <span className="text-xs font-semibold text-muted-foreground w-32">Attestation Hash:</span>
-                    <span className="text-xs font-mono text-foreground break-all flex-1">{attestation.output_hash || 'N/A'}</span>
+ <div className="flex items-start gap-2">
+ <span className="text-xs font-semibold text-muted-foreground w-32">Attestation Hash:</span>
+ <span className="text-xs font-mono text-foreground break-all flex-1">{attestation.output_hash || 'N/A'}</span>
                   </div>
                   {ioValidation.outputHash && (
-                    <div className={`px-3 py-2 rounded ${ioValidation.outputMatch ? 'bg-success/15 border border-success/40' : 'bg-destructive/15 border border-destructive/40'}`}>
-                      <span className={`text-sm font-semibold ${ioValidation.outputMatch ? 'text-success-text' : 'text-destructive-text'}`}>
-                        {ioValidation.outputMatch ? '✓ Output Hash Matches' : '✗ Output Hash Mismatch'}
+ <div className={`px-3 py-2 rounded ${ioValidation.outputMatch ? 'bg-success/15 border border-success/40' : 'bg-destructive/15 border border-destructive/40'}`}>
+ <span className={`text-sm font-semibold ${ioValidation.outputMatch ? 'text-success-text' : 'text-destructive-text'}`}>
+                        {ioValidation.outputMatch ? ' Output Hash Matches' : ' Output Hash Mismatch'}
                       </span>
                     </div>
                   )}
@@ -618,7 +617,7 @@ print(f"Signed commitment matches: {td['report_data'][:64] == final_hash}")`
           )}
 
           {!ioValidation && (
-            <p className="text-sm text-foreground">
+ <p className="text-sm text-foreground">
               For HTTPS calls, paste the input you sent and output you received to verify they match the attestation hashes.
             </p>
           )}
@@ -628,13 +627,13 @@ print(f"Signed commitment matches: {td['report_data'][:64] == final_hash}")`
       {/* NEAR Transaction Link */}
       {attestation.transaction_hash && (
         <div>
-          <label className="block text-sm font-semibold text-foreground mb-1">NEAR Transaction</label>
-          <div className="bg-card-muted p-2 rounded border">
+ <label className="block text-sm font-semibold text-foreground mb-1">NEAR Transaction</label>
+ <div className="bg-card-muted p-2 rounded border">
             <a
               href={getTransactionUrl(attestation.transaction_hash, network)}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-accent-text hover:underline font-mono text-sm"
+ className="text-accent-text hover:underline font-mono text-sm"
             >
               {attestation.transaction_hash}
             </a>
@@ -643,22 +642,22 @@ print(f"Signed commitment matches: {td['report_data'][:64] == final_hash}")`
       )}
 
       {/* TDX Quote Verification */}
-      <div className="border-2 border-purple-200 rounded-lg p-4 bg-purple-50">
-        <div className="flex justify-between items-center mb-3">
-          <h3 className="text-lg font-semibold text-purple-900">TDX Quote Verification</h3>
+ <div className="border-2 border-border rounded-lg p-4 bg-card-muted">
+ <div className="flex justify-between items-center mb-3">
+ <h3 className="text-lg font-semibold text-foreground">TDX Quote Verification</h3>
           {!quoteValidation && (
             <button
               onClick={runVerification}
               disabled={verifying}
-              className="px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:opacity-60 text-white text-sm font-medium rounded"
+ className="px-4 py-2 bg-card-muted hover:bg-card-muted disabled:opacity-60 text-white text-sm font-medium rounded"
             >
-              {verifying ? 'Verifying…' : '🔐 Verify Quote'}
+              {verifying ? 'Verifying…' : ' Verify Quote'}
             </button>
           )}
           {quoteValidation && (
             <button
               onClick={() => setVerification(null)}
-              className="px-3 py-1 bg-card-muted hover:bg-card-muted0 text-white text-sm font-medium rounded"
+ className="px-3 py-1 bg-card-muted hover:bg-card-muted0 text-white text-sm font-medium rounded"
             >
               Close
             </button>
@@ -667,13 +666,13 @@ print(f"Signed commitment matches: {td['report_data'][:64] == final_hash}")`
 
         {!quoteValidation && (
           <>
-            <label className="block text-sm font-semibold text-foreground mb-1">TDX Quote (Base64)</label>
+ <label className="block text-sm font-semibold text-foreground mb-1">TDX Quote (Base64)</label>
             <textarea
               readOnly
               value={attestation.tdx_quote}
-              className="w-full h-24 bg-card p-2 rounded border border-border-strong font-mono text-xs"
+ className="w-full h-24 bg-card p-2 rounded border border-border-strong font-mono text-xs"
             />
-            <p className="text-sm text-foreground mt-2">
+ <p className="text-sm text-foreground mt-2">
               Click &quot;Verify Quote&quot; to extract and verify:
               <br />• RTMR3 (worker measurement) - proves which TEE environment executed the code
               <br />• Task Hash (REPORTDATA) - cryptographic commitment to input/output/wasm hashes, prevents attestation forgery
@@ -682,26 +681,26 @@ print(f"Signed commitment matches: {td['report_data'][:64] == final_hash}")`
         )}
 
         {quoteValidation && (
-          <div className="space-y-4">
+ <div className="space-y-4">
             {/* Quote Input */}
             <div>
-              <label className="block text-sm font-semibold text-foreground mb-1">TDX Quote (Base64)</label>
+ <label className="block text-sm font-semibold text-foreground mb-1">TDX Quote (Base64)</label>
               <textarea
                 readOnly
                 value={quoteValidation.quote}
-                className="w-full h-20 p-2 border border-border-strong rounded font-mono text-xs bg-card-muted"
+ className="w-full h-20 p-2 border border-border-strong rounded font-mono text-xs bg-card-muted"
               />
             </div>
 
             {/* Measurements, taken from the verified quote and checked against the chain. */}
             <div>
-              <label className="block text-sm font-semibold text-foreground mb-1">
+ <label className="block text-sm font-semibold text-foreground mb-1">
                 RTMR3 from the verified quote (worker build measurement)
               </label>
-              <div className="bg-card p-2 border border-border-strong rounded font-mono text-xs break-all">
+ <div className="bg-card p-2 border border-border-strong rounded font-mono text-xs break-all">
                 {formatRtmr3(quoteValidation.extractedRtmr3) || 'not available'}
               </div>
-              <div className={`mt-1 px-2 py-1 rounded text-xs ${
+ <div className={`mt-1 px-2 py-1 rounded text-xs ${
                 !verification?.identity.checked
                   ? 'bg-card-muted text-foreground'
                   : quoteValidation.rtmr3Match
@@ -711,20 +710,20 @@ print(f"Signed commitment matches: {td['report_data'][:64] == final_hash}")`
                 {!verification?.identity.checked
                   ? '– Not checked: the on-chain comparison only runs once the quote itself is verified'
                   : quoteValidation.rtmr3Match
-                    ? `✓ Approved on ${registerContractId(network)} — this is a published OutLayer worker build`
-                    : `✗ Not in the approved list on ${registerContractId(network)}`}
+                    ? ` Approved on ${registerContractId(network)} — this is a published OutLayer worker build`
+                    : ` Not in the approved list on ${registerContractId(network)}`}
               </div>
               {verification?.measurements && (
-                <details className="mt-2 bg-card border border-border rounded p-2">
-                  <summary className="cursor-pointer text-xs font-semibold text-foreground">
+ <details className="mt-2 bg-card border border-border rounded p-2">
+ <summary className="cursor-pointer text-xs font-semibold text-foreground">
                     All measurements submitted to the contract
                   </summary>
-                  <div className="mt-2 space-y-1 font-mono text-[11px] break-all text-foreground">
-                    <div><span className="text-muted-foreground">mrtd:&nbsp;</span>{verification.measurements.mrtd}</div>
-                    <div><span className="text-muted-foreground">rtmr0:</span> {verification.measurements.rtmr0}</div>
-                    <div><span className="text-muted-foreground">rtmr1:</span> {verification.measurements.rtmr1}</div>
-                    <div><span className="text-muted-foreground">rtmr2:</span> {verification.measurements.rtmr2}</div>
-                    <div><span className="text-muted-foreground">rtmr3:</span> {verification.measurements.rtmr3}</div>
+ <div className="mt-2 space-y-1 font-mono text-[11px] break-all text-foreground">
+ <div><span className="text-muted-foreground">mrtd:&nbsp;</span>{verification.measurements.mrtd}</div>
+ <div><span className="text-muted-foreground">rtmr0:</span> {verification.measurements.rtmr0}</div>
+ <div><span className="text-muted-foreground">rtmr1:</span> {verification.measurements.rtmr1}</div>
+ <div><span className="text-muted-foreground">rtmr2:</span> {verification.measurements.rtmr2}</div>
+ <div><span className="text-muted-foreground">rtmr3:</span> {verification.measurements.rtmr3}</div>
                   </div>
                 </details>
               )}
@@ -732,16 +731,16 @@ print(f"Signed commitment matches: {td['report_data'][:64] == final_hash}")`
 
             {/* Extracted Task Hash */}
             <div>
-              <label className="block text-sm font-semibold text-foreground mb-1">
+ <label className="block text-sm font-semibold text-foreground mb-1">
                 Task commitment from the verified quote (report_data)
               </label>
-              <div className="bg-card p-2 border border-border-strong rounded font-mono text-xs break-all">
+ <div className="bg-card p-2 border border-border-strong rounded font-mono text-xs break-all">
                 {quoteValidation.extractedTaskHash || 'Failed to extract'}
               </div>
-              <div className="bg-card p-2 border border-border-strong rounded font-mono text-xs break-all mt-1">
-                <span className="font-semibold">Expected:</span> {quoteValidation.expectedTaskHash}
+ <div className="bg-card p-2 border border-border-strong rounded font-mono text-xs break-all mt-1">
+ <span className="font-semibold">Expected:</span> {quoteValidation.expectedTaskHash}
               </div>
-              <div className={`mt-1 px-2 py-1 rounded text-xs ${
+ <div className={`mt-1 px-2 py-1 rounded text-xs ${
                 !verification?.binding.checked
                   ? 'bg-card-muted text-foreground'
                   : quoteValidation.taskHashMatch
@@ -751,186 +750,186 @@ print(f"Signed commitment matches: {td['report_data'][:64] == final_hash}")`
                 {!verification?.binding.checked
                   ? '– Not checked: the commitment is only meaningful once the quote itself is verified'
                   : quoteValidation.taskHashMatch
-                    ? '✓ Match — Intel signed this commitment to the input, output, code and caller below'
-                    : '✗ Mismatch'}
+                    ? ' Match — Intel signed this commitment to the input, output, code and caller below'
+                    : ' Mismatch'}
               </div>
 
               {/* Expandable: Show how Task Hash is calculated */}
-              <details className="mt-3 bg-purple-100 border border-purple-300 rounded p-3">
-                <summary className="cursor-pointer font-semibold text-purple-900 text-sm hover:text-purple-700">
-                  📊 Show Task Hash Calculation Steps
+ <details className="mt-3 bg-card-muted border border-border rounded p-3">
+ <summary className="cursor-pointer font-semibold text-foreground text-sm hover:text-muted-foreground">
+                   Show Task Hash Calculation Steps
                 </summary>
-                <div className="mt-3 space-y-2 text-xs">
-                  <p className="font-semibold text-purple-900">Binary concatenation order (then SHA256):</p>
-                  <div className="space-y-1 font-mono bg-card p-2 rounded border border-purple-200">
-                    <div className="flex items-start gap-2">
-                      <span className="text-purple-700 font-bold min-w-[20px]">1.</span>
-                      <div className="flex-1">
-                        <span className="text-muted-foreground">task_type (string):</span>
-                        <div className="text-purple-900 break-all">&quot;{attestation.task_type}&quot;</div>
+ <div className="mt-3 space-y-2 text-xs">
+ <p className="font-semibold text-foreground">Binary concatenation order (then SHA256):</p>
+ <div className="space-y-1 font-mono bg-card p-2 rounded border border-border">
+ <div className="flex items-start gap-2">
+ <span className="text-muted-foreground font-bold min-w-[20px]">1.</span>
+ <div className="flex-1">
+ <span className="text-muted-foreground">task_type (string):</span>
+ <div className="text-foreground break-all">&quot;{attestation.task_type}&quot;</div>
                       </div>
                     </div>
-                    <div className="flex items-start gap-2">
-                      <span className="text-purple-700 font-bold min-w-[20px]">2.</span>
-                      <div className="flex-1">
-                        <span className="text-muted-foreground">task_id (i64, little-endian):</span>
-                        <div className="text-purple-900">{attestation.task_id}</div>
+ <div className="flex items-start gap-2">
+ <span className="text-muted-foreground font-bold min-w-[20px]">2.</span>
+ <div className="flex-1">
+ <span className="text-muted-foreground">task_id (i64, little-endian):</span>
+ <div className="text-foreground">{attestation.task_id}</div>
                       </div>
                     </div>
-                    <div className="flex items-start gap-2">
-                      <span className={`font-bold min-w-[20px] ${attestation.repo_url ? 'text-purple-700' : 'text-faint-foreground'}`}>3.</span>
-                      <div className="flex-1">
-                        <span className="text-muted-foreground">repo_url (string, optional):</span>
+ <div className="flex items-start gap-2">
+ <span className={`font-bold min-w-[20px] ${attestation.repo_url ? 'text-muted-foreground' : 'text-faint-foreground'}`}>3.</span>
+ <div className="flex-1">
+ <span className="text-muted-foreground">repo_url (string, optional):</span>
                         {attestation.repo_url ? (
-                          <div className="text-purple-900 break-all">&quot;{attestation.repo_url}&quot;</div>
+ <div className="text-foreground break-all">&quot;{attestation.repo_url}&quot;</div>
                         ) : (
-                          <div className="text-faint-foreground italic">not included (null)</div>
+ <div className="text-faint-foreground italic">not included (null)</div>
                         )}
                       </div>
                     </div>
-                    <div className="flex items-start gap-2">
-                      <span className={`font-bold min-w-[20px] ${attestation.commit_hash ? 'text-purple-700' : 'text-faint-foreground'}`}>4.</span>
-                      <div className="flex-1">
-                        <span className="text-muted-foreground">commit_hash (string, optional):</span>
+ <div className="flex items-start gap-2">
+ <span className={`font-bold min-w-[20px] ${attestation.commit_hash ? 'text-muted-foreground' : 'text-faint-foreground'}`}>4.</span>
+ <div className="flex-1">
+ <span className="text-muted-foreground">commit_hash (string, optional):</span>
                         {attestation.commit_hash ? (
-                          <div className="text-purple-900">&quot;{attestation.commit_hash}&quot;</div>
+ <div className="text-foreground">&quot;{attestation.commit_hash}&quot;</div>
                         ) : (
-                          <div className="text-faint-foreground italic">not included (null)</div>
+ <div className="text-faint-foreground italic">not included (null)</div>
                         )}
                       </div>
                     </div>
-                    <div className="flex items-start gap-2">
-                      <span className={`font-bold min-w-[20px] ${attestation.build_target ? 'text-purple-700' : 'text-faint-foreground'}`}>5.</span>
-                      <div className="flex-1">
-                        <span className="text-muted-foreground">build_target (string, optional):</span>
+ <div className="flex items-start gap-2">
+ <span className={`font-bold min-w-[20px] ${attestation.build_target ? 'text-muted-foreground' : 'text-faint-foreground'}`}>5.</span>
+ <div className="flex-1">
+ <span className="text-muted-foreground">build_target (string, optional):</span>
                         {attestation.build_target ? (
-                          <div className="text-purple-900">&quot;{attestation.build_target}&quot;</div>
+ <div className="text-foreground">&quot;{attestation.build_target}&quot;</div>
                         ) : (
-                          <div className="text-faint-foreground italic">not included (null)</div>
+ <div className="text-faint-foreground italic">not included (null)</div>
                         )}
                       </div>
                     </div>
-                    <div className="flex items-start gap-2">
-                      <span className={`font-bold min-w-[20px] ${attestation.wasm_hash ? 'text-purple-700' : 'text-faint-foreground'}`}>6.</span>
-                      <div className="flex-1">
-                        <span className="text-muted-foreground">wasm_hash (string, optional):</span>
+ <div className="flex items-start gap-2">
+ <span className={`font-bold min-w-[20px] ${attestation.wasm_hash ? 'text-muted-foreground' : 'text-faint-foreground'}`}>6.</span>
+ <div className="flex-1">
+ <span className="text-muted-foreground">wasm_hash (string, optional):</span>
                         {attestation.wasm_hash ? (
-                          <div className="text-purple-900 break-all">&quot;{attestation.wasm_hash}&quot;</div>
+ <div className="text-foreground break-all">&quot;{attestation.wasm_hash}&quot;</div>
                         ) : (
-                          <div className="text-faint-foreground italic">not included (null)</div>
+ <div className="text-faint-foreground italic">not included (null)</div>
                         )}
                       </div>
                     </div>
-                    <div className="flex items-start gap-2">
-                      <span className={`font-bold min-w-[20px] ${attestation.input_hash ? 'text-purple-700' : 'text-faint-foreground'}`}>7.</span>
-                      <div className="flex-1">
-                        <span className="text-muted-foreground">input_hash (string, optional):</span>
+ <div className="flex items-start gap-2">
+ <span className={`font-bold min-w-[20px] ${attestation.input_hash ? 'text-muted-foreground' : 'text-faint-foreground'}`}>7.</span>
+ <div className="flex-1">
+ <span className="text-muted-foreground">input_hash (string, optional):</span>
                         {attestation.input_hash ? (
-                          <div className="text-purple-900 break-all">&quot;{attestation.input_hash}&quot;</div>
+ <div className="text-foreground break-all">&quot;{attestation.input_hash}&quot;</div>
                         ) : (
-                          <div className="text-faint-foreground italic">not included (null)</div>
+ <div className="text-faint-foreground italic">not included (null)</div>
                         )}
                       </div>
                     </div>
-                    <div className="flex items-start gap-2">
-                      <span className="text-purple-700 font-bold min-w-[20px]">8.</span>
-                      <div className="flex-1">
-                        <span className="text-muted-foreground">output_hash (string):</span>
-                        <div className="text-purple-900 break-all">&quot;{attestation.output_hash}&quot;</div>
+ <div className="flex items-start gap-2">
+ <span className="text-muted-foreground font-bold min-w-[20px]">8.</span>
+ <div className="flex-1">
+ <span className="text-muted-foreground">output_hash (string):</span>
+ <div className="text-foreground break-all">&quot;{attestation.output_hash}&quot;</div>
                       </div>
                     </div>
-                    <div className="flex items-start gap-2">
-                      <span className={`font-bold min-w-[20px] ${attestation.block_height ? 'text-purple-700' : 'text-faint-foreground'}`}>9.</span>
-                      <div className="flex-1">
-                        <span className="text-muted-foreground">block_height (u64, little-endian, optional):</span>
+ <div className="flex items-start gap-2">
+ <span className={`font-bold min-w-[20px] ${attestation.block_height ? 'text-muted-foreground' : 'text-faint-foreground'}`}>9.</span>
+ <div className="flex-1">
+ <span className="text-muted-foreground">block_height (u64, little-endian, optional):</span>
                         {attestation.block_height ? (
-                          <div className="text-purple-900">{attestation.block_height}</div>
+ <div className="text-foreground">{attestation.block_height}</div>
                         ) : (
-                          <div className="text-faint-foreground italic">not included (null)</div>
+ <div className="text-faint-foreground italic">not included (null)</div>
                         )}
                       </div>
                     </div>
                     {/* V1 fields - only shown for attestations after ATTESTATION_V1_TIMESTAMP */}
                     {isV1Format && (
                       <>
-                        <div className="flex items-start gap-2 border-t border-purple-200 pt-2 mt-2">
-                          <span className="text-orange-600 font-bold min-w-[20px] text-xs">V1</span>
-                          <div className="text-orange-600 text-xs font-semibold">Additional V1 fields (attestations after {new Date(ATTESTATION_V1_TIMESTAMP * 1000).toISOString()}):</div>
+ <div className="flex items-start gap-2 border-t border-border pt-2 mt-2">
+ <span className="text-muted-foreground font-bold min-w-[20px] text-xs">V1</span>
+ <div className="text-muted-foreground text-xs font-semibold">Additional V1 fields (attestations after {new Date(ATTESTATION_V1_TIMESTAMP * 1000).toISOString()}):</div>
                         </div>
-                        <div className="flex items-start gap-2">
-                          <span className={`font-bold min-w-[20px] ${attestation.caller_account_id ? 'text-orange-600' : 'text-faint-foreground'}`}>10.</span>
-                          <div className="flex-1">
-                            <span className="text-muted-foreground">caller_account_id (string, optional):</span>
+ <div className="flex items-start gap-2">
+ <span className={`font-bold min-w-[20px] ${attestation.caller_account_id ? 'text-muted-foreground' : 'text-faint-foreground'}`}>10.</span>
+ <div className="flex-1">
+ <span className="text-muted-foreground">caller_account_id (string, optional):</span>
                             {attestation.caller_account_id ? (
-                              <div className="text-orange-700 break-all">&quot;{attestation.caller_account_id}&quot;</div>
+ <div className="text-muted-foreground break-all">&quot;{attestation.caller_account_id}&quot;</div>
                             ) : (
-                              <div className="text-faint-foreground italic">not included (null)</div>
+ <div className="text-faint-foreground italic">not included (null)</div>
                             )}
                           </div>
                         </div>
-                        <div className="flex items-start gap-2">
-                          <span className={`font-bold min-w-[20px] ${attestation.project_id ? 'text-orange-600' : 'text-faint-foreground'}`}>11.</span>
-                          <div className="flex-1">
-                            <span className="text-muted-foreground">project_id (string, optional):</span>
+ <div className="flex items-start gap-2">
+ <span className={`font-bold min-w-[20px] ${attestation.project_id ? 'text-muted-foreground' : 'text-faint-foreground'}`}>11.</span>
+ <div className="flex-1">
+ <span className="text-muted-foreground">project_id (string, optional):</span>
                             {attestation.project_id ? (
-                              <div className="text-orange-700 break-all">&quot;{attestation.project_id}&quot;</div>
+ <div className="text-muted-foreground break-all">&quot;{attestation.project_id}&quot;</div>
                             ) : (
-                              <div className="text-faint-foreground italic">not included (null)</div>
+ <div className="text-faint-foreground italic">not included (null)</div>
                             )}
                           </div>
                         </div>
-                        <div className="flex items-start gap-2">
-                          <span className={`font-bold min-w-[20px] ${attestation.secrets_ref ? 'text-orange-600' : 'text-faint-foreground'}`}>12.</span>
-                          <div className="flex-1">
-                            <span className="text-muted-foreground">secrets_ref (string, optional):</span>
+ <div className="flex items-start gap-2">
+ <span className={`font-bold min-w-[20px] ${attestation.secrets_ref ? 'text-muted-foreground' : 'text-faint-foreground'}`}>12.</span>
+ <div className="flex-1">
+ <span className="text-muted-foreground">secrets_ref (string, optional):</span>
                             {attestation.secrets_ref ? (
-                              <div className="text-orange-700 break-all">&quot;{attestation.secrets_ref}&quot;</div>
+ <div className="text-muted-foreground break-all">&quot;{attestation.secrets_ref}&quot;</div>
                             ) : (
-                              <div className="text-faint-foreground italic">not included (null)</div>
+ <div className="text-faint-foreground italic">not included (null)</div>
                             )}
                           </div>
                         </div>
-                        <div className="flex items-start gap-2">
-                          <span className="text-orange-600 font-bold min-w-[20px]">13.</span>
-                          <div className="flex-1">
-                            <span className="text-muted-foreground">timestamp (i64, little-endian):</span>
-                            <div className="text-orange-700">{attestation.timestamp}</div>
+ <div className="flex items-start gap-2">
+ <span className="text-muted-foreground font-bold min-w-[20px]">13.</span>
+ <div className="flex-1">
+ <span className="text-muted-foreground">timestamp (i64, little-endian):</span>
+ <div className="text-muted-foreground">{attestation.timestamp}</div>
                           </div>
                         </div>
-                        <div className="flex items-start gap-2">
-                          <span className={`font-bold min-w-[20px] ${attestation.attached_usd ? 'text-orange-600' : 'text-faint-foreground'}`}>14.</span>
-                          <div className="flex-1">
-                            <span className="text-muted-foreground">attached_usd (string, optional):</span>
+ <div className="flex items-start gap-2">
+ <span className={`font-bold min-w-[20px] ${attestation.attached_usd ? 'text-muted-foreground' : 'text-faint-foreground'}`}>14.</span>
+ <div className="flex-1">
+ <span className="text-muted-foreground">attached_usd (string, optional):</span>
                             {attestation.attached_usd ? (
-                              <div className="text-orange-700">&quot;{attestation.attached_usd}&quot;</div>
+ <div className="text-muted-foreground">&quot;{attestation.attached_usd}&quot;</div>
                             ) : (
-                              <div className="text-faint-foreground italic">not included (null)</div>
+ <div className="text-faint-foreground italic">not included (null)</div>
                             )}
                           </div>
                         </div>
                       </>
                     )}
                   </div>
-                  <div className="mt-2 p-2 bg-purple-50 border border-purple-200 rounded">
-                    <div className="text-purple-900 font-semibold">Final Hash (SHA256 of concatenated bytes):</div>
-                    <div className="text-purple-800 font-mono text-xs break-all mt-1">{quoteValidation.expectedTaskHash}</div>
+ <div className="mt-2 p-2 bg-card-muted border border-border rounded">
+ <div className="text-foreground font-semibold">Final Hash (SHA256 of concatenated bytes):</div>
+ <div className="text-foreground font-mono text-xs break-all mt-1">{quoteValidation.expectedTaskHash}</div>
                   </div>
-                  <p className="text-purple-800 text-xs mt-2">
-                    <strong>Note:</strong> Each string is encoded as UTF-8 bytes, numbers are little-endian encoded.
+ <p className="text-foreground text-xs mt-2">
+ <strong>Note:</strong> Each string is encoded as UTF-8 bytes, numbers are little-endian encoded.
                     The Task Hash binds the TDX Quote to this specific execution, preventing attestation forgery.
                   </p>
 
                   {/* Python verification code - nested inside Task Hash Calculation Steps */}
-                  <details className="mt-3 bg-success/15 border border-success/40 rounded p-2">
-                    <summary className="cursor-pointer font-semibold text-success-text text-xs hover:text-success-text">
+ <details className="mt-3 bg-success/15 border border-success/40 rounded p-2">
+ <summary className="cursor-pointer font-semibold text-success-text text-xs hover:text-success-text">
                       Python Code to Verify Task Hash
                     </summary>
-                    <div className="mt-2">
-                      <p className="text-success-text text-xs mb-2">
+ <div className="mt-2">
+ <p className="text-success-text text-xs mb-2">
                         Copy and run this Python code locally to verify the task hash calculation:
                       </p>
-                  <div className="relative">
-                    <pre className="bg-gray-900 text-green-400 p-3 rounded text-xs overflow-x-auto whitespace-pre">{`import hashlib
+ <div className="relative">
+ <pre className="bg-gray-900 text-green-400 p-3 rounded text-xs overflow-x-auto whitespace-pre">{`import hashlib
 import struct
 
 data = b""
@@ -1082,7 +1081,7 @@ print(f"Extracted:  ${quoteValidation.extractedTaskHash}")
 print(f"Match: {final_hash == '${quoteValidation.extractedTaskHash}'}")${pythonVerifySuffix}`;
                         navigator.clipboard.writeText(code);
                       }}
-                      className="absolute top-2 right-2 px-2 py-1 bg-success hover:opacity-90 text-white text-xs rounded"
+ className="absolute top-2 right-2 px-2 py-1 bg-success hover:opacity-90 text-white text-xs rounded"
                     >
                         Copy
                       </button>
@@ -1100,67 +1099,62 @@ print(f"Match: {final_hash == '${quoteValidation.extractedTaskHash}'}")${pythonV
                 verification.identity.ok &&
                 verification.binding.ok;
               return (
-                <div className={`px-4 py-3 rounded ${allPassed ? 'bg-success/15 border border-success/40' : 'bg-destructive/15 border border-destructive/40'}`}>
-                  <p className={`font-semibold ${allPassed ? 'text-success-text' : 'text-destructive-text'}`}>
+ <div className={`px-4 py-3 rounded ${allPassed ? 'bg-success/15 border border-success/40' : 'bg-destructive/15 border border-destructive/40'}`}>
+ <p className={`font-semibold ${allPassed ? 'text-success-text' : 'text-destructive-text'}`}>
                     {allPassed
-                      ? '✓ Verified — genuine Intel TDX hardware, an approved worker build, and a signature covering this exact execution.'
-                      : '✗ Not verified — see which layer failed above.'}
+                      ? ' Verified — genuine Intel TDX hardware, an approved worker build, and a signature covering this exact execution.'
+                      : ' Not verified — see which layer failed above.'}
                   </p>
                   {allPassed && verification?.collateral && (
-                    <div className="text-success-text text-xs mt-2 space-y-1">
+ <div className="text-success-text text-xs mt-2 space-y-1">
                       <p>
                         Checked against Intel&apos;s signed reference data — the TCB levels, quoting-enclave
                         identity and revocation lists that Intel publishes for the CPU model this worker runs
-                        on (Intel calls that model id an <strong>FMSPC</strong>:{' '}
-                        <code className="bg-success/10 px-1 rounded">{verification.collateral.fmspc}</code>).
-                        This particular reference data was issued by Intel for{' '}
-                        {new Date(verification.collateral.validFrom).toISOString().slice(0, 10)} –{' '}
-                        {new Date(verification.collateral.validUntil).toISOString().slice(0, 10)}, the period
+ on (Intel calls that model id an <strong>FMSPC</strong>: <code className="bg-success/10 px-1 rounded">{verification.collateral.fmspc}</code>).
+                        This particular reference data was issued by Intel for                        {new Date(verification.collateral.validFrom).toISOString().slice(0, 10)} –                        {new Date(verification.collateral.validUntil).toISOString().slice(0, 10)}, the period
                         this execution falls in.
                       </p>
                       <p>
-                        It is the same copy that{' '}
-                        <code className="bg-success/10 px-1 rounded">
+                        It is the same copy that <code className="bg-success/10 px-1 rounded">
                           {verification.collateral.contractId || verification.identity.contract}
-                        </code>{' '}
-                        holds on chain — published there so the contract can verify workers, and archived
+                        </code>                        holds on chain — published there so the contract can verify workers, and archived
                         version by version so executions from any date stay verifiable. Intel signs it, so
                         where it is served from cannot change the outcome.
                       </p>
 
-                      <details className="bg-card/70 border border-success/40 rounded p-2 mt-2">
-                        <summary className="cursor-pointer font-semibold text-success-text">
+ <details className="bg-card/70 border border-success/40 rounded p-2 mt-2">
+ <summary className="cursor-pointer font-semibold text-success-text">
                           Show the reference data and where it came from
                         </summary>
                         {/* Every row is optional: an older coordinator (or a cached response from
                             one) omits these fields, and a label with nothing after it reads as a
                             bug rather than as missing data. */}
-                        <div className="mt-2 space-y-1 font-mono text-[11px] text-foreground break-all">
+ <div className="mt-2 space-y-1 font-mono text-[11px] text-foreground break-all">
                           <div>
-                            <span className="text-muted-foreground">published in:&nbsp;</span>
+ <span className="text-muted-foreground">published in:&nbsp;</span>
                             {verification.collateral.contractId || verification.identity.contract}
                           </div>
                           {verification.collateral.txHash && (
                             <div>
-                              <span className="text-muted-foreground">by transaction:&nbsp;</span>
+ <span className="text-muted-foreground">by transaction:&nbsp;</span>
                               <a
                                 href={getTransactionUrl(verification.collateral.txHash, network)}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="text-info hover:underline"
+ className="text-info hover:underline"
                               >
                                 {verification.collateral.txHash}
                               </a>
                             </div>
                           )}
                           {!!verification.collateral.blockHeight && (
-                            <div><span className="text-muted-foreground">block:&nbsp;</span>{verification.collateral.blockHeight}</div>
+ <div><span className="text-muted-foreground">block:&nbsp;</span>{verification.collateral.blockHeight}</div>
                           )}
                           {verification.collateral.sha256 && (
-                            <div><span className="text-muted-foreground">sha256:&nbsp;</span>{verification.collateral.sha256}</div>
+ <div><span className="text-muted-foreground">sha256:&nbsp;</span>{verification.collateral.sha256}</div>
                           )}
                         </div>
-                        <p className="text-muted-foreground text-[11px] mt-2 font-sans">
+ <p className="text-muted-foreground text-[11px] mt-2 font-sans">
                           {verification.collateral.txHash
                             ? 'Open that transaction in an explorer or an archival node and compare its argument with the JSON below — they are the same bytes.'
                             : `Call get_collaterals() on ${verification.collateral.contractId || verification.identity.contract} and compare the result with the JSON below.`}
@@ -1169,7 +1163,7 @@ print(f"Match: {final_hash == '${quoteValidation.extractedTaskHash}'}")${pythonV
                           <textarea
                             readOnly
                             value={verification.collateralBody}
-                            className="w-full h-32 mt-2 p-2 border border-border-strong rounded font-mono text-[10px] bg-card"
+ className="w-full h-32 mt-2 p-2 border border-border-strong rounded font-mono text-[10px] bg-card"
                           />
                         )}
                       </details>
@@ -1204,12 +1198,12 @@ function VerdictLine({
   label: string;
   detail: string;
 }) {
-  const tone = skipped ? 'text-muted-foreground' : !ok ? 'text-destructive-text' : warn ? 'text-amber-800' : 'text-success-text';
-  const mark = skipped ? '–' : !ok ? '✗' : warn ? '!' : '✓';
+  const tone = skipped ? 'text-muted-foreground' : !ok ? 'text-destructive-text' : warn ? 'text-foreground' : 'text-success-text';
+  const mark = skipped ? '–' : !ok ? '' : warn ? '!' : '';
   return (
-    <p className={`text-sm ${tone}`}>
-      <span className="font-semibold">{mark} {label}</span>
-      <span className="opacity-80"> — {detail}</span>
+ <p className={`text-sm ${tone}`}>
+ <span className="font-semibold">{mark} {label}</span>
+ <span className="opacity-80"> — {detail}</span>
     </p>
   );
 }

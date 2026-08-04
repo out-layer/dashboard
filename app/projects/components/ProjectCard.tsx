@@ -48,31 +48,31 @@ export function ProjectCard({
   onDeleteProject,
 }: ProjectCardProps) {
   return (
-    <div className="bg-card border border-border rounded-lg overflow-hidden">
+ <div className="bg-card border border-border rounded-lg overflow-hidden">
       {/* Project Header */}
       <div
-        className="px-4 py-4 sm:px-6 cursor-pointer hover:bg-card-muted transition-colors"
+ className="px-4 py-4 sm:px-6 cursor-pointer hover:bg-card-muted transition-colors"
         onClick={onToggleExpand}
       >
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <div className="flex-shrink-0">
-              <svg className="h-8 w-8 text-accent-text" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+ <div className="flex items-center justify-between">
+ <div className="flex items-center space-x-3">
+ <div className="flex-shrink-0">
+ <svg className="h-8 w-8 text-accent-text" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
               </svg>
             </div>
             <div>
-              <h3 className="text-lg font-medium text-foreground">{project.name}</h3>
-              <p className="text-sm text-muted-foreground">{project.project_id}</p>
-              <p className="text-xs text-faint-foreground font-mono">{project.uuid}</p>
+ <h3 className="text-lg font-medium text-foreground">{project.name}</h3>
+ <p className="text-sm text-muted-foreground">{project.project_id}</p>
+ <p className="text-xs text-faint-foreground font-mono">{project.uuid}</p>
             </div>
           </div>
-          <div className="flex items-center space-x-4">
-            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-success/10 text-success-text">
+ <div className="flex items-center space-x-4">
+ <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-success/10 text-success-text">
               {versionCount} version{versionCount !== 1 ? 's' : ''}
             </span>
             <svg
-              className={`h-5 w-5 text-faint-foreground transition-transform ${expanded ? 'transform rotate-180' : ''}`}
+ className={`h-5 w-5 text-faint-foreground transition-transform ${expanded ? 'transform rotate-180' : ''}`}
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -83,22 +83,22 @@ export function ProjectCard({
         </div>
 
         {/* Project Info Summary */}
-        <div className="mt-2 flex flex-wrap gap-4 text-sm text-muted-foreground">
-          <span>Created: {formatTimestamp(project.created_at)}</span>
+ <div className="mt-2 flex flex-wrap gap-4 text-sm text-muted-foreground">
+ <span>Created: {formatTimestamp(project.created_at)}</span>
           {project.active_version && (
-            <span>Active: <code className="font-mono text-xs">{formatVersionKey(project.active_version)}</code></span>
+ <span>Active: <code className="font-mono text-xs">{formatVersionKey(project.active_version)}</code></span>
           )}
         </div>
 
         {/* Storage Info */}
         {projectStorage && (
-          <div className="mt-2 text-sm text-muted-foreground flex items-center gap-1">
-            <span>Storage: {formatBytes(projectStorage.total_bytes)} ({projectStorage.key_count} key{projectStorage.key_count !== 1 ? 's' : ''})</span>
-            <div className="relative group">
-              <svg className="h-4 w-4 text-faint-foreground cursor-help" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+ <div className="mt-2 text-sm text-muted-foreground flex items-center gap-1">
+ <span>Storage: {formatBytes(projectStorage.total_bytes)} ({projectStorage.key_count} key{projectStorage.key_count !== 1 ? 's' : ''})</span>
+ <div className="relative group">
+ <svg className="h-4 w-4 text-faint-foreground cursor-help" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
-              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
+ <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
                 Persistent storage used by WASM executions
               </div>
             </div>
@@ -108,23 +108,23 @@ export function ProjectCard({
 
       {/* Expanded Content */}
       {expanded && (
-        <div className="border-t border-border px-4 py-4 sm:px-6 bg-card-muted">
+ <div className="border-t border-border px-4 py-4 sm:px-6 bg-card-muted">
           {/* Action Buttons */}
-          <div className="flex flex-wrap gap-2 mb-4">
+ <div className="flex flex-wrap gap-2 mb-4">
             <button
               onClick={(e) => { e.stopPropagation(); onAddVersion(); }}
-              className="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-white bg-accent hover:bg-accent-hover transition-colors"
+ className="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-on-accent bg-accent hover:bg-accent-hover transition-colors"
             >
-              <svg className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+ <svg className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
               </svg>
               Add Version
             </button>
             <button
               onClick={(e) => { e.stopPropagation(); onDeleteProject(); }}
-              className="inline-flex items-center px-3 py-1.5 border border-destructive/40 text-sm font-medium rounded-md text-destructive-text bg-card hover:bg-destructive/10 transition-colors"
+ className="inline-flex items-center px-3 py-1.5 border border-destructive/40 text-sm font-medium rounded-md text-destructive-text bg-card hover:bg-destructive/10 transition-colors"
             >
-              <svg className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+ <svg className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
               </svg>
               Delete Project
@@ -132,19 +132,19 @@ export function ProjectCard({
           </div>
 
           {/* Versions List */}
-          <h4 className="text-sm font-medium text-foreground mb-2">Versions</h4>
+ <h4 className="text-sm font-medium text-foreground mb-2">Versions</h4>
           {loadingVersions ? (
-            <div className="flex items-center justify-center py-4">
-              <svg className="animate-spin h-5 w-5 text-faint-foreground" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+ <div className="flex items-center justify-center py-4">
+ <svg className="animate-spin h-5 w-5 text-faint-foreground" fill="none" viewBox="0 0 24 24">
+ <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+ <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
               </svg>
-              <span className="ml-2 text-sm text-muted-foreground">Loading versions...</span>
+ <span className="ml-2 text-sm text-muted-foreground">Loading versions...</span>
             </div>
           ) : versions.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-2">No versions yet</p>
+ <p className="text-sm text-muted-foreground py-2">No versions yet</p>
           ) : (
-            <div className="space-y-2">
+ <div className="space-y-2">
               {sortVersions(versions).map((version) => (
                 <VersionItem
                   key={version.version_key}
@@ -175,65 +175,65 @@ function VersionItem({ version, isActive, onSetActive, onRemove }: VersionItemPr
   const buildTarget = version.source.GitHub?.build_target || version.source.WasmUrl?.build_target;
 
   return (
-    <div className={`px-3 py-2 rounded-md ${isActive ? 'bg-success/10 border border-success/30' : 'bg-card border border-border'}`}>
+ <div className={`px-3 py-2 rounded-md ${isActive ? 'bg-success/10 border border-success/30' : 'bg-card border border-border'}`}>
       {/* Single row: version key left, actions right */}
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2 min-w-0">
-          <code className="font-mono text-xs text-foreground truncate" title={version.version_key}>
+ <div className="flex items-center justify-between gap-2">
+ <div className="flex items-center gap-2 min-w-0">
+ <code className="font-mono text-xs text-foreground truncate" title={version.version_key}>
             {formatVersionKey(version.version_key)}
           </code>
           {buildTarget && (
-            <span className="text-xs text-faint-foreground flex-shrink-0">({buildTarget})</span>
+ <span className="text-xs text-faint-foreground flex-shrink-0">({buildTarget})</span>
           )}
         </div>
-        <div className="flex items-center gap-0.5 flex-shrink-0">
+ <div className="flex items-center gap-0.5 flex-shrink-0">
           {isActive && (
-            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-success/10 text-success-text whitespace-nowrap">
+ <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-success/10 text-success-text whitespace-nowrap">
               Active
             </span>
           )}
           {downloadUrl && (
-            <div className="relative group">
+ <div className="relative group">
               <a
                 href={downloadUrl}
                 download={`${version.version_key}.wasm`}
                 onClick={(e) => e.stopPropagation()}
-                className="p-1 rounded hover:bg-info/15 text-accent-text transition-colors cursor-pointer inline-flex"
+ className="p-1 rounded hover:bg-info/15 text-accent-text transition-colors cursor-pointer inline-flex"
               >
-                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+ <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                 </svg>
               </a>
-              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
+ <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
                 Download WASM
               </div>
             </div>
           )}
           {!isActive && (
             <>
-              <div className="relative group">
+ <div className="relative group">
                 <button
                   onClick={(e) => { e.stopPropagation(); onSetActive(); }}
-                  className="p-1 rounded hover:bg-orange-100 text-accent-text hover:text-accent-text transition-colors cursor-pointer"
+ className="p-1 rounded hover:bg-card-muted text-accent-text hover:text-accent-text transition-colors cursor-pointer"
                 >
-                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+ <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                 </button>
-                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
+ <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
                   Set as active
                 </div>
               </div>
-              <div className="relative group">
+ <div className="relative group">
                 <button
                   onClick={(e) => { e.stopPropagation(); onRemove(); }}
-                  className="p-1 rounded hover:bg-destructive/15 text-destructive-text hover:text-destructive-text transition-colors cursor-pointer"
+ className="p-1 rounded hover:bg-destructive/15 text-destructive-text hover:text-destructive-text transition-colors cursor-pointer"
                 >
-                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+ <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                   </svg>
                 </button>
-                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
+ <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
                   Remove
                 </div>
               </div>
@@ -241,7 +241,7 @@ function VersionItem({ version, isActive, onSetActive, onRemove }: VersionItemPr
           )}
         </div>
       </div>
-      <p className="text-xs text-faint-foreground mt-1">Added {formatTimestamp(version.added_at)}</p>
+ <p className="text-xs text-faint-foreground mt-1">Added {formatTimestamp(version.added_at)}</p>
     </div>
   );
 }

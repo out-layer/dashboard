@@ -3,8 +3,8 @@ import { ExampleCard, UseCasesSection, KeyFeaturesSection, TechnicalDetailsSecti
 export function EthProofExample() {
   const badges = (
     <>
-      <span className="ml-3 text-sm bg-purple-100 text-purple-800 px-3 py-1 rounded">WASI P2</span>
-      <span className="ml-2 text-sm bg-destructive/10 text-destructive-text px-3 py-1 rounded">Advanced</span>
+ <span className="ml-3 text-sm bg-card-muted text-foreground px-3 py-1 rounded">WASI P2</span>
+ <span className="ml-2 text-sm bg-destructive/10 text-destructive-text px-3 py-1 rounded">Advanced</span>
     </>
   );
 
@@ -16,8 +16,8 @@ export function EthProofExample() {
       githubUrl="https://github.com/out-layer/eth-proof-example"
       playgroundId="ethereum-state-proof"
     >
-      <p className="text-foreground mb-4">
-        Bring an <strong>Ethereum value onto NEAR with a cryptographic receipt</strong>. The module reads a
+ <p className="text-foreground mb-4">
+ Bring an <strong>Ethereum value onto NEAR with a cryptographic receipt</strong>. The module reads a
         Chainlink price straight out of Ethereum contract storage together with its Merkle-Patricia proof, and
         re-derives the hashes inside the TEE until they meet the block&apos;s state root. A value that arrives
         this way cannot have been altered on the way &mdash; not by the node that served it, not by anyone.
@@ -31,20 +31,20 @@ export function EthProofExample() {
       ]} />
 
       <KeyFeaturesSection items={[
-        <>Reads storage via <code>eth_getProof</code> (EIP-1186) and verifies the trie walk in-enclave</>,
-        <>Two nested proofs per value: the <strong>account</strong> in the state trie, then the <strong>slot</strong> in that account&apos;s storage trie</>,
-        <>The state root is agreed by several <strong>independent RPC providers</strong> before anything is checked against it</>,
+ <>Reads storage via <code>eth_getProof</code> (EIP-1186) and verifies the trie walk in-enclave</>,
+ <>Two nested proofs per value: the <strong>account</strong> in the state trie, then the <strong>slot</strong> in that account&apos;s storage trie</>,
+ <>The state root is agreed by several <strong>independent RPC providers</strong> before anything is checked against it</>,
         'Disagreement is a hard failure with who-said-what, never a silent fallback',
-        <>Follows the Chainlink proxy to its current aggregator <em>with a proof</em>, so a feed upgrade cannot freeze the price</>,
+ <>Follows the Chainlink proxy to its current aggregator <em>with a proof</em>, so a feed upgrade cannot freeze the price</>,
         'No secrets and no API keys — every endpoint is public',
       ]} />
 
       <HowItWorksSection items={[
-        <>Pin a block a few behind the head, so honest nodes have converged on it</>,
-        <>Ask several RPCs for that exact block and keep the header they <strong>all</strong> return</>,
-        <>Prove which aggregator the feed points at, then the latest round, then that round&apos;s answer</>,
-        <>Walk each proof: every node must hash to the value its parent published, down to the leaf</>,
-        <>Return the price together with the block hash, so anyone can re-check it later</>,
+ <>Pin a block a few behind the head, so honest nodes have converged on it</>,
+ <>Ask several RPCs for that exact block and keep the header they <strong>all</strong> return</>,
+ <>Prove which aggregator the feed points at, then the latest round, then that round&apos;s answer</>,
+ <>Walk each proof: every node must hash to the value its parent published, down to the leaf</>,
+ <>Return the price together with the block hash, so anyone can re-check it later</>,
       ]} />
 
       <CodeExampleSection
@@ -91,30 +91,30 @@ export function EthProofExample() {
       />
 
       <TechnicalDetailsSection items={[
-        <><strong>WASI Version:</strong> Preview 2 (<code>wasm32-wasip2</code>), outbound HTTP</>,
-        <><strong>Dependencies:</strong> <code>tiny-keccak</code> and <code>rlp</code> only — the trie walk is ~150 lines, no EVM library</>,
-        <><strong>Calls:</strong> N+3 sequential round trips to Ethereum; latency dominates, the hashing is negligible</>,
-        <><strong>Storage layout:</strong> derived empirically against the live aggregator and pinned by unit tests, since Chainlink does not document it</>,
+ <><strong>WASI Version:</strong> Preview 2 (<code>wasm32-wasip2</code>), outbound HTTP</>,
+ <><strong>Dependencies:</strong> <code>tiny-keccak</code> and <code>rlp</code> only — the trie walk is ~150 lines, no EVM library</>,
+ <><strong>Calls:</strong> N+3 sequential round trips to Ethereum; latency dominates, the hashing is negligible</>,
+ <><strong>Storage layout:</strong> derived empirically against the live aggregator and pinned by unit tests, since Chainlink does not document it</>,
       ]} />
 
       <SecurityNotesSection items={[
-        <><strong>What is proven:</strong> the value really is in Ethereum&apos;s state under the agreed block. Tampering anywhere in the delivery path breaks the hash chain.</>,
-        <><strong>What is not:</strong> that the price is <em>correct</em>. A proof will faithfully prove a bad Chainlink number — establishing that the oracle committee vouched for it means verifying their report signatures.</>,
-        <><strong>The remaining trust:</strong> the state root rests on independent providers agreeing. Pick endpoints run by different operators; the strong version is a beacon-chain light client.</>,
-        <><strong>Freshness:</strong> a proven price can still be stale. The module rejects anything older than <code>max_age_secs</code> (default 2h) and always reports <code>age_secs</code>.</>,
+ <><strong>What is proven:</strong> the value really is in Ethereum&apos;s state under the agreed block. Tampering anywhere in the delivery path breaks the hash chain.</>,
+ <><strong>What is not:</strong> that the price is <em>correct</em>. A proof will faithfully prove a bad Chainlink number — establishing that the oracle committee vouched for it means verifying their report signatures.</>,
+ <><strong>The remaining trust:</strong> the state root rests on independent providers agreeing. Pick endpoints run by different operators; the strong version is a beacon-chain light client.</>,
+ <><strong>Freshness:</strong> a proven price can still be stale. The module rejects anything older than <code>max_age_secs</code> (default 2h) and always reports <code>age_secs</code>.</>,
       ]} />
 
       <LearnMoreSection>
-        <ul className="text-sm text-foreground space-y-1 list-disc list-inside">
+ <ul className="text-sm text-foreground space-y-1 list-disc list-inside">
           <li>
-            <a href="https://eips.ethereum.org/EIPS/eip-1186" target="_blank" rel="noopener noreferrer" className="text-[var(--primary-orange)] hover:underline">
+ <a href="https://eips.ethereum.org/EIPS/eip-1186" target="_blank" rel="noopener noreferrer" className="text-[var(--primary-orange)] hover:underline">
               EIP-1186
-            </a>{' '}&mdash; the <code>eth_getProof</code> specification
+ </a>{' '}&mdash; the <code>eth_getProof</code> specification
           </li>
           <li>
-            <a href="https://docs.chain.link/data-feeds/price-feeds/addresses" target="_blank" rel="noopener noreferrer" className="text-[var(--primary-orange)] hover:underline">
+ <a href="https://docs.chain.link/data-feeds/price-feeds/addresses" target="_blank" rel="noopener noreferrer" className="text-[var(--primary-orange)] hover:underline">
               Chainlink feed addresses
-            </a>{' '}&mdash; the proxy address to pass as <code>proxy</code>
+ </a>{' '}&mdash; the proxy address to pass as <code>proxy</code>
           </li>
         </ul>
       </LearnMoreSection>

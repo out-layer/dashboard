@@ -5,8 +5,8 @@ import { ExampleCard, KeyFeaturesSection, TechnicalDetailsSection, CodeExampleSe
 export function OracleExample() {
   const badges = (
     <>
-      <span className="ml-3 text-sm bg-purple-100 text-purple-800 px-3 py-1 rounded">WASI P2</span>
-      <span className="ml-2 text-sm bg-destructive/10 text-destructive-text px-3 py-1 rounded">Advanced</span>
+ <span className="ml-3 text-sm bg-card-muted text-foreground px-3 py-1 rounded">WASI P2</span>
+ <span className="ml-2 text-sm bg-destructive/10 text-destructive-text px-3 py-1 rounded">Advanced</span>
     </>
   );
 
@@ -18,7 +18,7 @@ export function OracleExample() {
       githubUrl="https://github.com/out-layer/oracle-example"
       playgroundId="multi-source-data-oracle"
     >
-      <p className="text-foreground mb-4">
+ <p className="text-foreground mb-4">
         Multi-source price oracle with aggregation and validation. Production-ready decentralized oracle for cryptocurrency and commodity prices.
       </p>
 
@@ -31,11 +31,11 @@ export function OracleExample() {
         'Comprehensive error reporting per source'
       ]} />
 
-      <h4 className="font-semibold mt-4 mb-2">Supported Assets:</h4>
-      <ul className="list-disc list-inside text-foreground space-y-1 mb-4 ml-4">
-        <li><strong>Cryptocurrencies:</strong> Bitcoin, Ethereum, NEAR, SOL, etc.</li>
-        <li><strong>Commodities:</strong> Gold (XAU/USD), Oil (BRENT/USD)</li>
-        <li><strong>Forex:</strong> EUR/USD, GBP/USD, etc.</li>
+ <h4 className="font-semibold mt-4 mb-2">Supported Assets:</h4>
+ <ul className="list-disc list-inside text-foreground space-y-1 mb-4 ml-4">
+ <li><strong>Cryptocurrencies:</strong> Bitcoin, Ethereum, NEAR, SOL, etc.</li>
+ <li><strong>Commodities:</strong> Gold (XAU/USD), Oil (BRENT/USD)</li>
+ <li><strong>Forex:</strong> EUR/USD, GBP/USD, etc.</li>
       </ul>
 
       <CodeExampleSection
@@ -73,7 +73,7 @@ export function OracleExample() {
 }`}
       />
 
-      <h4 className="font-semibold mt-4 mb-2">How to Use:</h4>
+ <h4 className="font-semibold mt-4 mb-2">How to Use:</h4>
       <SyntaxHighlighter language="bash" style={vscDarkPlus} customStyle={{ borderRadius: '0.5rem', fontSize: '0.875rem' }}>
 {`# 1. Get API keys (optional but recommended):
 # - CoinMarketCap: https://coinmarketcap.com/api/
@@ -114,34 +114,34 @@ near call outlayer.testnet request_execution '{
       </SyntaxHighlighter>
 
       <TechnicalDetailsSection items={[
-        <><strong>WASI Version:</strong> Preview 2 (component model)</>,
-        <><strong>Language:</strong> Rust</>,
-        <><strong>HTTP Client:</strong> <code>reqwest</code> with WASI sockets</>,
-        <><strong>Secrets:</strong> Optional (API keys for higher rate limits)</>,
-        <><strong>Network:</strong> Required (outbound HTTPS to multiple APIs)</>,
-        <><strong>Build:</strong> <code>cargo component build --release</code></>,
-        <><strong>Size:</strong> ~3.5MB compiled WASM</>
+ <><strong>WASI Version:</strong> Preview 2 (component model)</>,
+ <><strong>Language:</strong> Rust</>,
+ <><strong>HTTP Client:</strong> <code>reqwest</code> with WASI sockets</>,
+ <><strong>Secrets:</strong> Optional (API keys for higher rate limits)</>,
+ <><strong>Network:</strong> Required (outbound HTTPS to multiple APIs)</>,
+ <><strong>Build:</strong> <code>cargo component build --release</code></>,
+ <><strong>Size:</strong> ~3.5MB compiled WASM</>
       ]} />
 
       <LearnMoreSection>
-        <ul className="text-sm text-foreground space-y-1">
+ <ul className="text-sm text-foreground space-y-1">
           <li>
-            📖 <Link href="/docs/wasi#wasi-preview-2" className="text-[var(--primary-orange)] hover:underline">
+ <Link href="/docs/wasi#wasi-preview-2" className="text-[var(--primary-orange)] hover:underline">
               WASI Preview 2 Documentation
             </Link>
           </li>
           <li>
-            🔐 <Link href="/docs/secrets" className="text-[var(--primary-orange)] hover:underline">
+ <Link href="/docs/secrets" className="text-[var(--primary-orange)] hover:underline">
               Secrets Management Guide
             </Link>
           </li>
           <li>
-            🎮 <Link href="/playground#multi-source-data-oracle" className="text-[var(--primary-orange)] hover:underline">
+ <Link href="/playground#multi-source-data-oracle" className="text-[var(--primary-orange)] hover:underline">
               Try in Playground
             </Link>
           </li>
           <li>
-            💻 <a href="https://github.com/out-layer/oracle-example" target="_blank" rel="noopener noreferrer" className="text-[var(--primary-orange)] hover:underline">
+ <a href="https://github.com/out-layer/oracle-example" target="_blank" rel="noopener noreferrer" className="text-[var(--primary-orange)] hover:underline">
               View Source Code
             </a>
           </li>

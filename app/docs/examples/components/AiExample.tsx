@@ -4,9 +4,9 @@ import { ExampleCard, UseCasesSection, KeyFeaturesSection, TechnicalDetailsSecti
 export function AiExample() {
   const badges = (
     <>
-      <span className="ml-3 text-sm bg-info/10 text-info px-3 py-1 rounded">WASI P2</span>
-      <span className="ml-2 text-sm bg-purple-100 text-purple-800 px-3 py-1 rounded">Secrets</span>
-      <span className="ml-2 text-sm bg-warning/10 text-warning px-3 py-1 rounded">Intermediate</span>
+ <span className="ml-3 text-sm bg-card-muted text-foreground px-3 py-1 rounded">WASI P2</span>
+ <span className="ml-2 text-sm bg-card-muted text-foreground px-3 py-1 rounded">Secrets</span>
+ <span className="ml-2 text-sm bg-card-muted text-foreground px-3 py-1 rounded">Intermediate</span>
     </>
   );
 
@@ -18,7 +18,7 @@ export function AiExample() {
       githubUrl="https://github.com/out-layer/ai-example"
       playgroundId="ai"
     >
-      <p className="text-foreground mb-4">
+ <p className="text-foreground mb-4">
         Integrate OpenAI GPT models into your NEAR smart contracts. Send prompts from on-chain and receive AI-generated responses securely.
       </p>
 
@@ -30,7 +30,7 @@ export function AiExample() {
       ]} />
 
       <KeyFeaturesSection items={[
-        <>HTTP client using <code>reqwest</code> with WASI sockets</>,
+ <>HTTP client using <code>reqwest</code> with WASI sockets</>,
         'Encrypted API key storage using OutLayer secrets',
         'Support for GPT-4, GPT-3.5-turbo models',
         'Configurable temperature, max tokens, system prompts'
@@ -57,7 +57,7 @@ export function AiExample() {
       />
 
       <HowItWorksSection items={[
-        <>WASM reads <code>OPENAI_API_KEY</code> from encrypted secrets (env var)</>,
+ <>WASM reads <code>OPENAI_API_KEY</code> from encrypted secrets (env var)</>,
         'Constructs HTTP POST request to OpenAI API',
         'Sends request via WASI HTTP interface',
         'Receives and parses JSON response',
@@ -66,56 +66,56 @@ export function AiExample() {
       ]} />
 
       <TechnicalDetailsSection items={[
-        <><strong>WASI Version:</strong> Preview 2 (component model)</>,
-        <><strong>Language:</strong> Rust</>,
-        <><strong>HTTP Client:</strong> <code>reqwest</code> with <code>wasi-preview2</code> feature</>,
-        <><strong>Secrets:</strong> Required (<code>OPENAI_API_KEY</code>)</>,
-        <><strong>Network:</strong> Required (outbound HTTPS to api.openai.com)</>,
-        <><strong>Build:</strong> <code>cargo component build --release</code></>,
-        <><strong>Size:</strong> ~2.5MB compiled WASM</>
+ <><strong>WASI Version:</strong> Preview 2 (component model)</>,
+ <><strong>Language:</strong> Rust</>,
+ <><strong>HTTP Client:</strong> <code>reqwest</code> with <code>wasi-preview2</code> feature</>,
+ <><strong>Secrets:</strong> Required (<code>OPENAI_API_KEY</code>)</>,
+ <><strong>Network:</strong> Required (outbound HTTPS to api.openai.com)</>,
+ <><strong>Build:</strong> <code>cargo component build --release</code></>,
+ <><strong>Size:</strong> ~2.5MB compiled WASM</>
       ]} />
 
-      <div className="mt-4 p-4 bg-info/10 border-l-4 border-info/50">
-        <h4 className="font-semibold text-foreground mb-2">Setting Up Secrets</h4>
-        <ol className="list-decimal list-inside text-sm text-foreground space-y-1">
+ <div className="mt-4 p-4 bg-card-muted border-l-4 border-border">
+ <h4 className="font-semibold text-foreground mb-2">Setting Up Secrets</h4>
+ <ol className="list-decimal list-inside text-sm text-foreground space-y-1">
           <li>
-            Navigate to <Link href="/secrets" className="text-[var(--primary-orange)] hover:underline">Secrets Management</Link>
+ Navigate to <Link href="/secrets" className="text-[var(--primary-orange)] hover:underline">Secrets Management</Link>
           </li>
-          <li>Create new secret with key <code>OPENAI_API_KEY</code> and your OpenAI API key as value</li>
+ <li>Create new secret with key <code>OPENAI_API_KEY</code> and your OpenAI API key as value</li>
           <li>
-            Set repo to your GitHub project (e.g., <code>github.com/alice/ai-example</code>)
+ Set repo to your GitHub project (e.g., <code>github.com/alice/ai-example</code>)
           </li>
-          <li>Choose access condition (e.g., AllowAll for testing, Whitelist for production)</li>
-          <li>Worker will automatically decrypt and inject into WASM environment</li>
+ <li>Choose access condition (e.g., AllowAll for testing, Whitelist for production)</li>
+ <li>Worker will automatically decrypt and inject into WASM environment</li>
         </ol>
       </div>
 
       <SecurityNotesSection items={[
-        <>✅ API keys stored encrypted on-chain, decrypted only in TEE</>,
-        <>✅ Keys never exposed to worker logs or external parties</>,
-        <>⚠️ Monitor OpenAI API usage to prevent unexpected costs</>,
-        <>⚠️ Set token limits to control response sizes</>
+ <> API keys stored encrypted on-chain, decrypted only in TEE</>,
+ <> Keys never exposed to worker logs or external parties</>,
+ <> Monitor OpenAI API usage to prevent unexpected costs</>,
+ <> Set token limits to control response sizes</>
       ]} />
 
       <LearnMoreSection>
-        <ul className="text-sm text-foreground space-y-1">
+ <ul className="text-sm text-foreground space-y-1">
           <li>
-            📖 <Link href="/docs/wasi#wasi-preview-2" className="text-[var(--primary-orange)] hover:underline">
+ <Link href="/docs/wasi#wasi-preview-2" className="text-[var(--primary-orange)] hover:underline">
               WASI Preview 2 Documentation
             </Link>
           </li>
           <li>
-            🔐 <Link href="/docs/secrets" className="text-[var(--primary-orange)] hover:underline">
+ <Link href="/docs/secrets" className="text-[var(--primary-orange)] hover:underline">
               Secrets Management Guide
             </Link>
           </li>
           <li>
-            🎮 <Link href="/playground#ai" className="text-[var(--primary-orange)] hover:underline">
+ <Link href="/playground#ai" className="text-[var(--primary-orange)] hover:underline">
               Try in Playground
             </Link>
           </li>
           <li>
-            💻 <a href="https://github.com/out-layer/ai-example" target="_blank" rel="noopener noreferrer" className="text-[var(--primary-orange)] hover:underline">
+ <a href="https://github.com/out-layer/ai-example" target="_blank" rel="noopener noreferrer" className="text-[var(--primary-orange)] hover:underline">
               View Source Code
             </a>
           </li>

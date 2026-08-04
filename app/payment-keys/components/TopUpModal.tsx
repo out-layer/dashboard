@@ -10,7 +10,7 @@ interface TopUpModalProps {
   nonce: number;
   contractId: string;
   stablecoin: StablecoinConfig;
-  signAndSendTransaction: (params: unknown) => Promise<unknown>;
+ signAndSendTransaction: (params: unknown) => Promise<unknown>;
   onComplete: () => void;
   onCancel: () => void;
 }
@@ -75,18 +75,18 @@ export function TopUpModal({
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-card rounded-lg border border-border-xl p-6 max-w-md w-full">
-        <h2 className="text-xl font-bold text-foreground mb-4">Top Up Payment Key #{nonce}</h2>
+ <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+ <div className="bg-card rounded-lg border border-border-xl p-6 max-w-md w-full">
+ <h2 className="text-xl font-bold text-foreground mb-4">Top Up Payment Key #{nonce}</h2>
 
         {error && (
-          <div className="mb-4 p-3 bg-destructive/10 border border-destructive/30 rounded-lg">
-            <p className="text-destructive-text text-sm">{error}</p>
+ <div className="mb-4 p-3 bg-destructive/10 border border-destructive/30 rounded-lg">
+ <p className="text-destructive-text text-sm">{error}</p>
           </div>
         )}
 
-        <div className="mb-4">
-          <label className="block text-sm font-medium text-foreground mb-1">
+ <div className="mb-4">
+ <label className="block text-sm font-medium text-foreground mb-1">
             Amount ({stablecoin.symbol})
           </label>
           <input
@@ -94,33 +94,33 @@ export function TopUpModal({
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
             placeholder="10.00"
-            className="w-full border border-border-strong rounded-lg px-3 py-2 text-foreground placeholder:text-faint-foreground focus:ring-2 focus:ring-accent"
+ className="w-full border border-border-strong rounded-lg px-3 py-2 text-foreground placeholder:text-faint-foreground focus:ring-2 focus:ring-accent"
             disabled={isSubmitting}
           />
-          <p className="text-xs text-muted-foreground mt-1">
+ <p className="text-xs text-muted-foreground mt-1">
             Minimum $0.01
           </p>
         </div>
 
         {/* Info */}
-        <div className="mb-4 p-3 bg-info/10 border border-info/30 rounded-lg">
-          <p className="text-sm text-info">
+ <div className="mb-4 p-3 bg-info/10 border border-info/30 rounded-lg">
+ <p className="text-sm text-info">
             This will transfer {amount} {stablecoin.symbol} from your wallet to top up the payment key balance.
           </p>
         </div>
 
         {/* Actions */}
-        <div className="flex gap-3">
+ <div className="flex gap-3">
           <button
             onClick={onCancel}
-            className="flex-1 bg-card-muted hover:bg-card-muted text-foreground px-4 py-2 rounded-lg font-medium transition-colors"
+ className="flex-1 bg-card-muted hover:bg-card-muted text-foreground px-4 py-2 rounded-lg font-medium transition-colors"
             disabled={isSubmitting}
           >
             Cancel
           </button>
           <button
             onClick={handleTopUp}
-            className="flex-1 bg-accent hover:bg-accent-hover text-white px-4 py-2 rounded-lg font-medium disabled:opacity-50 transition-colors"
+ className="flex-1 bg-accent hover:bg-accent-hover text-white px-4 py-2 rounded-lg font-medium disabled:opacity-50 transition-colors"
             disabled={isSubmitting}
           >
             {isSubmitting ? 'Processing...' : 'Top Up'}

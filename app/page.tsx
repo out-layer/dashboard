@@ -6,5 +6,5 @@ import Overview from '@/components/home/Overview';
 
 export default function Home() {
   const { isConnected } = useNearWallet();
-  return isConnected ? <Overview /> : <ProductHome />;
+ return isConnected ? <Overview /> : <ProductHome />;
 }

@@ -16,10 +16,10 @@ function AnchorHeading({ id, children }: { id: string; children: React.ReactNode
   };
 
   return (
-    <h3 id={id} className="text-xl font-semibold mb-3 group relative">
-      <a href={`#${id}`} onClick={handleClick} className="hover:text-[var(--primary-orange)] transition-colors">
+ <h3 id={id} className="text-xl font-semibold mb-3 group relative">
+ <a href={`#${id}`} onClick={handleClick} className="hover:text-[var(--primary-orange)] transition-colors">
         {children}
-        <span className="absolute -left-6 opacity-0 group-hover:opacity-100 transition-opacity text-faint-foreground">#</span>
+ <span className="absolute -left-6 opacity-0 group-hover:opacity-100 transition-opacity text-faint-foreground">#</span>
       </a>
     </h3>
   );
@@ -47,34 +47,34 @@ export default function DeveloperGuideSection() {
   useHashNavigation();
 
   return (
-    <div className="prose max-w-none">
-      <h2 className="text-3xl font-bold mb-6 text-[var(--primary-orange)]">Developer Guide: Random Numbers</h2>
+ <div className="prose max-w-none">
+ <h2 className="text-3xl font-bold mb-6 text-[var(--primary-orange)]">Developer Guide: Random Numbers</h2>
 
       {/* TL;DR */}
-      <div className="bg-gradient-to-r from-orange-50 to-yellow-50 border-l-4 border-[var(--primary-orange)] p-6 mb-8 rounded-r-lg">
-        <AnchorHeading id="tldr">⚡ TL;DR</AnchorHeading>
-        <ul className="space-y-2 text-sm text-foreground">
-          <li>Write WebAssembly project using functions impossible in smart contracts</li>
-          <li>Push to public GitHub repo</li>
-          <li>Call Outlayer contract from your contract</li>
-          <li>Receive the off-chain execution result in the callback response</li>
-          <li>Payment based on actual resources used, unused funds auto-refunded</li>
-          <li>Settlement stays on Layer 1 (secure NEAR blockchain)</li>
+ <div className="bg-gradient-to-r from-card-muted to-yellow-50 border-l-4 border-[var(--primary-orange)] p-6 mb-8 rounded-r-lg">
+ <AnchorHeading id="tldr"> TL;DR</AnchorHeading>
+ <ul className="space-y-2 text-sm text-foreground">
+ <li>Write WebAssembly project using functions impossible in smart contracts</li>
+ <li>Push to public GitHub repo</li>
+ <li>Call Outlayer contract from your contract</li>
+ <li>Receive the off-chain execution result in the callback response</li>
+ <li>Payment based on actual resources used, unused funds auto-refunded</li>
+ <li>Settlement stays on Layer 1 (secure NEAR blockchain)</li>
         </ul>
       </div>
 
-      <div className="space-y-8">
+ <div className="space-y-8">
         {/* Problem */}
         <section id="problem">
-          <AnchorHeading id="problem">🎯 The Problem</AnchorHeading>
-          <p className="text-foreground mb-3">
-            Smart contracts need randomness for gaming, lotteries, and fair selection. However, on-chain randomness is fundamentally <strong>deterministic</strong> and <strong>controllable by validators</strong>.
+ <AnchorHeading id="problem"> The Problem</AnchorHeading>
+ <p className="text-foreground mb-3">
+ Smart contracts need randomness for gaming, lotteries, and fair selection. However, on-chain randomness is fundamentally <strong>deterministic</strong> and <strong>controllable by validators</strong>.
           </p>
-          <p className="text-foreground mb-3">
+ <p className="text-foreground mb-3">
             Validators can skip blocks until they get favorable random outcomes. Any randomness derived from block data
             (timestamp, hash, height) is predictable and exploitable by those who control block production.
           </p>
-          <p className="text-foreground">
+ <p className="text-foreground">
             To get truly random numbers, we can run external code off-chain with OutLayer. This code executes outside
             the blockchain environment where real entropy sources are available, then returns verifiable results back to your contract.
           </p>
@@ -82,13 +82,13 @@ export default function DeveloperGuideSection() {
 
         {/* Step 1: Write WASI Code */}
         <section id="step-1">
-          <AnchorHeading id="step-1">📝 Step 1: Write WASI Code</AnchorHeading>
-          <p className="text-foreground mb-3">
-            You need a project that compiles to WebAssembly. OutLayer currently supports <strong>wasm32-wasip1</strong> and <strong>wasm32-wasip2</strong> targets.
+ <AnchorHeading id="step-1"> Step 1: Write WASI Code</AnchorHeading>
+ <p className="text-foreground mb-3">
+ You need a project that compiles to WebAssembly. OutLayer currently supports <strong>wasm32-wasip1</strong> and <strong>wasm32-wasip2</strong> targets.
           </p>
-          <p className="text-foreground mb-3">
-            Write code that accepts parameters from <code className="bg-card-muted px-2 py-1 rounded">stdin</code> and
-            outputs results to <code className="bg-card-muted px-2 py-1 rounded">stdout</code>. Here&apos;s an example:
+ <p className="text-foreground mb-3">
+ Write code that accepts parameters from <code className="bg-card-muted px-2 py-1 rounded">stdin</code> and
+ outputs results to <code className="bg-card-muted px-2 py-1 rounded">stdout</code>. Here&apos;s an example:
           </p>
           <SyntaxHighlighter language="rust" style={vscDarkPlus} customStyle={{ borderRadius: '0.5rem', fontSize: '0.875rem' }}>
 {`use serde::{Deserialize, Serialize};
@@ -124,11 +124,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }`}
           </SyntaxHighlighter>
-          <p className="text-sm text-muted-foreground mt-2">
-            💡 Key point: <code className="bg-card-muted px-2 py-1 rounded">rand::thread_rng()</code> works here but <strong>fails in smart contracts</strong>.
+ <p className="text-sm text-muted-foreground mt-2">
+ Key point: <code className="bg-card-muted px-2 py-1 rounded">rand::thread_rng()</code> works here but <strong>fails in smart contracts</strong>.
           </p>
-          <p className="text-foreground mt-3 mb-3">
-            Add <code className="bg-card-muted px-2 py-1 rounded">Cargo.toml</code>:
+ <p className="text-foreground mt-3 mb-3">
+ Add <code className="bg-card-muted px-2 py-1 rounded">Cargo.toml</code>:
           </p>
           <SyntaxHighlighter language="ini" style={vscDarkPlus} customStyle={{ borderRadius: '0.5rem', fontSize: '0.875rem' }}>
 {`[package]
@@ -149,30 +149,30 @@ path = "src/main.rs"`}
 
         {/* Step 2: Push to GitHub */}
         <section id="step-2">
-          <AnchorHeading id="step-2">📤 Step 2: Make Code Publicly Available</AnchorHeading>
-          <p className="text-foreground mb-3">
-            Your code must be accessible in a <strong>public GitHub repository</strong>. OutLayer workers will compile it on-demand from the source.
+ <AnchorHeading id="step-2"> Step 2: Make Code Publicly Available</AnchorHeading>
+ <p className="text-foreground mb-3">
+ Your code must be accessible in a <strong>public GitHub repository</strong>. OutLayer workers will compile it on-demand from the source.
           </p>
-          <p className="text-foreground mb-3">
+ <p className="text-foreground mb-3">
             You can reference your code by:
           </p>
-          <ul className="list-disc list-inside space-y-2 text-foreground mb-3">
-            <li><strong>Branch name</strong> (e.g., <code className="bg-card-muted px-2 py-1 rounded">main</code>, <code className="bg-card-muted px-2 py-1 rounded">develop</code>) - always uses the latest code</li>
-            <li><strong>Commit hash</strong> (e.g., <code className="bg-card-muted px-2 py-1 rounded">a1b2c3d</code>) - immutable, guarantees exact version</li>
+ <ul className="list-disc list-inside space-y-2 text-foreground mb-3">
+ <li><strong>Branch name</strong> (e.g., <code className="bg-card-muted px-2 py-1 rounded">main</code>, <code className="bg-card-muted px-2 py-1 rounded">develop</code>) - always uses the latest code</li>
+ <li><strong>Commit hash</strong> (e.g., <code className="bg-card-muted px-2 py-1 rounded">a1b2c3d</code>) - immutable, guarantees exact version</li>
           </ul>
-          <p className="text-sm text-muted-foreground">
-            📝 Example repo: <a href="https://github.com/out-layer/random-example" target="_blank" rel="noopener" className="text-[var(--primary-orange)] hover:underline">github.com/out-layer/random-example</a>
+ <p className="text-sm text-muted-foreground">
+ Example repo: <a href="https://github.com/out-layer/random-example" target="_blank" rel="noopener" className="text-[var(--primary-orange)] hover:underline">github.com/out-layer/random-example</a>
           </p>
-          <p className="text-sm text-muted-foreground mt-2">
-            🔮 Coming soon: GitLab, Bitbucket, and other git hosting platforms
+ <p className="text-sm text-muted-foreground mt-2">
+             Coming soon: GitLab, Bitbucket, and other git hosting platforms
           </p>
         </section>
 
         {/* Step 3: Call from CLI */}
         <section id="step-3">
-          <AnchorHeading id="step-3">🚀 Step 3: Call OutLayer Contract</AnchorHeading>
-          <p className="text-foreground mb-3">
-            Now you can run your code by calling a smart contract. This will <strong>pause the blockchain transaction</strong>,
+ <AnchorHeading id="step-3"> Step 3: Call OutLayer Contract</AnchorHeading>
+ <p className="text-foreground mb-3">
+ Now you can run your code by calling a smart contract. This will <strong>pause the blockchain transaction</strong>,
             execute your code off-chain, and send the result back into the blockchain transaction:
           </p>
           <SyntaxHighlighter language="bash" style={vscDarkPlus} customStyle={{ borderRadius: '0.5rem', fontSize: '0.875rem' }}>
@@ -219,23 +219,23 @@ near call outlayer.testnet request_execution '{
   "response_format": "Json"
 }' --accountId alice.testnet --deposit 0.1 --gas 300000000000000`}
           </SyntaxHighlighter>
-          <div className="bg-info/10 border-l-4 border-info/60 p-4 my-4">
-            <p className="text-sm text-info mb-2">
-              <strong>💰 Dynamic Pricing:</strong> Payment is calculated based on actual resources consumed (instructions executed, time spent).
+ <div className="bg-card-muted border-l-4 border-border p-4 my-4">
+ <p className="text-sm text-foreground mb-2">
+ <strong> Dynamic Pricing:</strong> Payment is calculated based on actual resources consumed (instructions executed, time spent).
               Unused deposit is automatically refunded at the end of the transaction.
             </p>
-            <p className="text-sm text-info">
-              <strong>💡 Try it now:</strong> <a href="/playground?preset=Random%20Number%20Generator" className="underline font-medium">Open in Playground →</a>
+ <p className="text-sm text-foreground">
+ <strong> Try it now:</strong> <a href="/playground?preset=Random%20Number%20Generator" className="underline font-medium">Open in Playground →</a>
             </p>
           </div>
         </section>
 
         {/* Step 4: Result */}
         <section id="step-4">
-          <AnchorHeading id="step-4">✅ Step 4: Get Result</AnchorHeading>
-          <p className="text-foreground mb-3">
-            Check execution result on the <Link href="/executions" className="text-[var(--primary-orange)] hover:underline">Executions</Link> page.
-            Since we specified <code className="bg-card-muted px-2 py-1 rounded">response_format: &quot;Json&quot;</code>, the result will be parsed as JSON:
+ <AnchorHeading id="step-4"> Step 4: Get Result</AnchorHeading>
+ <p className="text-foreground mb-3">
+ Check execution result on the <Link href="/executions" className="text-[var(--primary-orange)] hover:underline">Executions</Link> page.
+ Since we specified <code className="bg-card-muted px-2 py-1 rounded">response_format: &quot;Json&quot;</code>, the result will be parsed as JSON:
           </p>
           <SyntaxHighlighter language="json" style={vscDarkPlus} customStyle={{ borderRadius: '0.5rem', fontSize: '0.875rem' }}>
 {`{
@@ -253,10 +253,10 @@ near call outlayer.testnet request_execution '{
 
         {/* Step 5: Advanced - Contract Integration */}
         <section id="step-5">
-          <AnchorHeading id="step-5">🔥 Step 5: Use in Your Contract</AnchorHeading>
-          <p className="text-foreground mb-3">
+ <AnchorHeading id="step-5"> Step 5: Use in Your Contract</AnchorHeading>
+ <p className="text-foreground mb-3">
             The most exciting part: you can integrate this off-chain code into smart contracts!
-            For example, let&apos;s build a coin flip game where players guess heads or tails through a <code className="bg-card-muted px-2 py-1 rounded">coin-toss</code> contract:
+ For example, let&apos;s build a coin flip game where players guess heads or tails through a <code className="bg-card-muted px-2 py-1 rounded">coin-toss</code> contract:
           </p>
           <SyntaxHighlighter language="rust" style={vscDarkPlus} customStyle={{ borderRadius: '0.5rem', fontSize: '0.875rem' }}>
 {`use near_sdk::*;
@@ -319,7 +319,7 @@ impl CoinFlipContract {
                 "{\\"min\\": 0, \\"max\\": 1}".to_string(),
                 None,
                 "Json".to_string(),
-                Some(player.clone()), // ✅ Refund goes to player, not to this contract
+                Some(player.clone()), //  Refund goes to player, not to this contract
             )
             .then(
                 ext_self::ext(env::current_account_id())
@@ -342,9 +342,9 @@ impl CoinFlipContract {
             Ok(Some(response)) => {
                 let result = if response.random_number == 0 { "Heads" } else { "Tails" };
                 if choice == result {
-                    format!("🎉 You won! Result: {}", result)
+                    format!(" You won! Result: {}", result)
                 } else {
-                    format!("😢 You lost. Result: {}", result)
+                    format!(" You lost. Result: {}", result)
                 }
             }
             _ => "Error: OutLayer execution failed".to_string()
@@ -352,52 +352,52 @@ impl CoinFlipContract {
     }
 }`}
           </SyntaxHighlighter>
-          <div className="bg-success/10 border-l-4 border-success/60 p-4 my-4">
-            <p className="text-sm text-success-text">
-              <strong>🎮 Try it with your testnet account:</strong> <a href="/playground?preset=Coin%20Flip%20Game" className="underline font-medium">Open Coin Flip in Playground →</a>
+ <div className="bg-card-muted border-l-4 border-border p-4 my-4">
+ <p className="text-sm text-foreground">
+ <strong> Try it with your testnet account:</strong> <a href="/playground?preset=Coin%20Flip%20Game" className="underline font-medium">Open Coin Flip in Playground →</a>
               <br />
               (Mainnet is also supported)
             </p>
           </div>
-          <p className="text-sm text-muted-foreground mt-3">
-            📝 Example transaction: <a href="https://testnet.nearblocks.io/txns/Gq3cN9ePX6s5pt5z4snfAtjszQ9mjzzWhwEUThmHfaDm?tab=execution" target="_blank" rel="noopener" className="text-[var(--primary-orange)] hover:underline">View on NEAR Explorer</a>
+ <p className="text-sm text-muted-foreground mt-3">
+ Example transaction: <a href="https://testnet.nearblocks.io/txns/Gq3cN9ePX6s5pt5z4snfAtjszQ9mjzzWhwEUThmHfaDm?tab=execution" target="_blank" rel="noopener" className="text-[var(--primary-orange)] hover:underline">View on NEAR Explorer</a>
           </p>
         </section>
 
         {/* Important Details for Developers */}
         <section id="important-details">
-          <AnchorHeading id="important-details">🔧 Important Details for Developers</AnchorHeading>
-          <div className="space-y-4">
-            <div className="bg-card-muted p-4 rounded-lg">
-              <h4 className="font-semibold text-foreground mb-2">💰 Payment Flexibility</h4>
-              <p className="text-foreground text-sm">
+ <AnchorHeading id="important-details"> Important Details for Developers</AnchorHeading>
+ <div className="space-y-4">
+ <div className="bg-card-muted p-4 rounded-lg">
+ <h4 className="font-semibold text-foreground mb-2"> Payment Flexibility</h4>
+ <p className="text-foreground text-sm">
                 You can choose who pays for off-chain execution: user or your contract.
               </p>              
             </div>
 
-            <div className="bg-card-muted p-4 rounded-lg">
-              <h4 className="font-semibold text-foreground mb-2">🔒 Layer 1 Settlement</h4>
-              <p className="text-foreground text-sm">
-                Off-chain execution is fast and cheap, but <strong>final settlement stays on NEAR Layer 1</strong>.
+ <div className="bg-card-muted p-4 rounded-lg">
+ <h4 className="font-semibold text-foreground mb-2"> Layer 1 Settlement</h4>
+ <p className="text-foreground text-sm">
+ Off-chain execution is fast and cheap, but <strong>final settlement stays on NEAR Layer 1</strong>.
                 Your contract receives results via callback on-chain, ensuring security and auditability.
               </p>
             </div>
 
-            <div className="bg-card-muted p-4 rounded-lg">
-              <h4 className="font-semibold text-foreground mb-2">🔐 Encrypted Secrets</h4>
-              <p className="text-foreground text-sm">
-                Store API keys and credentials with <Link href="/docs/secrets" className="text-[var(--primary-orange)] underline">sophisticated access control</Link>:
+ <div className="bg-card-muted p-4 rounded-lg">
+ <h4 className="font-semibold text-foreground mb-2"> Encrypted Secrets</h4>
+ <p className="text-foreground text-sm">
+ Store API keys and credentials with <Link href="/docs/secrets" className="text-[var(--primary-orange)] underline">sophisticated access control</Link>:
                 whitelists, NEAR balance requirements, FT/NFT ownership, and complex logic conditions (AND/OR/NOT).
               </p>
             </div>
 
-            <div className="bg-card-muted p-4 rounded-lg">
-              <h4 className="font-semibold text-foreground mb-2">📡 Blockchain Data Access</h4>
-              <p className="text-foreground text-sm mb-2">
+ <div className="bg-card-muted p-4 rounded-lg">
+ <h4 className="font-semibold text-foreground mb-2"> Blockchain Data Access</h4>
+ <p className="text-foreground text-sm mb-2">
                 WASI containers can receive blockchain context as input parameters (block height, account ID, timestamp, etc.).
               </p>
-              <p className="text-foreground text-sm">
-                Example: <a href="https://github.com/out-layer/echo-example" target="_blank" rel="noopener" className="text-[var(--primary-orange)] underline">echo-example</a> -
+ <p className="text-foreground text-sm">
+ Example: <a href="https://github.com/out-layer/echo-example" target="_blank" rel="noopener" className="text-[var(--primary-orange)] underline">echo-example</a> -
                 demonstrates how to pass and process blockchain data in off-chain code.
               </p>
             </div>
@@ -406,46 +406,46 @@ impl CoinFlipContract {
 
         {/* Key Takeaways */}
         <section id="key-takeaways">
-          <AnchorHeading id="key-takeaways">🎓 Key Takeaways</AnchorHeading>
-          <div className="space-y-3">
-            <div className="flex items-start space-x-3">
-              <span className="text-xl">✅</span>
-              <p className="text-foreground"><strong>True randomness</strong> - impossible on-chain, trivial with OutLayer</p>
+ <AnchorHeading id="key-takeaways"> Key Takeaways</AnchorHeading>
+ <div className="space-y-3">
+ <div className="flex items-start space-x-3">
+ <span className="text-xl"></span>
+ <p className="text-foreground"><strong>True randomness</strong> - impossible on-chain, trivial with OutLayer</p>
             </div>
-            <div className="flex items-start space-x-3">
-              <span className="text-xl">✅</span>
-              <p className="text-foreground"><strong>Simple integration</strong> - write Rust, push to GitHub, call from contract</p>
+ <div className="flex items-start space-x-3">
+ <span className="text-xl"></span>
+ <p className="text-foreground"><strong>Simple integration</strong> - write Rust, push to GitHub, call from contract</p>
             </div>
-            <div className="flex items-start space-x-3">
-              <span className="text-xl">✅</span>
-              <p className="text-foreground"><strong>Secure execution</strong> - runs in TEE with attestation (coming soon)</p>
+ <div className="flex items-start space-x-3">
+ <span className="text-xl"></span>
+ <p className="text-foreground"><strong>Secure execution</strong> - runs in TEE with attestation (coming soon)</p>
             </div>
-            <div className="flex items-start space-x-3">
-              <span className="text-xl">✅</span>
-              <p className="text-foreground"><strong>Automatic refunds</strong> - unused resources returned to caller</p>
+ <div className="flex items-start space-x-3">
+ <span className="text-xl"></span>
+ <p className="text-foreground"><strong>Automatic refunds</strong> - unused resources returned to caller</p>
             </div>
           </div>
         </section>
 
         {/* Next Steps */}
         <section id="next-steps-guide">
-          <AnchorHeading id="next-steps-guide">🚀 Next Steps</AnchorHeading>
-          <ul className="space-y-2">
-            <li className="flex items-center space-x-2">
-              <span className="text-[var(--primary-orange)]">→</span>
-              <span>Fork <a href="https://github.com/out-layer/random-example" target="_blank" rel="noopener" className="text-[var(--primary-orange)] hover:underline">random-example</a> and customize it</span>
+ <AnchorHeading id="next-steps-guide"> Next Steps</AnchorHeading>
+ <ul className="space-y-2">
+ <li className="flex items-center space-x-2">
+ <span className="text-[var(--primary-orange)]">→</span>
+ <span>Fork <a href="https://github.com/out-layer/random-example" target="_blank" rel="noopener" className="text-[var(--primary-orange)] hover:underline">random-example</a> and customize it</span>
             </li>
-            <li className="flex items-center space-x-2">
-              <span className="text-[var(--primary-orange)]">→</span>
-              <span>Explore <a href="https://github.com/out-layer/random-example/tree/main/random-contract" target="_blank" rel="noopener" className="text-[var(--primary-orange)] hover:underline">coin flip contract</a> source code</span>
+ <li className="flex items-center space-x-2">
+ <span className="text-[var(--primary-orange)]">→</span>
+ <span>Explore <a href="https://github.com/out-layer/random-example/tree/main/random-contract" target="_blank" rel="noopener" className="text-[var(--primary-orange)] hover:underline">coin flip contract</a> source code</span>
             </li>
-            <li className="flex items-center space-x-2">
-              <span className="text-[var(--primary-orange)]">→</span>
-              <span>Learn about <Link href="/docs/secrets" className="text-[var(--primary-orange)] hover:underline">encrypted secrets</Link> for API keys</span>
+ <li className="flex items-center space-x-2">
+ <span className="text-[var(--primary-orange)]">→</span>
+ <span>Learn about <Link href="/docs/secrets" className="text-[var(--primary-orange)] hover:underline">encrypted secrets</Link> for API keys</span>
             </li>
-            <li className="flex items-center space-x-2">
-              <span className="text-[var(--primary-orange)]">→</span>
-              <span>Read <Link href="/docs/wasi" className="text-[var(--primary-orange)] hover:underline">WASI documentation</Link> for HTTP requests and more</span>
+ <li className="flex items-center space-x-2">
+ <span className="text-[var(--primary-orange)]">→</span>
+ <span>Read <Link href="/docs/wasi" className="text-[var(--primary-orange)] hover:underline">WASI documentation</Link> for HTTP requests and more</span>
             </li>
           </ul>
         </section>

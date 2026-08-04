@@ -67,7 +67,7 @@ const DIRECT_PRESETS: DirectPreset[] = [
   {
     type: 'direct',
     name: 'Random Number Generator',
-    description: '🎲 Generate truly random numbers on-chain. Great for games, lotteries, and any application needing unpredictable randomness.',
+    description: ' Generate truly random numbers on-chain. Great for games, lotteries, and any application needing unpredictable randomness.',
     repo: 'https://github.com/out-layer/random-example',
     commit: 'main',
     buildTarget: 'wasm32-wasip1',
@@ -79,7 +79,7 @@ const DIRECT_PRESETS: DirectPreset[] = [
   {
     type: 'direct',
     name: 'AI Completions',
-    description: '🤖 AI inference with system prompt from encrypted secrets. Demo: AI responds with all sentences starting with "O" - you can set any custom rules like language restrictions, personality, response format. Using pre-compiled WASM from FastFS for faster execution.',
+    description: ' AI inference with system prompt from encrypted secrets. Demo: AI responds with all sentences starting with "O" - you can set any custom rules like language restrictions, personality, response format. Using pre-compiled WASM from FastFS for faster execution.',
     codeSourceType: 'wasmurl',
     wasmUrl: 'https://wasmhub.testnet.fastfs.io/fastfs.testnet/cbf80ed0080dd62f2041745cdc958ec0fbd192f33aeaa756f7873d742204b2f8.wasm',
     wasmHash: '41c1c7b3528565f3fd139943f439d61c0768e9abdb9b579bd0921ecbfcabeded',
@@ -95,7 +95,7 @@ const DIRECT_PRESETS: DirectPreset[] = [
   {
     type: 'direct',
     name: 'Echo Generator',
-    description: '📢 Simple echo with blockchain context (sender, block height, timestamp). Perfect starter to understand how contracts interact with OutLayer.',
+    description: ' Simple echo with blockchain context (sender, block height, timestamp). Perfect starter to understand how contracts interact with OutLayer.',
     repo: 'https://github.com/out-layer/echo-example',
     commit: 'main',
     buildTarget: 'wasm32-wasip1',
@@ -107,7 +107,7 @@ const DIRECT_PRESETS: DirectPreset[] = [
   {
     type: 'direct',
     name: 'Weather Data Oracle',
-    description: '🌤️ Get real-time weather for any city. Build weather-based smart contracts, agricultural apps, or travel planning tools. Pre-configured secrets ready to test!',
+    description: ' Get real-time weather for any city. Build weather-based smart contracts, agricultural apps, or travel planning tools. Pre-configured secrets ready to test!',
     repo: 'https://github.com/out-layer/weather-example',
     commit: 'main',
     buildTarget: 'wasm32-wasip2',
@@ -122,7 +122,7 @@ const DIRECT_PRESETS: DirectPreset[] = [
   {
     type: 'direct',
     name: 'Multi-Source Data Oracle',
-    description: '📊 Get reliable crypto/commodity prices from multiple sources (CoinGecko, Binance, Pyth, etc). Automatic aggregation prevents manipulation. Great for DeFi apps.',
+    description: ' Get reliable crypto/commodity prices from multiple sources (CoinGecko, Binance, Pyth, etc). Automatic aggregation prevents manipulation. Great for DeFi apps.',
     repo: 'https://github.com/out-layer/oracle-example',
     commit: '88b72003a06dc8d1972b39240e01aa9c0c7bbe24',
     buildTarget: 'wasm32-wasip2',
@@ -137,7 +137,7 @@ const DIRECT_PRESETS: DirectPreset[] = [
   {
     type: 'direct',
     name: 'Ethereum API',
-    description: '⚡ Query Ethereum blockchain data (balances, smart contracts, transactions). Bridge NEAR with Ethereum data for cross-chain applications.',
+    description: ' Query Ethereum blockchain data (balances, smart contracts, transactions). Bridge NEAR with Ethereum data for cross-chain applications.',
     repo: 'https://github.com/out-layer/oracle-example',
     commit: '7deaa4433f693424c9e47b2e12176cb7c86f504f',
     buildTarget: 'wasm32-wasip2',
@@ -152,7 +152,7 @@ const DIRECT_PRESETS: DirectPreset[] = [
   {
     type: 'direct',
     name: 'Publish to FastFS',
-    description: '📦 Compile code and publish WASM to FastFS for permanent storage. Returns FastFS URL instead of executing. Requires force_rebuild to ensure fresh compilation.',
+    description: ' Compile code and publish WASM to FastFS for permanent storage. Returns FastFS URL instead of executing. Requires force_rebuild to ensure fresh compilation.',
     repo: 'https://github.com/out-layer/random-example',
     commit: 'main',
     buildTarget: 'wasm32-wasip1',
@@ -167,7 +167,7 @@ const DIRECT_PRESETS: DirectPreset[] = [
   {
     type: 'direct',
     name: 'Project Storage Test',
-    description: '💾 Test persistent storage API. Runs test_all command to verify storage operations (set, get, delete, list_keys, has, get_by_version). Uses project-based execution with shared storage across versions.',
+    description: ' Test persistent storage API. Runs test_all command to verify storage operations (set, get, delete, list_keys, has, get_by_version). Uses project-based execution with shared storage across versions.',
     codeSourceType: 'project',
     projectId: 'zavodil2.testnet/test-storage',
     versionKey: 'fb9086ae8a805ea01be67f2508c7757aa6ece174656a71faed29cff0243541de',
@@ -199,7 +199,7 @@ const PROXY_PRESETS: ProxyPreset[] = [
     type: 'proxy',
     name: 'Coin Flip Game',
     args: '{"choice":"Heads"}',
-    description: '🎲 Play a coin flip game! Choose Heads or Tails. The proxy contract calls OutLayer for random number generation.\n\n🔗 Contract: https://github.com/out-layer/random-example/tree/main/random-contract',
+    description: ' Play a coin flip game! Choose Heads or Tails. The proxy contract calls OutLayer for random number generation.\n\n Contract: https://github.com/out-layer/random-example/tree/main/random-contract',
     networks: ['testnet', 'mainnet'],
     proxyContractIdTestnet: 'coin-toss.testnet',
     proxyContractIdMainnet: 'coin-toss.near',
@@ -217,7 +217,7 @@ const PROXY_PRESETS: ProxyPreset[] = [
     type: 'proxy',
     name: 'VRF Coin Flip',
     args: '{"choice":"Heads"}',
-    description: '🎲 Provably fair coin flip using VRF! Choose Heads or Tails. Result includes Ed25519 proof verified on-chain via ed25519_verify.\n\n🔗 Contract: https://github.com/out-layer/vrf-example/tree/main/vrf-contract',
+    description: ' Provably fair coin flip using VRF! Choose Heads or Tails. Result includes Ed25519 proof verified on-chain via ed25519_verify.\n\n Contract: https://github.com/out-layer/vrf-example/tree/main/vrf-contract',
     networks: ['testnet', 'mainnet'],
     proxyContractIdTestnet: 'coin-flip-vrf.testnet',
     proxyContractIdMainnet: 'coin-flip-vrf.near',
@@ -236,7 +236,7 @@ const PROXY_PRESETS: ProxyPreset[] = [
     type: 'proxy',
     name: 'NEAR Intents Swap',
     args: '{"receiver_id":"v1.publishintent.near","amount":"20000","msg":"{\\"Swap\\":{\\"token_out\\":\\"wrap.near\\",\\"min_amount_out\\":\\"1000000000000000000\\"}}"}',
-    description: '⚠️ Swaps USDC to wNEAR via NEAR Intents protocol.\n\n📋 Before using:\n1. Ensure you have storage_deposit for wNEAR (wrap.near)\n2. Only use whitelisted tokens\n3. Adjust token_out and min_amount_out as needed\n4. This calls ft_transfer_call on USDC token contract\n\n🔗 Contract: https://github.com/out-layer/intents-example/tree/main/intents-contract',
+    description: ' Swaps USDC to wNEAR via NEAR Intents protocol.\n\n Before using:\n1. Ensure you have storage_deposit for wNEAR (wrap.near)\n2. Only use whitelisted tokens\n3. Adjust token_out and min_amount_out as needed\n4. This calls ft_transfer_call on USDC token contract\n\n Contract: https://github.com/out-layer/intents-example/tree/main/intents-contract',
     networks: ['mainnet'],
     proxyContractIdMainnet: '17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1', // USDC mainnet
     proxyMethod: 'ft_transfer_call',
@@ -253,7 +253,7 @@ const PROXY_PRESETS: ProxyPreset[] = [
     type: 'proxy',
     name: 'ZFT Token (Init)',
     args: '{"outlayer_contract":"{{contractId}}","project_id":"zavodil2.testnet/private-ft","total_supply":"1000000000000000000000000000","name":"ZFT Token","symbol":"ZFT","decimals":18,"icon":null}',
-    description: '🪙 Initialize ZFT private token. Mints total_supply to your wallet (NEAR_SENDER_ID).\n\n⚠️ Can only be called ONCE. After initialization, use Balance and Transfer methods.\n\n🔗 Project: zavodil2.testnet/private-ft',
+    description: ' Initialize ZFT private token. Mints total_supply to your wallet (NEAR_SENDER_ID).\n\n Can only be called ONCE. After initialization, use Balance and Transfer methods.\n\n Project: zavodil2.testnet/private-ft',
     networks: ['testnet'],
     proxyContractIdTestnet: 'zft.testnet',
     proxyMethod: 'new',
@@ -265,7 +265,7 @@ const PROXY_PRESETS: ProxyPreset[] = [
     type: 'proxy',
     name: 'ZFT Token (Balance)',
     args: '{"account_id":"zavodil2.testnet"}',
-    description: '🪙 Check ZFT private token balance. Balances are stored on OutLayer, not on-chain.\n\nReplace account_id with the account you want to check.\n\n🔗 Project: zavodil2.testnet/private-ft',
+    description: ' Check ZFT private token balance. Balances are stored on OutLayer, not on-chain.\n\nReplace account_id with the account you want to check.\n\n Project: zavodil2.testnet/private-ft',
     networks: ['testnet'],
     proxyContractIdTestnet: 'zft.testnet',
     proxyMethod: 'ft_balance_of',
@@ -277,7 +277,7 @@ const PROXY_PRESETS: ProxyPreset[] = [
     type: 'proxy',
     name: 'ZFT Token (Transfer)',
     args: '{"receiver_id":"zavodil.testnet","amount":"1000000000000000000","memo":"test transfer"}',
-    description: '🪙 Transfer ZFT private tokens. Sender is your wallet account (NEAR_SENDER_ID).\n\n📋 Amount is in smallest units (18 decimals). 1 ZFT = 1000000000000000000.\n\n🔗 Project: zavodil2.testnet/private-ft',
+    description: ' Transfer ZFT private tokens. Sender is your wallet account (NEAR_SENDER_ID).\n\n Amount is in smallest units (18 decimals). 1 ZFT = 1000000000000000000.\n\n Project: zavodil2.testnet/private-ft',
     networks: ['testnet'],
     proxyContractIdTestnet: 'zft.testnet',
     proxyMethod: 'ft_transfer',
@@ -289,7 +289,7 @@ const PROXY_PRESETS: ProxyPreset[] = [
     type: 'proxy',
     name: 'ZFT Token (Transfer Call)',
     args: '{"receiver_id":"zavodil.testnet","amount":"1000000000000000000","memo":"test transfer call","msg":"hello from ZFT"}',
-    description: '🪙 Transfer ZFT tokens and call receiver contract (NEP-141 ft_transfer_call).\n\n📋 This method:\n1. Transfers tokens to receiver\n2. Calls ft_on_transfer on receiver contract with your msg\n3. Handles refunds if receiver returns unused tokens\n\n🔗 Project: zavodil2.testnet/private-ft',
+    description: ' Transfer ZFT tokens and call receiver contract (NEP-141 ft_transfer_call).\n\n This method:\n1. Transfers tokens to receiver\n2. Calls ft_on_transfer on receiver contract with your msg\n3. Handles refunds if receiver returns unused tokens\n\n Project: zavodil2.testnet/private-ft',
     networks: ['testnet'],
     proxyContractIdTestnet: 'zft.testnet',
     proxyMethod: 'ft_transfer_call',
@@ -835,63 +835,75 @@ function PlaygroundContent() {
   };
 
   return (
-    <div className="w-full">
-      <div className="sm:flex sm:items-center">
-        <div className="sm:flex-auto">
-          <h1 className="text-xl font-bold tracking-tight">Playground</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
+ <div className="w-full">
+ <div className="sm:flex sm:items-center">
+ <div className="sm:flex-auto">
+ <h1 className="text-xl font-bold tracking-tight">Playground</h1>
+ <p className="mt-1 text-sm text-muted-foreground">
             Test off-chain execution with your GitHub repository
           </p>
         </div>
       </div>
 
-      <div className="mt-8 bg-card border border-border sm:rounded-lg">
-        <div className="px-4 py-5 sm:p-6">
+ <div className="mt-8 bg-card border border-border sm:rounded-lg">
+ <div className="px-4 py-5 sm:p-6">
           {/* Current Network & Contract Info */}
-          <div className="mb-6 p-3 bg-card-muted rounded-md">
-            <div className="text-sm text-muted-foreground">
-              <span className="font-medium">Network:</span> {network === 'testnet' ? 'Testnet' : 'Mainnet'}
-              {' '} | {' '}
-              <span className="font-medium">Contract:</span> <span className="font-mono">{contractId}</span>
+ <div className="mb-6 p-3 bg-card-muted rounded-md">
+ <div className="text-sm text-muted-foreground">
+ <span className="font-medium">Network:</span> {network === 'testnet' ? 'Testnet' : 'Mainnet'}
+              {' '} |  <span className="font-medium">Contract:</span> <span className="font-mono">{contractId}</span>
             </div>
           </div>
 
           {/* Preset Selector */}
           {availablePresets.length > 0 && (
-            <div className="mb-6">
-              <label htmlFor="presetSelector" className="block text-sm font-medium text-foreground mb-1">
+ <div className="mb-6">
+ <label className="block text-sm font-medium text-foreground mb-2">
                 Example Presets
               </label>
-              <select
-                id="presetSelector"
-                value={selectedPreset}
-                onChange={(e) => applyPreset(e.target.value)}
-                className="mt-1 block w-full rounded-md border-border-strong shadow-sm focus:border-accent focus:ring-accent sm:text-sm px-3 py-2"
-              >
-                <optgroup label="Direct Execution (call OutLayer)">
-                  {availablePresets
-                    .filter(p => p.type === 'direct')
-                    .map((preset) => (
-                      <option key={preset.name} value={preset.name}>
-                        {preset.name}
-                      </option>
-                    ))}
-                </optgroup>
-                {availablePresets.filter(p => p.type === 'proxy').length > 0 && (
-                  <optgroup label="Via Proxy Contracts">
+              <div className="flex flex-wrap gap-2">
+                {availablePresets
+                  .filter(p => p.type === 'direct')
+                  .map((preset) => (
+                    <button
+                      key={preset.name}
+                      type="button"
+                      onClick={() => applyPreset(preset.name)}
+                      className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors cursor-pointer ${
+                        selectedPreset === preset.name
+                          ? 'border-accent bg-accent/10 text-accent-text'
+                          : 'border-border text-muted-foreground hover:border-border-strong hover:text-foreground'
+                      }`}
+                    >
+                      {preset.name}
+                    </button>
+                  ))}
+              </div>
+              {availablePresets.filter(p => p.type === 'proxy').length > 0 && (
+                <>
+                  <p className="mt-3 mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-faint-foreground">
+                    Via proxy contracts
+                  </p>
+                  <div className="flex flex-wrap gap-2">
                     {availablePresets
                       .filter(p => p.type === 'proxy')
                       .map((preset) => (
-                        <option key={preset.name} value={preset.name}>
+                        <button
+                          key={preset.name}
+                          type="button"
+                          onClick={() => applyPreset(preset.name)}
+                          className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors cursor-pointer ${
+                            selectedPreset === preset.name
+                              ? 'border-accent bg-accent/10 text-accent-text'
+                              : 'border-border text-muted-foreground hover:border-border-strong hover:text-foreground'
+                          }`}
+                        >
                           {preset.name}
-                        </option>
+                        </button>
                       ))}
-                  </optgroup>
-                )}
-              </select>
-              <p className="mt-1 text-xs text-muted-foreground">
-                Select a preset to auto-fill the form with example values
-              </p>
+                  </div>
+                </>
+              )}
 
               {/* Show description for selected preset */}
               {(() => {
@@ -912,7 +924,7 @@ function PlaygroundContent() {
                           href={part}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-accent-text underline"
+ className="text-accent-text underline"
                         >
                           {part}
                         </a>
@@ -923,20 +935,20 @@ function PlaygroundContent() {
                 };
 
                 return (
-                  <div className="mt-3 p-3 bg-warning/10 border border-warning/30 rounded-md">
-                    <div className="text-sm text-warning whitespace-pre-line">
+ <div className="mt-3 p-3 bg-warning/10 border border-warning/30 rounded-md">
+ <div className="text-sm text-warning whitespace-pre-line">
                       {formatDescription(preset.description)}
                     </div>
                     {preset.docsLink && (
-                      <div className="mt-3">
+ <div className="mt-3">
                         <a
                           href={preset.docsLink}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex items-center gap-2 text-sm font-medium text-accent-text hover:underline"
+ className="inline-flex items-center gap-2 text-sm font-medium text-accent-text hover:underline"
                         >
-                          📖 View detailed documentation
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                           View detailed documentation
+ <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                           </svg>
                         </a>
@@ -954,11 +966,11 @@ function PlaygroundContent() {
             return currentPreset?.type === 'proxy' ? (
               <>
                 {/* Contract ID */}
-                <div className="mb-6">
-                  <label className="block text-sm font-medium text-foreground">
+ <div className="mb-6">
+ <label className="block text-sm font-medium text-foreground">
                     Contract ID
                   </label>
-                  <div className="mt-1 block w-full rounded-md border border-border-strong bg-card-muted px-3 py-2 text-sm text-muted-foreground font-mono">
+ <div className="mt-1 block w-full rounded-md border border-border-strong bg-card-muted px-3 py-2 text-sm text-muted-foreground font-mono">
                     {network === 'testnet'
                       ? currentPreset.proxyContractIdTestnet
                       : currentPreset.proxyContractIdMainnet}
@@ -966,8 +978,8 @@ function PlaygroundContent() {
                 </div>
 
                 {/* Method Name */}
-                <div className="mb-6">
-                  <label htmlFor="proxyMethod" className="block text-sm font-medium text-foreground">
+ <div className="mb-6">
+ <label htmlFor="proxyMethod" className="block text-sm font-medium text-foreground">
                     Method Name
                   </label>
                   <input
@@ -976,7 +988,7 @@ function PlaygroundContent() {
                     value={proxyMethod}
                     onChange={(e) => setProxyMethod(e.target.value)}
                     placeholder="method_name"
-                    className="mt-1 block w-full rounded-md border-border-strong shadow-sm focus:border-accent focus:ring-accent sm:text-sm font-mono px-3 py-2"
+ className="mt-1 block w-full rounded-md border-border-strong shadow-sm focus:border-accent focus:ring-accent sm:text-sm font-mono px-3 py-2"
                   />
                 </div>
               </>
@@ -989,43 +1001,43 @@ function PlaygroundContent() {
             return currentPreset?.type === 'direct' ? (
               <>
                 {/* Code Source Type Selector */}
-                <div className="mb-6">
-                  <label className="block text-sm font-medium text-foreground mb-2">
+ <div className="mb-6">
+ <label className="block text-sm font-medium text-foreground mb-2">
                     Code Source
                   </label>
-                  <div className="flex gap-4 flex-wrap">
-                    <label className="inline-flex items-center">
+ <div className="flex gap-4 flex-wrap">
+ <label className="inline-flex items-center">
                       <input
                         type="radio"
                         name="codeSourceType"
                         value="github"
                         checked={codeSourceType === 'github'}
                         onChange={(e) => setCodeSourceType(e.target.value as 'github' | 'wasmurl' | 'project')}
-                        className="form-radio h-4 w-4 text-accent-text"
+ className="form-radio h-4 w-4 text-accent-text"
                       />
-                      <span className="ml-2 text-sm text-foreground">GitHub Repository</span>
+ <span className="ml-2 text-sm text-foreground">GitHub Repository</span>
                     </label>
-                    <label className="inline-flex items-center">
+ <label className="inline-flex items-center">
                       <input
                         type="radio"
                         name="codeSourceType"
                         value="wasmurl"
                         checked={codeSourceType === 'wasmurl'}
                         onChange={(e) => setCodeSourceType(e.target.value as 'github' | 'wasmurl' | 'project')}
-                        className="form-radio h-4 w-4 text-accent-text"
+ className="form-radio h-4 w-4 text-accent-text"
                       />
-                      <span className="ml-2 text-sm text-foreground">WASM URL</span>
+ <span className="ml-2 text-sm text-foreground">WASM URL</span>
                     </label>
-                    <label className="inline-flex items-center">
+ <label className="inline-flex items-center">
                       <input
                         type="radio"
                         name="codeSourceType"
                         value="project"
                         checked={codeSourceType === 'project'}
                         onChange={(e) => setCodeSourceType(e.target.value as 'github' | 'wasmurl' | 'project')}
-                        className="form-radio h-4 w-4 text-accent-text"
+ className="form-radio h-4 w-4 text-accent-text"
                       />
-                      <span className="ml-2 text-sm text-foreground">Project</span>
+ <span className="ml-2 text-sm text-foreground">Project</span>
                     </label>
                   </div>
                 </div>
@@ -1033,8 +1045,8 @@ function PlaygroundContent() {
                 {codeSourceType === 'project' ? (
                   /* Project input */
                   <>
-                    <div className="mb-6">
-                      <label htmlFor="projectId" className="block text-sm font-medium text-foreground">
+ <div className="mb-6">
+ <label htmlFor="projectId" className="block text-sm font-medium text-foreground">
                         Project ID
                       </label>
                       <input
@@ -1043,14 +1055,14 @@ function PlaygroundContent() {
                         value={projectId}
                         onChange={(e) => setProjectId(e.target.value)}
                         placeholder="account.near/project-name"
-                        className="mt-1 block w-full rounded-md border-border-strong shadow-sm focus:border-accent focus:ring-accent sm:text-sm px-3 py-2"
+ className="mt-1 block w-full rounded-md border-border-strong shadow-sm focus:border-accent focus:ring-accent sm:text-sm px-3 py-2"
                       />
-                      <p className="mt-1 text-xs text-muted-foreground">
+ <p className="mt-1 text-xs text-muted-foreground">
                         Enter your project ID in format: owner_account/project_name (e.g., alice.near/my-app)
                       </p>
                     </div>
-                    <div className="mb-6">
-                      <label htmlFor="versionKey" className="block text-sm font-medium text-foreground">
+ <div className="mb-6">
+ <label htmlFor="versionKey" className="block text-sm font-medium text-foreground">
                         Version Key (Optional)
                       </label>
                       <input
@@ -1059,20 +1071,20 @@ function PlaygroundContent() {
                         value={versionKey}
                         onChange={(e) => setVersionKey(e.target.value)}
                         placeholder="Leave empty for active version"
-                        className="mt-1 block w-full rounded-md border-border-strong shadow-sm focus:border-accent focus:ring-accent sm:text-sm font-mono px-3 py-2"
+ className="mt-1 block w-full rounded-md border-border-strong shadow-sm focus:border-accent focus:ring-accent sm:text-sm font-mono px-3 py-2"
                       />
-                      <p className="mt-1 text-xs text-muted-foreground">
+ <p className="mt-1 text-xs text-muted-foreground">
                         For WasmUrl: use hash. For GitHub: use &quot;repo@commit&quot;. Leave empty for active version.
                       </p>
                     </div>
                     {/* Attached USDC for developer payment */}
-                    <div className="mb-6">
-                      <label htmlFor="attachedUsdc" className="block text-sm font-medium text-foreground">
+ <div className="mb-6">
+ <label htmlFor="attachedUsdc" className="block text-sm font-medium text-foreground">
                         Attached {stablecoin.symbol} (Optional)
                       </label>
-                      <div className="mt-1 flex gap-2 items-center">
-                        <div className="relative flex-1">
-                          <span className="absolute left-3 top-2 text-muted-foreground">$</span>
+ <div className="mt-1 flex gap-2 items-center">
+ <div className="relative flex-1">
+ <span className="absolute left-3 top-2 text-muted-foreground">$</span>
                           <input
                             type="number"
                             id="attachedUsdc"
@@ -1081,25 +1093,24 @@ function PlaygroundContent() {
                             value={attachedUsdc}
                             onChange={(e) => setAttachedUsdc(e.target.value)}
                             placeholder="0.00"
-                            className="block w-full pl-7 pr-3 py-2 rounded-md border-border-strong shadow-sm focus:border-accent focus:ring-accent sm:text-sm"
+ className="block w-full pl-7 pr-3 py-2 rounded-md border-border-strong shadow-sm focus:border-accent focus:ring-accent sm:text-sm"
                           />
                         </div>
-                        <span className="text-sm text-muted-foreground">
+ <span className="text-sm text-muted-foreground">
                           Balance: ${(parseInt(usdcBalance || '0') / 10 ** stablecoin.decimals).toFixed(2)}
                         </span>
                       </div>
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        Payment to project developer. Deposit {stablecoin.symbol} at{' '}
-                        <a href="/workspace" className="text-accent-text hover:underline">My Workspace</a> first.
+ <p className="mt-1 text-xs text-muted-foreground">
+                        Payment to project developer. Deposit {stablecoin.symbol} at <a href="/workspace" className="text-accent-text hover:underline">My Workspace</a> first.
                       </p>
                     </div>
                   </>
                 ) : codeSourceType === 'github' ? (
                   <>
                     {/* GitHub Repository */}
-                    <div className="mb-6">
-                      <div className="flex items-center justify-between mb-1">
-                        <label htmlFor="repo" className="block text-sm font-medium text-foreground">
+ <div className="mb-6">
+ <div className="flex items-center justify-between mb-1">
+ <label htmlFor="repo" className="block text-sm font-medium text-foreground">
                           GitHub Repository
                         </label>
                         {repo && (
@@ -1107,9 +1118,9 @@ function PlaygroundContent() {
                             href={`${repo}`}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium text-foreground bg-card border border-border-strong rounded-md hover:bg-card-muted transition-colors"
+ className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium text-foreground bg-card border border-border-strong rounded-md hover:bg-card-muted transition-colors"
                           >
-                            <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
+ <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
                               <path fillRule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clipRule="evenodd"/>
                             </svg>
                             Fork It!
@@ -1122,13 +1133,13 @@ function PlaygroundContent() {
                         value={repo}
                         onChange={(e) => setRepo(e.target.value)}
                         placeholder="https://github.com/user/repo"
-                        className="mt-1 block w-full rounded-md border-border-strong shadow-sm focus:border-accent focus:ring-accent sm:text-sm px-3 py-2"
+ className="mt-1 block w-full rounded-md border-border-strong shadow-sm focus:border-accent focus:ring-accent sm:text-sm px-3 py-2"
                       />
                     </div>
 
                     {/* Commit/Branch */}
-                    <div className="mb-6">
-                      <label htmlFor="commit" className="block text-sm font-medium text-foreground">
+ <div className="mb-6">
+ <label htmlFor="commit" className="block text-sm font-medium text-foreground">
                         Commit Hash or Branch
                       </label>
                       <input
@@ -1137,7 +1148,7 @@ function PlaygroundContent() {
                         value={commit}
                         onChange={(e) => setCommit(e.target.value)}
                         placeholder="main"
-                        className="mt-1 block w-full rounded-md border-border-strong shadow-sm focus:border-accent focus:ring-accent sm:text-sm px-3 py-2"
+ className="mt-1 block w-full rounded-md border-border-strong shadow-sm focus:border-accent focus:ring-accent sm:text-sm px-3 py-2"
                       />
                     </div>
 
@@ -1145,8 +1156,8 @@ function PlaygroundContent() {
                 ) : (
                   /* WASM URL inputs */
                   <>
-                    <div className="mb-6">
-                      <label htmlFor="wasmUrl" className="block text-sm font-medium text-foreground">
+ <div className="mb-6">
+ <label htmlFor="wasmUrl" className="block text-sm font-medium text-foreground">
                         WASM URL
                       </label>
                       <input
@@ -1155,36 +1166,36 @@ function PlaygroundContent() {
                         value={wasmUrl}
                         onChange={(e) => setWasmUrl(e.target.value)}
                         placeholder="https://example.com/compiled.wasm or ipfs://..."
-                        className="mt-1 block w-full rounded-md border-border-strong shadow-sm focus:border-accent focus:ring-accent sm:text-sm px-3 py-2"
+ className="mt-1 block w-full rounded-md border-border-strong shadow-sm focus:border-accent focus:ring-accent sm:text-sm px-3 py-2"
                       />
-                      <p className="mt-1 text-xs text-muted-foreground">
+ <p className="mt-1 text-xs text-muted-foreground">
                         Direct URL to pre-compiled WASM file (HTTP/HTTPS or IPFS)
                       </p>
                     </div>
-                    <div className="mb-6">
-                      <label htmlFor="wasmHash" className="block text-sm font-medium text-foreground">
+ <div className="mb-6">
+ <label htmlFor="wasmHash" className="block text-sm font-medium text-foreground">
                         WASM Hash (SHA256)
                       </label>
-                      <div className="mt-1 flex gap-2">
+ <div className="mt-1 flex gap-2">
                         <input
                           type="text"
                           id="wasmHash"
                           value={wasmHash}
                           onChange={(e) => setWasmHash(e.target.value)}
                           placeholder="e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-                          className="block w-full rounded-md border-border-strong shadow-sm focus:border-accent focus:ring-accent sm:text-sm font-mono px-3 py-2"
+ className="block w-full rounded-md border-border-strong shadow-sm focus:border-accent focus:ring-accent sm:text-sm font-mono px-3 py-2"
                         />
                         <button
                           type="button"
                           onClick={calculateWasmHash}
                           disabled={hashLoading || !wasmUrl}
-                          className="inline-flex items-center px-3 py-2 border border-border-strong shadow-sm text-sm font-medium rounded-md text-foreground bg-card hover:bg-card-muted focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-accent disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+ className="inline-flex items-center px-3 py-2 border border-border-strong shadow-sm text-sm font-medium rounded-md text-foreground bg-card hover:bg-card-muted focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-accent disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
                         >
                           {hashLoading ? (
                             <>
-                              <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-muted-foreground" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+ <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-muted-foreground" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+ <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+ <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                               </svg>
                               Calculating...
                             </>
@@ -1194,9 +1205,9 @@ function PlaygroundContent() {
                         </button>
                       </div>
                       {hashError && (
-                        <p className="mt-1 text-xs text-destructive-text">{hashError}</p>
+ <p className="mt-1 text-xs text-destructive-text">{hashError}</p>
                       )}
-                      <p className="mt-1 text-xs text-muted-foreground">
+ <p className="mt-1 text-xs text-muted-foreground">
                         SHA256 hash for verification (hex encoded, 64 characters). Click &quot;Calculate&quot; to auto-fill from URL.
                       </p>
                     </div>
@@ -1204,80 +1215,80 @@ function PlaygroundContent() {
                 )}
 
                 {/* Build Target and Response Format in columns - hide Build Target for project */}
-                <div className={`mb-6 grid ${codeSourceType === 'project' ? 'grid-cols-1' : 'grid-cols-2'} gap-4`}>
+ <div className={`mb-6 grid ${codeSourceType === 'project' ? 'grid-cols-1' : 'grid-cols-2'} gap-4`}>
                   {codeSourceType !== 'project' && (
                     <div>
-                      <label htmlFor="buildTarget" className="block text-sm font-medium text-foreground">
+ <label htmlFor="buildTarget" className="block text-sm font-medium text-foreground">
                         Build Target
                       </label>
                       <select
                         id="buildTarget"
                         value={buildTarget}
                         onChange={(e) => setBuildTarget(e.target.value)}
-                        className="mt-1 block w-full rounded-md border-border-strong shadow-sm focus:border-accent focus:ring-accent sm:text-sm px-3 py-2"
+ className="mt-1 block w-full rounded-md border-border-strong shadow-sm focus:border-accent focus:ring-accent sm:text-sm px-3 py-2"
                       >
-                        <option value="wasm32-wasip1">wasm32-wasip1</option>
-                        <option value="wasm32-wasip2">wasm32-wasip2</option>
+ <option value="wasm32-wasip1">wasm32-wasip1</option>
+ <option value="wasm32-wasip2">wasm32-wasip2</option>
                       </select>
                     </div>
                   )}
                   <div>
-                    <label htmlFor="responseFormat" className="block text-sm font-medium text-foreground">
+ <label htmlFor="responseFormat" className="block text-sm font-medium text-foreground">
                       Response Format
                     </label>
                     <select
                       id="responseFormat"
                       value={responseFormat}
                       onChange={(e) => setResponseFormat(e.target.value)}
-                      className="mt-1 block w-full rounded-md border-border-strong shadow-sm focus:border-accent focus:ring-accent sm:text-sm px-3 py-2"
+ className="mt-1 block w-full rounded-md border-border-strong shadow-sm focus:border-accent focus:ring-accent sm:text-sm px-3 py-2"
                     >
-                      <option value="Json">JSON</option>
-                      <option value="Text">Text</option>
-                      <option value="Bytes">Bytes</option>
+ <option value="Json">JSON</option>
+ <option value="Text">Text</option>
+ <option value="Bytes">Bytes</option>
                     </select>
                   </div>
                 </div>
 
                 {/* Execution Parameters - collapsible, only for GitHub sources */}
                 {codeSourceType === 'github' && (
-                <details className="mb-6" open={compileOnly || forceRebuild || storeOnFastfs}>
-                  <summary className="cursor-pointer text-sm font-medium text-foreground hover:text-foreground">
-                    Execution Parameters {(compileOnly || forceRebuild || storeOnFastfs) && <span className="text-accent-text">(modified)</span>}
+ <details className="mb-6" open={compileOnly || forceRebuild || storeOnFastfs}>
+ <summary className="cursor-pointer text-sm font-medium text-foreground hover:text-foreground">
+ Execution Parameters {(compileOnly || forceRebuild || storeOnFastfs) && <span className="text-accent-text">(modified)</span>}
                   </summary>
-                  <div className="mt-3 space-y-2 pl-4">
-                    <label className="inline-flex items-center">
+ <div className="mt-3 space-y-2 pl-4">
+ <label className="inline-flex items-center">
                       <input
                         type="checkbox"
                         checked={compileOnly}
                         onChange={(e) => setCompileOnly(e.target.checked)}
-                        className="form-checkbox h-4 w-4 text-accent-text rounded"
+ className="form-checkbox h-4 w-4 text-accent-text rounded"
                       />
-                      <span className="ml-2 text-sm text-foreground">
-                        Compile Only <span className="text-muted-foreground">(returns checksum)</span>
+ <span className="ml-2 text-sm text-foreground">
+ Compile Only <span className="text-muted-foreground">(returns checksum)</span>
                       </span>
                     </label>
                     <br />
-                    <label className="inline-flex items-center">
+ <label className="inline-flex items-center">
                       <input
                         type="checkbox"
                         checked={forceRebuild}
                         onChange={(e) => setForceRebuild(e.target.checked)}
-                        className="form-checkbox h-4 w-4 text-accent-text rounded"
+ className="form-checkbox h-4 w-4 text-accent-text rounded"
                       />
-                      <span className="ml-2 text-sm text-foreground">
-                        Force Rebuild <span className="text-muted-foreground">(recompile even if cached)</span>
+ <span className="ml-2 text-sm text-foreground">
+ Force Rebuild <span className="text-muted-foreground">(recompile even if cached)</span>
                       </span>
                     </label>
                     <br />
-                    <label className="inline-flex items-center">
+ <label className="inline-flex items-center">
                       <input
                         type="checkbox"
                         checked={storeOnFastfs}
                         onChange={(e) => setStoreOnFastfs(e.target.checked)}
-                        className="form-checkbox h-4 w-4 text-accent-text rounded"
+ className="form-checkbox h-4 w-4 text-accent-text rounded"
                       />
-                      <span className="ml-2 text-sm text-foreground">
-                        Store on FastFS <span className="text-muted-foreground">(publish to permanent storage)</span>
+ <span className="ml-2 text-sm text-foreground">
+ Store on FastFS <span className="text-muted-foreground">(publish to permanent storage)</span>
                       </span>
                     </label>
                   </div>
@@ -1288,8 +1299,8 @@ function PlaygroundContent() {
           })()}
 
           {/* Arguments / Input Data */}
-          <div className="mb-6">
-            <label htmlFor="args" className="block text-sm font-medium text-foreground">
+ <div className="mb-6">
+ <label htmlFor="args" className="block text-sm font-medium text-foreground">
               {(() => {
                 const currentPreset = PRESETS.find(p => p.name === selectedPreset);
                 return currentPreset?.type === 'proxy' ? 'Method Arguments (JSON)' : 'Input Data (JSON) - Optional';
@@ -1301,9 +1312,9 @@ function PlaygroundContent() {
               onChange={(e) => setArgs(e.target.value)}
               placeholder='{"key": "value"}'
               rows={4}
-              className="mt-1 block w-full rounded-md border-border-strong shadow-sm focus:border-accent focus:ring-accent sm:text-sm font-mono px-3 py-2"
+ className="mt-1 block w-full rounded-md border-border-strong shadow-sm focus:border-accent focus:ring-accent sm:text-sm font-mono px-3 py-2"
             />
-            <p className="mt-1 text-xs text-muted-foreground">
+ <p className="mt-1 text-xs text-muted-foreground">
               {(() => {
                 const currentPreset = PRESETS.find(p => p.name === selectedPreset);
                 return currentPreset?.type === 'proxy' ? 'Arguments for the contract method call' : 'Leave empty for no input data';
@@ -1340,24 +1351,24 @@ function PlaygroundContent() {
             return (
               <>
                 {/* Deposit */}
-                <div className="mb-6">
-                  <label className="block text-sm font-medium text-foreground">
+ <div className="mb-6">
+ <label className="block text-sm font-medium text-foreground">
                     Attached Deposit
                   </label>
-                  <div className="mt-1 block w-full rounded-md border border-border-strong bg-card-muted px-3 py-2 text-sm text-muted-foreground">
+ <div className="mt-1 block w-full rounded-md border border-border-strong bg-card-muted px-3 py-2 text-sm text-muted-foreground">
                     {depositDisplay}
                   </div>
-                  <p className="mt-2 text-xs text-muted-foreground">
-                    💡 Deposit covers possible costs for execution and compilation. Unused resources will be refunded at the end of the transaction.
+ <p className="mt-2 text-xs text-muted-foreground">
+                     Deposit covers possible costs for execution and compilation. Unused resources will be refunded at the end of the transaction.
                   </p>
                 </div>
 
                 {/* Gas */}
-                <div className="mb-6">
-                  <label className="block text-sm font-medium text-foreground">
+ <div className="mb-6">
+ <label className="block text-sm font-medium text-foreground">
                     Gas Amount
                   </label>
-                  <div className="mt-1 block w-full rounded-md border border-border-strong bg-card-muted px-3 py-2 text-sm text-muted-foreground">
+ <div className="mt-1 block w-full rounded-md border border-border-strong bg-card-muted px-3 py-2 text-sm text-muted-foreground">
                     {gasDisplay}
                   </div>
                 </div>
@@ -1369,23 +1380,23 @@ function PlaygroundContent() {
           {(() => {
             const currentPreset = PRESETS.find(p => p.name === selectedPreset);
             return currentPreset?.type === 'direct' ? (
-              <div className="mb-6">
-                <div className="flex items-center justify-between mb-2">
-                  <label className="block text-sm font-medium text-foreground">
+ <div className="mb-6">
+ <div className="flex items-center justify-between mb-2">
+ <label className="block text-sm font-medium text-foreground">
                     Secrets Reference (Optional)
                   </label>
                   <a
                     href="/secrets"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-sm text-accent-text font-medium"
+ className="text-sm text-accent-text font-medium"
                   >
-                    🔐 Manage Secrets →
+                     Manage Secrets →
                   </a>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+ <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label htmlFor="secretsProfile" className="block text-xs text-muted-foreground mb-1">
+ <label htmlFor="secretsProfile" className="block text-xs text-muted-foreground mb-1">
                       Profile Name
                     </label>
                     <input
@@ -1394,11 +1405,11 @@ function PlaygroundContent() {
                       value={secretsProfile}
                       onChange={(e) => setSecretsProfile(e.target.value)}
                       placeholder="default"
-                      className="block w-full rounded-md border-border-strong shadow-sm focus:border-accent focus:ring-accent sm:text-sm px-3 py-2"
+ className="block w-full rounded-md border-border-strong shadow-sm focus:border-accent focus:ring-accent sm:text-sm px-3 py-2"
                     />
                   </div>
                   <div>
-                    <label htmlFor="secretsOwner" className="block text-xs text-muted-foreground mb-1">
+ <label htmlFor="secretsOwner" className="block text-xs text-muted-foreground mb-1">
                       Owner Account
                     </label>
                     <input
@@ -1407,26 +1418,26 @@ function PlaygroundContent() {
                       value={secretsOwner}
                       onChange={(e) => setSecretsOwner(e.target.value)}
                       placeholder="your-account.testnet"
-                      className="block w-full rounded-md border-border-strong shadow-sm focus:border-accent focus:ring-accent sm:text-sm px-3 py-2"
+ className="block w-full rounded-md border-border-strong shadow-sm focus:border-accent focus:ring-accent sm:text-sm px-3 py-2"
                     />
                   </div>
                 </div>
-                <p className="mt-2 text-xs text-muted-foreground">
-                  Example: <code className="bg-card-muted px-1 py-0.5 rounded">profile: &quot;default&quot;, owner: &quot;alice.testnet&quot;</code>
-                  {' '}- Store secrets at <a href="/secrets" className="text-accent-text hover:underline">/secrets</a> page first
+ <p className="mt-2 text-xs text-muted-foreground">
+ Example: <code className="bg-card-muted px-1 py-0.5 rounded">profile: &quot;default&quot;, owner: &quot;alice.testnet&quot;</code>
+ {' '}- Store secrets at <a href="/secrets" className="text-accent-text hover:underline">/secrets</a> page first
                 </p>
               </div>
             ) : null;
           })()}
 
           {/* Execute Button */}
-          <div className="mt-6">
+ <div className="mt-6">
             {/* Deposit info for direct execution */}
             {(() => {
               const currentPreset = PRESETS.find(p => p.name === selectedPreset);
               return currentPreset?.type === 'direct' ? (
-                <p className="mb-3 text-xs text-muted-foreground">
-                  💡 The attached deposit covers possible costs for execution and compilation. Unused resources will be refunded at the end of the transaction.
+ <p className="mb-3 text-xs text-muted-foreground">
+                   The attached deposit covers possible costs for execution and compilation. Unused resources will be refunded at the end of the transaction.
                 </p>
               ) : null;
             })()}
@@ -1440,17 +1451,17 @@ function PlaygroundContent() {
                 }
               }}
               disabled={loading}
-              className="btn-primary w-full inline-flex justify-center items-center px-6 py-3 text-base font-medium rounded-md text-black disabled:opacity-50 disabled:text-white"
+ className="btn-primary w-full inline-flex justify-center items-center px-6 py-3 text-base font-medium rounded-md text-black disabled:opacity-50 disabled:text-white"
             >
               {loading ? (
                 <>
                   <svg
-                    className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+ className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
                     fill="none"
                     viewBox="0 0 24 24"
                   >
                     <circle
-                      className="opacity-25"
+ className="opacity-25"
                       cx="12"
                       cy="12"
                       r="10"
@@ -1458,7 +1469,7 @@ function PlaygroundContent() {
                       strokeWidth="4"
                     />
                     <path
-                      className="opacity-75"
+ className="opacity-75"
                       fill="currentColor"
                       d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                     />
@@ -1478,25 +1489,25 @@ function PlaygroundContent() {
               const shouldShowButton = currentPreset?.type === 'direct' ||
                                        (currentPreset?.type === 'proxy' && currentPreset.wasmRepo);
               return shouldShowButton ? (
-                <div className="mt-3 flex items-center justify-between">
-                  <div className="text-xs">
+ <div className="mt-3 flex items-center justify-between">
+ <div className="text-xs">
                     {wasmInfo && (
                       wasmInfo.exists ? (
-                        <span className="text-success-text">
-                          ✓ Cached ({wasmInfo.checksum?.substring(0, 8)}...)
+ <span className="text-success-text">
+                           Cached ({wasmInfo.checksum?.substring(0, 8)}...)
                         </span>
                       ) : (
-                        <span className="text-warning">
-                          ⚠ Not cached{currentPreset?.type === 'proxy' && currentPreset.increaseDepositIfNoCache ? ' (+0.1 NEAR)' : ''}
+ <span className="text-warning">
+                           Not cached{currentPreset?.type === 'proxy' && currentPreset.increaseDepositIfNoCache ? ' (+0.1 NEAR)' : ''}
                         </span>
                       )
                     )}
                   </div>
                   <button
                     onClick={handleCheckWasm}
-                    className="text-sm text-accent-text font-medium"
+ className="text-sm text-accent-text font-medium"
                   >
-                    📦 Check WASM Cache →
+                     Check WASM Cache →
                   </button>
                 </div>
               ) : null;
@@ -1511,21 +1522,21 @@ function PlaygroundContent() {
 
           {/* Connected Account */}
           {isConnected && (
-            <div className="mt-4 text-sm text-muted-foreground">
-              Connected as: <span className="font-mono">{accountId}</span>
+ <div className="mt-4 text-sm text-muted-foreground">
+ Connected as: <span className="font-mono">{accountId}</span>
             </div>
           )}
 
           {/* Error Display */}
           {error && (
-            <div className="mt-6 bg-destructive/10 border border-destructive/30 rounded-md p-4">
-              <p className="text-destructive-text">{error}</p>
+ <div className="mt-6 bg-destructive/10 border border-destructive/30 rounded-md p-4">
+ <p className="text-destructive-text">{error}</p>
             </div>
           )}
 
           {/* Result Display */}
           {result && (
-            <div className="mt-6 space-y-4">
+ <div className="mt-6 space-y-4">
               {/* Execution Output */}
               {result.executionOutput && (() => {
                 // Try to parse JSON to check if execution was successful
@@ -1542,10 +1553,10 @@ function PlaygroundContent() {
 
                 if (isError) {
                   return (
-                    <div className="bg-destructive/10 border border-destructive/30 rounded-md p-4">
-                      <h3 className="text-sm font-medium text-destructive-text mb-2">❌ Execution Failed</h3>
-                      <div className="bg-card rounded p-3 border border-destructive/40">
-                        <pre className="text-sm text-destructive-text overflow-auto whitespace-pre-wrap">
+ <div className="bg-destructive/10 border border-destructive/30 rounded-md p-4">
+ <h3 className="text-sm font-medium text-destructive-text mb-2"> Execution Failed</h3>
+ <div className="bg-card rounded p-3 border border-destructive/40">
+ <pre className="text-sm text-destructive-text overflow-auto whitespace-pre-wrap">
                           {errorMessage || result.executionOutput}
                         </pre>
                       </div>
@@ -1559,10 +1570,10 @@ function PlaygroundContent() {
                   : result.executionOutput;
 
                 return (
-                  <div className="bg-success/10 border border-success/30 rounded-md p-4">
-                    <h3 className="text-sm font-medium text-success-text mb-2">✅ Execution Result</h3>
-                    <div className="bg-card rounded p-3 border border-success/40">
-                      <pre className="text-sm text-foreground overflow-auto whitespace-pre-wrap">
+ <div className="bg-success/10 border border-success/30 rounded-md p-4">
+ <h3 className="text-sm font-medium text-success-text mb-2"> Execution Result</h3>
+ <div className="bg-card rounded p-3 border border-success/40">
+ <pre className="text-sm text-foreground overflow-auto whitespace-pre-wrap">
                         {displayOutput}
                       </pre>
                     </div>
@@ -1571,30 +1582,30 @@ function PlaygroundContent() {
               })()}
 
               {/* Transaction Details */}
-              <div className="bg-info/10 border border-info/30 rounded-md p-4">
-                <h3 className="text-sm font-medium text-info mb-2">Transaction Details</h3>
+ <div className="bg-info/10 border border-info/30 rounded-md p-4">
+ <h3 className="text-sm font-medium text-info mb-2">Transaction Details</h3>
                 {result.transactionHash && (
-                  <p className="text-xs text-info mb-2">
+ <p className="text-xs text-info mb-2">
                     Hash: <a
                       href={getTransactionUrl(result.transactionHash, network)}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="bg-info/15 px-1 py-0.5 rounded hover:bg-blue-200 underline font-mono"
+ className="bg-info/15 px-1 py-0.5 rounded hover:bg-blue-200 underline font-mono"
                     >
                       {result.transactionHash}
                     </a>
                   </p>
                 )}
-                <details className="text-xs">
-                  <summary className="cursor-pointer text-info hover:text-info">
+ <details className="text-xs">
+ <summary className="cursor-pointer text-info hover:text-info">
                     View full transaction data
                   </summary>
-                  <pre className="mt-2 text-info overflow-auto bg-card p-2 rounded border border-info/40">
+ <pre className="mt-2 text-info overflow-auto bg-card p-2 rounded border border-info/40">
                     {JSON.stringify(result.transaction, null, 2)}
                   </pre>
                 </details>
-                <p className="mt-3 text-sm text-info">
-                  Check execution status in the <a href="/executions" className="underline font-medium">Executions</a> page
+ <p className="mt-3 text-sm text-info">
+ Check execution status in the <a href="/executions" className="underline font-medium">Executions</a> page
                 </p>
               </div>
             </div>
@@ -1607,7 +1618,7 @@ function PlaygroundContent() {
 
 export default function PlaygroundPage() {
   return (
-    <Suspense fallback={<div className="w-full">Loading...</div>}>
+ <Suspense fallback={<div className="w-full">Loading...</div>}>
       <PlaygroundContent />
     </Suspense>
   );

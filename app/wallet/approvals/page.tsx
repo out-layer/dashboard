@@ -37,7 +37,7 @@ const REFRESH_INTERVAL = 60_000;
 
 export default function WalletApprovalsPage() {
   return (
-    <Suspense fallback={<div className="w-full py-8 text-faint-foreground">Loading...</div>}>
+ <Suspense fallback={<div className="w-full py-8 text-faint-foreground">Loading...</div>}>
       <WalletApprovalsContent />
     </Suspense>
   );
@@ -129,7 +129,7 @@ function WalletApprovalsContent() {
         contractId,
         method: 'get_wallet_policies_by_owner',
         args: { owner: accountId },
-      }).catch(() => []) as Array<{ wallet_pubkey: string }>;
+ }).catch(() => []) as Array<{ wallet_pubkey: string }>;
 
       const pubkeys = wallets.map(w => w.wallet_pubkey);
       walletPubkeysRef.current = pubkeys;
@@ -332,48 +332,48 @@ function WalletApprovalsContent() {
   // Not connected — show connect prompt
   if (!isConnected) {
     return (
-      <div className="w-full">
-        <h1 className="text-xl font-bold tracking-tight mb-6">Approvals</h1>
+ <div className="w-full">
+ <h1 className="text-xl font-bold tracking-tight mb-6">Approvals</h1>
         <RequireWallet subject="pending approvals for your AI wallets" />
       </div>
     );
   }
 
   return (
-    <div className="w-full">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-xl font-bold tracking-tight">
+ <div className="w-full">
+ <div className="flex items-center justify-between mb-6">
+ <h1 className="text-xl font-bold tracking-tight">
           Approvals
           {approvals.length > 0 && (
-            <span className="ml-2 inline-flex items-center justify-center px-2.5 py-0.5 rounded-full text-sm font-bold text-white bg-destructive">
+ <span className="ml-2 inline-flex items-center justify-center px-2.5 py-0.5 rounded-full text-sm font-bold text-white bg-destructive">
               {approvals.length}
             </span>
           )}
         </h1>
-        <div className="flex items-center space-x-3">
-          <span className="text-xs text-faint-foreground font-mono">
+ <div className="flex items-center space-x-3">
+ <span className="text-xs text-faint-foreground font-mono">
             {accountId}
           </span>
           {nextRefreshIn !== null && (
-            <span className="text-xs text-faint-foreground tabular-nums">
+ <span className="text-xs text-faint-foreground tabular-nums">
               {nextRefreshIn}s
             </span>
           )}
           <button
             onClick={() => loadApprovals()}
-            className="text-sm text-accent-text hover:text-accent-text font-medium"
+ className="text-sm text-accent-text hover:text-accent-text font-medium"
           >
             Refresh
           </button>
           <Link
             href="/wallet/manage"
-            className="text-sm text-accent-text hover:text-accent-text font-medium"
+ className="text-sm text-accent-text hover:text-accent-text font-medium"
           >
             Manage
           </Link>
           <Link
             href="/wallet/audit"
-            className="text-sm text-accent-text hover:text-accent-text font-medium"
+ className="text-sm text-accent-text hover:text-accent-text font-medium"
           >
             Audit
           </Link>
@@ -381,44 +381,44 @@ function WalletApprovalsContent() {
       </div>
 
       {error && (
-        <div className="mb-4 rounded-md border border-destructive/30 bg-destructive/10 p-3">
-          <p className="text-sm text-destructive-text">{error}</p>
+ <div className="mb-4 rounded-md border border-destructive/30 bg-destructive/10 p-3">
+ <p className="text-sm text-destructive-text">{error}</p>
         </div>
       )}
 
       {success && (
-        <div className="mb-4 rounded-md border border-success/30 bg-success/10 p-3">
-          <p className="text-sm text-success-text">{success}</p>
+ <div className="mb-4 rounded-md border border-success/30 bg-success/10 p-3">
+ <p className="text-sm text-success-text">{success}</p>
         </div>
       )}
 
       {/* API key prompt dialog */}
       {showApiKeyPrompt && (
-        <div className="mb-4 rounded-md border border-info/30 bg-info/10 p-4">
-          <p className="text-sm text-info mb-2">
+ <div className="mb-4 rounded-md border border-info/30 bg-info/10 p-4">
+ <p className="text-sm text-info mb-2">
             Enter the wallet API key to reject this request.
             It will be saved in this browser for future use.
           </p>
-          <div className="flex gap-3">
+ <div className="flex gap-3">
             <input
               type="text"
               value={apiKey}
               onChange={(e) => setApiKey(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleApiKeySubmit()}
               placeholder="wk_..."
-              className="flex-1 px-4 py-2 border border-border-strong bg-background rounded-lg outline-none focus:border-accent focus:ring-1 focus:ring-accent font-mono text-sm"
+ className="flex-1 px-4 py-2 border border-border-strong bg-background rounded-lg outline-none focus:border-accent focus:ring-1 focus:ring-accent font-mono text-sm"
               autoFocus
             />
             <button
               onClick={handleApiKeySubmit}
               disabled={!apiKey.trim()}
-              className="px-4 py-2 bg-accent text-on-accent rounded-lg text-sm font-semibold disabled:opacity-50 cursor-pointer"
+ className="px-4 py-2 bg-accent text-on-accent rounded-lg text-sm font-semibold disabled:opacity-50 cursor-pointer"
             >
               Submit
             </button>
             <button
               onClick={() => { setShowApiKeyPrompt(false); setPendingApprovalId(null); }}
-              className="px-4 py-2 text-muted-foreground hover:text-foreground text-sm cursor-pointer"
+ className="px-4 py-2 text-muted-foreground hover:text-foreground text-sm cursor-pointer"
             >
               Cancel
             </button>
@@ -427,19 +427,19 @@ function WalletApprovalsContent() {
       )}
 
       {loading ? (
-        <div className="flex items-center justify-center py-12">
-          <svg className="animate-spin h-8 w-8 text-accent-text" fill="none" viewBox="0 0 24 24">
-            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+ <div className="flex items-center justify-center py-12">
+ <svg className="animate-spin h-8 w-8 text-accent-text" fill="none" viewBox="0 0 24 24">
+ <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+ <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
           </svg>
-          <span className="ml-3 text-muted-foreground">Loading approvals...</span>
+ <span className="ml-3 text-muted-foreground">Loading approvals...</span>
         </div>
       ) : !hasPolicies ? (
         <EmptyState
           title="No wallet policies found"
           description="Set up policies for your AI wallets first — approvals appear for wallets you control."
           action={
-            <Link href="/wallet/manage" className="text-sm font-semibold text-accent-text hover:underline">
+ <Link href="/wallet/manage" className="text-sm font-semibold text-accent-text hover:underline">
               Open Wallets →
             </Link>
           }
@@ -450,76 +450,76 @@ function WalletApprovalsContent() {
           description="Approvals appear here when a wallet operation crosses a policy threshold and needs your multisig confirmation."
         />
       ) : (
-        <div className="space-y-4">
+ <div className="space-y-4">
           {approvals.map((approval) => (
             <div
               key={approval.id}
-              className={`rounded-lg border bg-card ${
+ className={`rounded-lg border bg-card ${
                 isExpired(approval.expires_at)
                   ? 'border-border opacity-60'
                   : 'border-accent/50'
               }`}
             >
-              <div className="px-4 py-4 sm:px-6">
-                <div className="flex items-center justify-between">
+ <div className="px-4 py-4 sm:px-6">
+ <div className="flex items-center justify-between">
                   <div>
-                    <div className="flex items-center space-x-2">
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-accent/10 text-accent-text">
+ <div className="flex items-center space-x-2">
+ <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-accent/10 text-accent-text">
                         {approval.request_type}
                       </span>
                       {isExpired(approval.expires_at) && (
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border border-border-strong text-muted-foreground">
+ <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border border-border-strong text-muted-foreground">
                           Expired
                         </span>
                       )}
                     </div>
                     {approval.wallet_pubkey && (
-                      <div className="mt-1.5 flex items-center gap-1.5 text-xs text-faint-foreground">
+ <div className="mt-1.5 flex items-center gap-1.5 text-xs text-faint-foreground">
                         Wallet: <HashChip value={approval.wallet_pubkey} trim={10} />
                       </div>
                     )}
                   </div>
-                  <div className="text-right">
-                    <p className="text-sm text-muted-foreground tabular-nums">
+ <div className="text-right">
+ <p className="text-sm text-muted-foreground tabular-nums">
                       {approval.approved_count} / {approval.required_approvals} approved
                     </p>
-                    <p className="text-xs text-faint-foreground mt-1">
+ <p className="text-xs text-faint-foreground mt-1">
                       Expires: {formatDate(approval.expires_at)}
                     </p>
                   </div>
                 </div>
 
                 {/* Canonical operation — exactly what your approval signs off on */}
-                <div className="mt-3">
+ <div className="mt-3">
                   <CodeBlock
                     code={JSON.stringify(approval.request_data, null, 2)}
                     language="json"
                     filename={`${approval.request_type} — requested operation`}
                   />
-                  <div className="mt-2 flex flex-wrap items-center gap-1.5 text-xs text-faint-foreground">
+ <div className="mt-2 flex flex-wrap items-center gap-1.5 text-xs text-faint-foreground">
                     Signed hash: <HashChip value={approval.request_hash} trim={10} />
-                    <span>— your NEP-413 approval signs this exact hash; it commits to the operation above.</span>
+ <span>— your NEP-413 approval signs this exact hash; it commits to the operation above.</span>
                   </div>
                 </div>
 
                 {/* Action buttons */}
                 {!isExpired(approval.expires_at) && (
-                  <div className="mt-4 flex items-center justify-between">
-                    <p className="text-xs text-faint-foreground">
+ <div className="mt-4 flex items-center justify-between">
+ <p className="text-xs text-faint-foreground">
                       Created: {formatDate(approval.created_at)}
                     </p>
-                    <div className="flex items-center space-x-2">
+ <div className="flex items-center space-x-2">
                       <button
                         onClick={() => handleReject(approval.id)}
                         disabled={approvingId === approval.id}
-                        className="px-4 py-2 border border-destructive/40 text-destructive-text text-sm rounded-lg font-semibold hover:bg-destructive/10 disabled:opacity-50 cursor-pointer"
+ className="px-4 py-2 border border-destructive/40 text-destructive-text text-sm rounded-lg font-semibold hover:bg-destructive/10 disabled:opacity-50 cursor-pointer"
                       >
                         Reject
                       </button>
                       <button
                         onClick={() => handleApprove(approval.id)}
                         disabled={approvingId === approval.id}
-                        className="px-4 py-2 bg-accent text-on-accent text-sm rounded-lg font-semibold hover:bg-accent-hover disabled:opacity-50 cursor-pointer"
+ className="px-4 py-2 bg-accent text-on-accent text-sm rounded-lg font-semibold hover:bg-accent-hover disabled:opacity-50 cursor-pointer"
                       >
                         {approvingId === approval.id ? 'Processing...' : 'Approve'}
                       </button>

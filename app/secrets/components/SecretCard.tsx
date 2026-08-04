@@ -14,28 +14,28 @@ export function SecretCard({ secret, onEdit, onUpdate, onDelete }: SecretCardPro
   // Validate accessor exists
   if (!secret.accessor) {
     return (
-      <div className="border border-destructive/30 rounded-lg p-4 bg-destructive/10">
-        <p className="text-sm text-destructive-text">⚠️ Invalid secret: accessor is missing</p>
+ <div className="border border-destructive/30 rounded-lg p-4 bg-destructive/10">
+ <p className="text-sm text-destructive-text"> Invalid secret: accessor is missing</p>
       </div>
     );
   }
 
   return (
-    <div className="border border-border rounded-lg p-4 hover:border-info/40 hover:shadow-sm transition-all">
-      <div className="flex items-start justify-between">
-        <div className="flex-1 min-w-0">
+ <div className="border border-border rounded-lg p-4 hover:border-info/40 hover:shadow-sm transition-all">
+ <div className="flex items-start justify-between">
+ <div className="flex-1 min-w-0">
           {/* Header */}
-          <div className="flex items-center space-x-2 mb-2">
+ <div className="flex items-center space-x-2 mb-2">
             {isRepoAccessor(secret.accessor) && secret.accessor.Repo && (
               <>
-                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-card-muted text-foreground">
+ <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-card-muted text-foreground">
                   GitHub
                 </span>
-                <h3 className="text-sm font-semibold text-foreground truncate">
+ <h3 className="text-sm font-semibold text-foreground truncate">
                   {secret.accessor.Repo.repo}
                 </h3>
                 {secret.accessor.Repo.branch && (
-                  <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800">
+ <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-card-muted text-foreground">
                     {secret.accessor.Repo.branch}
                   </span>
                 )}
@@ -43,20 +43,20 @@ export function SecretCard({ secret, onEdit, onUpdate, onDelete }: SecretCardPro
             )}
             {isWasmHashAccessor(secret.accessor) && secret.accessor.WasmHash?.hash && (
               <>
-                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-success/15 text-success-text">
+ <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-success/15 text-success-text">
                   WASM Hash
                 </span>
-                <h3 className="text-sm font-mono text-foreground truncate" title={secret.accessor.WasmHash.hash}>
+ <h3 className="text-sm font-mono text-foreground truncate" title={secret.accessor.WasmHash.hash}>
                   {secret.accessor.WasmHash.hash.substring(0, 8)}...{secret.accessor.WasmHash.hash.substring(secret.accessor.WasmHash.hash.length - 8)}
                 </h3>
               </>
             )}
             {isProjectAccessor(secret.accessor) && secret.accessor.Project?.project_id && (
               <>
-                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-orange-100 text-orange-700">
+ <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-card-muted text-muted-foreground">
                   Project
                 </span>
-                <h3 className="text-sm font-semibold text-foreground truncate">
+ <h3 className="text-sm font-semibold text-foreground truncate">
                   {secret.accessor.Project.project_id}
                 </h3>
               </>
@@ -64,20 +64,20 @@ export function SecretCard({ secret, onEdit, onUpdate, onDelete }: SecretCardPro
           </div>
 
           {/* Profile + master-key binding */}
-          <div className="mb-2 flex flex-wrap items-center gap-1.5">
-            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-info/10 text-info">
-              📦 {secret.profile}
+ <div className="mb-2 flex flex-wrap items-center gap-1.5">
+ <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-info/10 text-info">
+               {secret.profile}
             </span>
             {secret.vault_id ? (
               <span
-                className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-50 text-purple-800 border border-purple-200"
+ className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-card-muted text-foreground border border-border"
                 title={`Encrypted with the per-customer master derived for MPC vault ${secret.vault_id}`}
               >
-                🔐 MPC vault:&nbsp;<code className="font-mono">{secret.vault_id}</code>
+ MPC vault:&nbsp;<code className="font-mono">{secret.vault_id}</code>
               </span>
             ) : secret.vault_id === null ? (
               <span
-                className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-card-muted text-muted-foreground border border-border"
+ className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-card-muted text-muted-foreground border border-border"
                 title="Encrypted with the shared OutLayer master (no MPC vault binding)"
               >
                 OutLayer master
@@ -86,12 +86,12 @@ export function SecretCard({ secret, onEdit, onUpdate, onDelete }: SecretCardPro
           </div>
 
           {/* Access Condition */}
-          <div className="text-xs text-muted-foreground mb-2">
-            <span className="font-medium">Access:</span> {formatAccessCondition(secret.access)}
+ <div className="text-xs text-muted-foreground mb-2">
+ <span className="font-medium">Access:</span> {formatAccessCondition(secret.access)}
           </div>
 
           {/* Metadata */}
-          <div className="flex items-center space-x-4 text-xs text-muted-foreground">
+ <div className="flex items-center space-x-4 text-xs text-muted-foreground">
             <span>
               Created: {new Date(secret.created_at / 1000000).toLocaleDateString()}
             </span>
@@ -102,29 +102,29 @@ export function SecretCard({ secret, onEdit, onUpdate, onDelete }: SecretCardPro
         </div>
 
         {/* Actions */}
-        <div className="flex items-center space-x-2 ml-4">
+ <div className="flex items-center space-x-2 ml-4">
           <button
             onClick={onEdit}
-            className="inline-flex items-center px-3 py-1.5 border border-orange-300 text-xs font-medium rounded text-orange-700 bg-orange-50 hover:bg-orange-100 transition-colors"
+ className="inline-flex items-center px-3 py-1.5 border border-border text-xs font-medium rounded text-muted-foreground bg-card-muted hover:bg-card-muted transition-colors"
             title="Replace encrypted secrets (you cannot view existing values)"
           >
-            🔄 Replace
+             Replace
           </button>
           {onUpdate && (
             <button
               onClick={onUpdate}
-              className="inline-flex items-center px-3 py-1.5 border border-success/40 text-xs font-medium rounded text-success-text bg-success/10 hover:bg-success/15 transition-colors"
+ className="inline-flex items-center px-3 py-1.5 border border-success/40 text-xs font-medium rounded text-success-text bg-success/10 hover:bg-success/15 transition-colors"
               title="Update secrets (preserves PROTECTED_ keys)"
             >
-              ✏️ Update
+               Update
             </button>
           )}
           <button
             onClick={onDelete}
-            className="inline-flex items-center px-3 py-1.5 border border-destructive/40 text-xs font-medium rounded text-destructive-text bg-destructive/10 hover:bg-destructive/15 transition-colors"
+ className="inline-flex items-center px-3 py-1.5 border border-destructive/40 text-xs font-medium rounded text-destructive-text bg-destructive/10 hover:bg-destructive/15 transition-colors"
             title="Delete secrets and refund storage deposit"
           >
-            🗑️
+            
           </button>
         </div>
       </div>

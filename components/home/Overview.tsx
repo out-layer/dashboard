@@ -38,11 +38,11 @@ function MetricCard({
 }) {
   return (
     <Link href={href}>
-      <Card className="transition-colors hover:border-border-strong">
-        <CardContent className="p-5">
-          <p className="text-xs text-muted-foreground">{label}</p>
-          <p className="mt-1 text-2xl font-semibold tabular-nums tracking-tight">{value}</p>
-          {hint && <p className="mt-1 text-xs text-faint-foreground">{hint}</p>}
+ <Card className="transition-colors hover:border-border-strong">
+ <CardContent className="p-5">
+ <p className="text-xs text-muted-foreground">{label}</p>
+ <p className="mt-1 text-2xl font-semibold tabular-nums tracking-tight">{value}</p>
+ {hint && <p className="mt-1 text-xs text-faint-foreground">{hint}</p>}
         </CardContent>
       </Card>
     </Link>
@@ -123,17 +123,17 @@ export default function Overview() {
   const dash = (v: number | null) => (v === null ? '—' : String(v));
 
   return (
-    <div className="w-full">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+ <div className="w-full">
+ <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl font-bold tracking-tight">Overview</h1>
+ <h1 className="text-xl font-bold tracking-tight">Overview</h1>
           {accountId && (
-            <div className="mt-1">
+ <div className="mt-1">
               <HashChip value={accountId} trim={0} />
             </div>
           )}
         </div>
-        <div className="flex items-center gap-2">
+ <div className="flex items-center gap-2">
           {workersCount !== null && (
             <a href="https://workers.outlayer.ai" target="_blank" rel="noreferrer">
               <AttestationBadge label={`${workersCount} workers attested`} />
@@ -143,34 +143,34 @@ export default function Overview() {
       </div>
 
       {/* Metrics */}
-      <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+ <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <MetricCard label="Projects" value={dash(projectCount)} href="/projects" />
         <MetricCard label="Secrets" value={dash(secretsCount)} href="/secrets" />
         <MetricCard label="Payment keys" value={dash(paymentKeysCount)} href="/payment-keys" />
-        <button type="button" onClick={() => setDepositOpen(true)} className="text-left cursor-pointer">
-          <Card className="h-full transition-colors hover:border-border-strong">
-            <CardContent className="p-5">
-              <p className="text-xs text-muted-foreground">USDC balance</p>
-              <p className="mt-1 text-2xl font-semibold tabular-nums tracking-tight">
+ <button type="button" onClick={() => setDepositOpen(true)} className="text-left cursor-pointer">
+ <Card className="h-full transition-colors hover:border-border-strong">
+ <CardContent className="p-5">
+ <p className="text-xs text-muted-foreground">USDC balance</p>
+ <p className="mt-1 text-2xl font-semibold tabular-nums tracking-tight">
                 {usdcBalance === null ? '—' : formatUsd(usdcBalance)}
               </p>
-              <p className="mt-1 text-xs font-semibold text-accent-text">deposit →</p>
+ <p className="mt-1 text-xs font-semibold text-accent-text">deposit →</p>
             </CardContent>
           </Card>
         </button>
       </div>
 
-      <div className="mt-4 grid gap-4 lg:grid-cols-3">
+ <div className="mt-4 grid gap-4 lg:grid-cols-3">
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center">
+ <CardTitle className="flex items-center">
               Pending approvals
               <PendingApprovalsBadge />
             </CardTitle>
-            <CardDescription>Multisig requests waiting for your signature.</CardDescription>
+ <CardDescription>Multisig requests waiting for your signature.</CardDescription>
           </CardHeader>
           <CardContent>
-            <Link href="/wallet/approvals" className="text-sm font-semibold text-accent-text hover:underline">
+ <Link href="/wallet/approvals" className="text-sm font-semibold text-accent-text hover:underline">
               Review approvals →
             </Link>
           </CardContent>
@@ -178,13 +178,13 @@ export default function Overview() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Earnings</CardTitle>
+ <CardTitle>Earnings</CardTitle>
             <CardDescription>
               {earningsBalance === null ? 'Your balance from project calls.' : `Balance: ${formatUsd(earningsBalance)}`}
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Link href="/earnings" className="text-sm font-semibold text-accent-text hover:underline">
+ <Link href="/earnings" className="text-sm font-semibold text-accent-text hover:underline">
               View earnings →
             </Link>
           </CardContent>
@@ -192,17 +192,17 @@ export default function Overview() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Quickstart</CardTitle>
-            <CardDescription>Run something in the enclave right now.</CardDescription>
+ <CardTitle>Quickstart</CardTitle>
+ <CardDescription>Run something in the enclave right now.</CardDescription>
           </CardHeader>
-          <CardContent className="flex flex-col gap-1.5">
-            <Link href="/playground" className="text-sm font-semibold text-accent-text hover:underline">
+ <CardContent className="flex flex-col gap-1.5">
+ <Link href="/playground" className="text-sm font-semibold text-accent-text hover:underline">
               Open playground →
             </Link>
-            <Link href="/docs/examples" className="text-sm font-semibold text-accent-text hover:underline">
+ <Link href="/docs/examples" className="text-sm font-semibold text-accent-text hover:underline">
               Browse examples →
             </Link>
-            <Link href="/docs/agent-custody" className="text-sm font-semibold text-accent-text hover:underline">
+ <Link href="/docs/agent-custody" className="text-sm font-semibold text-accent-text hover:underline">
               Give an agent a wallet →
             </Link>
           </CardContent>

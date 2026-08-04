@@ -5,8 +5,8 @@ import { ExampleCard, KeyFeaturesSection, TechnicalDetailsSection, LearnMoreSect
 export function IntentsExample() {
   const badges = (
     <>
-      <span className="ml-3 text-sm bg-purple-100 text-purple-800 px-3 py-1 rounded">WASI P2</span>
-      <span className="ml-2 text-sm bg-destructive/10 text-destructive-text px-3 py-1 rounded">Advanced</span>
+ <span className="ml-3 text-sm bg-card-muted text-foreground px-3 py-1 rounded">WASI P2</span>
+ <span className="ml-2 text-sm bg-destructive/10 text-destructive-text px-3 py-1 rounded">Advanced</span>
     </>
   );
 
@@ -18,7 +18,7 @@ export function IntentsExample() {
       githubUrl="https://github.com/out-layer/intents-example"
       playgroundId="near-intents-swap"
     >
-      <p className="text-foreground mb-4">
+ <p className="text-foreground mb-4">
         DEX token swaps via NEAR Intents protocol. User&apos;s FT transfer transaction pauses, WASI performs swap off-chain, then resolves by sending swapped tokens back - all within single transaction.
       </p>
 
@@ -31,17 +31,17 @@ export function IntentsExample() {
         'Storage deposit handling for fungible tokens'
       ]} />
 
-      <h4 className="font-semibold mt-4 mb-2">Transaction Flow:</h4>
-      <ol className="list-decimal list-inside text-foreground space-y-2 mb-4 ml-4">
-        <li>User calls <code className="bg-card-muted px-2 py-1 rounded">ft_transfer_call</code> to swap contract</li>
-        <li>Contract receives tokens and calls OutLayer</li>
-        <li><strong>Transaction pauses</strong> - contract enters yield state</li>
-        <li>WASI worker performs swap via NEAR Intents API</li>
-        <li>Worker withdraws swapped tokens to user</li>
-        <li><strong>Transaction resumes</strong> - contract completes with callback</li>
+ <h4 className="font-semibold mt-4 mb-2">Transaction Flow:</h4>
+ <ol className="list-decimal list-inside text-foreground space-y-2 mb-4 ml-4">
+ <li>User calls <code className="bg-card-muted px-2 py-1 rounded">ft_transfer_call</code> to swap contract</li>
+ <li>Contract receives tokens and calls OutLayer</li>
+ <li><strong>Transaction pauses</strong> - contract enters yield state</li>
+ <li>WASI worker performs swap via NEAR Intents API</li>
+ <li>Worker withdraws swapped tokens to user</li>
+ <li><strong>Transaction resumes</strong> - contract completes with callback</li>
       </ol>
 
-      <h4 className="font-semibold mt-4 mb-2">How to Use:</h4>
+ <h4 className="font-semibold mt-4 mb-2">How to Use:</h4>
       <SyntaxHighlighter language="bash" style={vscDarkPlus} customStyle={{ borderRadius: '0.5rem', fontSize: '0.875rem' }}>
 {`# 1. Create operator account on NEAR mainnet
 near create-account operator.near --useFaucet
@@ -74,47 +74,47 @@ near call wrap.near ft_transfer_call '{
 # - Resume and send swapped USDC to user`}
       </SyntaxHighlighter>
 
-      <div className="mt-4 p-3 bg-warning/10 border-l-4 border-warning/50">
-        <p className="text-sm text-foreground">
-          <strong>Note:</strong> NEAR Intents works on mainnet only. For testnet testing, use mock swap implementation.
+ <div className="mt-4 p-3 bg-card-muted border-l-4 border-border">
+ <p className="text-sm text-foreground">
+ <strong>Note:</strong> NEAR Intents works on mainnet only. For testnet testing, use mock swap implementation.
         </p>
       </div>
 
       <TechnicalDetailsSection items={[
-        <><strong>WASI Version:</strong> Preview 2 (component model)</>,
-        <><strong>Language:</strong> Rust</>,
-        <><strong>HTTP Client:</strong> <code>reqwest</code> for NEAR Intents API</>,
-        <><strong>Secrets:</strong> Required (<code>OPERATOR_PRIVATE_KEY</code>)</>,
-        <><strong>Network:</strong> Required (NEAR Intents API, mainnet only)</>,
-        <><strong>Signing:</strong> NEP-413 message signing with ed25519</>,
-        <><strong>Build:</strong> <code>cargo component build --release</code></>,
-        <><strong>Size:</strong> ~3.8MB compiled WASM</>
+ <><strong>WASI Version:</strong> Preview 2 (component model)</>,
+ <><strong>Language:</strong> Rust</>,
+ <><strong>HTTP Client:</strong> <code>reqwest</code> for NEAR Intents API</>,
+ <><strong>Secrets:</strong> Required (<code>OPERATOR_PRIVATE_KEY</code>)</>,
+ <><strong>Network:</strong> Required (NEAR Intents API, mainnet only)</>,
+ <><strong>Signing:</strong> NEP-413 message signing with ed25519</>,
+ <><strong>Build:</strong> <code>cargo component build --release</code></>,
+ <><strong>Size:</strong> ~3.8MB compiled WASM</>
       ]} />
 
       <LearnMoreSection>
-        <ul className="text-sm text-foreground space-y-1">
+ <ul className="text-sm text-foreground space-y-1">
           <li>
-            📖 <Link href="/docs/wasi#wasi-preview-2" className="text-[var(--primary-orange)] hover:underline">
+ <Link href="/docs/wasi#wasi-preview-2" className="text-[var(--primary-orange)] hover:underline">
               WASI Preview 2 Documentation
             </Link>
           </li>
           <li>
-            🔐 <Link href="/docs/secrets" className="text-[var(--primary-orange)] hover:underline">
+ <Link href="/docs/secrets" className="text-[var(--primary-orange)] hover:underline">
               Secrets Management Guide
             </Link>
           </li>
           <li>
-            🎮 <Link href="/playground#near-intents-swap" className="text-[var(--primary-orange)] hover:underline">
+ <Link href="/playground#near-intents-swap" className="text-[var(--primary-orange)] hover:underline">
               Try in Playground (Mainnet only)
             </Link>
           </li>
           <li>
-            💻 <a href="https://github.com/out-layer/intents-example" target="_blank" rel="noopener noreferrer" className="text-[var(--primary-orange)] hover:underline">
+ <a href="https://github.com/out-layer/intents-example" target="_blank" rel="noopener noreferrer" className="text-[var(--primary-orange)] hover:underline">
               View Source Code
             </a>
           </li>
           <li>
-            🌐 <a href="https://intents.near.org" target="_blank" rel="noopener noreferrer" className="text-[var(--primary-orange)] hover:underline">
+ <a href="https://intents.near.org" target="_blank" rel="noopener noreferrer" className="text-[var(--primary-orange)] hover:underline">
               NEAR Intents Protocol
             </a>
           </li>

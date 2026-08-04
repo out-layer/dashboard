@@ -206,7 +206,7 @@ export default function SecretsPage() {
       return;
     }
 
-    if (!confirm(`⚠️ Replace secrets for ${label}?\n\nNote: You cannot decrypt/view existing secrets - only workers can decrypt them.\nThis will completely replace the encrypted secrets with new ones.`)) {
+    if (!confirm(` Replace secrets for ${label}?\n\nNote: You cannot decrypt/view existing secrets - only workers can decrypt them.\nThis will completely replace the encrypted secrets with new ones.`)) {
       return;
     }
     setEditingSecret(secret);
@@ -278,12 +278,12 @@ export default function SecretsPage() {
 
 
   return (
-    <div className="w-full">
+ <div className="w-full">
       {/* Header */}
-      <div className="sm:flex sm:items-center">
-        <div className="sm:flex-auto">
-          <h1 className="text-xl font-bold tracking-tight">Secrets Management</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
+ <div className="sm:flex sm:items-center">
+ <div className="sm:flex-auto">
+ <h1 className="text-xl font-bold tracking-tight">Secrets Management</h1>
+ <p className="mt-1 text-sm text-muted-foreground">
             Create and manage encrypted secrets for your repositories
           </p>
         </div>
@@ -291,10 +291,10 @@ export default function SecretsPage() {
 
       {/* Connect Wallet Button - Only if not connected */}
       {!isConnected && (
-        <div className="mt-4 flex justify-center">
+ <div className="mt-4 flex justify-center">
           <button
             onClick={() => setShowWalletModal(true)}
-            className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-accent hover:bg-accent-hover shadow-sm hover:shadow-md transition-all"
+ className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-on-accent bg-accent hover:bg-accent-hover shadow-sm hover:shadow-md transition-all"
           >
             Connect Wallet
           </button>
@@ -309,20 +309,20 @@ export default function SecretsPage() {
 
       {/* Error Display */}
       {error && (
-        <div className="mt-4 bg-destructive/10 border border-destructive/30 rounded-md p-3">
-          <p className="text-sm text-destructive-text">{error}</p>
+ <div className="mt-4 bg-destructive/10 border border-destructive/30 rounded-md p-3">
+ <p className="text-sm text-destructive-text">{error}</p>
         </div>
       )}
 
       {/* Success Display */}
       {success && (
-        <div className="mt-4 bg-success/10 border border-success/30 rounded-md p-3">
-          <p className="text-sm text-success-text">{success}</p>
+ <div className="mt-4 bg-success/10 border border-success/30 rounded-md p-3">
+ <p className="text-sm text-success-text">{success}</p>
         </div>
       )}
 
       {/* Secrets Form (Manual + Generated) */}
-      <div className="mt-8">
+ <div className="mt-8">
         <SecretsForm
           isConnected={isConnected}
           accountId={accountId}
@@ -412,34 +412,34 @@ export default function SecretsPage() {
       />
 
       {/* Info Section */}
-      <div className="mt-8 bg-info/10 border border-info/30 rounded-lg p-6">
-        <h3 className="text-sm font-semibold text-foreground mb-3">
-          🔐 How Repo-Based Secrets Work
+ <div className="mt-8 bg-info/10 border border-info/30 rounded-lg p-6">
+ <h3 className="text-sm font-semibold text-foreground mb-3">
+           How Repo-Based Secrets Work
         </h3>
-        <ol className="text-sm text-muted-foreground space-y-2 list-decimal list-inside">
+ <ol className="text-sm text-muted-foreground space-y-2 list-decimal list-inside">
           <li>
-            <strong>Create secrets</strong>: Secrets are encrypted with keystore&apos;s public key and stored in the contract
+ <strong>Create secrets</strong>: Secrets are encrypted with keystore&apos;s public key and stored in the contract
           </li>
           <li>
-            <strong>Reference in execution</strong>: Use <code className="bg-info/15 px-1 py-0.5 rounded text-xs font-mono">secrets_ref: {`{profile: "production", account_id: "you.near"}`}</code>
+ <strong>Reference in execution</strong>: Use <code className="bg-info/15 px-1 py-0.5 rounded text-xs font-mono">secrets_ref: {`{profile: "production", account_id: "you.near"}`}</code>
           </li>
           <li>
-            <strong>Automatic decryption</strong>: Worker fetches secrets from contract and decrypts via keystore
+ <strong>Automatic decryption</strong>: Worker fetches secrets from contract and decrypts via keystore
           </li>
           <li>
-            <strong>Access validation</strong>: Keystore validates access conditions (balance checks, whitelists, etc.)
+ <strong>Access validation</strong>: Keystore validates access conditions (balance checks, whitelists, etc.)
           </li>
           <li>
-            <strong>WASI injection</strong>: Decrypted secrets injected as environment variables into WASM
+ <strong>WASI injection</strong>: Decrypted secrets injected as environment variables into WASM
           </li>
           <li>
-            <strong>Code access</strong>: Your WASM code uses <code className="bg-info/15 px-1 py-0.5 rounded text-xs font-mono">std::env::var(&quot;API_KEY&quot;)</code>
+ <strong>Code access</strong>: Your WASM code uses <code className="bg-info/15 px-1 py-0.5 rounded text-xs font-mono">std::env::var(&quot;API_KEY&quot;)</code>
           </li>
         </ol>
 
-        <div className="mt-4 p-3 bg-card rounded border border-info/30">
-          <h4 className="text-xs font-semibold text-foreground mb-2">Example: Request Execution with Secrets</h4>
-          <pre className="text-xs text-info overflow-x-auto">
+ <div className="mt-4 p-3 bg-card rounded border border-info/30">
+ <h4 className="text-xs font-semibold text-foreground mb-2">Example: Request Execution with Secrets</h4>
+ <pre className="text-xs text-info overflow-x-auto">
 {`near call outlayer.testnet request_execution '{
   "source": {
     "GitHub": {

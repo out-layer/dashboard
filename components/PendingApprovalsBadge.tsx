@@ -29,7 +29,7 @@ export default function PendingApprovalsBadge() {
           contractId,
           method: 'get_wallet_policies_by_owner',
           args: { owner: accountId },
-        }).catch(() => []) as Array<{ wallet_pubkey: string }>;
+ }).catch(() => []) as Array<{ wallet_pubkey: string }>;
 
         const allApprovals: Array<{ wallet_pubkey: string } & Record<string, unknown>> = [];
         for (const w of wallets) {
@@ -111,7 +111,7 @@ export default function PendingApprovalsBadge() {
 
   if (count <= 0) return null;
   return (
-    <span className="ml-1.5 inline-flex items-center justify-center w-5 h-5 text-xs font-bold text-white bg-destructive rounded-full">
+ <span className="ml-1.5 inline-flex items-center justify-center w-5 h-5 text-xs font-bold text-white bg-destructive rounded-full">
       {count}
     </span>
   );

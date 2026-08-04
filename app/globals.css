@@ -88,77 +88,16 @@ body {
   overflow-x: hidden;
 }
 
-/* ------------------------------------------------------------------ */
-/* LEGACY styles below — used only by the current marketing home page  */
-/* (app/page.tsx). Delete together with it in the Phase 1 redesign.    */
-/* ------------------------------------------------------------------ */
-
-/* Matrix rain effect - only inside hexagon */
-.matrix-container {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
-  overflow: hidden;
-}
-
-.matrix-char {
-  position: absolute;
-  font-size: 14px;
-  font-family: 'Courier New', monospace;
-  pointer-events: none;
-  font-weight: bold;
-  line-height: 14px;
-}
-
-/* Logo break-out animation */
-@keyframes logo-emerge {
-  0% {
-    transform: scale(0.95);
-    opacity: 0.7;
-  }
-  100% {
-    transform: scale(1);
-    opacity: 1;
-  }
-}
-
-.logo-emerge {
-  animation: logo-emerge 1s ease-out forwards;
-}
-
-/* Hexagon shape - dark background */
-.hexagon {
-  position: relative;
-  width: 400px;
-  height: 346px;
-  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
-  background: linear-gradient(135deg, rgba(0, 0, 0, 0.95), rgba(25, 20, 15, 0.9));
-}
-
 @media (max-width: 640px) {
-  .hexagon {
-    width: 280px;
-    height: 242px;
-  }
-
-  .matrix-char {
-    font-size: 10px;
-  }
-
   body {
     font-size: 14px;
   }
 }
 
-@media (max-width: 480px) {
-  .hexagon {
-    width: 240px;
-    height: 208px;
-  }
-}
+/* ------------------------------------------------------------------ */
+/* LEGACY styles — still used by app/playground/page.tsx. Retire when  */
+/* the playground is re-skinned in Phase 2.                            */
+/* ------------------------------------------------------------------ */
 
 /* Feature cards with light theme */
 .feature-card {

@@ -206,11 +206,11 @@ export default function EarningsPage() {
   }, [error, success]);
 
   return (
-    <div className="max-w-4xl mx-auto">
+    <div className="w-full">
       {/* Header */}
       <div className="sm:flex sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">My Earnings</h1>
+          <h1 className="text-xl font-bold tracking-tight">My Earnings</h1>
           <p className="mt-2 text-sm text-foreground">
             Track earnings from blockchain calls and HTTPS API calls to your projects
           </p>
@@ -278,7 +278,7 @@ export default function EarningsPage() {
                 <p className="text-xs text-purple-500">From smart contract calls</p>
               </div>
             </div>
-            <p className="text-3xl font-bold text-purple-600 mb-4">
+            <p className="text-3xl font-bold text-accent-text tabular-nums mb-4">
               {formatUsd(blockchainBalance, stablecoin.decimals)}
             </p>
             <button

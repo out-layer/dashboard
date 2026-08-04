@@ -350,11 +350,11 @@ export default function ProjectsPage() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto">
+    <div className="w-full">
       {/* Header */}
       <div className="sm:flex sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Projects</h1>
+          <h1 className="text-xl font-bold tracking-tight">Projects</h1>
           <p className="mt-2 text-sm text-foreground">
             Manage your OutLayer projects with persistent storage across versions
           </p>

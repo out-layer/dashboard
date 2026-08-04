@@ -37,7 +37,7 @@ const REFRESH_INTERVAL = 60_000;
 
 export default function WalletApprovalsPage() {
   return (
-    <Suspense fallback={<div className="max-w-4xl mx-auto py-8 text-faint-foreground">Loading...</div>}>
+    <Suspense fallback={<div className="w-full py-8 text-faint-foreground">Loading...</div>}>
       <WalletApprovalsContent />
     </Suspense>
   );
@@ -332,7 +332,7 @@ function WalletApprovalsContent() {
   // Not connected — show connect prompt
   if (!isConnected) {
     return (
-      <div className="max-w-4xl mx-auto">
+      <div className="w-full">
         <h1 className="text-xl font-bold tracking-tight mb-6">Approvals</h1>
         <RequireWallet subject="pending approvals for your AI wallets" />
       </div>
@@ -340,7 +340,7 @@ function WalletApprovalsContent() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto">
+    <div className="w-full">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-xl font-bold tracking-tight">
           Approvals

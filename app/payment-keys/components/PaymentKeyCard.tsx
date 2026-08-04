@@ -340,7 +340,7 @@ export function PaymentKeyCard({
             <div className="p-6">
               <div className="flex justify-between items-center mb-4">
                 <div className="flex items-center gap-3">
-                  <h2 className="text-2xl font-bold text-foreground">
+                  <h2 className="text-lg font-bold tracking-tight">
                     TEE Attestation - HTTPS Call
                   </h2>
                   <span className="inline-flex rounded-full px-2 text-xs font-semibold leading-5 bg-orange-100 text-orange-800">

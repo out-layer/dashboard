@@ -25,7 +25,7 @@ interface ApprovalDetail {
 
 export default function ApprovalDetailPage() {
   return (
-    <Suspense fallback={<div className="max-w-4xl mx-auto py-8 text-faint-foreground">Loading...</div>}>
+    <Suspense fallback={<div className="w-full py-8 text-faint-foreground">Loading...</div>}>
       <ApprovalDetailContent />
     </Suspense>
   );
@@ -151,14 +151,14 @@ function ApprovalDetailContent() {
   const backUrl = '/wallet/approvals';
 
   return (
-    <div className="max-w-4xl mx-auto">
+    <div className="w-full">
       <div className="flex items-center space-x-3 mb-6">
         <Link href={backUrl} className="text-accent-text hover:text-accent-text">
           &larr; Back to Approvals
         </Link>
       </div>
 
-      <h1 className="text-3xl font-bold text-foreground mb-6">Approval Details</h1>
+      <h1 className="text-xl font-bold tracking-tight mb-6">Approval Details</h1>
 
       {error && (
         <div className="mb-4 bg-destructive/10 border border-destructive/30 rounded-md p-3">

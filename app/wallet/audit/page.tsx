@@ -41,7 +41,7 @@ const PAGE_SIZE = 50;
 
 export default function WalletAuditPage() {
   return (
-    <Suspense fallback={<div className="max-w-4xl mx-auto py-8 text-faint-foreground">Loading...</div>}>
+    <Suspense fallback={<div className="w-full py-8 text-faint-foreground">Loading...</div>}>
       <WalletAuditContent />
     </Suspense>
   );
@@ -236,8 +236,8 @@ function WalletAuditContent() {
   // No keys at all - show manual input
   if (noKeys && wallets.length === 0) {
     return (
-      <div className="max-w-6xl mx-auto">
-        <h1 className="text-3xl font-bold text-foreground mb-6">Wallet Audit Log</h1>
+      <div className="w-full">
+        <h1 className="text-xl font-bold tracking-tight mb-6">Wallet Audit Log</h1>
         <div className="bg-card shadow rounded-lg p-8">
           <p className="text-muted-foreground mb-4">
             No saved wallet keys found. Enter an API key to view the audit log.
@@ -265,9 +265,9 @@ function WalletAuditContent() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto">
+    <div className="w-full">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-3xl font-bold text-foreground">Wallet Audit Log</h1>
+        <h1 className="text-xl font-bold tracking-tight">Wallet Audit Log</h1>
         <div className="flex items-center space-x-3">
           <Link
             href="/wallet/approvals"

@@ -44,7 +44,7 @@ function countApprovers(primaryOwner: string, additional: string): number {
 
 export default function WalletHandoffPage() {
   return (
-    <Suspense fallback={<div className="max-w-4xl mx-auto py-8 text-faint-foreground">Loading...</div>}>
+    <Suspense fallback={<div className="w-full py-8 text-faint-foreground">Loading...</div>}>
       <WalletHandoffContent />
     </Suspense>
   );
@@ -288,7 +288,7 @@ function WalletHandoffContent() {
   if (!apiKey) {
     return (
       <div className="max-w-2xl mx-auto py-12">
-        <h1 className="text-3xl font-bold text-foreground mb-4">Wallet Handoff</h1>
+        <h1 className="text-xl font-bold tracking-tight mb-4">Wallet Handoff</h1>
         <div className="bg-card shadow rounded-lg p-8 text-center">
           <p className="text-muted-foreground mb-4">
             This page is used to take control of an AI agent wallet.
@@ -314,7 +314,7 @@ function WalletHandoffContent() {
 
   return (
     <div className="max-w-3xl mx-auto py-8">
-      <h1 className="text-3xl font-bold text-foreground mb-2">Wallet Handoff</h1>
+      <h1 className="text-xl font-bold tracking-tight mb-2">Wallet Handoff</h1>
       <p className="text-muted-foreground mb-6">
         Take control of your AI agent&apos;s wallet by setting a spending policy.
       </p>

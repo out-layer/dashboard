@@ -70,7 +70,7 @@ export default function AttestationPage() {
 
   if (error) {
     return (
-      <div className="max-w-4xl mx-auto mt-8">
+      <div className="w-full mt-8">
         <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-6">
           <h2 className="text-xl font-bold text-destructive-text mb-2">Error</h2>
           <p className="text-destructive-text">{error}</p>
@@ -87,7 +87,7 @@ export default function AttestationPage() {
 
   if (!attestation) {
     return (
-      <div className="max-w-4xl mx-auto mt-8">
+      <div className="w-full mt-8">
         <div className="bg-warning/10 border border-warning/30 rounded-lg p-6">
           <h2 className="text-xl font-bold text-warning mb-2">Not Found</h2>
           <p className="text-warning">No attestation data for job #{jobId}</p>
@@ -103,7 +103,7 @@ export default function AttestationPage() {
   }
 
   return (
-    <div className="max-w-5xl mx-auto">
+    <div className="w-full">
       {/* Network Mismatch Warning */}
       {isNetworkMismatch && (
         <div className="mb-6 bg-amber-50 border border-amber-200 rounded-lg p-4">
@@ -125,7 +125,7 @@ export default function AttestationPage() {
       <div className="bg-card rounded-lg shadow-sm border border-border p-6 mb-6">
         <div className="flex justify-between items-start">
           <div>
-            <h1 className="text-3xl font-bold text-foreground mb-2">
+            <h1 className="text-xl font-bold tracking-tight mb-2">
               TEE Attestation
             </h1>
             <p className="text-muted-foreground">

@@ -193,7 +193,7 @@ function WalletManagePage() {
 
   if (!isConnected) {
     return (
-      <div className="max-w-4xl mx-auto">
+      <div className="w-full">
         <h1 className="text-xl font-bold tracking-tight mb-6">Wallets</h1>
         <RequireWallet subject="your wallet policies" />
       </div>
@@ -201,7 +201,7 @@ function WalletManagePage() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto">
+    <div className="w-full">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-xl font-bold tracking-tight">Wallets</h1>
         <div className="flex items-center space-x-3">

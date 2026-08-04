@@ -835,10 +835,10 @@ function PlaygroundContent() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto">
+    <div className="w-full">
       <div className="sm:flex sm:items-center">
         <div className="sm:flex-auto">
-          <h1 className="text-3xl font-bold text-foreground">Playground</h1>
+          <h1 className="text-xl font-bold tracking-tight">Playground</h1>
           <p className="mt-2 text-sm text-foreground">
             Test off-chain execution with your GitHub repository
           </p>
@@ -1607,7 +1607,7 @@ function PlaygroundContent() {
 
 export default function PlaygroundPage() {
   return (
-    <Suspense fallback={<div className="max-w-7xl mx-auto">Loading...</div>}>
+    <Suspense fallback={<div className="w-full">Loading...</div>}>
       <PlaygroundContent />
     </Suspense>
   );

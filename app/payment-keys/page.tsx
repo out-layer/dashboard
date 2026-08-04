@@ -365,11 +365,11 @@ export default function PaymentKeysPage() {
   }, [contractId, signAndSendTransaction, loadPaymentKeys]);
 
   return (
-    <div className="max-w-4xl mx-auto">
+    <div className="w-full">
       {/* Header */}
       <div className="sm:flex sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Payment Keys</h1>
+          <h1 className="text-xl font-bold tracking-tight">Payment Keys</h1>
           <p className="mt-2 text-sm text-foreground">
             Manage API keys for HTTPS calls to OutLayer projects
           </p>

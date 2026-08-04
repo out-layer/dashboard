@@ -328,7 +328,7 @@ deploy requires at least ${(Number(VAULT_PARENT_BUDGET_YOCTO) / 1e24).toFixed(2)
   // ── Render ────────────────────────────────────────────────────────────
   return (
     <div className="container mx-auto p-6 max-w-5xl">
-      <h1 className="text-3xl font-bold mb-2">MPC Vaults</h1>
+      <h1 className="text-xl font-bold tracking-tight mb-2">Vaults</h1>
       <p className="text-foreground mb-2">
         Deploy a CKD-issuer contract bound to your NEAR account. OutLayer&apos;s
         keystore TEE derives your per-customer master <em>inside the enclave</em>

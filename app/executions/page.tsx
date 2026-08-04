@@ -324,7 +324,7 @@ export default function JobsPage() {
   }
 
   return (
-    <div className="mx-auto max-w-7xl">
+    <div className="w-full">
       <div className="sm:flex sm:items-center sm:justify-between">
         <div className="sm:flex-auto">
           <h1 className="text-xl font-bold tracking-tight">Executions</h1>

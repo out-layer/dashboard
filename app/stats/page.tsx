@@ -140,7 +140,7 @@ export default function StatsPage() {
   ];
 
   return (
-    <div className="mx-auto max-w-6xl">
+    <div className="w-full">
       <div>
         <h1 className="text-xl font-bold tracking-tight">Stats</h1>
         <p className="mt-1 text-sm text-muted-foreground">

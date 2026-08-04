@@ -278,11 +278,11 @@ export default function SecretsPage() {
 
 
   return (
-    <div className="max-w-4xl mx-auto">
+    <div className="w-full">
       {/* Header */}
       <div className="sm:flex sm:items-center">
         <div className="sm:flex-auto">
-          <h1 className="text-3xl font-bold text-foreground">Secrets Management</h1>
+          <h1 className="text-xl font-bold tracking-tight">Secrets Management</h1>
           <p className="mt-2 text-sm text-foreground">
             Create and manage encrypted secrets for your repositories
           </p>

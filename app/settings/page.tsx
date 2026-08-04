@@ -97,17 +97,17 @@ export default function SettingsPage() {
 
   if (!isConnected) {
     return (
-      <div className="max-w-4xl mx-auto">
+      <div className="w-full">
         <RequireWallet subject="your settings and earnings" />
       </div>
     );
   }
 
   return (
-    <div className="max-w-4xl mx-auto">
+    <div className="w-full">
       <div className="sm:flex sm:items-center sm:justify-between">
         <div className="sm:flex-auto">
-          <h1 className="text-3xl font-bold text-foreground">Settings</h1>
+          <h1 className="text-xl font-bold tracking-tight">Settings</h1>
           <p className="mt-2 text-sm text-foreground">Manage your account and view usage statistics</p>
         </div>
         <div className="mt-4 sm:mt-0">

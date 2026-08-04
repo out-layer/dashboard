@@ -23,7 +23,7 @@ import nextEnv from '@next/env'
 
 const { loadEnvConfig } = nextEnv
 
-import { FULL_TEXT_SOURCES, SECTIONS, SITE } from './llms-manifest.mjs'
+import { DOCS_NAV_PATHS, FULL_TEXT_SOURCES, SECTIONS, SITE } from './llms-manifest.mjs'
 
 /**
  * Submodule path -> the URL of the repository it lives in.
@@ -200,7 +200,32 @@ function buildFullText(sources) {
   return `${parts.join('\n')}\n`
 }
 
+/**
+ * The sidebar (lib/docs-nav.mjs) owns the docs page set; the manifest owns the
+ * editorial titles/summaries. A page present in one but not the other is drift.
+ * Runs on every build — including standalone clones with no LLMS_SOURCES_ROOT.
+ */
+function checkDocsNavSync() {
+  const manifestPaths = new Set(
+    SECTIONS.flatMap((s) => s.pages).flatMap((p) => (p.path ? [p.path] : [])),
+  )
+  const missingInManifest = [...DOCS_NAV_PATHS].filter((p) => !manifestPaths.has(p))
+  const missingInNav = [...manifestPaths].filter((p) => !DOCS_NAV_PATHS.has(p))
+
+  if (missingInManifest.length === 0 && missingInNav.length === 0) return
+
+  const message =
+    'llms: docs sidebar and llms manifest disagree on the page set:\n' +
+    missingInManifest.map((p) => `  - ${p} is in lib/docs-nav.mjs but not scripts/llms-manifest.mjs`).join('\n') +
+    missingInNav.map((p) => `  - ${p} is in scripts/llms-manifest.mjs but not lib/docs-nav.mjs`).join('\n')
+
+  if (strict) throw new Error(message)
+  console.warn(message)
+}
+
 async function main() {
+  checkDocsNavSync()
+
   if (!repoRoot) {
     const missingArtifacts = ['llms.txt', 'llms-full.txt'].filter(
       (f) => !existsSync(resolve(publicDir, f)),

@@ -6,6 +6,16 @@
 //
 // Everything an LLM should be able to find is listed here. Keep summaries factual
 // and specific: they are the only thing an agent sees before deciding what to fetch.
+//
+// The PAGE SET is owned by lib/docs-nav.mjs (the docs sidebar). Titles, grouping
+// and summaries here stay editorial — llms.txt readers want descriptive titles,
+// the sidebar wants short labels — but every sidebar page must be listed here and
+// vice versa. build-llms.mjs cross-checks the two on every build.
+
+import { DOCS_NAV } from '../lib/docs-nav.mjs'
+
+/** Every docs page the sidebar knows about, e.g. '/docs/getting-started'. */
+export const DOCS_NAV_PATHS = new Set(DOCS_NAV.flatMap((g) => g.pages.map((p) => p.href)))
 
 export const SITE = {
   name: 'NEAR OutLayer',

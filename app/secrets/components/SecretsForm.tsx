@@ -811,7 +811,7 @@ export function SecretsForm({
             <select
               value={secretsUpdateMode}
               onChange={(e) => setSecretsUpdateMode(e.target.value as UpdateMode)}
- className="w-full px-3 py-2 border border-border-strong rounded-md shadow-sm focus:outline-none focus:ring-accent focus:border-accent"
+ className="w-full max-w-xl px-3 py-2 border border-border-strong rounded-md shadow-sm focus:outline-none focus:ring-accent focus:border-accent"
               disabled={encrypting}
             >
  <option value="append">Append - Add or update secrets, keep existing user secrets</option>
@@ -919,7 +919,7 @@ export function SecretsForm({
                 value={repo}
                 onChange={(e) => setRepo(e.target.value)}
                 placeholder="owner/repo or https://github.com/owner/repo"
- className="w-full px-3 py-2 border border-border-strong rounded-md shadow-sm focus:outline-none focus:ring-accent focus:border-accent"
+ className="w-full max-w-xl px-3 py-2 border border-border-strong rounded-md shadow-sm focus:outline-none focus:ring-accent focus:border-accent"
                 disabled={encrypting}
               />
  <p className="mt-1 text-xs text-muted-foreground">
@@ -936,7 +936,7 @@ export function SecretsForm({
                 value={branch}
                 onChange={(e) => setBranch(e.target.value)}
                 placeholder="main, develop, etc. (leave empty for all branches)"
- className="w-full px-3 py-2 border border-border-strong rounded-md shadow-sm focus:outline-none focus:ring-accent focus:border-accent"
+ className="w-full max-w-xl px-3 py-2 border border-border-strong rounded-md shadow-sm focus:outline-none focus:ring-accent focus:border-accent"
                 disabled={encrypting}
               />
             </div>
@@ -954,7 +954,7 @@ export function SecretsForm({
               value={wasmHash}
               onChange={(e) => setWasmHash(e.target.value.toLowerCase())}
               placeholder="64-character hex hash (e.g., a1b2c3d4...)"
- className="w-full px-3 py-2 border border-border-strong rounded-md shadow-sm font-mono text-sm focus:outline-none focus:ring-accent focus:border-accent"
+ className="w-full max-w-xl px-3 py-2 border border-border-strong rounded-md shadow-sm font-mono text-sm focus:outline-none focus:ring-accent focus:border-accent"
               disabled={encrypting}
               maxLength={64}
             />
@@ -988,7 +988,7 @@ export function SecretsForm({
               <select
                 value={projectId}
                 onChange={(e) => setProjectId(e.target.value)}
- className="w-full px-3 py-2 border border-border-strong rounded-md shadow-sm focus:outline-none focus:ring-accent focus:border-accent"
+ className="w-full max-w-xl px-3 py-2 border border-border-strong rounded-md shadow-sm focus:outline-none focus:ring-accent focus:border-accent"
                 disabled={encrypting}
               >
  <option value="">Select a project...</option>
@@ -1015,7 +1015,7 @@ export function SecretsForm({
             value={profile}
             onChange={(e) => setProfile(e.target.value)}
             placeholder="default, prod, staging, etc."
- className="w-full px-3 py-2 border border-border-strong rounded-md shadow-sm focus:outline-none focus:ring-accent focus:border-accent"
+ className="w-full max-w-xl px-3 py-2 border border-border-strong rounded-md shadow-sm focus:outline-none focus:ring-accent focus:border-accent"
             disabled={encrypting}
           />
  <p className="mt-1 text-xs text-muted-foreground">
@@ -1032,7 +1032,7 @@ export function SecretsForm({
             value={plaintextSecrets}
             onChange={(e) => setPlaintextSecrets(e.target.value)}
             rows={8}
- className="w-full px-3 py-2 border border-border-strong rounded-md shadow-sm font-mono text-sm focus:outline-none focus:ring-accent focus:border-accent"
+ className="w-full max-w-xl px-3 py-2 border border-border-strong rounded-md shadow-sm font-mono text-sm focus:outline-none focus:ring-accent focus:border-accent"
             placeholder='{\n  "OPENAI_KEY": "sk-...",\n  "DATABASE_URL": "postgres://..."\n}'
             disabled={encrypting}
           />

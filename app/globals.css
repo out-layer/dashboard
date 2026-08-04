@@ -8,7 +8,7 @@
  * Warning shares the amber hue family — warnings must always carry an icon + label.
  */
 :root {
-  --background: #f7f7f9;
+  --background: #f3f3f6;
   --card: #ffffff;
   --card-muted: #f3f3f6;
   --border: rgba(12, 12, 35, 0.1);
@@ -86,6 +86,14 @@ body {
   color: var(--foreground);
   font-family: var(--font-sans);
   overflow-x: hidden;
+}
+
+/* Form fields sit on white/dark cards — give them the page tint so they read
+   as fields, not as card background. Checkboxes/radios keep native rendering. */
+input:not([type='checkbox']):not([type='radio']),
+textarea,
+select {
+  background-color: var(--background);
 }
 
 @media (max-width: 640px) {

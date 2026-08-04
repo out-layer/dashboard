@@ -192,7 +192,7 @@ export function GenerateSecretsForm({
             value={repo}
             onChange={(e) => setRepo(e.target.value)}
             placeholder="owner/repo or https://github.com/owner/repo"
- className="w-full px-3 py-2 border border-border-strong rounded-md shadow-sm focus:outline-none focus:ring-accent focus:border-accent"
+ className="w-full max-w-xl px-3 py-2 border border-border-strong rounded-md shadow-sm focus:outline-none focus:ring-accent focus:border-accent"
             disabled={generating}
           />
         </div>
@@ -207,7 +207,7 @@ export function GenerateSecretsForm({
             value={branch}
             onChange={(e) => setBranch(e.target.value)}
             placeholder="main, develop, etc. (leave empty for all branches)"
- className="w-full px-3 py-2 border border-border-strong rounded-md shadow-sm focus:outline-none focus:ring-accent focus:border-accent"
+ className="w-full max-w-xl px-3 py-2 border border-border-strong rounded-md shadow-sm focus:outline-none focus:ring-accent focus:border-accent"
             disabled={generating}
           />
         </div>

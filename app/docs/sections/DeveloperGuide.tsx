@@ -2,8 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect } from 'react';
-import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import { SyntaxHighlighter, vscDarkPlus } from '@/components/ui/syntax';
 
 // Anchor heading component with clickable link
 function AnchorHeading({ id, children }: { id: string; children: React.ReactNode }) {

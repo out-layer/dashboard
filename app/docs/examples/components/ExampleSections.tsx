@@ -1,5 +1,4 @@
-import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import { SyntaxHighlighter, vscDarkPlus } from '@/components/ui/syntax';
 
 export function UseCasesSection({ items }: { items: (string | React.ReactNode)[] }) {
   return (

@@ -1,7 +1,6 @@
 'use client';
 
-import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import { SyntaxHighlighter, vscDarkPlus } from '@/components/ui/syntax';
 import { AnchorHeading, useHashNavigation } from '../sections/utils';
 
 export default function PaymentChecksPage() {

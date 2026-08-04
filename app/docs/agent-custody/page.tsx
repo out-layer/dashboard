@@ -71,7 +71,7 @@ export default function AgentCustodyPage() {
         <AnchorHeading id="how-it-works">How It Works</AnchorHeading>
 
         {/* Canvas-style visual architecture diagram */}
-        <div className="bg-card-muted rounded-xl border border-border p-6 mb-6 overflow-x-auto">
+        <div className="bg-card-muted rounded-lg border border-border p-6 mb-6 overflow-x-auto">
           <div className="min-w-[700px]">
 
             {/* Row 1: Agent and Wallet Owner on the sides */}
@@ -108,7 +108,7 @@ export default function AgentCustodyPage() {
             </div>
 
             {/* Row 3: TEE box in the center spanning full width */}
-            <div className="relative border-2 border-success/60 rounded-xl p-4 bg-success/10/50">
+            <div className="relative border-2 border-success/60 rounded-lg p-4 bg-success/10/50">
               <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-success/100 text-white text-xs font-bold px-3 py-0.5 rounded-full whitespace-nowrap">TEE (Intel TDX) &mdash; all security here</span>
               <div className="grid grid-cols-3 gap-4 mt-2">
                 <div className="bg-card rounded-lg border border-success/40 p-3 text-center">

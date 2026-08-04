@@ -68,7 +68,7 @@ export default function ProductHome() {
       </div>
 
       {/* Live strip — real numbers, not claims */}
-      <div className="flex flex-wrap items-center gap-x-6 gap-y-2 rounded-xl border border-border bg-card px-5 py-3 text-sm">
+      <div className="flex flex-wrap items-center gap-x-6 gap-y-2 rounded-lg border border-border bg-card px-5 py-3 text-sm">
         <span className="inline-flex items-center gap-2 font-semibold">
           <span className="h-2 w-2 rounded-full bg-success" />
           Live on NEAR mainnet
@@ -136,7 +136,7 @@ export default function ProductHome() {
       </div>
 
       {/* How verification works */}
-      <div className="mt-8 rounded-xl border border-border bg-card p-5">
+      <div className="mt-8 rounded-lg border border-border bg-card p-5">
         <h2 className="text-sm font-semibold">How verification works</h2>
         <div className="mt-3 grid gap-4 text-sm text-muted-foreground sm:grid-cols-3">
           <div>

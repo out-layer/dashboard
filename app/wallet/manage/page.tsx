@@ -234,7 +234,7 @@ function WalletManagePage() {
 
       {/* API key wallet (from ?key= param) — new wallet without policy yet */}
       {apiKeyWallet && !wallets.some((w) => w.wallet_pubkey === `ed25519:${apiKeyWallet.address}`) && (
-        <div className="mb-4 bg-card rounded-xl border-2 border-dashed border-accent">
+        <div className="mb-4 bg-card rounded-lg border-2 border-dashed border-accent">
           <div className="px-4 py-4 sm:px-6">
             <div className="flex items-center justify-between">
               <div>
@@ -288,7 +288,7 @@ function WalletManagePage() {
             return (
             <div
               key={wallet.wallet_pubkey}
-              className={`rounded-xl border ${
+              className={`rounded-lg border ${
                 wallet.frozen ? 'border-info/40 bg-info/5' : 'border-border bg-card'
               }`}
             >

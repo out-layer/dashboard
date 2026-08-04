@@ -454,7 +454,7 @@ function WalletApprovalsContent() {
           {approvals.map((approval) => (
             <div
               key={approval.id}
-              className={`rounded-xl border bg-card ${
+              className={`rounded-lg border bg-card ${
                 isExpired(approval.expires_at)
                   ? 'border-border opacity-60'
                   : 'border-accent/50'

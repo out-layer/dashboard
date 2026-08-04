@@ -103,7 +103,7 @@ export default function WorkersPage() {
         </div>
       </div>
 
-      <Card className="mt-6 overflow-hidden">
+      <Card className="mt-6 overflow-hidden rounded-md">
         {workers.length === 0 ? (
           <EmptyState
             title="No workers found"

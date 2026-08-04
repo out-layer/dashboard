@@ -214,7 +214,7 @@ export default function StatsPage() {
 
       {/* Popular repositories */}
       {repos.filter((repo) => repo.successful_executions > 0).length > 0 && (
-        <Card className="mt-6 overflow-hidden">
+        <Card className="mt-6 overflow-hidden rounded-md">
           <CardHeader>
             <CardTitle>Popular repositories</CardTitle>
           </CardHeader>

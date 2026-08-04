@@ -250,21 +250,21 @@ export default function JobsPage() {
 
     switch (actualStatus) {
       case 'completed':
-        return { color: 'bg-green-100 text-green-800', text: 'Done' };
+        return { color: 'bg-success/10 text-success-text', text: 'Done' };
       case 'access_denied':
-        return { color: 'bg-yellow-100 text-yellow-800', text: 'Access Denied' };
+        return { color: 'bg-warning/10 text-warning', text: 'Access Denied' };
       case 'compilation_failed':
-        return { color: 'bg-orange-100 text-orange-800', text: 'Compilation Failed' };
+        return { color: 'bg-warning/10 text-warning', text: 'Compilation Failed' };
       case 'execution_failed':
-        return { color: 'bg-red-100 text-red-800', text: 'Execution Failed' };
+        return { color: 'bg-destructive/10 text-destructive-text', text: 'Execution Failed' };
       case 'insufficient_payment':
-        return { color: 'bg-purple-100 text-purple-800', text: 'Insufficient Payment' };
+        return { color: 'bg-warning/10 text-warning', text: 'Insufficient Payment' };
       case 'custom':
-        return { color: 'bg-blue-100 text-blue-800', text: 'Invalid Request' };
+        return { color: 'bg-info/10 text-info', text: 'Invalid Request' };
       case 'failed':
-        return { color: 'bg-red-100 text-red-800', text: 'Infrastructure Error' };
+        return { color: 'bg-destructive/10 text-destructive-text', text: 'Infrastructure Error' };
       default:
-        return { color: 'bg-gray-100 text-gray-800', text: actualStatus.replace('_', ' ') };
+        return { color: 'bg-card-muted text-muted-foreground', text: actualStatus.replace('_', ' ') };
     }
   };
 
@@ -317,19 +317,19 @@ export default function JobsPage() {
 
   if (error && !loading) {
     return (
-      <div className="bg-red-50 border border-red-200 rounded-md p-4">
-        <p className="text-red-800">{error}</p>
+      <div className="rounded-md border border-destructive/30 bg-destructive/10 p-4">
+        <p className="text-sm text-destructive-text">{error}</p>
       </div>
     );
   }
 
   return (
-    <div>
+    <div className="mx-auto max-w-7xl">
       <div className="sm:flex sm:items-center sm:justify-between">
         <div className="sm:flex-auto">
-          <h1 className="text-3xl font-bold text-gray-900">Job History</h1>
-          <p className="mt-2 text-sm text-gray-700">
-            Browse all compilation and execution jobs
+          <h1 className="text-xl font-bold tracking-tight">Executions</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Compilation and execution jobs. Click an id to open its TEE attestation.
           </p>
         </div>
 
@@ -344,9 +344,9 @@ export default function JobsPage() {
                 checked={settings.showNear}
                 onChange={toggleNear}
                 disabled={settings.showNear && !settings.showHttps}
-                className="w-4 h-4 text-green-600 rounded border-gray-300 focus:ring-green-500 disabled:opacity-50"
+                className="w-4 h-4 rounded accent-accent disabled:opacity-50"
               />
-              <span className={`text-sm font-medium ${settings.showNear ? 'text-green-700' : 'text-gray-500'}`}>
+              <span className={`text-sm font-medium ${settings.showNear ? 'text-foreground' : 'text-faint-foreground'}`}>
                 NEAR
               </span>
             </label>
@@ -356,9 +356,9 @@ export default function JobsPage() {
                 checked={settings.showHttps}
                 onChange={toggleHttps}
                 disabled={settings.showHttps && !settings.showNear}
-                className="w-4 h-4 text-orange-500 rounded border-gray-300 focus:ring-orange-500 disabled:opacity-50"
+                className="w-4 h-4 rounded accent-accent disabled:opacity-50"
               />
-              <span className={`text-sm font-medium ${settings.showHttps ? 'text-orange-600' : 'text-gray-500'}`}>
+              <span className={`text-sm font-medium ${settings.showHttps ? 'text-foreground' : 'text-faint-foreground'}`}>
                 HTTPS
               </span>
             </label>
@@ -368,7 +368,7 @@ export default function JobsPage() {
           <div className="relative">
             <button
               onClick={() => setShowColumnSettings(!showColumnSettings)}
-              className="px-3 py-1.5 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg flex items-center gap-1"
+              className="px-3 py-1.5 text-sm font-medium text-muted-foreground bg-card-muted hover:text-foreground border border-border rounded-lg flex items-center gap-1 cursor-pointer"
               title="Column settings"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -383,19 +383,19 @@ export default function JobsPage() {
                   className="fixed inset-0 z-10"
                   onClick={() => setShowColumnSettings(false)}
                 />
-                <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-20 py-2">
+                <div className="absolute right-0 mt-2 w-48 bg-card rounded-lg shadow-lg border border-border z-20 py-2">
                   {(Object.keys(COLUMN_LABELS) as Array<keyof TableSettings['visibleColumns']>).map((col) => (
                     <label
                       key={col}
-                      className="flex items-center px-4 py-2 hover:bg-gray-50 cursor-pointer"
+                      className="flex items-center px-4 py-2 hover:bg-card-muted cursor-pointer"
                     >
                       <input
                         type="checkbox"
                         checked={settings.visibleColumns[col]}
                         onChange={() => toggleColumn(col)}
-                        className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                        className="w-4 h-4 rounded accent-accent"
                       />
-                      <span className="ml-2 text-sm text-gray-700">{COLUMN_LABELS[col]}</span>
+                      <span className="ml-2 text-sm">{COLUMN_LABELS[col]}</span>
                     </label>
                   ))}
                 </div>
@@ -416,62 +416,62 @@ export default function JobsPage() {
       <div className="mt-8 flex flex-col">
         <div className="-my-2 -mx-4 overflow-x-auto sm:-mx-6 lg:-mx-8">
           <div className="inline-block min-w-full py-2 align-middle md:px-6 lg:px-8">
-            <div className="overflow-hidden shadow ring-1 ring-black ring-opacity-5 md:rounded-lg">
-              <table className="min-w-full divide-y divide-gray-300">
-                <thead className="bg-gray-50">
+            <div className="overflow-hidden rounded-xl border border-border bg-card">
+              <table className="min-w-full">
+                <thead className="border-b border-border">
                   <tr>
                     {effectiveColumns.id && (
                       <th
-                        className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900"
+                        className="px-3 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-faint-foreground"
                         title="Click an id to view its TEE attestation quote"
                       >
                         ID
                       </th>
                     )}
                     {effectiveColumns.type && (
-                      <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Type</th>
+                      <th className="px-3 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-faint-foreground">Type</th>
                     )}
                     {effectiveColumns.status && (
-                      <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Status</th>
+                      <th className="px-3 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-faint-foreground">Status</th>
                     )}
                     {effectiveColumns.worker && (
-                      <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Worker</th>
+                      <th className="px-3 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-faint-foreground">Worker</th>
                     )}
                     {effectiveColumns.source && (
-                      <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Source</th>
+                      <th className="px-3 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-faint-foreground">Source</th>
                     )}
                     {effectiveColumns.user && (
-                      <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">User</th>
+                      <th className="px-3 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-faint-foreground">User</th>
                     )}
                     {effectiveColumns.time && (
-                      <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Time (ms)</th>
+                      <th className="px-3 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-faint-foreground">Time (ms)</th>
                     )}
                     {effectiveColumns.fuel && (
-                      <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900" title="Instructions">Fuel</th>
+                      <th className="px-3 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-faint-foreground" title="Instructions">Fuel</th>
                     )}
                     {effectiveColumns.payment && (
-                      <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900" title="In NEAR tokens">Payment</th>
+                      <th className="px-3 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-faint-foreground" title="In NEAR tokens">Payment</th>
                     )}
                     {effectiveColumns.tx && (
-                      <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">TX</th>
+                      <th className="px-3 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-faint-foreground">TX</th>
                     )}
                     {effectiveColumns.created && (
-                      <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Created</th>
+                      <th className="px-3 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-faint-foreground">Created</th>
                     )}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-200 bg-white">
+                <tbody className="divide-y divide-border">
                   {loading ? (
                     <tr>
                       <td colSpan={visibleColumnCount} className="px-3 py-8 text-center">
                         <div className="flex justify-center">
-                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-accent"></div>
                         </div>
                       </td>
                     </tr>
                   ) : jobs.length === 0 ? (
                     <tr>
-                      <td colSpan={visibleColumnCount} className="px-3 py-8 text-center text-sm text-gray-500">
+                      <td colSpan={visibleColumnCount} className="px-3 py-8 text-center text-sm text-muted-foreground">
                         No jobs found
                       </td>
                     </tr>
@@ -495,14 +495,14 @@ export default function JobsPage() {
                                 {job.job_id && job.job_type !== 'compile' ? (
                                   <button
                                     onClick={() => loadAttestation(job)}
-                                    className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 cursor-pointer group"
+                                    className="inline-flex items-center gap-1 text-accent-text cursor-pointer group"
                                     title="Click to view the TEE attestation quote for this execution"
                                   >
                                     <span className="underline decoration-dotted underline-offset-2">{job.id}</span>
                                     {/* Sized in `em` so it tracks the digits next to it instead of
                                         towering over them at a fixed pixel size. */}
                                     <svg
-                                      className="w-[0.9em] h-[0.9em] shrink-0 text-green-600 group-hover:text-green-700"
+                                      className="w-[0.9em] h-[0.9em] shrink-0 text-accent-text"
                                       fill="none"
                                       stroke="currentColor"
                                       viewBox="0 0 24 24"
@@ -512,7 +512,7 @@ export default function JobsPage() {
                                     </svg>
                                   </button>
                                 ) : (
-                                  <span className="text-gray-900">{job.id}</span>
+                                  <span>{job.id}</span>
                                 )}
                               </td>
                             )}
@@ -522,17 +522,17 @@ export default function JobsPage() {
                                   <span
                                     className={`inline-flex rounded-full px-2 text-xs font-semibold leading-5 ${
                                       job.job_type === 'compile'
-                                        ? 'bg-blue-100 text-blue-800'
-                                        : 'bg-purple-100 text-purple-800'
+                                        ? 'bg-info/10 text-info'
+                                        : 'bg-accent/10 text-accent-text'
                                     }`}
                                   >
                                     {job.job_type || 'N/A'}
                                   </span>
                                   <span
-                                    className={`inline-flex rounded-full px-2 text-xs font-semibold leading-5 ${
+                                    className={`inline-flex rounded-full px-2 text-xs font-semibold leading-5 border ${
                                       job.is_https_call
-                                        ? 'bg-orange-100 text-orange-800'
-                                        : 'bg-green-100 text-green-800'
+                                        ? 'border-border-strong text-muted-foreground'
+                                        : 'border-success/40 text-success-text'
                                     }`}
                                     title={job.is_https_call
                                       ? `HTTPS API call (call_id: ${job.call_id})`
@@ -565,14 +565,14 @@ export default function JobsPage() {
                               </td>
                             )}
                             {effectiveColumns.worker && (
-                              <td className="px-3 py-4 text-sm text-gray-500 font-mono">
+                              <td className="px-3 py-4 text-sm text-muted-foreground font-mono">
                                 <div className="max-w-[100px] truncate" title={job.worker_id || 'N/A'}>
                                   {job.worker_id ? job.worker_id.split('-').pop() : 'N/A'}
                                 </div>
                               </td>
                             )}
                             {effectiveColumns.source && (
-                              <td className="px-3 py-4 text-sm text-gray-500">
+                              <td className="px-3 py-4 text-sm text-muted-foreground">
                                 {job.project_id ? (
                                   <span
                                     className="max-w-[120px] truncate block"
@@ -585,7 +585,7 @@ export default function JobsPage() {
                                     href={`${job.github_repo}/tree/${job.github_commit}`}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="text-blue-600 hover:text-blue-800 hover:underline max-w-[120px] truncate block"
+                                    className="text-accent-text hover:underline max-w-[120px] truncate block"
                                     title={`${job.github_repo} @ ${job.github_commit}`}
                                   >
                                     {job.github_repo.replace(/^https?:\/\/(www\.)?github\.com\//, '')}
@@ -596,14 +596,14 @@ export default function JobsPage() {
                               </td>
                             )}
                             {effectiveColumns.user && (
-                              <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500 font-mono">
+                              <td className="whitespace-nowrap px-3 py-4 text-sm text-muted-foreground font-mono">
                                 {job.user_account_id
                                   ? job.user_account_id.substring(0, 12) + '...'
                                   : 'N/A'}
                               </td>
                             )}
                             {effectiveColumns.time && (
-                              <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-900">
+                              <td className="whitespace-nowrap px-3 py-4 text-sm">
                                 {job.compile_time_ms && job.execution_time_ms
                                   ? `${job.compile_time_ms}ms + ${job.execution_time_ms}ms`
                                   : job.compile_time_ms
@@ -614,12 +614,12 @@ export default function JobsPage() {
                               </td>
                             )}
                             {effectiveColumns.fuel && (
-                              <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-900">
+                              <td className="whitespace-nowrap px-3 py-4 text-sm">
                                 {job.job_type === 'compile' ? '-' : formatInstructions(job.instructions_used)}
                               </td>
                             )}
                             {effectiveColumns.payment && (
-                              <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-900">
+                              <td className="whitespace-nowrap px-3 py-4 text-sm">
                                 {job.is_https_call
                                   ? formatUsd(job.compute_cost_usd)
                                   : formatYoctoNEAR(getDisplayPayment(job))}
@@ -632,7 +632,7 @@ export default function JobsPage() {
                                     href={getTransactionUrl(job.transaction_hash, network)}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="text-blue-600 hover:text-blue-800 hover:underline"
+                                    className="text-accent-text hover:underline"
                                     title={job.transaction_hash}
                                   >
                                     {job.transaction_hash.substring(0, 8)}...
@@ -644,7 +644,7 @@ export default function JobsPage() {
                             )}
                             {effectiveColumns.created && (
                               <td
-                                className="whitespace-nowrap px-3 py-4 text-sm text-gray-500"
+                                className="whitespace-nowrap px-3 py-4 text-sm text-muted-foreground"
                                 title={new Date(job.created_at).toLocaleString()}
                               >
                                 {formatTimestamp(job.created_at)}
@@ -654,10 +654,10 @@ export default function JobsPage() {
                           {/* Error details row - only shown when expanded */}
                           {isExpanded && hasErrorDetails && (
                             <tr key={`${job.id}-details`}>
-                              <td colSpan={visibleColumnCount} className="px-3 py-4 bg-gray-50">
+                              <td colSpan={visibleColumnCount} className="px-3 py-4 bg-card-muted">
                                 <div className="text-sm">
-                                  <span className="font-semibold text-gray-700">Error Details:</span>
-                                  <pre className="mt-2 p-3 bg-white border border-gray-200 rounded text-xs overflow-x-auto text-red-600">
+                                  <span className="font-semibold">Error Details:</span>
+                                  <pre className="mt-2 p-3 bg-background border border-border rounded text-xs overflow-x-auto text-destructive-text">
                                     {job.error_details}
                                   </pre>
                                 </div>
@@ -686,20 +686,20 @@ export default function JobsPage() {
           }}
         >
           <div
-            className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto"
+            className="bg-card border border-border rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="p-6">
               <div className="flex justify-between items-center mb-4">
                 <div className="flex items-center gap-3">
-                  <h2 className="text-2xl font-bold text-gray-900">
+                  <h2 className="text-xl font-bold">
                     TEE Attestation - {attestationModal.isHttpsCall ? 'HTTPS' : 'NEAR'} Job #{attestationModal.jobId}
                   </h2>
                   <span
-                    className={`inline-flex rounded-full px-2 text-xs font-semibold leading-5 ${
+                    className={`inline-flex rounded-full px-2 text-xs font-semibold leading-5 border ${
                       attestationModal.isHttpsCall
-                        ? 'bg-orange-100 text-orange-800'
-                        : 'bg-green-100 text-green-800'
+                        ? 'border-border-strong text-muted-foreground'
+                        : 'border-success/40 text-success-text'
                     }`}
                   >
                     {attestationModal.isHttpsCall ? 'HTTPS' : 'NEAR'}
@@ -708,7 +708,7 @@ export default function JobsPage() {
                     <Link
                       href={`/attestation/${attestationModal.jobId}?network=${network}`}
                       target="_blank"
-                      className="px-3 py-1 bg-green-100 hover:bg-green-200 text-green-700 text-sm font-medium rounded"
+                      className="px-3 py-1 bg-accent/10 hover:bg-accent/20 text-accent-text text-sm font-medium rounded"
                       title="Open in new tab"
                     >
                       Direct Link
@@ -720,7 +720,7 @@ export default function JobsPage() {
                     setAttestationModal(null);
                     setShowAttestationHelp(false);
                   }}
-                  className="text-gray-400 hover:text-gray-600"
+                  className="text-faint-foreground hover:text-foreground"
                 >
                   <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -730,13 +730,13 @@ export default function JobsPage() {
 
               {attestationModal.loading && (
                 <div className="flex justify-center items-center py-12">
-                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-accent"></div>
                 </div>
               )}
 
               {attestationModal.error && (
-                <div className="bg-red-50 border border-red-200 rounded-md p-4 mb-4">
-                  <p className="text-red-800">{attestationModal.error}</p>
+                <div className="rounded-md border border-destructive/30 bg-destructive/10 p-4 mb-4">
+                  <p className="text-sm text-destructive-text">{attestationModal.error}</p>
                 </div>
               )}
 

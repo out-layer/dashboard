@@ -935,8 +935,8 @@ function PlaygroundContent() {
                 };
 
                 return (
- <div className="mt-3 p-3 bg-warning/10 border border-warning/30 rounded-md">
- <div className="text-sm text-warning whitespace-pre-line">
+ <div className="mt-3 p-3 bg-card-muted border border-border rounded-md">
+ <div className="text-sm text-muted-foreground whitespace-pre-line">
                       {formatDescription(preset.description)}
                     </div>
                     {preset.docsLink && (
@@ -1451,7 +1451,7 @@ function PlaygroundContent() {
                 }
               }}
               disabled={loading}
- className="btn-primary w-full inline-flex justify-center items-center px-6 py-3 text-base font-medium rounded-md text-black disabled:opacity-50 disabled:text-white"
+ className="w-full inline-flex justify-center items-center px-6 py-3 text-base font-semibold rounded-lg bg-accent text-on-accent hover:bg-accent-hover disabled:opacity-50"
             >
               {loading ? (
                 <>

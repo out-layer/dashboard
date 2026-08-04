@@ -6,7 +6,7 @@ export function EthereumExample() {
   const badges = (
     <>
       <span className="ml-3 text-sm bg-purple-100 text-purple-800 px-3 py-1 rounded">WASI P2</span>
-      <span className="ml-2 text-sm bg-red-100 text-red-800 px-3 py-1 rounded">Advanced</span>
+      <span className="ml-2 text-sm bg-destructive/10 text-destructive-text px-3 py-1 rounded">Advanced</span>
     </>
   );
 
@@ -18,7 +18,7 @@ export function EthereumExample() {
       githubUrl="https://github.com/out-layer/oracle-example"
       playgroundId="ethereum-api"
     >
-      <p className="text-gray-700 mb-4">
+      <p className="text-foreground mb-4">
         Query Ethereum blockchain data via JSON-RPC (balances, smart contracts, transactions). Similar to the previous oracle example but configured for Ethereum node providers like Alchemy. Bridge NEAR with Ethereum data for cross-chain applications.
       </p>
 
@@ -112,12 +112,12 @@ near contract call-function as-transaction outlayer.testnet request_execution \\
       ]} />
 
       <h4 className="font-semibold mt-4 mb-2">Notes:</h4>
-      <ul className="list-disc list-inside text-gray-700 space-y-1">
-        <li>Same codebase as <code className="bg-gray-100 px-2 py-1 rounded">oracle-example</code>, different secrets configuration</li>
+      <ul className="list-disc list-inside text-foreground space-y-1">
+        <li>Same codebase as <code className="bg-card-muted px-2 py-1 rounded">oracle-example</code>, different secrets configuration</li>
         <li>Requires Alchemy API key (free tier: 300M compute units/month)</li>
         <li>Supports any Ethereum JSON-RPC method (eth_call, eth_getTransactionReceipt, etc.)</li>
-        <li>Pre-configured secrets available on testnet: <code className="bg-gray-100 px-2 py-1 rounded">zavodil2.testnet</code></li>
-        <li>Mainnet secrets: <code className="bg-gray-100 px-2 py-1 rounded">zavodil.near</code></li>
+        <li>Pre-configured secrets available on testnet: <code className="bg-card-muted px-2 py-1 rounded">zavodil2.testnet</code></li>
+        <li>Mainnet secrets: <code className="bg-card-muted px-2 py-1 rounded">zavodil.near</code></li>
       </ul>
 
       <TechnicalDetailsSection items={[
@@ -131,7 +131,7 @@ near contract call-function as-transaction outlayer.testnet request_execution \\
       ]} />
 
       <LearnMoreSection>
-        <ul className="text-sm text-gray-700 space-y-1">
+        <ul className="text-sm text-foreground space-y-1">
           <li>
             📖 <Link href="/docs/wasi#wasi-preview-2" className="text-[var(--primary-orange)] hover:underline">
               WASI Preview 2 Documentation

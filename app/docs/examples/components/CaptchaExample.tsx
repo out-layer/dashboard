@@ -6,7 +6,7 @@ export function CaptchaExample() {
   const badges = (
     <>
       <span className="ml-3 text-sm bg-purple-100 text-purple-800 px-3 py-1 rounded">WASI P2</span>
-      <span className="ml-2 text-sm bg-green-100 text-green-800 px-3 py-1 rounded">Full Stack</span>
+      <span className="ml-2 text-sm bg-success/10 text-success-text px-3 py-1 rounded">Full Stack</span>
     </>
   );
 
@@ -17,7 +17,7 @@ export function CaptchaExample() {
       badges={badges}
       githubUrl="https://github.com/out-layer/captcha-example"
     >
-      <p className="text-gray-700 mb-4">
+      <p className="text-foreground mb-4">
         Token sale with mandatory CAPTCHA verification. Transaction won&apos;t complete until user solves CAPTCHA. WASI worker receives session ID from backend and waits for verification signal. Example implementation demonstrating async human verification pattern.
       </p>
 
@@ -51,7 +51,7 @@ Flow:
       </SyntaxHighlighter>
 
       <h4 className="font-semibold mt-4 mb-2">Components:</h4>
-      <ul className="list-disc list-inside text-gray-700 space-y-1 mb-4 ml-4">
+      <ul className="list-disc list-inside text-foreground space-y-1 mb-4 ml-4">
         <li><strong>WASI Worker:</strong> Rust WASM that verifies CAPTCHA (wasm32-wasip2)</li>
         <li><strong>Smart Contract:</strong> Token sale logic with OutLayer integration</li>
         <li><strong>Backend:</strong> Node.js Express server with WebSocket support</li>
@@ -108,8 +108,8 @@ near deploy tokensale.testnet \\
 # Visit https://launchpad.yourdomain.com and click "Buy Tokens"`}
       </SyntaxHighlighter>
 
-      <div className="mt-4 p-3 bg-blue-50 border-l-4 border-blue-400">
-        <p className="text-sm text-gray-700 mb-2">
+      <div className="mt-4 p-3 bg-info/10 border-l-4 border-info/50">
+        <p className="text-sm text-foreground mb-2">
           <strong>Production Setup:</strong> Requires SSL certificates for both frontend and backend domains. See <a href="https://github.com/out-layer/captcha-example/blob/main/CONFIGURATION.md" target="_blank" rel="noopener noreferrer" className="text-[var(--primary-orange)] hover:underline">CONFIGURATION.md</a> for complete deployment guide.
         </p>
       </div>
@@ -133,7 +133,7 @@ near deploy tokensale.testnet \\
       ]} />
 
       <LearnMoreSection>
-        <ul className="text-sm text-gray-700 space-y-1">
+        <ul className="text-sm text-foreground space-y-1">
           <li>
             📖 <Link href="/docs/wasi#wasi-preview-2" className="text-[var(--primary-orange)] hover:underline">
               WASI Preview 2 Documentation

@@ -4,8 +4,8 @@ import { ExampleCard, UseCasesSection, KeyFeaturesSection, TechnicalDetailsSecti
 export function RandomExample() {
   const badges = (
     <>
-      <span className="ml-3 text-sm bg-blue-100 text-blue-800 px-3 py-1 rounded">WASI P1</span>
-      <span className="ml-2 text-sm bg-green-100 text-green-800 px-3 py-1 rounded">Beginner</span>
+      <span className="ml-3 text-sm bg-info/10 text-info px-3 py-1 rounded">WASI P1</span>
+      <span className="ml-2 text-sm bg-success/10 text-success-text px-3 py-1 rounded">Beginner</span>
     </>
   );
 
@@ -17,7 +17,7 @@ export function RandomExample() {
       githubUrl="https://github.com/out-layer/random-example"
       playgroundId="random"
     >
-      <p className="text-gray-700 mb-4">
+      <p className="text-foreground mb-4">
         Generate cryptographically secure random numbers inside TEE (Trusted Execution Environment) using WASI&apos;s random_get interface.
       </p>
 
@@ -70,7 +70,7 @@ export function RandomExample() {
       ]} />
 
       <LearnMoreSection>
-        <ul className="text-sm text-gray-700 space-y-1">
+        <ul className="text-sm text-foreground space-y-1">
           <li>
             📖 <Link href="/docs/wasi#wasi-preview-1" className="text-[var(--primary-orange)] hover:underline">
               WASI Preview 1 Documentation

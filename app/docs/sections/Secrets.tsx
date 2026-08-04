@@ -10,9 +10,9 @@ export default function SecretsSection() {
     <div className="prose max-w-none">
       <h2 className="text-3xl font-bold mb-6 text-[var(--primary-orange)]">Secrets</h2>
 
-      <div className="bg-blue-50 p-4 rounded-lg mb-6">
-        <p className="text-blue-900 font-semibold mb-2">Enterprise-Grade Security with CKD & MPC Network</p>
-        <p className="text-blue-800">
+      <div className="bg-info/10 p-4 rounded-lg mb-6">
+        <p className="text-info font-semibold mb-2">Enterprise-Grade Security with CKD & MPC Network</p>
+        <p className="text-info">
           Secrets are protected using <strong>Confidential Key Derivation (CKD)</strong> - a cutting-edge primitive that leverages
           the NEAR MPC Network to provide deterministic secrets for TEE applications. Each app gets cryptographically isolated keys
           that persist across TEE restarts, derived through distributed computation where no single node knows the final secret.
@@ -22,7 +22,7 @@ export default function SecretsSection() {
       <div className="space-y-6">
         <section id="what-are-secrets">
           <AnchorHeading id="what-are-secrets">What are Secrets?</AnchorHeading>
-          <p className="text-gray-700">
+          <p className="text-foreground">
             Secrets are encrypted API keys, tokens, or sensitive data stored on-chain. They are automatically decrypted
             and injected as environment variables when your WASM code executes. The keystore service running in TEE
             handles all encryption/decryption operations.
@@ -31,46 +31,46 @@ export default function SecretsSection() {
 
         <section id="creating-secrets">
           <AnchorHeading id="creating-secrets">Creating Secrets</AnchorHeading>
-          <p className="text-gray-700 mb-3">
+          <p className="text-foreground mb-3">
             Use the <Link href="/secrets" className="text-[var(--primary-orange)] hover:underline">Secrets</Link> page
             to create encrypted secrets. Specify repository, branch (optional), and profile name. Secrets are encrypted
             client-side before being stored on-chain.
           </p>
 
-          <div className="bg-gray-50 p-4 rounded-lg mt-3">
-            <h4 className="font-semibold mb-2 text-gray-800">Two Ways to Create Secrets:</h4>
+          <div className="bg-card-muted p-4 rounded-lg mt-3">
+            <h4 className="font-semibold mb-2 text-foreground">Two Ways to Create Secrets:</h4>
 
             <div className="space-y-3">
-              <div className="border-l-4 border-blue-400 pl-3">
-                <p className="font-semibold text-gray-800 mb-1">1. Manual Secrets</p>
-                <p className="text-sm text-gray-700 mb-2">Provide key-value pairs directly (e.g., API keys you already have)</p>
-                <ul className="list-disc list-inside text-sm text-gray-700 ml-4">
+              <div className="border-l-4 border-info/50 pl-3">
+                <p className="font-semibold text-foreground mb-1">1. Manual Secrets</p>
+                <p className="text-sm text-foreground mb-2">Provide key-value pairs directly (e.g., API keys you already have)</p>
+                <ul className="list-disc list-inside text-sm text-foreground ml-4">
                   <li>Encrypted in your browser with ECIES (X25519 ECDH + HKDF-SHA256 + ChaCha20-Poly1305) — only the TEE can decrypt</li>
-                  <li>Example: <code className="bg-gray-100 px-2 py-1 rounded">{`{"OPENAI_KEY": "sk-..."}`}</code></li>
+                  <li>Example: <code className="bg-card-muted px-2 py-1 rounded">{`{"OPENAI_KEY": "sk-..."}`}</code></li>
                   <li className="text-amber-700">Cannot use <code className="bg-amber-100 px-1 rounded">PROTECTED_*</code> prefix (reserved for auto-generated)</li>
                 </ul>
               </div>
 
-              <div className="border-l-4 border-green-400 pl-3">
-                <p className="font-semibold text-gray-800 mb-1">2. Auto-Generated Secrets</p>
-                <p className="text-sm text-gray-700 mb-2">Generate cryptographically secure secrets in TEE without seeing their values</p>
-                <ul className="list-disc list-inside text-sm text-gray-700 ml-4">
+              <div className="border-l-4 border-success/50 pl-3">
+                <p className="font-semibold text-foreground mb-1">2. Auto-Generated Secrets</p>
+                <p className="text-sm text-foreground mb-2">Generate cryptographically secure secrets in TEE without seeing their values</p>
+                <ul className="list-disc list-inside text-sm text-foreground ml-4">
                   <li>Generated inside TEE (nobody ever sees the value)</li>
                   <li>Perfect for derivation keys, signing keys, encryption keys</li>
-                  <li className="text-green-700">Must start with <code className="bg-green-100 px-1 rounded">PROTECTED_*</code> prefix (proves TEE generation)</li>
-                  <li>Example: <code className="bg-gray-100 px-2 py-1 rounded">PROTECTED_MASTER_KEY</code></li>
+                  <li className="text-success-text">Must start with <code className="bg-success/15 px-1 rounded">PROTECTED_*</code> prefix (proves TEE generation)</li>
+                  <li>Example: <code className="bg-card-muted px-2 py-1 rounded">PROTECTED_MASTER_KEY</code></li>
                   <li>Types: hex32/64, ED25519, password:N</li>
                 </ul>
               </div>
             </div>
 
-            <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded">
-              <p className="text-sm text-blue-900 font-medium mb-1">Naming Convention for Trust</p>
-              <p className="text-xs text-blue-800">
-                The <code className="bg-blue-100 px-1 rounded">PROTECTED_*</code> prefix proves a secret was generated in TEE and never seen by anyone (including developers).
+            <div className="mt-3 p-3 bg-info/10 border border-info/30 rounded">
+              <p className="text-sm text-info font-medium mb-1">Naming Convention for Trust</p>
+              <p className="text-xs text-info">
+                The <code className="bg-info/15 px-1 rounded">PROTECTED_*</code> prefix proves a secret was generated in TEE and never seen by anyone (including developers).
                 Manual secrets cannot use this prefix - enforced by keystore validation.
               </p>
-              <p className="text-xs text-blue-800 mt-1">                
+              <p className="text-xs text-info mt-1">                
                 <strong>Security scope:</strong> The PROTECTED_ prefix guarantees the secret was generated inside TEE and the developer never saw its value directly. A PROTECTED_ secret cannot be accidentally leaked — it is never stored on the developer&apos;s
                 machine and cannot be exposed through a compromised workstation or accidentally committed to a repository.
                 At runtime, the WASM code does have access to the decrypted value (as an environment variable), so a malicious
@@ -83,48 +83,48 @@ export default function SecretsSection() {
 
         <section id="secrets-binding">
           <AnchorHeading id="secrets-binding">Secrets Binding Types</AnchorHeading>
-          <p className="text-gray-700 mb-3">
+          <p className="text-foreground mb-3">
             Secrets can be bound to different identifiers depending on your use case:
           </p>
 
           <div className="space-y-3">
-            <div className="border-l-4 border-blue-400 pl-3">
-              <p className="font-semibold text-gray-800 mb-1">Repository-based (GitHub)</p>
-              <p className="text-sm text-gray-700 mb-2">Bind secrets to a GitHub repository and optional branch</p>
-              <ul className="list-disc list-inside text-sm text-gray-700 ml-4">
-                <li>Key: <code className="bg-gray-100 px-1 rounded">repo + branch + profile + owner</code></li>
-                <li>Example: <code className="bg-gray-100 px-1 rounded">github.com/user/repo:main:production</code></li>
+            <div className="border-l-4 border-info/50 pl-3">
+              <p className="font-semibold text-foreground mb-1">Repository-based (GitHub)</p>
+              <p className="text-sm text-foreground mb-2">Bind secrets to a GitHub repository and optional branch</p>
+              <ul className="list-disc list-inside text-sm text-foreground ml-4">
+                <li>Key: <code className="bg-card-muted px-1 rounded">repo + branch + profile + owner</code></li>
+                <li>Example: <code className="bg-card-muted px-1 rounded">github.com/user/repo:main:production</code></li>
                 <li>Best for: Development, CI/CD workflows, version-specific secrets</li>
                 <li className="text-amber-700"><strong>Wildcard:</strong> Leave branch empty for secrets not tied to a specific branch</li>
               </ul>
             </div>
 
             <div className="border-l-4 border-purple-400 pl-3">
-              <p className="font-semibold text-gray-800 mb-1">WASM Hash-based</p>
-              <p className="text-sm text-gray-700 mb-2">Bind secrets to a specific compiled WASM binary (SHA256 hash)</p>
-              <ul className="list-disc list-inside text-sm text-gray-700 ml-4">
-                <li>Key: <code className="bg-gray-100 px-1 rounded">wasm_hash + profile + owner</code></li>
-                <li>Example: <code className="bg-gray-100 px-1 rounded">cbf80ed0...2f8:production</code></li>
+              <p className="font-semibold text-foreground mb-1">WASM Hash-based</p>
+              <p className="text-sm text-foreground mb-2">Bind secrets to a specific compiled WASM binary (SHA256 hash)</p>
+              <ul className="list-disc list-inside text-sm text-foreground ml-4">
+                <li>Key: <code className="bg-card-muted px-1 rounded">wasm_hash + profile + owner</code></li>
+                <li>Example: <code className="bg-card-muted px-1 rounded">cbf80ed0...2f8:production</code></li>
                 <li>Best for: Pre-compiled WASM from FastFS/IPFS, immutable deployments</li>
                 <li>Guarantees: Only this exact binary can access the secrets</li>
               </ul>
             </div>
 
-            <div id="project-binding" className="border-l-4 border-green-400 pl-3 scroll-mt-4">
-              <p className="font-semibold text-gray-800 mb-1">Project-based</p>
-              <p className="text-sm text-gray-700 mb-2">Bind secrets to a Project - accessible by all versions</p>
-              <ul className="list-disc list-inside text-sm text-gray-700 ml-4">
-                <li>Key: <code className="bg-gray-100 px-1 rounded">project_id + profile + owner</code></li>
-                <li>Example: <code className="bg-gray-100 px-1 rounded">alice.near/my-app:production</code></li>
+            <div id="project-binding" className="border-l-4 border-success/50 pl-3 scroll-mt-4">
+              <p className="font-semibold text-foreground mb-1">Project-based</p>
+              <p className="text-sm text-foreground mb-2">Bind secrets to a Project - accessible by all versions</p>
+              <ul className="list-disc list-inside text-sm text-foreground ml-4">
+                <li>Key: <code className="bg-card-muted px-1 rounded">project_id + profile + owner</code></li>
+                <li>Example: <code className="bg-card-muted px-1 rounded">alice.near/my-app:production</code></li>
                 <li>Best for: Long-running projects with multiple versions</li>
                 <li>Benefit: Secrets persist across version updates - no re-creation needed</li>
               </ul>
             </div>
           </div>
 
-          <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded">
-            <p className="text-sm text-green-900 font-medium mb-1">Project Binding Recommendation</p>
-            <p className="text-xs text-green-800">
+          <div className="mt-3 p-3 bg-success/10 border border-success/30 rounded">
+            <p className="text-sm text-success-text font-medium mb-1">Project Binding Recommendation</p>
+            <p className="text-xs text-success-text">
               For most use cases, <strong>Project binding</strong> is recommended. It allows you to update your WASM code
               without re-creating secrets. Create a project in the <a href="/projects" className="underline">Projects dashboard</a>,
               then bind your secrets to that project.
@@ -143,10 +143,10 @@ export default function SecretsSection() {
 
         <section id="access-control">
           <AnchorHeading id="access-control">Access Control</AnchorHeading>
-          <p className="text-gray-700">
+          <p className="text-foreground">
             Control who can decrypt your secrets using flexible access conditions:
           </p>
-          <ul className="list-disc list-inside space-y-2 text-gray-700 mt-2">
+          <ul className="list-disc list-inside space-y-2 text-foreground mt-2">
             <li><strong>AllowAll:</strong> Anyone can use (suitable for public data)</li>
             <li><strong>Whitelist:</strong> Specific NEAR accounts only</li>
             <li><strong>NEAR Balance:</strong> Accounts with minimum NEAR balance</li>
@@ -158,15 +158,15 @@ export default function SecretsSection() {
 
         <section id="using-secrets">
           <AnchorHeading id="using-secrets">Using Secrets in Code</AnchorHeading>
-          <p className="text-gray-700">
+          <p className="text-foreground">
             Access secrets in your WASM code using standard environment variable functions. In Rust:
-            <code className="bg-gray-100 px-2 py-1 rounded ml-1">std::env::var(&quot;API_KEY&quot;)</code>
+            <code className="bg-card-muted px-2 py-1 rounded ml-1">std::env::var(&quot;API_KEY&quot;)</code>
           </p>
         </section>
 
         <section id="storage-costs">
           <AnchorHeading id="storage-costs">Storage Costs</AnchorHeading>
-          <p className="text-gray-700">
+          <p className="text-foreground">
             Secrets storage costs are proportional to data size plus indexing overhead (~64 bytes). Storage fees
             are refunded when you delete secrets.
           </p>
@@ -174,14 +174,14 @@ export default function SecretsSection() {
 
         <section id="security-model">
           <AnchorHeading id="security-model">Security Model</AnchorHeading>
-          <p className="text-gray-700">
+          <p className="text-foreground">
             Secrets are encrypted in your browser using ECIES: an ephemeral X25519 ECDH exchange
             against the keystore&apos;s public key, HKDF-SHA256 to derive the symmetric key, and
             ChaCha20-Poly1305 AEAD for the payload. The matching private key exists only inside
             the TEE, so <strong>not even the browser that encrypted a secret can decrypt it
             again</strong> — the public key published by the keystore can encrypt and nothing else.
           </p>
-          <p className="text-gray-700 mt-3">
+          <p className="text-foreground mt-3">
             Decryption happens in TEE workers with attestation verification, so plaintext exists
             only inside the enclave. Ciphertext is stored on-chain and is useless without the
             enclave-held key. Each encryption uses a fresh ephemeral keypair and nonce, so
@@ -193,19 +193,19 @@ export default function SecretsSection() {
         <section id="confidential-key-derivation">
           <AnchorHeading id="confidential-key-derivation">Confidential Key Derivation (CKD)</AnchorHeading>
 
-          <div className="bg-gray-50 p-4 rounded-lg mb-4">
-            <h4 className="font-semibold text-gray-900 mb-2">How Keystore Gets Its Derivation Key via MPC</h4>
-            <p className="text-gray-700 mb-3">
+          <div className="bg-card-muted p-4 rounded-lg mb-4">
+            <h4 className="font-semibold text-foreground mb-2">How Keystore Gets Its Derivation Key via MPC</h4>
+            <p className="text-foreground mb-3">
               The keystore worker itself is a TEE application that obtains its derivation key through NEAR MPC Network via DAO governance.
               <strong>Critically, the keystore uses a functional key (not a full access key)</strong> that can ONLY call the MPC signer
-              through the DAO contract's <code className="bg-gray-100 px-1 rounded">request_key</code> method. This architectural decision ensures
+              through the DAO contract's <code className="bg-card-muted px-1 rounded">request_key</code> method. This architectural decision ensures
               the keystore cannot directly access the MPC network - it must go through DAO governance, making all operations auditable on-chain.
               Once authorized by the DAO, the keystore requests a deterministic derivation key from MPC nodes using Confidential Key Derivation.
               This derivation key is then used to decrypt secrets for other applications, ensuring all cryptographic operations stay within the TEE.
             </p>
 
             {/* Desktop Diagram 1: Registration */}
-            <div className="hidden md:block bg-white border-2 border-gray-300 rounded-lg p-6 mb-6 overflow-x-auto">
+            <div className="hidden md:block bg-card border-2 border-border-strong rounded-lg p-6 mb-6 overflow-x-auto">
               <svg viewBox="0 0 900 305" className="w-full" style={{ maxWidth: '900px', margin: '0 auto' }}>
                 {/* Define gradients and arrow markers */}
                 <defs>
@@ -293,7 +293,7 @@ export default function SecretsSection() {
             </div>
 
             {/* Desktop Diagram 2: CKD Flow */}
-            <div className="hidden md:block bg-white border-2 border-gray-300 rounded-lg p-6 mb-3 overflow-x-auto">
+            <div className="hidden md:block bg-card border-2 border-border-strong rounded-lg p-6 mb-3 overflow-x-auto">
               <svg viewBox="0 0 1000 375" className="w-full" style={{ maxWidth: '1000px', margin: '0 auto' }}>
                 {/* Define gradients and arrow markers */}
                 <defs>
@@ -425,13 +425,13 @@ export default function SecretsSection() {
             </div>
 
             {/* Mobile Simplified View with ASCII Diagrams */}
-            <div className="md:hidden bg-white border-2 border-gray-300 rounded-lg p-4 mb-3">
+            <div className="md:hidden bg-card border-2 border-border-strong rounded-lg p-4 mb-3">
               <div className="space-y-6">
                 {/* Phase 1: Registration */}
                 <div className="bg-amber-50 p-4 rounded-lg border-2 border-amber-400">
                   <h4 className="font-bold text-amber-900 mb-3">Phase 1: Registration (One-time)</h4>
 
-                  <div className="bg-white p-3 rounded font-mono text-xs">
+                  <div className="bg-card p-3 rounded font-mono text-xs">
                     <pre className="whitespace-pre">{`┌──────────┐
 │ Keystore │
 │   TEE    │
@@ -482,10 +482,10 @@ export default function SecretsSection() {
                 </div>
 
                 {/* Phase 2: CKD Flow */}
-                <div className="bg-blue-50 p-4 rounded-lg border-2 border-blue-400">
-                  <h4 className="font-bold text-blue-900 mb-3">Phase 2: CKD Flow (Repeatable)</h4>
+                <div className="bg-info/10 p-4 rounded-lg border-2 border-info/50">
+                  <h4 className="font-bold text-info mb-3">Phase 2: CKD Flow (Repeatable)</h4>
 
-                  <div className="bg-white p-3 rounded font-mono text-xs">
+                  <div className="bg-card p-3 rounded font-mono text-xs">
                     <pre className="whitespace-pre">{`┌──────────┐
 │ Keystore │
 │   TEE    │
@@ -557,23 +557,23 @@ export default function SecretsSection() {
                 </div>
 
                 {/* Key Properties */}
-                <div className="bg-green-50 p-3 rounded-lg border border-green-400">
-                  <h4 className="font-semibold text-green-900 mb-2 text-sm">Key Properties</h4>
+                <div className="bg-success/10 p-3 rounded-lg border border-success/50">
+                  <h4 className="font-semibold text-success-text mb-2 text-sm">Key Properties</h4>
                   <div className="grid grid-cols-2 gap-2 text-xs">
                     <div className="flex items-center gap-1">
-                      <span className="text-green-600">&#10003;</span>
+                      <span className="text-success-text">&#10003;</span>
                       <span>Deterministic</span>
                     </div>
                     <div className="flex items-center gap-1">
-                      <span className="text-green-600">&#10003;</span>
+                      <span className="text-success-text">&#10003;</span>
                       <span>Persistent</span>
                     </div>
                     <div className="flex items-center gap-1">
-                      <span className="text-green-600">&#10003;</span>
+                      <span className="text-success-text">&#10003;</span>
                       <span>Survives restarts</span>
                     </div>
                     <div className="flex items-center gap-1">
-                      <span className="text-green-600">&#10003;</span>
+                      <span className="text-success-text">&#10003;</span>
                       <span>No single point of failure</span>
                     </div>
                   </div>
@@ -581,10 +581,10 @@ export default function SecretsSection() {
               </div>
             </div>
 
-            <p className="text-sm text-gray-700 mb-2">
+            <p className="text-sm text-foreground mb-2">
               <strong>Two-Level Architecture:</strong>
             </p>
-            <ul className="list-disc list-inside text-sm text-gray-700 space-y-1 mb-3">
+            <ul className="list-disc list-inside text-sm text-foreground space-y-1 mb-3">
               <li><strong>Level 1:</strong> Keystore obtains derivation key from NEAR MPC via CKD protocol through DAO contract. This happens <strong>once at keystore startup</strong>, not on every secret decryption request</li>
               <li><strong>Level 2:</strong> Keystore uses the cached derivation key to decrypt app secrets on demand</li>
               <li>All operations happen inside TEE - keys never leave the enclave</li>
@@ -596,9 +596,9 @@ export default function SecretsSection() {
           </div>
 
           <div className="grid md:grid-cols-2 gap-4 mb-4">
-            <div className="border rounded-lg p-4 bg-green-50">
-              <h4 className="font-semibold text-green-900 mb-2">Key Properties</h4>
-              <ul className="text-sm text-green-800 space-y-1">
+            <div className="border rounded-lg p-4 bg-success/10">
+              <h4 className="font-semibold text-success-text mb-2">Key Properties</h4>
+              <ul className="text-sm text-success-text space-y-1">
                 <li>&#8226; <strong>Deterministic:</strong> Same app_id always gets same secret</li>
                 <li>&#8226; <strong>Private:</strong> Secret known only to TEE app</li>
                 <li>&#8226; <strong>Distributed:</strong> No single MPC node has the secret</li>
@@ -606,9 +606,9 @@ export default function SecretsSection() {
               </ul>
             </div>
 
-            <div className="border rounded-lg p-4 bg-blue-50">
-              <h4 className="font-semibold text-blue-900 mb-2">Security Guarantees</h4>
-              <ul className="text-sm text-blue-800 space-y-1">
+            <div className="border rounded-lg p-4 bg-info/10">
+              <h4 className="font-semibold text-info mb-2">Security Guarantees</h4>
+              <ul className="text-sm text-info space-y-1">
                 <li>&#8226; BLS signatures on BLS12-381 curves</li>
                 <li>&#8226; ElGamal encryption for transport</li>
                 <li>&#8226; TEE attestation verification</li>
@@ -617,9 +617,9 @@ export default function SecretsSection() {
             </div>
           </div>
 
-          <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4">
-            <h4 className="font-semibold text-yellow-900 mb-2">Why MPC-based CKD is Revolutionary</h4>
-            <p className="text-sm text-yellow-800">
+          <div className="bg-warning/10 border-l-4 border-warning/50 p-4">
+            <h4 className="font-semibold text-warning mb-2">Why MPC-based CKD is Revolutionary</h4>
+            <p className="text-sm text-warning">
               Traditional approaches either store keys (security risk) or lose them on restart (no persistence).
               NEAR&apos;s MPC-based CKD is unique: it provides deterministic secrets through distributed computation where
               no single entity ever has the complete key. This combines the benefits of persistence, security, and
@@ -640,9 +640,9 @@ export default function SecretsSection() {
             </p>
           </div>
 
-          <h4 className="font-semibold text-gray-900 mb-3">Keystore Authorization Flow</h4>
+          <h4 className="font-semibold text-foreground mb-3">Keystore Authorization Flow</h4>
 
-          <ol className="list-decimal list-inside space-y-3 text-gray-700 mb-4">
+          <ol className="list-decimal list-inside space-y-3 text-foreground mb-4">
             <li>
               <strong>On-Chain TEE Verification:</strong> Keystore submits Intel TDX attestation directly to DAO contract.
               The contract cryptographically verifies the Intel certificate and TEE measurements (MRTD + RTMR0-3) on-chain.
@@ -670,18 +670,18 @@ export default function SecretsSection() {
             </li>
           </ol>
 
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-            <h4 className="font-semibold text-blue-900 mb-2">Cryptographic Properties</h4>
-            <p className="text-sm text-blue-800 mb-2">
+          <div className="bg-info/10 border border-info/30 rounded-lg p-4 mb-4">
+            <h4 className="font-semibold text-info mb-2">Cryptographic Properties</h4>
+            <p className="text-sm text-info mb-2">
               The CKD protocol ensures strong security through:
             </p>
-            <ul className="list-disc list-inside text-sm text-blue-800 space-y-1">
+            <ul className="list-disc list-inside text-sm text-info space-y-1">
               <li>BLS signatures on pairing-friendly BLS12-381 curves</li>
               <li>Threshold cryptography - requires t-of-n nodes to cooperate</li>
               <li>ElGamal encryption for secure transport</li>
               <li>HKDF for key derivation from BLS signatures</li>
             </ul>
-            <p className="text-sm text-blue-800 mt-2">
+            <p className="text-sm text-info mt-2">
               This combination ensures that secrets are deterministic yet unpredictable, persistent yet secure,
               distributed yet accessible only to authorized TEE apps.
             </p>
@@ -689,8 +689,8 @@ export default function SecretsSection() {
 
           <div className="grid md:grid-cols-2 gap-4 mb-4">
             <div className="border rounded-lg p-4">
-              <h4 className="font-semibold text-gray-900 mb-2">Security Properties</h4>
-              <ul className="text-sm text-gray-700 space-y-1">
+              <h4 className="font-semibold text-foreground mb-2">Security Properties</h4>
+              <ul className="text-sm text-foreground space-y-1">
                 <li>&#8226; <strong>No single point of failure:</strong> Distributed MPC nodes</li>
                 <li>&#8226; <strong>Forward secrecy:</strong> Fresh key pair for each request</li>
                 <li>&#8226; <strong>TEE isolation:</strong> Secrets computed inside enclave</li>
@@ -699,8 +699,8 @@ export default function SecretsSection() {
             </div>
 
             <div className="border rounded-lg p-4">
-              <h4 className="font-semibold text-gray-900 mb-2">Trust Model</h4>
-              <ul className="text-sm text-gray-700 space-y-1">
+              <h4 className="font-semibold text-foreground mb-2">Trust Model</h4>
+              <ul className="text-sm text-foreground space-y-1">
                 <li>&#8226; Intel TDX attestation verification</li>
                 <li>&#8226; MPC network consensus</li>
                 <li>&#8226; Smart contract enforcement</li>
@@ -709,12 +709,12 @@ export default function SecretsSection() {
             </div>
           </div>
 
-          <div className="bg-green-50 border-l-4 border-green-400 p-4">
-            <h4 className="font-semibold text-green-900 mb-2">Example: CKD Request</h4>
-            <p className="text-sm text-green-800 mb-2">
+          <div className="bg-success/10 border-l-4 border-success/50 p-4">
+            <h4 className="font-semibold text-success-text mb-2">Example: CKD Request</h4>
+            <p className="text-sm text-success-text mb-2">
               How a TEE app requests a deterministic secret:
             </p>
-            <pre className="bg-green-100 p-2 rounded text-xs overflow-x-auto">
+            <pre className="bg-success/15 p-2 rounded text-xs overflow-x-auto">
 {`// TEE app generates key pair
 let (a, A) = generate_elgamal_keypair();
 
@@ -731,7 +731,7 @@ mpc_contract.gen_app_private_key(A);
 // Decrypt: sig = C - a·Y
 // Derive: secret = HKDF(sig)`}
             </pre>
-            <p className="text-xs text-green-700 mt-2">
+            <p className="text-xs text-success-text mt-2">
               The final secret is deterministic for app_id but known only to the TEE app.
             </p>
           </div>
@@ -742,10 +742,10 @@ mpc_contract.gen_app_private_key(A);
 
           <div className="space-y-4">
             <details className="border rounded-lg p-4">
-              <summary className="font-semibold cursor-pointer text-gray-900">
+              <summary className="font-semibold cursor-pointer text-foreground">
                 What happens if the keystore restarts?
               </summary>
-              <p className="mt-2 text-gray-700">
+              <p className="mt-2 text-foreground">
                 The keystore can request the same derivation key again from NEAR MPC using its keystore_id. Since CKD
                 is deterministic, it will receive the same derivation key. This allows the keystore to continue decrypting
                 user secrets after restarts without storing keys on disk.
@@ -753,10 +753,10 @@ mpc_contract.gen_app_private_key(A);
             </details>
 
             <details className="border rounded-lg p-4">
-              <summary className="font-semibold cursor-pointer text-gray-900">
+              <summary className="font-semibold cursor-pointer text-foreground">
                 Can MPC nodes or DAO see my secrets?
               </summary>
-              <p className="mt-2 text-gray-700">
+              <p className="mt-2 text-foreground">
                 No. MPC nodes only generate the derivation key for the keystore when requested by the DAO contract - they never
                 see user secrets. Importantly, MPC Network only responds to requests that come through the DAO contract transaction,
                 not direct requests. The DAO governs which keystores can receive derivation keys but has no access to the keys themselves.
@@ -765,10 +765,10 @@ mpc_contract.gen_app_private_key(A);
             </details>
 
             <details className="border rounded-lg p-4">
-              <summary className="font-semibold cursor-pointer text-gray-900">
+              <summary className="font-semibold cursor-pointer text-foreground">
                 How is this different from regular key storage?
               </summary>
-              <p className="mt-2 text-gray-700">
+              <p className="mt-2 text-foreground">
                 Traditional systems either store keys (security risk) or generate random keys that are lost on restart.
                 CKD provides deterministic secrets through distributed computation - persistent yet secure, distributed
                 yet accessible, a unique combination enabled by MPC and TEE technologies.
@@ -776,10 +776,10 @@ mpc_contract.gen_app_private_key(A);
             </details>
 
             <details className="border rounded-lg p-4">
-              <summary className="font-semibold cursor-pointer text-gray-900">
+              <summary className="font-semibold cursor-pointer text-foreground">
                 What prevents unauthorized access to secrets?
               </summary>
-              <p className="mt-2 text-gray-700">
+              <p className="mt-2 text-foreground">
                 Multiple layers: (1) DAO governance controls which keystores can receive derivation keys,
                 (2) TEE attestation verification ensures only genuine TEE apps run the keystore,
                 (3) MPC Network only responds to requests from DAO contract (not direct requests),
@@ -789,10 +789,10 @@ mpc_contract.gen_app_private_key(A);
             </details>
 
             <details className="border rounded-lg p-4">
-              <summary className="font-semibold cursor-pointer text-gray-900">
+              <summary className="font-semibold cursor-pointer text-foreground">
                 Why use BLS signatures on BLS12-381 curves?
               </summary>
-              <p className="mt-2 text-gray-700">
+              <p className="mt-2 text-foreground">
                 BLS signatures provide unique properties: deterministic, aggregatable, and efficient verification.
                 BLS12-381 is a pairing-friendly curve specifically designed for cryptographic protocols, offering
                 128-bit security with optimal performance for threshold cryptography and MPC operations.

@@ -12,7 +12,7 @@ interface ExampleCardProps {
 
 export function ExampleCard({ id, title, badges, githubUrl, playgroundId, children }: ExampleCardProps) {
   return (
-    <div id={id} className="border border-gray-200 rounded-lg p-6 hover:shadow-lg transition-shadow scroll-mt-4">
+    <div id={id} className="border border-border rounded-lg p-6 hover:shadow-lg transition-shadow scroll-mt-4">
       <AnchorHeading id={id} badges={badges}>
         {title}
       </AnchorHeading>

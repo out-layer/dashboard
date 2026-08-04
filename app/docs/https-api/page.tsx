@@ -5,9 +5,9 @@ import { SyntaxHighlighter, vscDarkPlus } from '@/components/ui/syntax';
 
 function AnchorHeading({ id, children, level = 2 }: { id: string; children: React.ReactNode; level?: 2 | 3 | 4 }) {
   const sizeClass = level === 2 ? 'text-2xl' : level === 3 ? 'text-xl' : 'text-lg';
-  const className = `${sizeClass} font-bold text-gray-900 mb-4 scroll-mt-4 group`;
+  const className = `${sizeClass} font-bold text-foreground mb-4 scroll-mt-4 group`;
   const anchor = (
-    <a href={`#${id}`} className="ml-2 text-gray-400 hover:text-[var(--primary-orange)] opacity-0 group-hover:opacity-100 transition-opacity">
+    <a href={`#${id}`} className="ml-2 text-faint-foreground hover:text-[var(--primary-orange)] opacity-0 group-hover:opacity-100 transition-opacity">
       #
     </a>
   );
@@ -20,9 +20,9 @@ function AnchorHeading({ id, children, level = 2 }: { id: string; children: Reac
 export default function HttpsApiPage() {
   return (
     <div className="prose prose-lg max-w-none">
-      <h1 className="text-3xl font-bold text-gray-900 mb-6">HTTPS API</h1>
+      <h1 className="text-3xl font-bold text-foreground mb-6">HTTPS API</h1>
 
-      <p className="text-gray-700 mb-8 text-lg">
+      <p className="text-foreground mb-8 text-lg">
         Call OutLayer projects via simple HTTP requests without NEAR transactions.
         Authentication uses{' '}
         <Link href="/docs/payment-keys" className="text-[var(--primary-orange)] hover:underline">Payment Keys</Link>
@@ -34,17 +34,17 @@ export default function HttpsApiPage() {
         <AnchorHeading id="overview">Overview</AnchorHeading>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-          <div className="border border-blue-200 rounded-lg p-4 bg-blue-50">
-            <h4 className="font-semibold text-blue-900 mb-2">NEAR Transactions</h4>
-            <ul className="text-sm text-gray-700 space-y-1">
+          <div className="border border-info/30 rounded-lg p-4 bg-info/10">
+            <h4 className="font-semibold text-info mb-2">NEAR Transactions</h4>
+            <ul className="text-sm text-foreground space-y-1">
               <li>Payment: NEAR tokens</li>
               <li>Latency: ~2-3 seconds</li>
               <li>Response: callback to contract</li>
             </ul>
           </div>
-          <div className="border border-green-200 rounded-lg p-4 bg-green-50">
-            <h4 className="font-semibold text-green-900 mb-2">HTTPS API</h4>
-            <ul className="text-sm text-gray-700 space-y-1">
+          <div className="border border-success/30 rounded-lg p-4 bg-success/10">
+            <h4 className="font-semibold text-success-text mb-2">HTTPS API</h4>
+            <ul className="text-sm text-foreground space-y-1">
               <li>Payment: USD stablecoins</li>
               <li>Latency: instant (sync mode)</li>
               <li>Response: HTTP response body</li>
@@ -71,35 +71,35 @@ curl -X POST https://api.outlayer.ai/call/alice.near/my-assistant \\
           {`POST https://api.outlayer.ai/call/{project_owner}/{project_name}`}
         </SyntaxHighlighter>
 
-        <p className="text-gray-700 mb-4">
+        <p className="text-foreground mb-4">
           Example: <code>POST https://api.outlayer.ai/call/alice.near/weather-api</code>
         </p>
 
         <AnchorHeading id="base-urls" level={3}>Base URLs (Networks)</AnchorHeading>
 
-        <p className="text-gray-700 mb-4">
+        <p className="text-foreground mb-4">
           OutLayer runs on two networks. Pick the base URL that matches the network your
           project is deployed on — the path (<code>/call/...</code>, <code>/wallet/v1/...</code>,
           <code>/vrf/...</code>, etc.) is identical on both.
         </p>
 
         <div className="overflow-x-auto mb-6">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+          <table className="min-w-full divide-y divide-border">
+            <thead className="bg-card-muted">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Network</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Base URL</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Contract</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Network</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Base URL</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Contract</th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="bg-card divide-y divide-border">
               <tr>
-                <td className="px-4 py-3 text-sm font-semibold text-gray-900">Mainnet</td>
+                <td className="px-4 py-3 text-sm font-semibold text-foreground">Mainnet</td>
                 <td className="px-4 py-3 text-sm font-mono"><code>https://api.outlayer.ai</code></td>
                 <td className="px-4 py-3 text-sm font-mono">outlayer.near</td>
               </tr>
-              <tr className="bg-yellow-50">
-                <td className="px-4 py-3 text-sm font-semibold text-gray-900">Testnet</td>
+              <tr className="bg-warning/10">
+                <td className="px-4 py-3 text-sm font-semibold text-foreground">Testnet</td>
                 <td className="px-4 py-3 text-sm font-mono"><code>https://testnet-api.outlayer.ai</code></td>
                 <td className="px-4 py-3 text-sm font-mono">outlayer.testnet</td>
               </tr>
@@ -110,58 +110,58 @@ curl -X POST https://api.outlayer.ai/call/alice.near/my-assistant \\
         <AnchorHeading id="headers" level={3}>Request Headers</AnchorHeading>
 
         <div className="overflow-x-auto mb-6">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+          <table className="min-w-full divide-y divide-border">
+            <thead className="bg-card-muted">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Header</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Required</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Default</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Description</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Header</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Required</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Default</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Description</th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              <tr className="bg-green-50">
+            <tbody className="bg-card divide-y divide-border">
+              <tr className="bg-success/10">
                 <td className="px-4 py-3 text-sm font-mono">X-Payment-Key</td>
-                <td className="px-4 py-3 text-sm text-green-600 font-semibold">Yes</td>
-                <td className="px-4 py-3 text-sm text-gray-400">-</td>
-                <td className="px-4 py-3 text-sm text-gray-600">
+                <td className="px-4 py-3 text-sm text-success-text font-semibold">Yes</td>
+                <td className="px-4 py-3 text-sm text-faint-foreground">-</td>
+                <td className="px-4 py-3 text-sm text-muted-foreground">
                   Format: <code>owner:nonce:secret</code><br/>
                   Authentication for the API call
                 </td>
               </tr>
               <tr>
                 <td className="px-4 py-3 text-sm font-mono">X-Compute-Limit</td>
-                <td className="px-4 py-3 text-sm text-gray-500">No</td>
+                <td className="px-4 py-3 text-sm text-muted-foreground">No</td>
                 <td className="px-4 py-3 text-sm font-mono">10000</td>
-                <td className="px-4 py-3 text-sm text-gray-600">
+                <td className="px-4 py-3 text-sm text-muted-foreground">
                   Max compute budget in USD micro-units<br/>
                   10000 = $0.01, 100000 = $0.10
                 </td>
               </tr>
-              <tr className="bg-yellow-50">
+              <tr className="bg-warning/10">
                 <td className="px-4 py-3 text-sm font-mono">X-Attached-Deposit</td>
-                <td className="px-4 py-3 text-sm text-gray-500">No</td>
+                <td className="px-4 py-3 text-sm text-muted-foreground">No</td>
                 <td className="px-4 py-3 text-sm font-mono">0</td>
-                <td className="px-4 py-3 text-sm text-gray-600">
+                <td className="px-4 py-3 text-sm text-muted-foreground">
                   <strong>Payment to project author</strong> in USD micro-units<br/>
                   1000000 = $1.00. Goes to author&apos;s earnings.
                 </td>
               </tr>
               <tr>
                 <td className="px-4 py-3 text-sm font-mono">Content-Type</td>
-                <td className="px-4 py-3 text-sm text-gray-500">No</td>
+                <td className="px-4 py-3 text-sm text-muted-foreground">No</td>
                 <td className="px-4 py-3 text-sm font-mono">application/json</td>
-                <td className="px-4 py-3 text-sm text-gray-600">Request body format</td>
+                <td className="px-4 py-3 text-sm text-muted-foreground">Request body format</td>
               </tr>
             </tbody>
           </table>
         </div>
 
-        <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6">
-          <p className="text-sm text-yellow-800">
+        <div className="bg-warning/10 border-l-4 border-warning/50 p-4 mb-6">
+          <p className="text-sm text-warning">
             <strong>X-Attached-Deposit vs X-Compute-Limit:</strong>
           </p>
-          <ul className="list-disc list-inside text-sm text-yellow-800 mt-2 space-y-1">
+          <ul className="list-disc list-inside text-sm text-warning mt-2 space-y-1">
             <li><code>X-Compute-Limit</code> - pays for infrastructure (OutLayer), refunded if unused</li>
             <li><code>X-Attached-Deposit</code> - pays the project author, charged immediately</li>
           </ul>
@@ -190,33 +190,33 @@ curl -X POST https://api.outlayer.ai/call/alice.near/my-assistant \\
         </SyntaxHighlighter>
 
         <div className="overflow-x-auto mb-6">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+          <table className="min-w-full divide-y divide-border">
+            <thead className="bg-card-muted">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Field</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Required</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Description</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Field</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Type</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Required</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Description</th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="bg-card divide-y divide-border">
               <tr>
                 <td className="px-4 py-3 text-sm font-mono">input</td>
                 <td className="px-4 py-3 text-sm">object</td>
-                <td className="px-4 py-3 text-sm text-green-600">Yes</td>
-                <td className="px-4 py-3 text-sm text-gray-600">Passed to WASM code as JSON via stdin</td>
+                <td className="px-4 py-3 text-sm text-success-text">Yes</td>
+                <td className="px-4 py-3 text-sm text-muted-foreground">Passed to WASM code as JSON via stdin</td>
               </tr>
               <tr>
                 <td className="px-4 py-3 text-sm font-mono">resource_limits</td>
                 <td className="px-4 py-3 text-sm">object</td>
-                <td className="px-4 py-3 text-sm text-gray-500">No</td>
-                <td className="px-4 py-3 text-sm text-gray-600">Override project&apos;s default limits</td>
+                <td className="px-4 py-3 text-sm text-muted-foreground">No</td>
+                <td className="px-4 py-3 text-sm text-muted-foreground">Override project&apos;s default limits</td>
               </tr>
               <tr className="bg-purple-50">
                 <td className="px-4 py-3 text-sm font-mono">secrets_ref</td>
                 <td className="px-4 py-3 text-sm">object</td>
-                <td className="px-4 py-3 text-sm text-gray-500">No</td>
-                <td className="px-4 py-3 text-sm text-gray-600">
+                <td className="px-4 py-3 text-sm text-muted-foreground">No</td>
+                <td className="px-4 py-3 text-sm text-muted-foreground">
                   Reference to{' '}
                   <Link href="/docs/secrets" className="text-[var(--primary-orange)] hover:underline">keystore secrets</Link>.
                   Contains <code>profile</code> (string) and <code>account_id</code> (string).
@@ -226,14 +226,14 @@ curl -X POST https://api.outlayer.ai/call/alice.near/my-assistant \\
               <tr>
                 <td className="px-4 py-3 text-sm font-mono">async</td>
                 <td className="px-4 py-3 text-sm">boolean</td>
-                <td className="px-4 py-3 text-sm text-gray-500">No</td>
-                <td className="px-4 py-3 text-sm text-gray-600">false = wait for result, true = return call_id immediately</td>
+                <td className="px-4 py-3 text-sm text-muted-foreground">No</td>
+                <td className="px-4 py-3 text-sm text-muted-foreground">false = wait for result, true = return call_id immediately</td>
               </tr>
               <tr>
                 <td className="px-4 py-3 text-sm font-mono">version_key</td>
                 <td className="px-4 py-3 text-sm">string</td>
-                <td className="px-4 py-3 text-sm text-gray-500">No</td>
-                <td className="px-4 py-3 text-sm text-gray-600">
+                <td className="px-4 py-3 text-sm text-muted-foreground">No</td>
+                <td className="px-4 py-3 text-sm text-muted-foreground">
                   Pin to a specific project version. Format: WASM hash or <code>repo@commit</code>.
                   If omitted, uses the project&apos;s active version.
                 </td>
@@ -245,33 +245,33 @@ curl -X POST https://api.outlayer.ai/call/alice.near/my-assistant \\
         <AnchorHeading id="resource-limits" level={3}>Resource Limits</AnchorHeading>
 
         <div className="overflow-x-auto mb-6">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+          <table className="min-w-full divide-y divide-border">
+            <thead className="bg-card-muted">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Limit</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Default</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Maximum</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Description</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Limit</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Default</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Maximum</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Description</th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="bg-card divide-y divide-border">
               <tr>
                 <td className="px-4 py-3 text-sm font-mono">max_instructions</td>
                 <td className="px-4 py-3 text-sm">1 billion</td>
                 <td className="px-4 py-3 text-sm">500 billion</td>
-                <td className="px-4 py-3 text-sm text-gray-600">WASM instructions to execute</td>
+                <td className="px-4 py-3 text-sm text-muted-foreground">WASM instructions to execute</td>
               </tr>
               <tr>
                 <td className="px-4 py-3 text-sm font-mono">max_memory_mb</td>
                 <td className="px-4 py-3 text-sm">128 MB</td>
                 <td className="px-4 py-3 text-sm">512 MB</td>
-                <td className="px-4 py-3 text-sm text-gray-600">Memory available to WASM</td>
+                <td className="px-4 py-3 text-sm text-muted-foreground">Memory available to WASM</td>
               </tr>
               <tr>
                 <td className="px-4 py-3 text-sm font-mono">max_execution_seconds</td>
                 <td className="px-4 py-3 text-sm">60 sec</td>
                 <td className="px-4 py-3 text-sm">180 sec</td>
-                <td className="px-4 py-3 text-sm text-gray-600">Wall-clock timeout</td>
+                <td className="px-4 py-3 text-sm text-muted-foreground">Wall-clock timeout</td>
               </tr>
             </tbody>
           </table>
@@ -284,7 +284,7 @@ curl -X POST https://api.outlayer.ai/call/alice.near/my-assistant \\
 
         <AnchorHeading id="sync-response" level={3}>Synchronous Response (default)</AnchorHeading>
 
-        <p className="text-gray-700 mb-4">
+        <p className="text-foreground mb-4">
           When <code>async: false</code> (default), the request waits until execution completes:
         </p>
 
@@ -311,7 +311,7 @@ curl -X POST https://api.outlayer.ai/call/alice.near/my-assistant \\
 
         <AnchorHeading id="async-response" level={3}>Asynchronous Response</AnchorHeading>
 
-        <p className="text-gray-700 mb-4">
+        <p className="text-foreground mb-4">
           When <code>async: true</code>, the request returns immediately with a <code>call_id</code> for polling:
         </p>
 
@@ -324,7 +324,7 @@ curl -X POST https://api.outlayer.ai/call/alice.near/my-assistant \\
 }`}
         </SyntaxHighlighter>
 
-        <p className="text-gray-700 mb-4">
+        <p className="text-foreground mb-4">
           Poll the result using <code>GET /calls/{'{call_id}'}</code>:
         </p>
 
@@ -336,39 +336,39 @@ curl -X POST https://api.outlayer.ai/call/alice.near/my-assistant \\
         <AnchorHeading id="response-fields" level={3}>Response Fields</AnchorHeading>
 
         <div className="overflow-x-auto mb-6">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+          <table className="min-w-full divide-y divide-border">
+            <thead className="bg-card-muted">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Field</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Description</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Field</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Type</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Description</th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="bg-card divide-y divide-border">
               <tr>
                 <td className="px-4 py-3 text-sm font-mono">call_id</td>
                 <td className="px-4 py-3 text-sm">UUID</td>
-                <td className="px-4 py-3 text-sm text-gray-600">Unique identifier for this API call</td>
+                <td className="px-4 py-3 text-sm text-muted-foreground">Unique identifier for this API call</td>
               </tr>
               <tr>
                 <td className="px-4 py-3 text-sm font-mono">status</td>
                 <td className="px-4 py-3 text-sm">string</td>
-                <td className="px-4 py-3 text-sm text-gray-600">&quot;pending&quot;, &quot;completed&quot;, or &quot;failed&quot;</td>
+                <td className="px-4 py-3 text-sm text-muted-foreground">&quot;pending&quot;, &quot;completed&quot;, or &quot;failed&quot;</td>
               </tr>
               <tr>
                 <td className="px-4 py-3 text-sm font-mono">output</td>
                 <td className="px-4 py-3 text-sm">any</td>
-                <td className="px-4 py-3 text-sm text-gray-600">WASM stdout (only when completed)</td>
+                <td className="px-4 py-3 text-sm text-muted-foreground">WASM stdout (only when completed)</td>
               </tr>
               <tr>
                 <td className="px-4 py-3 text-sm font-mono">error</td>
                 <td className="px-4 py-3 text-sm">string</td>
-                <td className="px-4 py-3 text-sm text-gray-600">Error message (only when failed)</td>
+                <td className="px-4 py-3 text-sm text-muted-foreground">Error message (only when failed)</td>
               </tr>
-              <tr className="bg-yellow-50">
+              <tr className="bg-warning/10">
                 <td className="px-4 py-3 text-sm font-mono">compute_cost</td>
                 <td className="px-4 py-3 text-sm">string</td>
-                <td className="px-4 py-3 text-sm text-gray-600">
+                <td className="px-4 py-3 text-sm text-muted-foreground">
                   <strong>Actual USD cost</strong> in micro-units (e.g., &quot;45000&quot; = $0.045).
                   Charged even on failure.
                 </td>
@@ -376,12 +376,12 @@ curl -X POST https://api.outlayer.ai/call/alice.near/my-assistant \\
               <tr>
                 <td className="px-4 py-3 text-sm font-mono">job_id</td>
                 <td className="px-4 py-3 text-sm">number</td>
-                <td className="px-4 py-3 text-sm text-gray-600">Internal job ID for attestation lookup</td>
+                <td className="px-4 py-3 text-sm text-muted-foreground">Internal job ID for attestation lookup</td>
               </tr>
               <tr>
                 <td className="px-4 py-3 text-sm font-mono">attestation_url</td>
                 <td className="px-4 py-3 text-sm">string</td>
-                <td className="px-4 py-3 text-sm text-gray-600">Link to TEE attestation (completed only)</td>
+                <td className="px-4 py-3 text-sm text-muted-foreground">Link to TEE attestation (completed only)</td>
               </tr>
             </tbody>
           </table>
@@ -392,27 +392,27 @@ curl -X POST https://api.outlayer.ai/call/alice.near/my-assistant \\
       <section className="mb-12">
         <AnchorHeading id="env-vars">Environment Variables in WASM</AnchorHeading>
 
-        <p className="text-gray-700 mb-4">
+        <p className="text-foreground mb-4">
           Your WASM code can detect the execution context and access payment information via environment variables.
           Values differ between NEAR transactions and HTTPS API calls:
         </p>
 
         <div className="overflow-x-auto mb-6">
-          <table className="min-w-full divide-y divide-gray-200 text-sm">
-            <thead className="bg-gray-50">
+          <table className="min-w-full divide-y divide-border text-sm">
+            <thead className="bg-card-muted">
               <tr>
-                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Variable</th>
-                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">NEAR</th>
-                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">HTTPS</th>
+                <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground uppercase">Variable</th>
+                <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground uppercase">NEAR</th>
+                <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground uppercase">HTTPS</th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              <tr className="bg-blue-50">
+            <tbody className="bg-card divide-y divide-border">
+              <tr className="bg-info/10">
                 <td className="px-3 py-2 font-mono">OUTLAYER_EXECUTION_TYPE</td>
                 <td className="px-3 py-2">&quot;NEAR&quot;</td>
                 <td className="px-3 py-2">&quot;HTTPS&quot;</td>
               </tr>
-              <tr className="bg-blue-50">
+              <tr className="bg-info/10">
                 <td className="px-3 py-2 font-mono">NEAR_NETWORK_ID</td>
                 <td className="px-3 py-2">&quot;testnet&quot; or &quot;mainnet&quot;</td>
                 <td className="px-3 py-2">&quot;testnet&quot; or &quot;mainnet&quot;</td>
@@ -422,7 +422,7 @@ curl -X POST https://api.outlayer.ai/call/alice.near/my-assistant \\
                 <td className="px-3 py-2">Transaction signer</td>
                 <td className="px-3 py-2">Payment Key owner</td>
               </tr>
-              <tr className="bg-yellow-50">
+              <tr className="bg-warning/10">
                 <td className="px-3 py-2 font-mono">USD_PAYMENT</td>
                 <td className="px-3 py-2">&quot;0&quot;</td>
                 <td className="px-3 py-2">X-Attached-Deposit value</td>
@@ -529,14 +529,14 @@ if usd_payment >= MIN_PREMIUM_USD {
       <section className="mb-12">
         <AnchorHeading id="secrets">Using Secrets</AnchorHeading>
 
-        <p className="text-gray-700 mb-4">
+        <p className="text-foreground mb-4">
           If your WASM code needs API keys or other sensitive data, use{' '}
           <Link href="/docs/secrets" className="text-[var(--primary-orange)] hover:underline">Keystore Secrets</Link>.
           Secrets are encrypted and stored on-chain, then decrypted inside TEE at execution time
           and injected as environment variables.
         </p>
 
-        <p className="text-gray-700 mb-4">
+        <p className="text-foreground mb-4">
           Pass <code>secrets_ref</code> in the request body to specify which secret profile to use:
         </p>
 
@@ -554,19 +554,19 @@ if usd_payment >= MIN_PREMIUM_USD {
         </SyntaxHighlighter>
 
         <div className="overflow-x-auto mb-6">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+          <table className="min-w-full divide-y divide-border">
+            <thead className="bg-card-muted">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Field</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Description</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Field</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Type</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Description</th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="bg-card divide-y divide-border">
               <tr>
                 <td className="px-4 py-3 text-sm font-mono">profile</td>
                 <td className="px-4 py-3 text-sm">string</td>
-                <td className="px-4 py-3 text-sm text-gray-600">
+                <td className="px-4 py-3 text-sm text-muted-foreground">
                   Secret profile name (e.g., &quot;default&quot;, &quot;production&quot;).
                   Configured in the{' '}
                   <Link href="/docs/secrets" className="text-[var(--primary-orange)] hover:underline">Secrets</Link> page.
@@ -575,7 +575,7 @@ if usd_payment >= MIN_PREMIUM_USD {
               <tr>
                 <td className="px-4 py-3 text-sm font-mono">account_id</td>
                 <td className="px-4 py-3 text-sm">string</td>
-                <td className="px-4 py-3 text-sm text-gray-600">NEAR account that owns the secrets (the one who encrypted them)</td>
+                <td className="px-4 py-3 text-sm text-muted-foreground">NEAR account that owns the secrets (the one who encrypted them)</td>
               </tr>
             </tbody>
           </table>
@@ -583,7 +583,7 @@ if usd_payment >= MIN_PREMIUM_USD {
 
         <AnchorHeading id="secrets-access" level={3}>Accessing Secrets in WASM</AnchorHeading>
 
-        <p className="text-gray-700 mb-4">
+        <p className="text-foreground mb-4">
           Decrypted secrets are available as regular environment variables:
         </p>
 
@@ -596,8 +596,8 @@ let db_url = std::env::var("DATABASE_URL")
     .expect("DATABASE_URL secret not set");`}
         </SyntaxHighlighter>
 
-        <div className="bg-blue-50 border-l-4 border-blue-400 p-4 mb-6">
-          <p className="text-sm text-blue-800">
+        <div className="bg-info/10 border-l-4 border-info/50 p-4 mb-6">
+          <p className="text-sm text-info">
             <strong>Works the same as NEAR transactions.</strong>{' '}
             The <code>secrets_ref</code> field uses the same keystore system as the{' '}
             <code>secrets_ref</code> parameter in <code>request_execution</code> contract calls.
@@ -611,54 +611,54 @@ let db_url = std::env::var("DATABASE_URL")
         <AnchorHeading id="errors">Error Codes</AnchorHeading>
 
         <div className="overflow-x-auto mb-6">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+          <table className="min-w-full divide-y divide-border">
+            <thead className="bg-card-muted">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Code</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Description</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Code</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Status</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Description</th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="bg-card divide-y divide-border">
               <tr>
                 <td className="px-4 py-3 text-sm font-mono">400</td>
                 <td className="px-4 py-3 text-sm">Bad Request</td>
-                <td className="px-4 py-3 text-sm text-gray-600">Invalid request body or headers</td>
+                <td className="px-4 py-3 text-sm text-muted-foreground">Invalid request body or headers</td>
               </tr>
               <tr>
                 <td className="px-4 py-3 text-sm font-mono">401</td>
                 <td className="px-4 py-3 text-sm">Unauthorized</td>
-                <td className="px-4 py-3 text-sm text-gray-600">Invalid or missing Payment Key</td>
+                <td className="px-4 py-3 text-sm text-muted-foreground">Invalid or missing Payment Key</td>
               </tr>
               <tr>
                 <td className="px-4 py-3 text-sm font-mono">402</td>
                 <td className="px-4 py-3 text-sm">Payment Required</td>
-                <td className="px-4 py-3 text-sm text-gray-600">Insufficient balance on Payment Key</td>
+                <td className="px-4 py-3 text-sm text-muted-foreground">Insufficient balance on Payment Key</td>
               </tr>
               <tr>
                 <td className="px-4 py-3 text-sm font-mono">403</td>
                 <td className="px-4 py-3 text-sm">Forbidden</td>
-                <td className="px-4 py-3 text-sm text-gray-600">Project not allowed for this key</td>
+                <td className="px-4 py-3 text-sm text-muted-foreground">Project not allowed for this key</td>
               </tr>
               <tr>
                 <td className="px-4 py-3 text-sm font-mono">404</td>
                 <td className="px-4 py-3 text-sm">Not Found</td>
-                <td className="px-4 py-3 text-sm text-gray-600">Project does not exist</td>
+                <td className="px-4 py-3 text-sm text-muted-foreground">Project does not exist</td>
               </tr>
               <tr>
                 <td className="px-4 py-3 text-sm font-mono">429</td>
                 <td className="px-4 py-3 text-sm">Too Many Requests</td>
-                <td className="px-4 py-3 text-sm text-gray-600">Rate limit exceeded (IP or key)</td>
+                <td className="px-4 py-3 text-sm text-muted-foreground">Rate limit exceeded (IP or key)</td>
               </tr>
               <tr>
                 <td className="px-4 py-3 text-sm font-mono">500</td>
                 <td className="px-4 py-3 text-sm">Internal Error</td>
-                <td className="px-4 py-3 text-sm text-gray-600">Server error during execution</td>
+                <td className="px-4 py-3 text-sm text-muted-foreground">Server error during execution</td>
               </tr>
               <tr>
                 <td className="px-4 py-3 text-sm font-mono">504</td>
                 <td className="px-4 py-3 text-sm">Gateway Timeout</td>
-                <td className="px-4 py-3 text-sm text-gray-600">Execution timeout (300s max)</td>
+                <td className="px-4 py-3 text-sm text-muted-foreground">Execution timeout (300s max)</td>
               </tr>
             </tbody>
           </table>
@@ -764,23 +764,23 @@ weather = call_outlayer("alice.near/weather-api", {"city": "Tokyo"})`}
       <section className="mb-12">
         <AnchorHeading id="pricing">Pricing</AnchorHeading>
 
-        <p className="text-gray-700 mb-4">
+        <p className="text-foreground mb-4">
           HTTPS API calls are charged in USD stablecoins based on actual resource consumption:
         </p>
 
-        <div className="bg-gray-50 rounded-lg p-4 mb-6 font-mono text-sm">
+        <div className="bg-card-muted rounded-lg p-4 mb-6 font-mono text-sm">
           compute_cost = base_fee_usd<br/>
           &nbsp;&nbsp;+ (instructions / 1M) × per_million_instructions_usd<br/>
           &nbsp;&nbsp;+ execution_time_ms × per_ms_usd<br/>
           &nbsp;&nbsp;+ compile_time_ms × per_compile_ms_usd
         </div>
 
-        <p className="text-gray-700 mb-4">
+        <p className="text-foreground mb-4">
           See <Link href="/docs/pricing" className="text-[var(--primary-orange)] hover:underline">Pricing & Limits</Link>
           {' '}for current rates. Key points:
         </p>
 
-        <ul className="list-disc list-inside text-gray-700 space-y-2 mb-6">
+        <ul className="list-disc list-inside text-foreground space-y-2 mb-6">
           <li><strong>compute_cost</strong> - charged based on actual resources used</li>
           <li><strong>X-Attached-Deposit</strong> - charged immediately, goes to project author</li>
           <li><strong>Minimum</strong>: X-Compute-Limit must be at least $0.001 (1000)</li>
@@ -789,8 +789,8 @@ weather = call_outlayer("alice.near/weather-api", {"city": "Tokyo"})`}
       </section>
 
       {/* Related Documentation */}
-      <section className="bg-gray-50 rounded-lg p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Related Documentation</h3>
+      <section className="bg-card-muted rounded-lg p-6">
+        <h3 className="text-lg font-semibold text-foreground mb-4">Related Documentation</h3>
 
         <ul className="space-y-2 text-sm">
           <li>

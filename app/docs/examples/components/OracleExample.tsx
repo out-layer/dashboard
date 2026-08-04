@@ -6,7 +6,7 @@ export function OracleExample() {
   const badges = (
     <>
       <span className="ml-3 text-sm bg-purple-100 text-purple-800 px-3 py-1 rounded">WASI P2</span>
-      <span className="ml-2 text-sm bg-red-100 text-red-800 px-3 py-1 rounded">Advanced</span>
+      <span className="ml-2 text-sm bg-destructive/10 text-destructive-text px-3 py-1 rounded">Advanced</span>
     </>
   );
 
@@ -18,7 +18,7 @@ export function OracleExample() {
       githubUrl="https://github.com/out-layer/oracle-example"
       playgroundId="multi-source-data-oracle"
     >
-      <p className="text-gray-700 mb-4">
+      <p className="text-foreground mb-4">
         Multi-source price oracle with aggregation and validation. Production-ready decentralized oracle for cryptocurrency and commodity prices.
       </p>
 
@@ -32,7 +32,7 @@ export function OracleExample() {
       ]} />
 
       <h4 className="font-semibold mt-4 mb-2">Supported Assets:</h4>
-      <ul className="list-disc list-inside text-gray-700 space-y-1 mb-4 ml-4">
+      <ul className="list-disc list-inside text-foreground space-y-1 mb-4 ml-4">
         <li><strong>Cryptocurrencies:</strong> Bitcoin, Ethereum, NEAR, SOL, etc.</li>
         <li><strong>Commodities:</strong> Gold (XAU/USD), Oil (BRENT/USD)</li>
         <li><strong>Forex:</strong> EUR/USD, GBP/USD, etc.</li>
@@ -124,7 +124,7 @@ near call outlayer.testnet request_execution '{
       ]} />
 
       <LearnMoreSection>
-        <ul className="text-sm text-gray-700 space-y-1">
+        <ul className="text-sm text-foreground space-y-1">
           <li>
             📖 <Link href="/docs/wasi#wasi-preview-2" className="text-[var(--primary-orange)] hover:underline">
               WASI Preview 2 Documentation

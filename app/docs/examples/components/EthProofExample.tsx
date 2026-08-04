@@ -4,7 +4,7 @@ export function EthProofExample() {
   const badges = (
     <>
       <span className="ml-3 text-sm bg-purple-100 text-purple-800 px-3 py-1 rounded">WASI P2</span>
-      <span className="ml-2 text-sm bg-red-100 text-red-800 px-3 py-1 rounded">Advanced</span>
+      <span className="ml-2 text-sm bg-destructive/10 text-destructive-text px-3 py-1 rounded">Advanced</span>
     </>
   );
 
@@ -16,7 +16,7 @@ export function EthProofExample() {
       githubUrl="https://github.com/out-layer/eth-proof-example"
       playgroundId="ethereum-state-proof"
     >
-      <p className="text-gray-700 mb-4">
+      <p className="text-foreground mb-4">
         Bring an <strong>Ethereum value onto NEAR with a cryptographic receipt</strong>. The module reads a
         Chainlink price straight out of Ethereum contract storage together with its Merkle-Patricia proof, and
         re-derives the hashes inside the TEE until they meet the block&apos;s state root. A value that arrives
@@ -105,7 +105,7 @@ export function EthProofExample() {
       ]} />
 
       <LearnMoreSection>
-        <ul className="text-sm text-gray-700 space-y-1 list-disc list-inside">
+        <ul className="text-sm text-foreground space-y-1 list-disc list-inside">
           <li>
             <a href="https://eips.ethereum.org/EIPS/eip-1186" target="_blank" rel="noopener noreferrer" className="text-[var(--primary-orange)] hover:underline">
               EIP-1186

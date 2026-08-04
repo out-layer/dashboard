@@ -13,11 +13,11 @@ export default function VaultsDocsPage() {
       <h1 className="text-4xl font-bold mb-3">MPC Vaults</h1>
 
       {/* ── 0. Quick CKD primer ──────────────────────────────────────── */}
-      <div className="bg-blue-50 border-l-4 border-blue-500 p-4 mb-6 text-sm">
-        <p className="font-semibold text-blue-900 mb-1">
+      <div className="bg-info/10 border-l-4 border-info/60 p-4 mb-6 text-sm">
+        <p className="font-semibold text-info mb-1">
           First, how OutLayer key custody works
         </p>
-        <p className="text-gray-800 mb-2">
+        <p className="text-foreground mb-2">
           Every wallet key, every secret-encryption key, every payment-check
           ephemeral on OutLayer is <strong>not stored anywhere</strong>. It is
           derived on demand inside the keystore worker&rsquo;s TEE from a
@@ -29,15 +29,15 @@ export default function VaultsDocsPage() {
           given on-chain identifier, deterministically, without any single
           MPC node ever assembling the secret.
         </p>
-        <p className="text-gray-700 mb-0">
-          See <Link href="/docs/agent-custody" className="text-blue-700 underline">Agent Custody</Link>{' '}
-          and <Link href="/docs/secrets" className="text-blue-700 underline">Secrets</Link> for
+        <p className="text-foreground mb-0">
+          See <Link href="/docs/agent-custody" className="text-info underline">Agent Custody</Link>{' '}
+          and <Link href="/docs/secrets" className="text-info underline">Secrets</Link> for
           how derived keys are used per-feature; the rest of this page
           focuses on <strong>whose</strong> master it is.
         </p>
       </div>
 
-      <p className="text-gray-700 mb-3">
+      <p className="text-foreground mb-3">
         By default the master is <strong>bound to OutLayer&rsquo;s
         keystore-DAO contract</strong>. The keystore TEE asks NEAR MPC
         for that master, derives every customer&rsquo;s keys from it
@@ -48,7 +48,7 @@ export default function VaultsDocsPage() {
         the bytes &mdash; so even OutLayer operators cannot request it
         outside an attested keystore.
       </p>
-      <p className="text-gray-700 mb-3">
+      <p className="text-foreground mb-3">
         An <strong>MPC vault</strong> swaps that DAO-bound root for a
         master <strong>bound to a contract you deploy</strong> on a
         sub-account of your NEAR account. Same CKD primitive, same
@@ -56,7 +56,7 @@ export default function VaultsDocsPage() {
         vault, so only code that controls the vault account can ever
         ask MPC for that master.
       </p>
-      <p className="text-gray-700 mb-3">
+      <p className="text-foreground mb-3">
         The vault contract&rsquo;s only access key is a TEE function-call
         key scoped to a single proxy method that calls NEAR MPC&rsquo;s{' '}
         <code>request_app_private_key</code>. As long as that key is in
@@ -68,63 +68,63 @@ export default function VaultsDocsPage() {
       <VaultArchitectureDiagram />
 
       {/* ── 0c. Side-by-side comparison table ────────────────────────── */}
-      <div className="border border-gray-200 rounded-lg overflow-hidden mb-6">
+      <div className="border border-border rounded-lg overflow-hidden mb-6">
         <table className="w-full text-sm">
-          <thead className="bg-gray-100">
+          <thead className="bg-card-muted">
             <tr>
               <th className="text-left px-3 py-2 font-semibold w-1/4">Aspect</th>
               <th className="text-left px-3 py-2 font-semibold">Default (OutLayer master)</th>
-              <th className="text-left px-3 py-2 font-semibold bg-blue-50">MPC vault (yours)</th>
+              <th className="text-left px-3 py-2 font-semibold bg-info/10">MPC vault (yours)</th>
             </tr>
           </thead>
-          <tbody className="text-gray-700">
-            <tr className="border-t border-gray-200">
+          <tbody className="text-foreground">
+            <tr className="border-t border-border">
               <td className="px-3 py-2 font-medium align-top">Master bound to</td>
               <td className="px-3 py-2 align-top">OutLayer&rsquo;s keystore-DAO contract</td>
-              <td className="px-3 py-2 align-top bg-blue-50/50">
+              <td className="px-3 py-2 align-top bg-info/10/50">
                 Your vault contract
               </td>
             </tr>
-            <tr className="border-t border-gray-200">
+            <tr className="border-t border-border">
               <td className="px-3 py-2 font-medium align-top">Runtime that holds master</td>
               <td className="px-3 py-2 align-top">OutLayer keystore TEE only</td>
-              <td className="px-3 py-2 align-top bg-blue-50/50">
+              <td className="px-3 py-2 align-top bg-info/10/50">
                 <strong>Swappable</strong>: OutLayer TEE today, your own attested runtime after recovery
               </td>
             </tr>
-            <tr className="border-t border-gray-200">
+            <tr className="border-t border-border">
               <td className="px-3 py-2 font-medium align-top">Takeover path</td>
               <td className="px-3 py-2 align-top">None &mdash; you depend on OutLayer continuing to serve</td>
-              <td className="px-3 py-2 align-top bg-blue-50/50">
+              <td className="px-3 py-2 align-top bg-info/10/50">
                 Cessation recovery (DAO declares <code>is_ceased</code>) <em>or</em> unilateral exit (parent-only, configurable window)
               </td>
             </tr>
-            <tr className="border-t border-gray-200">
+            <tr className="border-t border-border">
               <td className="px-3 py-2 font-medium align-top">After takeover</td>
               <td className="px-3 py-2 align-top">&mdash;</td>
-              <td className="px-3 py-2 align-top bg-blue-50/50">
+              <td className="px-3 py-2 align-top bg-info/10/50">
                 Your runtime calls NEAR MPC from the vault account &rArr; same 32 bytes &rArr; same derived keys
               </td>
             </tr>
-            <tr className="border-t border-gray-200">
+            <tr className="border-t border-border">
               <td className="px-3 py-2 font-medium align-top">One-time cost</td>
               <td className="px-3 py-2 align-top">$0</td>
-              <td className="px-3 py-2 align-top bg-blue-50/50">1 NEAR at deploy (storage + working balance for the on-chain MPC derive; keep ≥0.5 NEAR)</td>
+              <td className="px-3 py-2 align-top bg-info/10/50">1 NEAR at deploy (storage + working balance for the on-chain MPC derive; keep ≥0.5 NEAR)</td>
             </tr>
           </tbody>
         </table>
       </div>
 
-      <div className="border-l-4 border-blue-500 bg-blue-50 p-4 mb-6">
-        <h4 className="font-semibold mb-2 text-blue-900">Two modes &mdash; one-way switch</h4>
-        <p className="text-sm text-gray-800 mb-2">
+      <div className="border-l-4 border-info/60 bg-info/10 p-4 mb-6">
+        <h4 className="font-semibold mb-2 text-info">Two modes &mdash; one-way switch</h4>
+        <p className="text-sm text-foreground mb-2">
           Once your vault is deployed you choose how to operate it. You
           can change modes later, but it&rsquo;s a one-way move:
         </p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
-          <div className="bg-white border border-gray-200 rounded p-3">
+          <div className="bg-card border border-border rounded p-3">
             <div className="font-semibold mb-1">A. OutLayer-managed (default)</div>
-            <p className="text-gray-700 mb-1">
+            <p className="text-foreground mb-1">
               OutLayer&rsquo;s TEE holds the FC key, derives the master via
               MPC CKD, and runs your agents on its infrastructure. You keep
               full sovereignty (parent account + recovery path), but the
@@ -132,9 +132,9 @@ export default function VaultsDocsPage() {
               decryption.
             </p>
           </div>
-          <div className="bg-white border border-gray-200 rounded p-3">
+          <div className="bg-card border border-border rounded p-3">
             <div className="font-semibold mb-1">B. Self-managed (you take over)</div>
-            <p className="text-gray-700 mb-1">
+            <p className="text-foreground mb-1">
               You initiate recovery (cessation or unilateral exit) and
               call <code>finalize_recovery(new_parent_pubkey)</code>{' '}
               with a key you generated locally. The contract atomically
@@ -148,7 +148,7 @@ export default function VaultsDocsPage() {
             </p>
           </div>
         </div>
-        <p className="text-sm text-gray-700 mt-3">
+        <p className="text-sm text-foreground mt-3">
           <strong>One-way:</strong> once a vault is unlocked,
           OutLayer&rsquo;s keystore won&rsquo;t serve it again. You
           can&rsquo;t come back to mode A &mdash; the FC-key + MPC-CKD
@@ -158,9 +158,9 @@ export default function VaultsDocsPage() {
         </p>
       </div>
 
-      <div className="border border-gray-200 rounded-lg p-4 mb-6 bg-gray-50">
+      <div className="border border-border rounded-lg p-4 mb-6 bg-card-muted">
         <h4 className="font-semibold mb-2">What is &ldquo;CKD&rdquo;?</h4>
-        <p className="text-sm text-gray-700 mb-2">
+        <p className="text-sm text-foreground mb-2">
           <strong>Conditional Key Derivation</strong> is a primitive of
           NEAR&rsquo;s MPC service. Threshold-key holders in the MPC
           network jointly derive a private key for a given on-chain
@@ -169,7 +169,7 @@ export default function VaultsDocsPage() {
           contract that requested it; another contract asking for the
           same path gets a completely different key.
         </p>
-        <p className="text-sm text-gray-700 mb-0">
+        <p className="text-sm text-foreground mb-0">
           For an MPC vault, the requesting contract is the vault
           itself. The TEE keystore calls{' '}
           <code>request_app_private_key</code> through the vault&rsquo;s
@@ -184,9 +184,9 @@ export default function VaultsDocsPage() {
       {/* ── 1. When to use ─────────────────────────────────────────── */}
       <section className="mb-10">
         <AnchorHeading id="overview">When to use a vault</AnchorHeading>
-        <div className="border border-gray-200 rounded-lg p-4 mb-3">
+        <div className="border border-border rounded-lg p-4 mb-3">
           <h4 className="font-semibold mb-2">Trade-offs</h4>
-          <ul className="list-disc list-inside text-sm text-gray-700 space-y-1">
+          <ul className="list-disc list-inside text-sm text-foreground space-y-1">
             <li>
               <strong>Default master:</strong> shared keystore-DAO root, zero
               customer setup, no on-chain footprint. Best for prototyping
@@ -204,7 +204,7 @@ export default function VaultsDocsPage() {
             </li>
           </ul>
         </div>
-        <p className="text-sm text-gray-600">
+        <p className="text-sm text-muted-foreground">
           Use a vault if your application&rsquo;s value-at-risk justifies
           the extra setup, or if your governance / audit requirements
           mandate independent control over derived keys.
@@ -224,7 +224,7 @@ export default function VaultsDocsPage() {
 
         <h4 className="font-semibold mt-4 mb-2">Dashboard</h4>
         <ol className="list-decimal list-inside text-sm space-y-1 mb-4">
-          <li>Open <Link href="/vault" className="text-blue-600 hover:underline">Vaults</Link> from My Workspace.</li>
+          <li>Open <Link href="/vault" className="text-accent-text hover:underline">Vaults</Link> from My Workspace.</li>
           <li>Pick a sub-account name (default: <code>vault</code>) and an exit window (24h / 7d / 30d).</li>
           <li>Click <strong>Create vault</strong>; sign the atomic-deploy tx in your wallet.</li>
           <li>
@@ -261,7 +261,7 @@ outlayer vault init --name treasury --exit-window 7d`}
             pure on-chain provisioning + DAO trust signal.
           </li>
         </ol>
-        <p className="text-sm text-gray-600">
+        <p className="text-sm text-muted-foreground">
           If init fails between step 3 and step 4 (e.g. transient
           network failure between the atomic deploy and the
           coordinator&rsquo;s sign-verification call), use{' '}
@@ -295,7 +295,7 @@ outlayer vault init --name treasury --exit-window 7d`}
         <AnchorHeading id="custody">Using a vault for custody wallets</AnchorHeading>
 
         <h4 className="font-semibold mt-3 mb-2">Two distinct steps</h4>
-        <p className="mb-3 text-sm text-gray-700">
+        <p className="mb-3 text-sm text-foreground">
           <strong><code>outlayer vault init</code> does NOT mint a
           wallet API key.</strong> It performs the on-chain atomic
           deploy and runs <code>POST /customer/register</code>, which
@@ -303,7 +303,7 @@ outlayer vault init --name treasury --exit-window 7d`}
           on the DAO) so the vault is in the DAO&rsquo;s verified set.
           That&rsquo;s all. No <code>wk_...</code> is returned.
         </p>
-        <p className="mb-3 text-sm text-gray-700">
+        <p className="mb-3 text-sm text-foreground">
           To get a wallet API key bound to your vault, run{' '}
           <code>POST /register</code> with{' '}
           <code>{`{"vault_id": "<vault>"}`}</code> separately:
@@ -315,7 +315,7 @@ outlayer vault init --name treasury --exit-window 7d`}
 # returns: { api_key: "wk_...", wallet_id: "<uuid>",
 #           near_account_id: "<hex>", handoff_url, trial }`}
         </SyntaxHighlighter>
-        <p className="mb-3 text-sm text-gray-700">
+        <p className="mb-3 text-sm text-foreground">
           Each call mints a fresh wallet under the same vault — the
           coordinator stores <code>wallet_accounts(wallet_id, vault_id)</code>{' '}
           and N wallets per vault are allowed. The wallet&rsquo;s NEAR
@@ -326,7 +326,7 @@ outlayer vault init --name treasury --exit-window 7d`}
         </p>
 
         <h4 className="font-semibold mt-4 mb-2">Auth on <code>/wallet/v1/*</code></h4>
-        <p className="mb-3 text-sm text-gray-700">
+        <p className="mb-3 text-sm text-foreground">
           Every wallet API call sends{' '}
           <code>Authorization: Bearer wk_...</code>. The coordinator
           looks up the API key in its DB, finds the bound{' '}
@@ -341,7 +341,7 @@ outlayer vault init --name treasury --exit-window 7d`}
         </p>
 
         <h4 className="font-semibold mt-4 mb-2">Multi-user patterns (bots, agents)</h4>
-        <p className="mb-3 text-sm text-gray-700">
+        <p className="mb-3 text-sm text-foreground">
           For a Telegram-style bot serving thousands of users from one
           vault: call <code>POST /register {`{vault_id}`}</code> once
           per user, store the returned <code>(wallet_id, api_key)</code>
@@ -350,7 +350,7 @@ outlayer vault init --name treasury --exit-window 7d`}
           per-vault master. The bot signs as user U by using user
           U&rsquo;s <code>api_key</code>.
         </p>
-        <p className="mb-3 text-sm text-gray-700">
+        <p className="mb-3 text-sm text-foreground">
           <strong>The deterministic <code>/register</code> path</strong>{' '}
           (5-tuple: <code>account_id + seed + pubkey + message + signature</code>,
           where the user proves possession of a NEAR key) does{' '}
@@ -363,7 +363,7 @@ outlayer vault init --name treasury --exit-window 7d`}
         </p>
 
         <h4 className="font-semibold mt-4 mb-2">Default master vs vault</h4>
-        <p className="mb-3 text-sm text-gray-700">
+        <p className="mb-3 text-sm text-foreground">
           You can run multiple wallets — some on the default master
           (empty <code>POST /register</code>, no <code>vault_id</code>),
           some on different vaults. The agent code does not change;
@@ -378,7 +378,7 @@ outlayer vault init --name treasury --exit-window 7d`}
         <AnchorHeading id="recovery">Recovery procedures</AnchorHeading>
 
         <h4 className="font-semibold mt-3 mb-2">Cessation recovery (catastrophic)</h4>
-        <p className="text-sm text-gray-700 mb-3">
+        <p className="text-sm text-foreground mb-3">
           If the OutLayer DAO declares cessation
           (<code>is_ceased() == true </code>on the keystore-DAO),
           anyone can call <code>initiate_recovery</code> on the vault.
@@ -407,7 +407,7 @@ outlayer vault finalize-recovery vault.alice.near "$NEW_PUBKEY"
         </SyntaxHighlighter>
 
         <h4 className="font-semibold mt-4 mb-2">Unilateral recovery (voluntary)</h4>
-        <p className="text-sm text-gray-700 mb-3">
+        <p className="text-sm text-foreground mb-3">
           The parent account can exit at any time without DAO
           involvement. The delay is the
           {' '}<code>unilateral_exit_window_secs</code> chosen at
@@ -426,7 +426,7 @@ outlayer vault initiate-unilateral-recovery  vault.alice.near
 NEW_PUBKEY=$(jq -r .public_key ~/.outlayer-recovery/vault.alice.near.json)
 outlayer vault finalize-recovery             vault.alice.near "$NEW_PUBKEY"`}
         </SyntaxHighlighter>
-        <p className="text-sm text-gray-700 mt-3">
+        <p className="text-sm text-foreground mt-3">
           Optional follow-up:{' '}
           <code>outlayer vault unlocked-add-key vault.alice.near ed25519:...</code>{' '}
           adds <em>additional</em> keys (e.g. function-call keys for
@@ -434,7 +434,7 @@ outlayer vault finalize-recovery             vault.alice.near "$NEW_PUBKEY"`}
           <code>finalize_recovery</code> already installed.
         </p>
 
-        <div className="bg-yellow-50 border border-yellow-300 rounded p-3 mt-4 text-sm text-gray-800">
+        <div className="bg-warning/10 border border-warning/40 rounded p-3 mt-4 text-sm text-foreground">
           <strong>Trust model note:</strong> end-users of your application
           interact with you, not OutLayer. You are the trusted party for
           your end-users. Unilateral exit is a <em>customer&rsquo;s</em> escape
@@ -442,7 +442,7 @@ outlayer vault finalize-recovery             vault.alice.near "$NEW_PUBKEY"`}
         </div>
 
         <h4 className="font-semibold mt-6 mb-2">Local master recovery (after finalize)</h4>
-        <p className="text-sm text-gray-700 mb-3">
+        <p className="text-sm text-foreground mb-3">
           On-chain finalize is only half of the sovereign exit. The
           per-vault master OutLayer&rsquo;s keystore used to derive your
           wallet keys and decrypt your secrets is still recoverable
@@ -452,7 +452,7 @@ outlayer vault finalize-recovery             vault.alice.near "$NEW_PUBKEY"`}
           arrive at the same 32-byte master. The standalone{' '}
           <a
             href="https://github.com/out-layer/near-offshore/tree/main/scripts/customer-recovery"
-            className="text-blue-600 hover:underline"
+            className="text-accent-text hover:underline"
             target="_blank"
             rel="noreferrer"
           >
@@ -460,7 +460,7 @@ outlayer vault finalize-recovery             vault.alice.near "$NEW_PUBKEY"`}
           </a>{' '}
           binary does that, plus two helpers:
         </p>
-        <ul className="list-disc list-inside text-sm text-gray-700 mb-3 space-y-1">
+        <ul className="list-disc list-inside text-sm text-foreground mb-3 space-y-1">
           <li>
             <code>generate-key</code> &mdash; emit a fresh ed25519
             keypair locally (used in the walkthrough to produce the
@@ -484,13 +484,13 @@ outlayer vault finalize-recovery             vault.alice.near "$NEW_PUBKEY"`}
             <code>outlayer.near</code> contract.
           </li>
         </ul>
-        <p className="text-sm text-gray-700 mb-3">
+        <p className="text-sm text-foreground mb-3">
           The full procedure (deploy → recovery → master recovery →
           wallet re-derivation → secret decryption) is documented as a
           single runbook in{' '}
           <a
             href="https://github.com/out-layer/near-offshore/blob/main/docs/LEAVING_OUTLAYER.md"
-            className="text-blue-600 hover:underline"
+            className="text-accent-text hover:underline"
             target="_blank"
             rel="noreferrer"
           >
@@ -514,7 +514,7 @@ MPC_PUBLIC_KEY='bls12381g2:...' \\
 # stdout: master_hex=<64 hex>`}
         </SyntaxHighlighter>
 
-        <div className="bg-blue-50 border border-blue-300 rounded p-3 mt-4 text-sm text-gray-800">
+        <div className="bg-info/10 border border-info/40 rounded p-3 mt-4 text-sm text-foreground">
           <strong>Coordinator-side fast-fail.</strong> Once the vault
           is unlocked on chain, the OutLayer coordinator refuses any{' '}
           <code>/call/&lt;owner&gt;/&lt;project&gt;</code> request that
@@ -540,7 +540,7 @@ MPC_PUBLIC_KEY='bls12381g2:...' \\
         </p>
 
         <h4 className="font-semibold mt-3 mb-1">1. Could the customer have rigged the vault during deploy?</h4>
-        <p className="text-sm text-gray-700 mb-3">
+        <p className="text-sm text-foreground mb-3">
           <strong>No.</strong> The vault becomes immutable immediately
           after the atomic deploy. Its only access key is the TEE
           function-call key restricted to <code>mpc_contract.request_app_private_key</code>;
@@ -557,7 +557,7 @@ MPC_PUBLIC_KEY='bls12381g2:...' \\
         </p>
 
         <h4 className="font-semibold mt-3 mb-1">2. Could the customer drain the vault later?</h4>
-        <p className="text-sm text-gray-700 mb-3">
+        <p className="text-sm text-foreground mb-3">
           <strong>Yes &mdash; after the configured unilateral exit
           window.</strong> This is the explicit sovereignty feature
           the vault provides. After waiting <code>unilateral_exit_window_secs</code>
@@ -570,14 +570,14 @@ MPC_PUBLIC_KEY='bls12381g2:...' \\
           and the customer can re-derive the per-vault master via
           MPC CKD themselves.
         </p>
-        <p className="text-sm text-gray-700 mb-3">
+        <p className="text-sm text-foreground mb-3">
           This is <em>not</em> a vulnerability in OutLayer&rsquo;s TEE
           infrastructure &mdash; it&rsquo;s the customer exercising the
           escape hatch they built the vault to have. From the
           protocol&rsquo;s perspective the customer was always able to
           recover their own vault.
         </p>
-        <div className="bg-amber-50 border border-amber-300 rounded p-3 text-sm text-gray-800">
+        <div className="bg-amber-50 border border-amber-300 rounded p-3 text-sm text-foreground">
           <strong>Practical guidance:</strong>
           <ul className="list-disc list-inside mt-1 space-y-1">
             <li>Read <code>unilateral_exit_window_secs</code> with{' '}
@@ -616,7 +616,7 @@ MPC_PUBLIC_KEY='bls12381g2:...' \\
           <li>The on-chain access keys are bounded and TEE-only — no full-access key, no out-of-scope FCAK.</li>
           <li><code>registered_tee_keys</code> is a subset of the account&rsquo;s access keys.</li>
         </ol>
-        <p className="text-sm text-gray-600 mt-3">
+        <p className="text-sm text-muted-foreground mt-3">
           Red flags: vault is <strong>banned</strong>{' '}
           (<code>is_vault_verified</code> returns false even after
           cleanup), vault is <strong>unlocked</strong> (parent has post-recovery

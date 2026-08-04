@@ -52,14 +52,14 @@ export function AddVersionForm({ projectName, onSubmit, onCancel, isSubmitting }
   };
 
   return (
-    <div className="bg-white shadow rounded-lg p-6">
-      <h3 className="text-lg font-medium text-gray-900 mb-4">
+    <div className="bg-card shadow rounded-lg p-6">
+      <h3 className="text-lg font-medium text-foreground mb-4">
         Add Version to <span className="text-accent-text">{projectName}</span>
       </h3>
       <form onSubmit={handleSubmit} className="space-y-4">
         {/* Source Type Toggle */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-medium text-foreground mb-2">
             Code Source
           </label>
           <div className="flex space-x-4">
@@ -72,7 +72,7 @@ export function AddVersionForm({ projectName, onSubmit, onCancel, isSubmitting }
                 onChange={() => setFormData({ ...formData, sourceType: 'github' })}
                 className="form-radio text-accent-text focus:ring-accent"
               />
-              <span className="ml-2 text-sm text-gray-700">GitHub Repository</span>
+              <span className="ml-2 text-sm text-foreground">GitHub Repository</span>
             </label>
             <label className="inline-flex items-center">
               <input
@@ -83,7 +83,7 @@ export function AddVersionForm({ projectName, onSubmit, onCancel, isSubmitting }
                 onChange={() => setFormData({ ...formData, sourceType: 'wasm_url' })}
                 className="form-radio text-accent-text focus:ring-accent"
               />
-              <span className="ml-2 text-sm text-gray-700">WASM URL</span>
+              <span className="ml-2 text-sm text-foreground">WASM URL</span>
             </label>
           </div>
         </div>
@@ -92,8 +92,8 @@ export function AddVersionForm({ projectName, onSubmit, onCancel, isSubmitting }
         {formData.sourceType === 'github' && (
           <>
             <div>
-              <label htmlFor="repo" className="block text-sm font-medium text-gray-700">
-                Repository <span className="text-red-500">*</span>
+              <label htmlFor="repo" className="block text-sm font-medium text-foreground">
+                Repository <span className="text-destructive-text">*</span>
               </label>
               <input
                 type="text"
@@ -101,14 +101,14 @@ export function AddVersionForm({ projectName, onSubmit, onCancel, isSubmitting }
                 value={formData.repo}
                 onChange={(e) => setFormData({ ...formData, repo: e.target.value })}
                 placeholder="https://github.com/owner/repo"
-                className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-accent focus:border-accent sm:text-sm"
+                className="mt-1 block w-full border-border-strong rounded-md shadow-sm focus:ring-accent focus:border-accent sm:text-sm"
                 required={formData.sourceType === 'github'}
               />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label htmlFor="commit" className="block text-sm font-medium text-gray-700">
-                  Commit/Branch <span className="text-red-500">*</span>
+                <label htmlFor="commit" className="block text-sm font-medium text-foreground">
+                  Commit/Branch <span className="text-destructive-text">*</span>
                 </label>
                 <input
                   type="text"
@@ -116,19 +116,19 @@ export function AddVersionForm({ projectName, onSubmit, onCancel, isSubmitting }
                   value={formData.commit}
                   onChange={(e) => setFormData({ ...formData, commit: e.target.value })}
                   placeholder="main"
-                  className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-accent focus:border-accent sm:text-sm"
+                  className="mt-1 block w-full border-border-strong rounded-md shadow-sm focus:ring-accent focus:border-accent sm:text-sm"
                   required={formData.sourceType === 'github'}
                 />
               </div>
               <div>
-                <label htmlFor="buildTarget" className="block text-sm font-medium text-gray-700">
+                <label htmlFor="buildTarget" className="block text-sm font-medium text-foreground">
                   Build Target
                 </label>
                 <select
                   id="buildTarget"
                   value={formData.buildTarget}
                   onChange={(e) => setFormData({ ...formData, buildTarget: e.target.value })}
-                  className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-accent focus:border-accent sm:text-sm"
+                  className="mt-1 block w-full border-border-strong rounded-md shadow-sm focus:ring-accent focus:border-accent sm:text-sm"
                 >
                   <option value="wasm32-wasip2">wasm32-wasip2</option>
                   {/* <option value="wasm32-wasip1">wasm32-wasip1 (not supported for projects)</option> */}
@@ -142,8 +142,8 @@ export function AddVersionForm({ projectName, onSubmit, onCancel, isSubmitting }
         {formData.sourceType === 'wasm_url' && (
           <>
             <div>
-              <label htmlFor="wasmUrl" className="block text-sm font-medium text-gray-700">
-                WASM URL <span className="text-red-500">*</span>
+              <label htmlFor="wasmUrl" className="block text-sm font-medium text-foreground">
+                WASM URL <span className="text-destructive-text">*</span>
               </label>
               <input
                 type="text"
@@ -151,13 +151,13 @@ export function AddVersionForm({ projectName, onSubmit, onCancel, isSubmitting }
                 value={formData.wasmUrl}
                 onChange={(e) => setFormData({ ...formData, wasmUrl: e.target.value })}
                 placeholder="https://example.com/my-app.wasm"
-                className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-accent focus:border-accent sm:text-sm"
+                className="mt-1 block w-full border-border-strong rounded-md shadow-sm focus:ring-accent focus:border-accent sm:text-sm"
                 required={formData.sourceType === 'wasm_url'}
               />
             </div>
             <div>
-              <label htmlFor="wasmHash" className="block text-sm font-medium text-gray-700">
-                SHA256 Hash <span className="text-red-500">*</span>
+              <label htmlFor="wasmHash" className="block text-sm font-medium text-foreground">
+                SHA256 Hash <span className="text-destructive-text">*</span>
               </label>
               <div className="mt-1 flex gap-2">
                 <input
@@ -166,18 +166,18 @@ export function AddVersionForm({ projectName, onSubmit, onCancel, isSubmitting }
                   value={formData.wasmHash}
                   onChange={(e) => setFormData({ ...formData, wasmHash: e.target.value })}
                   placeholder="e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-                  className="block w-full font-mono text-xs border-gray-300 rounded-md shadow-sm focus:ring-accent focus:border-accent"
+                  className="block w-full font-mono text-xs border-border-strong rounded-md shadow-sm focus:ring-accent focus:border-accent"
                   required={formData.sourceType === 'wasm_url'}
                 />
                 <button
                   type="button"
                   onClick={handleCalculateHash}
                   disabled={hashLoading || !formData.wasmUrl}
-                  className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-accent disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+                  className="inline-flex items-center px-3 py-2 border border-border-strong shadow-sm text-sm font-medium rounded-md text-foreground bg-card hover:bg-card-muted focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-accent disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
                 >
                   {hashLoading ? (
                     <>
-                      <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-gray-500" fill="none" viewBox="0 0 24 24">
+                      <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-muted-foreground" fill="none" viewBox="0 0 24 24">
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                       </svg>
@@ -189,21 +189,21 @@ export function AddVersionForm({ projectName, onSubmit, onCancel, isSubmitting }
                 </button>
               </div>
               {hashError && (
-                <p className="mt-1 text-xs text-red-600">{hashError}</p>
+                <p className="mt-1 text-xs text-destructive-text">{hashError}</p>
               )}
-              <p className="mt-1 text-xs text-gray-500">
+              <p className="mt-1 text-xs text-muted-foreground">
                 Click &quot;Calculate&quot; to auto-fill from URL
               </p>
             </div>
             <div>
-              <label htmlFor="wasmBuildTarget" className="block text-sm font-medium text-gray-700">
+              <label htmlFor="wasmBuildTarget" className="block text-sm font-medium text-foreground">
                 Build Target
               </label>
               <select
                 id="wasmBuildTarget"
                 value={formData.buildTarget}
                 onChange={(e) => setFormData({ ...formData, buildTarget: e.target.value })}
-                className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-accent focus:border-accent sm:text-sm"
+                className="mt-1 block w-full border-border-strong rounded-md shadow-sm focus:ring-accent focus:border-accent sm:text-sm"
               >
                 <option value="wasm32-wasip2">wasm32-wasip2</option>
                 {/* <option value="wasm32-wasip1">wasm32-wasip1 (not supported for projects)</option> */}
@@ -219,9 +219,9 @@ export function AddVersionForm({ projectName, onSubmit, onCancel, isSubmitting }
             id="setActive"
             checked={formData.setActive}
             onChange={(e) => setFormData({ ...formData, setActive: e.target.checked })}
-            className="h-4 w-4 text-accent-text focus:ring-accent border-gray-300 rounded"
+            className="h-4 w-4 text-accent-text focus:ring-accent border-border-strong rounded"
           />
-          <label htmlFor="setActive" className="ml-2 block text-sm text-gray-700">
+          <label htmlFor="setActive" className="ml-2 block text-sm text-foreground">
             Set as active version after adding
           </label>
         </div>
@@ -231,7 +231,7 @@ export function AddVersionForm({ projectName, onSubmit, onCancel, isSubmitting }
           <button
             type="button"
             onClick={onCancel}
-            className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+            className="px-4 py-2 border border-border-strong rounded-md text-sm font-medium text-foreground bg-card hover:bg-card-muted"
             disabled={isSubmitting}
           >
             Cancel

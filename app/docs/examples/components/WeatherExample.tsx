@@ -4,9 +4,9 @@ import { ExampleCard, UseCasesSection, KeyFeaturesSection, TechnicalDetailsSecti
 export function WeatherExample() {
   const badges = (
     <>
-      <span className="ml-3 text-sm bg-blue-100 text-blue-800 px-3 py-1 rounded">WASI P2</span>
+      <span className="ml-3 text-sm bg-info/10 text-info px-3 py-1 rounded">WASI P2</span>
       <span className="ml-2 text-sm bg-purple-100 text-purple-800 px-3 py-1 rounded">Secrets</span>
-      <span className="ml-2 text-sm bg-yellow-100 text-yellow-800 px-3 py-1 rounded">Intermediate</span>
+      <span className="ml-2 text-sm bg-warning/10 text-warning px-3 py-1 rounded">Intermediate</span>
     </>
   );
 
@@ -18,7 +18,7 @@ export function WeatherExample() {
       githubUrl="https://github.com/out-layer/weather-example"
       playgroundId="weather"
     >
-      <p className="text-gray-700 mb-4">
+      <p className="text-foreground mb-4">
         Fetch real-world weather data from OpenWeatherMap API and bring it on-chain. Perfect for parametric insurance, prediction markets, and climate-dependent DeFi.
       </p>
 
@@ -85,9 +85,9 @@ export function WeatherExample() {
         <><strong>Size:</strong> ~2.2MB compiled WASM</>
       ]} />
 
-      <div className="mt-4 p-4 bg-blue-50 border-l-4 border-blue-400">
-        <h4 className="font-semibold text-gray-900 mb-2">Setting Up Secrets</h4>
-        <ol className="list-decimal list-inside text-sm text-gray-700 space-y-1">
+      <div className="mt-4 p-4 bg-info/10 border-l-4 border-info/50">
+        <h4 className="font-semibold text-foreground mb-2">Setting Up Secrets</h4>
+        <ol className="list-decimal list-inside text-sm text-foreground space-y-1">
           <li>
             Get free API key from <a href="https://openweathermap.org/api" target="_blank" rel="noopener noreferrer" className="text-[var(--primary-orange)] hover:underline">OpenWeatherMap</a>
           </li>
@@ -108,7 +108,7 @@ export function WeatherExample() {
       ]} />
 
       <LearnMoreSection>
-        <ul className="text-sm text-gray-700 space-y-1">
+        <ul className="text-sm text-foreground space-y-1">
           <li>
             📖 <Link href="/docs/wasi#wasi-preview-2" className="text-[var(--primary-orange)] hover:underline">
               WASI Preview 2 Documentation

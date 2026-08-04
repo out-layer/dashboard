@@ -44,7 +44,7 @@ function countApprovers(primaryOwner: string, additional: string): number {
 
 export default function WalletHandoffPage() {
   return (
-    <Suspense fallback={<div className="max-w-4xl mx-auto py-8 text-gray-400">Loading...</div>}>
+    <Suspense fallback={<div className="max-w-4xl mx-auto py-8 text-faint-foreground">Loading...</div>}>
       <WalletHandoffContent />
     </Suspense>
   );
@@ -288,14 +288,14 @@ function WalletHandoffContent() {
   if (!apiKey) {
     return (
       <div className="max-w-2xl mx-auto py-12">
-        <h1 className="text-3xl font-bold text-gray-900 mb-4">Wallet Handoff</h1>
-        <div className="bg-white shadow rounded-lg p-8 text-center">
-          <p className="text-gray-600 mb-4">
+        <h1 className="text-3xl font-bold text-foreground mb-4">Wallet Handoff</h1>
+        <div className="bg-card shadow rounded-lg p-8 text-center">
+          <p className="text-muted-foreground mb-4">
             This page is used to take control of an AI agent wallet.
           </p>
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-muted-foreground">
             Your agent should have given you a handoff URL like:<br />
-            <code className="text-xs bg-gray-100 px-2 py-1 rounded mt-1 inline-block">
+            <code className="text-xs bg-card-muted px-2 py-1 rounded mt-1 inline-block">
               /wallet?key=wk_...
             </code>
           </p>
@@ -314,26 +314,26 @@ function WalletHandoffContent() {
 
   return (
     <div className="max-w-3xl mx-auto py-8">
-      <h1 className="text-3xl font-bold text-gray-900 mb-2">Wallet Handoff</h1>
-      <p className="text-gray-500 mb-6">
+      <h1 className="text-3xl font-bold text-foreground mb-2">Wallet Handoff</h1>
+      <p className="text-muted-foreground mb-6">
         Take control of your AI agent&apos;s wallet by setting a spending policy.
       </p>
 
       {error && (
-        <div className="mb-4 bg-red-50 border border-red-200 rounded-md p-3">
-          <p className="text-sm text-red-800">{error}</p>
+        <div className="mb-4 bg-destructive/10 border border-destructive/30 rounded-md p-3">
+          <p className="text-sm text-destructive-text">{error}</p>
         </div>
       )}
 
       {success && (
-        <div className="mb-4 bg-green-50 border border-green-200 rounded-md p-3">
-          <p className="text-sm text-green-800">{success}</p>
+        <div className="mb-4 bg-success/10 border border-success/30 rounded-md p-3">
+          <p className="text-sm text-success-text">{success}</p>
         </div>
       )}
 
       {/* Step 1: Wallet Info */}
-      <div className="bg-white shadow rounded-lg p-6 mb-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-3">
+      <div className="bg-card shadow rounded-lg p-6 mb-6">
+        <h2 className="text-lg font-semibold text-foreground mb-3">
           <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-accent text-white text-xs mr-2">1</span>
           Wallet Info
         </h2>
@@ -344,33 +344,33 @@ function WalletHandoffContent() {
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
             </svg>
-            <span className="text-gray-500">Loading wallet...</span>
+            <span className="text-muted-foreground">Loading wallet...</span>
           </div>
         ) : walletInfo ? (
           <div className="space-y-2">
             <div>
-              <span className="text-xs text-gray-500 uppercase">Wallet ID</span>
-              <p className="text-sm font-mono text-gray-900 break-all">{walletInfo.wallet_id}</p>
+              <span className="text-xs text-muted-foreground uppercase">Wallet ID</span>
+              <p className="text-sm font-mono text-foreground break-all">{walletInfo.wallet_id}</p>
             </div>
             <div>
-              <span className="text-xs text-gray-500 uppercase">NEAR Address (implicit)</span>
-              <p className="text-sm font-mono text-gray-900 break-all">{walletInfo.address}</p>
+              <span className="text-xs text-muted-foreground uppercase">NEAR Address (implicit)</span>
+              <p className="text-sm font-mono text-foreground break-all">{walletInfo.address}</p>
             </div>
             <div>
-              <span className="text-xs text-gray-500 uppercase">Master key</span>
+              <span className="text-xs text-muted-foreground uppercase">Master key</span>
               {walletInfo.vault_id ? (
-                <p className="text-sm font-mono text-green-700 break-all">
+                <p className="text-sm font-mono text-success-text break-all">
                   Vault <code>{walletInfo.vault_id}</code> — recoverable through cessation or unilateral exit
                 </p>
               ) : (
-                <p className="text-sm text-gray-700">
-                  OutLayer default master <span className="text-xs text-gray-500">(not recoverable if OutLayer ceases)</span>
+                <p className="text-sm text-foreground">
+                  OutLayer default master <span className="text-xs text-muted-foreground">(not recoverable if OutLayer ceases)</span>
                 </p>
               )}
             </div>
             {existingPolicy === true && (
-              <div className="mt-2 bg-blue-50 border border-blue-200 rounded p-2">
-                <p className="text-sm text-blue-800">This wallet already has a policy on-chain. Submitting a new one will replace it.</p>
+              <div className="mt-2 bg-info/10 border border-info/30 rounded p-2">
+                <p className="text-sm text-info">This wallet already has a policy on-chain. Submitting a new one will replace it.</p>
               </div>
             )}
           </div>
@@ -379,13 +379,13 @@ function WalletHandoffContent() {
 
       {/* Step 2: Policy Owner */}
       {walletInfo && (
-        <div className="bg-white shadow rounded-lg p-6 mb-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-3">
+        <div className="bg-card shadow rounded-lg p-6 mb-6">
+          <h2 className="text-lg font-semibold text-foreground mb-3">
             <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-accent text-white text-xs mr-2">2</span>
             Policy Owner
           </h2>
 
-          <p className="text-sm text-gray-500 mb-4">
+          <p className="text-sm text-muted-foreground mb-4">
             The owner can freeze the wallet, update the policy, and approve transactions.
           </p>
 
@@ -396,7 +396,7 @@ function WalletHandoffContent() {
               className={`px-4 py-2 text-sm rounded-lg border ${
                 ownerMode === 'wallet'
                   ? 'bg-accent text-white border-accent'
-                  : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                  : 'bg-card text-foreground border-border-strong hover:bg-card-muted'
               }`}
             >
               Connect Wallet
@@ -407,7 +407,7 @@ function WalletHandoffContent() {
               className={`px-4 py-2 text-sm rounded-lg border ${
                 ownerMode === 'manual'
                   ? 'bg-accent text-white border-accent'
-                  : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                  : 'bg-card text-foreground border-border-strong hover:bg-card-muted'
               }`}
             >
               Enter Account ID
@@ -416,7 +416,7 @@ function WalletHandoffContent() {
 
           {ownerMode === 'wallet' ? (
             isConnected ? (
-              <p className="text-sm text-green-700">
+              <p className="text-sm text-success-text">
                 Connected as <span className="font-mono font-medium">{accountId}</span>
               </p>
             ) : (
@@ -436,9 +436,9 @@ function WalletHandoffContent() {
                 value={manualOwner}
                 onChange={(e) => setManualOwner(e.target.value)}
                 placeholder="e.g. alice.near"
-                className="w-full border border-gray-300 rounded px-3 py-2 text-sm font-mono"
+                className="w-full border border-border-strong rounded px-3 py-2 text-sm font-mono"
               />
-              <p className="text-xs text-gray-400 mt-1">
+              <p className="text-xs text-faint-foreground mt-1">
                 This NEAR account will be the policy owner. You still need to connect a wallet to sign the transaction.
               </p>
               {manualOwner.trim() && !isConnected && (
@@ -458,8 +458,8 @@ function WalletHandoffContent() {
 
       {/* Step 3: Set Policy */}
       {walletInfo && ownerReady && (
-        <div className="bg-white shadow rounded-lg p-6 mb-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-6">
+        <div className="bg-card shadow rounded-lg p-6 mb-6">
+          <h2 className="text-lg font-semibold text-foreground mb-6">
             <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-accent text-white text-xs mr-2">3</span>
             Set Spending Policy
           </h2>
@@ -467,12 +467,12 @@ function WalletHandoffContent() {
           <div className="space-y-6">
             {/* Transaction Approval */}
             <div>
-              <h3 className="text-sm font-semibold text-gray-800 mb-3">Transaction Approval</h3>
+              <h3 className="text-sm font-semibold text-foreground mb-3">Transaction Approval</h3>
               <div
                 className={`border-2 rounded-lg p-4 cursor-pointer transition-colors ${
                   requireApproval
                     ? 'border-accent bg-orange-50'
-                    : 'border-gray-200 hover:border-gray-300'
+                    : 'border-border hover:border-border-strong'
                 }`}
                 onClick={() => setRequireApproval(!requireApproval)}
               >
@@ -484,8 +484,8 @@ function WalletHandoffContent() {
                     className="mt-1 mr-3 h-4 w-4 accent-accent"
                   />
                   <div className="flex-1">
-                    <p className="font-medium text-gray-900">Require personal approval</p>
-                    <p className="text-sm text-gray-500 mt-1">
+                    <p className="font-medium text-foreground">Require personal approval</p>
+                    <p className="text-sm text-muted-foreground mt-1">
                       Transactions will need approval before being executed. You can approve or reject from the dashboard.
                     </p>
                   </div>
@@ -495,25 +495,25 @@ function WalletHandoffContent() {
                   <div className="mt-4 ml-7 space-y-3" onClick={(e) => e.stopPropagation()}>
                     <div className="grid grid-cols-2 gap-3">
                       <div>
-                        <label className="block text-xs font-medium text-gray-600 mb-1">Required Approvals</label>
+                        <label className="block text-xs font-medium text-muted-foreground mb-1">Required Approvals</label>
                         <input
                           type="number"
                           min="1"
                           value={approvalRequired}
                           onChange={(e) => setApprovalRequired(e.target.value)}
-                          className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
+                          className="w-full border border-border-strong rounded px-3 py-2 text-sm"
                         />
                       </div>
                       <div>
-                        <label className="block text-xs font-medium text-gray-600 mb-1">Primary Approver</label>
-                        <div className="px-3 py-2 text-sm bg-gray-50 border border-gray-200 rounded font-mono truncate">
+                        <label className="block text-xs font-medium text-muted-foreground mb-1">Primary Approver</label>
+                        <div className="px-3 py-2 text-sm bg-card-muted border border-border rounded font-mono truncate">
                           {effectiveOwner} (admin)
                         </div>
                       </div>
                     </div>
 
                     <div>
-                      <label className="block text-xs font-medium text-gray-600 mb-1">
+                      <label className="block text-xs font-medium text-muted-foreground mb-1">
                         Additional Approvers (one per line: account_id, role)
                       </label>
                       <textarea
@@ -521,13 +521,13 @@ function WalletHandoffContent() {
                         onChange={(e) => setAdditionalApprovers(e.target.value)}
                         placeholder={"alice.near, signer\nbob.near, signer"}
                         rows={3}
-                        className="w-full border border-gray-300 rounded px-3 py-2 text-sm font-mono"
+                        className="w-full border border-border-strong rounded px-3 py-2 text-sm font-mono"
                       />
-                      <p className="text-xs text-gray-400 mt-1">Roles: admin (can update policy), signer (can only approve)</p>
+                      <p className="text-xs text-faint-foreground mt-1">Roles: admin (can update policy), signer (can only approve)</p>
                       {(() => {
                         const total = countApprovers(effectiveOwner ?? '', additionalApprovers);
                         return total > MAX_APPROVERS ? (
-                          <p className="text-xs text-red-600 mt-1">
+                          <p className="text-xs text-destructive-text mt-1">
                             {total} approvers — the limit is {MAX_APPROVERS} including the primary one.
                             A signing request cannot carry more votes than that, so this policy could
                             never reach its threshold.
@@ -537,7 +537,7 @@ function WalletHandoffContent() {
                     </div>
 
                     <div>
-                      <label className="block text-xs font-medium text-gray-600 mb-2">Require approval for:</label>
+                      <label className="block text-xs font-medium text-muted-foreground mb-2">Require approval for:</label>
                       {(() => {
                         const txTypeLabels: Record<string, string> = {
                           transfer: 'Transfer (send native currency)',
@@ -561,7 +561,7 @@ function WalletHandoffContent() {
                                   return next;
                                 });
                               }}
-                              className="rounded border-gray-300"
+                              className="rounded border-border-strong"
                             />
                             <span>{txTypeLabels[txType] || txType}</span>
                           </label>
@@ -569,13 +569,13 @@ function WalletHandoffContent() {
                         return (
                           <div className="space-y-3">
                             <div>
-                              <span className="text-xs text-gray-400">Direct on-chain operations:</span>
+                              <span className="text-xs text-faint-foreground">Direct on-chain operations:</span>
                               <div className="flex flex-col gap-1 mt-1">
                                 {directTypes.map(renderCheckbox)}
                               </div>
                             </div>
                             <div>
-                              <span className="text-xs text-gray-400">NEAR Intents:</span>
+                              <span className="text-xs text-faint-foreground">NEAR Intents:</span>
                               <div className="flex flex-col gap-1 mt-1">
                                 {intentsTypes.map(renderCheckbox)}
                               </div>
@@ -583,7 +583,7 @@ function WalletHandoffContent() {
                           </div>
                         );
                       })()}
-                      <p className="text-xs text-gray-400 mt-1">
+                      <p className="text-xs text-faint-foreground mt-1">
                         Unchecked types execute immediately without approval. Swap and cross-chain
                         quotes are re-fetched fresh at execution, so approval delays don&apos;t
                         invalidate them. (Swap / cross-chain / confidential also need their
@@ -608,7 +608,7 @@ function WalletHandoffContent() {
           />
 
           <div className="mt-4 pt-4 border-t flex items-center justify-between">
-            <p className="text-xs text-gray-400">
+            <p className="text-xs text-faint-foreground">
               Policy will be encrypted in TEE and stored on-chain with <span className="font-mono">{effectiveOwner}</span> as owner.
             </p>
             <button
@@ -624,9 +624,9 @@ function WalletHandoffContent() {
 
       {/* After success — next steps */}
       {success && (
-        <div className="bg-white shadow rounded-lg p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-3">Next Steps</h2>
-          <ul className="space-y-2 text-sm text-gray-700">
+        <div className="bg-card shadow rounded-lg p-6">
+          <h2 className="text-lg font-semibold text-foreground mb-3">Next Steps</h2>
+          <ul className="space-y-2 text-sm text-foreground">
             <li>
               <Link href={`/wallet/approvals?key=${apiKey}`} className="text-accent-text hover:text-accent-text font-medium">
                 Approvals

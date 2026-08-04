@@ -107,13 +107,13 @@ export default function SettingsPage() {
     <div className="max-w-4xl mx-auto">
       <div className="sm:flex sm:items-center sm:justify-between">
         <div className="sm:flex-auto">
-          <h1 className="text-3xl font-bold text-gray-900">Settings</h1>
-          <p className="mt-2 text-sm text-gray-700">Manage your account and view usage statistics</p>
+          <h1 className="text-3xl font-bold text-foreground">Settings</h1>
+          <p className="mt-2 text-sm text-foreground">Manage your account and view usage statistics</p>
         </div>
         <div className="mt-4 sm:mt-0">
           <button
             onClick={disconnect}
-            className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+            className="inline-flex items-center px-4 py-2 border border-border-strong shadow-sm text-sm font-medium rounded-md text-foreground bg-card hover:bg-card-muted"
           >
             Disconnect
           </button>
@@ -121,22 +121,22 @@ export default function SettingsPage() {
       </div>
 
       {/* Account Information */}
-      <div className="mt-8 bg-white shadow overflow-hidden sm:rounded-lg">
+      <div className="mt-8 bg-card shadow overflow-hidden sm:rounded-lg">
         <div className="px-4 py-5 sm:px-6">
-          <h3 className="text-lg leading-6 font-medium text-gray-900">Account Information</h3>
-          <p className="mt-1 max-w-2xl text-sm text-gray-500">Your NEAR wallet details</p>
+          <h3 className="text-lg leading-6 font-medium text-foreground">Account Information</h3>
+          <p className="mt-1 max-w-2xl text-sm text-muted-foreground">Your NEAR wallet details</p>
         </div>
-        <div className="border-t border-gray-200 px-4 py-5 sm:p-0">
-          <dl className="sm:divide-y sm:divide-gray-200">
+        <div className="border-t border-border px-4 py-5 sm:p-0">
+          <dl className="sm:divide-y sm:divide-border">
             <div className="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-              <dt className="text-sm font-medium text-gray-500">Account ID</dt>
-              <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2 font-mono">
+              <dt className="text-sm font-medium text-muted-foreground">Account ID</dt>
+              <dd className="mt-1 text-sm text-foreground sm:mt-0 sm:col-span-2 font-mono">
                 {accountId}
               </dd>
             </div>
             <div className="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-              <dt className="text-sm font-medium text-gray-500">Network</dt>
-              <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+              <dt className="text-sm font-medium text-muted-foreground">Network</dt>
+              <dd className="mt-1 text-sm text-foreground sm:mt-0 sm:col-span-2">
                 <NetworkSwitcher />
               </dd>
             </div>
@@ -146,17 +146,17 @@ export default function SettingsPage() {
 
       {/* API Key Section - only show if required */}
       {process.env.NEXT_PUBLIC_REQUIRE_ATTESTATION_API_KEY === 'true' && (
-        <div className="mt-8 bg-white shadow overflow-hidden sm:rounded-lg">
+        <div className="mt-8 bg-card shadow overflow-hidden sm:rounded-lg">
           <div className="px-4 py-5 sm:px-6">
-            <h3 className="text-lg leading-6 font-medium text-gray-900">API Key</h3>
-            <p className="mt-1 max-w-2xl text-sm text-gray-500">
+            <h3 className="text-lg leading-6 font-medium text-foreground">API Key</h3>
+            <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
               Generate an API key to access attestation data
             </p>
           </div>
-        <div className="border-t border-gray-200 px-4 py-5 sm:px-6">
+        <div className="border-t border-border px-4 py-5 sm:px-6">
           {!apiKey ? (
             <div>
-              <p className="text-sm text-gray-600 mb-4">
+              <p className="text-sm text-muted-foreground mb-4">
                 You need an API key to view TEE attestations for your executions.
               </p>
               <button
@@ -177,16 +177,16 @@ export default function SettingsPage() {
                 )}
               </button>
               {keyError && (
-                <p className="mt-2 text-sm text-red-600">{keyError}</p>
+                <p className="mt-2 text-sm text-destructive-text">{keyError}</p>
               )}
             </div>
           ) : (
             <div>
               <div className="flex items-center justify-between mb-2">
-                <label className="text-sm font-medium text-gray-500">Your API Key</label>
+                <label className="text-sm font-medium text-muted-foreground">Your API Key</label>
                 <button
                   onClick={() => setShowApiKey(!showApiKey)}
-                  className="text-sm text-blue-600 hover:text-blue-800"
+                  className="text-sm text-accent-text"
                 >
                   {showApiKey ? 'Hide' : 'Show'}
                 </button>
@@ -196,20 +196,20 @@ export default function SettingsPage() {
                   type={showApiKey ? 'text' : 'password'}
                   value={apiKey}
                   readOnly
-                  className="flex-1 px-3 py-2 border border-gray-300 rounded-md font-mono text-sm bg-gray-50"
+                  className="flex-1 px-3 py-2 border border-border-strong rounded-md font-mono text-sm bg-card-muted"
                 />
                 <button
                   onClick={() => {
                     navigator.clipboard.writeText(apiKey);
                     alert('API key copied to clipboard!');
                   }}
-                  className="px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-md text-sm font-medium"
+                  className="px-3 py-2 bg-card-muted hover:bg-card-muted rounded-md text-sm font-medium"
                   title="Copy to clipboard"
                 >
                   Copy
                 </button>
               </div>
-              <p className="mt-2 text-xs text-gray-500">
+              <p className="mt-2 text-xs text-muted-foreground">
                 Keep your API key secure. It&apos;s stored locally in your browser.
               </p>
             </div>
@@ -224,54 +224,54 @@ export default function SettingsPage() {
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
         </div>
       ) : error ? (
-        <div className="mt-8 bg-red-50 border border-red-200 rounded-md p-4">
-          <p className="text-red-800">{error}</p>
+        <div className="mt-8 bg-destructive/10 border border-destructive/30 rounded-md p-4">
+          <p className="text-destructive-text">{error}</p>
         </div>
       ) : earnings ? (
         <>
-          <div className="mt-8 bg-white shadow overflow-hidden sm:rounded-lg">
+          <div className="mt-8 bg-card shadow overflow-hidden sm:rounded-lg">
             <div className="px-4 py-5 sm:px-6">
-              <h3 className="text-lg leading-6 font-medium text-gray-900">Usage Statistics</h3>
-              <p className="mt-1 max-w-2xl text-sm text-gray-500">
+              <h3 className="text-lg leading-6 font-medium text-foreground">Usage Statistics</h3>
+              <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
                 Your off-chain execution history and spending
               </p>
             </div>
-            <div className="border-t border-gray-200 px-4 py-5 sm:p-0">
-              <dl className="sm:divide-y sm:divide-gray-200">
+            <div className="border-t border-border px-4 py-5 sm:p-0">
+              <dl className="sm:divide-y sm:divide-border">
                 <div className="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-                  <dt className="text-sm font-medium text-gray-500">Total Executions</dt>
-                  <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                  <dt className="text-sm font-medium text-muted-foreground">Total Executions</dt>
+                  <dd className="mt-1 text-sm text-foreground sm:mt-0 sm:col-span-2">
                     {earnings.total_executions}
                   </dd>
                 </div>
                 <div className="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-                  <dt className="text-sm font-medium text-gray-500">Successful Executions</dt>
-                  <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                  <dt className="text-sm font-medium text-muted-foreground">Successful Executions</dt>
+                  <dd className="mt-1 text-sm text-foreground sm:mt-0 sm:col-span-2">
                     {earnings.successful_executions}{' '}
                     {earnings.total_executions > 0 && (
-                      <span className="text-gray-500">
+                      <span className="text-muted-foreground">
                         ({((earnings.successful_executions / earnings.total_executions) * 100).toFixed(1)}%)
                       </span>
                     )}
                   </dd>
                 </div>
                 <div className="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-                  <dt className="text-sm font-medium text-gray-500">Total NEAR Spent</dt>
-                  <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                  <dt className="text-sm font-medium text-muted-foreground">Total NEAR Spent</dt>
+                  <dd className="mt-1 text-sm text-foreground sm:mt-0 sm:col-span-2">
                     <span className="text-lg font-semibold">
                       {formatYoctoNEAR(earnings.total_near_spent_yocto)} NEAR
                     </span>
                   </dd>
                 </div>
                 <div className="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-                  <dt className="text-sm font-medium text-gray-500">Total Instructions Used</dt>
-                  <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                  <dt className="text-sm font-medium text-muted-foreground">Total Instructions Used</dt>
+                  <dd className="mt-1 text-sm text-foreground sm:mt-0 sm:col-span-2">
                     {formatInstructions(earnings.total_instructions_used)}
                   </dd>
                 </div>
                 <div className="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-                  <dt className="text-sm font-medium text-gray-500">Average Execution Time</dt>
-                  <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                  <dt className="text-sm font-medium text-muted-foreground">Average Execution Time</dt>
+                  <dd className="mt-1 text-sm text-foreground sm:mt-0 sm:col-span-2">
                     {earnings.average_execution_time_ms} ms
                   </dd>
                 </div>
@@ -281,7 +281,7 @@ export default function SettingsPage() {
 
           {/* Cost Breakdown */}
           {earnings.total_executions > 0 && (
-            <div className="mt-8 bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <div className="mt-8 bg-info/10 border border-info/30 rounded-lg p-4">
               <div className="flex">
                 <div className="flex-shrink-0">
                   <svg
@@ -299,8 +299,8 @@ export default function SettingsPage() {
                   </svg>
                 </div>
                 <div className="ml-3">
-                  <h3 className="text-sm font-medium text-blue-800">Average Cost Per Execution</h3>
-                  <div className="mt-2 text-sm text-blue-700">
+                  <h3 className="text-sm font-medium text-info">Average Cost Per Execution</h3>
+                  <div className="mt-2 text-sm text-info">
                     <p>
                       ~{(parseFloat(earnings.total_near_spent_yocto) / 1e24 / earnings.total_executions).toFixed(6)} NEAR per execution
                     </p>

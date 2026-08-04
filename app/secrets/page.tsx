@@ -282,8 +282,8 @@ export default function SecretsPage() {
       {/* Header */}
       <div className="sm:flex sm:items-center">
         <div className="sm:flex-auto">
-          <h1 className="text-3xl font-bold text-gray-900">Secrets Management</h1>
-          <p className="mt-2 text-sm text-gray-700">
+          <h1 className="text-3xl font-bold text-foreground">Secrets Management</h1>
+          <p className="mt-2 text-sm text-foreground">
             Create and manage encrypted secrets for your repositories
           </p>
         </div>
@@ -309,15 +309,15 @@ export default function SecretsPage() {
 
       {/* Error Display */}
       {error && (
-        <div className="mt-4 bg-red-50 border border-red-200 rounded-md p-3">
-          <p className="text-sm text-red-800">{error}</p>
+        <div className="mt-4 bg-destructive/10 border border-destructive/30 rounded-md p-3">
+          <p className="text-sm text-destructive-text">{error}</p>
         </div>
       )}
 
       {/* Success Display */}
       {success && (
-        <div className="mt-4 bg-green-50 border border-green-200 rounded-md p-3">
-          <p className="text-sm text-green-800">{success}</p>
+        <div className="mt-4 bg-success/10 border border-success/30 rounded-md p-3">
+          <p className="text-sm text-success-text">{success}</p>
         </div>
       )}
 
@@ -412,16 +412,16 @@ export default function SecretsPage() {
       />
 
       {/* Info Section */}
-      <div className="mt-8 bg-blue-50 border border-blue-200 rounded-lg p-6">
-        <h3 className="text-sm font-semibold text-blue-900 mb-3">
+      <div className="mt-8 bg-info/10 border border-info/30 rounded-lg p-6">
+        <h3 className="text-sm font-semibold text-info mb-3">
           🔐 How Repo-Based Secrets Work
         </h3>
-        <ol className="text-sm text-blue-800 space-y-2 list-decimal list-inside">
+        <ol className="text-sm text-info space-y-2 list-decimal list-inside">
           <li>
             <strong>Create secrets</strong>: Secrets are encrypted with keystore&apos;s public key and stored in the contract
           </li>
           <li>
-            <strong>Reference in execution</strong>: Use <code className="bg-blue-100 px-1 py-0.5 rounded text-xs font-mono">secrets_ref: {`{profile: "production", account_id: "you.near"}`}</code>
+            <strong>Reference in execution</strong>: Use <code className="bg-info/15 px-1 py-0.5 rounded text-xs font-mono">secrets_ref: {`{profile: "production", account_id: "you.near"}`}</code>
           </li>
           <li>
             <strong>Automatic decryption</strong>: Worker fetches secrets from contract and decrypts via keystore
@@ -433,13 +433,13 @@ export default function SecretsPage() {
             <strong>WASI injection</strong>: Decrypted secrets injected as environment variables into WASM
           </li>
           <li>
-            <strong>Code access</strong>: Your WASM code uses <code className="bg-blue-100 px-1 py-0.5 rounded text-xs font-mono">std::env::var(&quot;API_KEY&quot;)</code>
+            <strong>Code access</strong>: Your WASM code uses <code className="bg-info/15 px-1 py-0.5 rounded text-xs font-mono">std::env::var(&quot;API_KEY&quot;)</code>
           </li>
         </ol>
 
-        <div className="mt-4 p-3 bg-white rounded border border-blue-200">
-          <h4 className="text-xs font-semibold text-blue-900 mb-2">Example: Request Execution with Secrets</h4>
-          <pre className="text-xs text-blue-800 overflow-x-auto">
+        <div className="mt-4 p-3 bg-card rounded border border-info/30">
+          <h4 className="text-xs font-semibold text-info mb-2">Example: Request Execution with Secrets</h4>
+          <pre className="text-xs text-info overflow-x-auto">
 {`near call outlayer.testnet request_execution '{
   "source": {
     "GitHub": {

@@ -133,37 +133,37 @@ export function AuthorizedKeysSection({
 
   return (
     <div>
-      <h3 className="text-sm font-semibold text-gray-800 mb-2">Authorized API Keys</h3>
-      <p className="text-xs text-gray-400 mb-2">
+      <h3 className="text-sm font-semibold text-foreground mb-2">Authorized API Keys</h3>
+      <p className="text-xs text-faint-foreground mb-2">
         SHA256 hashes of API keys that can operate this wallet.
       </p>
 
       {/* Current key (auto-included) */}
       {apiKeyHash && (
         <div className="flex items-center gap-2 mb-3">
-          <span className="text-xs text-gray-500">Current key:</span>
-          <code className="text-xs font-mono bg-gray-100 px-2 py-0.5 rounded text-gray-600 select-all">
+          <span className="text-xs text-muted-foreground">Current key:</span>
+          <code className="text-xs font-mono bg-card-muted px-2 py-0.5 rounded text-muted-foreground select-all">
             {apiKeyHash.substring(0, 16)}...{apiKeyHash.slice(-8)}
           </code>
-          <span className="text-xs text-green-600 font-medium">auto-included</span>
+          <span className="text-xs text-success-text font-medium">auto-included</span>
         </div>
       )}
 
       {/* Generate / Enter key */}
-      <div className="border border-gray-200 rounded p-3 mb-3 bg-gray-50">
-        <div className="text-xs font-medium text-gray-600 mb-2">Add a new key</div>
+      <div className="border border-border rounded p-3 mb-3 bg-card-muted">
+        <div className="text-xs font-medium text-muted-foreground mb-2">Add a new key</div>
         <div className="flex gap-2 mb-1">
           <input
             type="text"
             value={keyInput}
             onChange={(e) => { setKeyInput(e.target.value); setValidationError(null); }}
             placeholder="wk_... or click Generate"
-            className="flex-1 border border-gray-300 rounded px-2 py-1.5 text-xs font-mono"
+            className="flex-1 border border-border-strong rounded px-2 py-1.5 text-xs font-mono"
           />
           <button
             type="button"
             onClick={handleGenerate}
-            className="px-3 py-1.5 text-xs bg-gray-200 text-gray-700 rounded hover:bg-gray-300"
+            className="px-3 py-1.5 text-xs bg-card-muted text-foreground rounded hover:bg-card-muted"
           >
             Generate
           </button>
@@ -177,23 +177,23 @@ export function AuthorizedKeysSection({
           </button>
         </div>
         {validationError && (
-          <p className="text-xs text-red-500 mt-1">{validationError}</p>
+          <p className="text-xs text-destructive-text mt-1">{validationError}</p>
         )}
 
         {/* After generating: show copy/save prompt */}
         {lastGeneratedKey && (
-          <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded">
-            <p className="text-xs text-yellow-800 font-medium mb-1">
+          <div className="mt-2 p-2 bg-warning/10 border border-warning/30 rounded">
+            <p className="text-xs text-warning font-medium mb-1">
               Copy this key now — it won&apos;t be shown again.
             </p>
             <div className="flex items-center gap-2">
-              <code className="text-xs font-mono bg-white px-2 py-0.5 rounded border border-yellow-300 select-all break-all">
+              <code className="text-xs font-mono bg-card px-2 py-0.5 rounded border border-warning/40 select-all break-all">
                 {lastGeneratedKey}
               </code>
               <button
                 type="button"
                 onClick={handleCopy}
-                className="px-2 py-1 text-xs bg-yellow-100 text-yellow-800 rounded hover:bg-yellow-200 whitespace-nowrap"
+                className="px-2 py-1 text-xs bg-warning/10 text-warning rounded hover:bg-yellow-200 whitespace-nowrap"
               >
                 {copied ? 'Copied!' : 'Copy'}
               </button>
@@ -214,7 +214,7 @@ export function AuthorizedKeysSection({
       {/* Hash list */}
       {hashList.length > 0 && (
         <div className="mb-3">
-          <div className="text-xs font-medium text-gray-600 mb-1">Hashes in policy:</div>
+          <div className="text-xs font-medium text-muted-foreground mb-1">Hashes in policy:</div>
           <div className="space-y-1">
             {hashList.map((hash) => {
               const label = knownKeyHashes?.get(hash);
@@ -222,26 +222,26 @@ export function AuthorizedKeysSection({
 
               return (
                 <div key={hash} className="flex items-center gap-2 group">
-                  <code className="text-xs font-mono bg-gray-100 px-2 py-0.5 rounded text-gray-600">
+                  <code className="text-xs font-mono bg-card-muted px-2 py-0.5 rounded text-muted-foreground">
                     {hash.substring(0, 16)}...{hash.slice(-8)}
                   </code>
                   {label && (
-                    <span className="text-xs text-blue-600 font-medium">({label})</span>
+                    <span className="text-xs text-accent-text font-medium">({label})</span>
                   )}
                   {isConfirming ? (
                     <span className="flex items-center gap-1">
-                      <span className="text-xs text-red-600">Revoke saved key?</span>
+                      <span className="text-xs text-destructive-text">Revoke saved key?</span>
                       <button
                         type="button"
                         onClick={() => { setRemovalConfirm(null); handleRemoveHash(hash); }}
-                        className="text-xs text-red-600 font-medium hover:underline"
+                        className="text-xs text-destructive-text font-medium hover:underline"
                       >
                         Yes
                       </button>
                       <button
                         type="button"
                         onClick={() => setRemovalConfirm(null)}
-                        className="text-xs text-gray-500 hover:underline"
+                        className="text-xs text-muted-foreground hover:underline"
                       >
                         No
                       </button>
@@ -250,7 +250,7 @@ export function AuthorizedKeysSection({
                     <button
                       type="button"
                       onClick={() => handleRemoveHash(hash)}
-                      className="text-xs text-red-400 hover:text-red-600 opacity-0 group-hover:opacity-100"
+                      className="text-xs text-red-400 hover:text-destructive-text opacity-0 group-hover:opacity-100"
                     >
                       &times;
                     </button>
@@ -264,8 +264,8 @@ export function AuthorizedKeysSection({
 
       {/* Orphaned key warnings */}
       {orphanedEntries.map(({ hash, label }) => (
-        <div key={hash} className="mb-2 p-2 bg-yellow-50 border border-yellow-200 rounded flex items-center gap-2">
-          <span className="text-xs text-yellow-800">
+        <div key={hash} className="mb-2 p-2 bg-warning/10 border border-warning/30 rounded flex items-center gap-2">
+          <span className="text-xs text-warning">
             Your key ({label}) is not in the policy — it won&apos;t work.
           </span>
           <button
@@ -287,20 +287,20 @@ export function AuthorizedKeysSection({
               value={pasteHashInput}
               onChange={(e) => { setPasteHashInput(e.target.value); setPasteHashError(null); }}
               placeholder="64 hex characters"
-              className="flex-1 border border-gray-300 rounded px-2 py-1.5 text-xs font-mono"
+              className="flex-1 border border-border-strong rounded px-2 py-1.5 text-xs font-mono"
             />
             <button
               type="button"
               onClick={handlePasteHash}
               disabled={!pasteHashInput.trim()}
-              className="px-2 py-1.5 text-xs bg-gray-200 text-gray-700 rounded hover:bg-gray-300 disabled:opacity-40"
+              className="px-2 py-1.5 text-xs bg-card-muted text-foreground rounded hover:bg-card-muted disabled:opacity-40"
             >
               Add hash
             </button>
             <button
               type="button"
               onClick={() => { setShowPasteHash(false); setPasteHashInput(''); setPasteHashError(null); }}
-              className="text-xs text-gray-400 hover:text-gray-600 py-1.5"
+              className="text-xs text-faint-foreground hover:text-foreground py-1.5"
             >
               cancel
             </button>
@@ -309,13 +309,13 @@ export function AuthorizedKeysSection({
           <button
             type="button"
             onClick={() => setShowPasteHash(true)}
-            className="text-xs text-gray-400 hover:text-gray-600"
+            className="text-xs text-faint-foreground hover:text-foreground"
           >
             Paste hash directly...
           </button>
         )}
         {pasteHashError && (
-          <p className="text-xs text-red-500 mt-1">{pasteHashError}</p>
+          <p className="text-xs text-destructive-text mt-1">{pasteHashError}</p>
         )}
       </div>
     </div>

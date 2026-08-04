@@ -28,12 +28,12 @@ import { useState } from 'react';
 type Mode = 'default' | 'vault-managed' | 'vault-self';
 
 const ACCENT = {
-  user: '#6366f1',     // indigo — the trigger, mode-agnostic
-  outlayer: '#ea580c', // orange-700
-  vault: '#2563eb',    // blue-600
-  self: '#15803d',     // green-700
-  mpc: '#7c3aed',      // violet-600
-  arrow: '#9ca3af',
+  user: '#6366f1',            // indigo — the trigger, mode-agnostic
+  outlayer: 'var(--accent)',  // brand amber — OutLayer-run pieces
+  vault: 'var(--info)',       // vault contract
+  self: 'var(--success)',     // customer-run pieces
+  mpc: '#7c3aed',             // violet — MPC network
+  arrow: 'var(--faint-foreground)',
 };
 
 const MODE_CONFIG: Record<
@@ -173,9 +173,9 @@ export function VaultArchitectureDiagram() {
   const t = 'transition-all duration-500 ease-in-out';
 
   return (
-    <div className="border-2 border-gray-200 rounded-lg p-4 mb-6 bg-gray-50">
+    <div className="border-2 border-border rounded-lg p-4 mb-6 bg-card-muted">
       {/* Mode tabs */}
-      <div className="flex flex-col sm:flex-row gap-1 mb-4 border border-gray-200 rounded p-1 bg-white">
+      <div className="flex flex-col sm:flex-row gap-1 mb-4 border border-border rounded p-1 bg-card">
         <ModeButton current={mode} value="default" set={setMode}>
           Default (shared OutLayer)
         </ModeButton>
@@ -188,7 +188,7 @@ export function VaultArchitectureDiagram() {
       </div>
 
       {/* SVG diagram */}
-      <div className="bg-white border border-gray-200 rounded p-2 overflow-x-auto">
+      <div className="bg-card border border-border rounded p-2 overflow-x-auto">
         <svg
           viewBox={`0 0 760 ${VIEW_HEIGHT}`}
           className="w-full"
@@ -318,7 +318,7 @@ export function VaultArchitectureDiagram() {
         <span>{cfg.badge.text}</span>
       </div>
 
-      <p className="text-xs text-gray-500 mt-3 italic">
+      <p className="text-xs text-muted-foreground mt-3 italic">
         Read top-down: end-user triggers a request &rarr; the runtime (TEE)
         derives the requested key from a per-customer master &rarr; on first
         call only, the master comes from NEAR MPC bound to a CKD-issuer
@@ -686,7 +686,7 @@ function ModeButton({
       className={`flex-1 px-3 py-2 rounded text-sm font-medium transition-colors ${
         active
           ? 'bg-gray-900 text-white shadow-sm'
-          : 'text-gray-700 hover:bg-gray-100'
+          : 'text-foreground hover:bg-card-muted'
       }`}
     >
       {children}

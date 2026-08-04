@@ -6,7 +6,7 @@ export function PrivateDaoExample() {
   const badges = (
     <>
       <span className="ml-3 text-sm bg-purple-100 text-purple-800 px-3 py-1 rounded">WASI P1</span>
-      <span className="ml-2 text-sm bg-red-100 text-red-800 px-3 py-1 rounded">Advanced</span>
+      <span className="ml-2 text-sm bg-destructive/10 text-destructive-text px-3 py-1 rounded">Advanced</span>
     </>
   );
 
@@ -17,15 +17,15 @@ export function PrivateDaoExample() {
       badges={badges}
       githubUrl="https://github.com/out-layer/private-dao-example"
     >
-      <p className="text-gray-700 mb-4">
+      <p className="text-foreground mb-4">
         Anonymous, verifiable DAO voting with cryptographic privacy. Heavy cryptography (ECIES encryption, HKDF key derivation, merkle tree proofs) executed off-chain in TEE. Each user&apos;s vote is encrypted on-chain, tallying happens in secure enclave, only aggregate counts are revealed.
       </p>
 
       <div className="mb-4 p-3 bg-purple-50 border-l-4 border-purple-400">
-        <p className="text-sm text-gray-700 mb-2">
+        <p className="text-sm text-foreground mb-2">
           🔐 <strong>Privacy Guarantees:</strong>
         </p>
-        <ul className="text-sm text-gray-700 space-y-1 ml-4 list-disc">
+        <ul className="text-sm text-foreground space-y-1 ml-4 list-disc">
           <li>Individual votes remain secret - only aggregate counts revealed</li>
           <li>DAO members can send encrypted noise instead of real votes to hide voting activity from observers</li>
           <li>Merkle proofs allow voters to verify their vote was counted without revealing how they voted</li>
@@ -71,7 +71,7 @@ Cost: Heavy cryptography off-chain = ~$0.001 per vote`}
 
       <h4 className="font-semibold mt-4 mb-2">Cryptographic Components:</h4>
       <div className="space-y-2 mb-4">
-        <div className="border-l-4 border-blue-400 pl-3">
+        <div className="border-l-4 border-info/50 pl-3">
           <strong className="text-sm">HKDF Key Derivation</strong>
           <SyntaxHighlighter language="rust" style={vscDarkPlus} customStyle={{ borderRadius: '0.5rem', fontSize: '0.75rem', marginTop: '0.5rem' }}>
 {`// Single master secret → unique key per user
@@ -81,7 +81,7 @@ let user_pubkey = secp256k1::derive_public_key(&user_privkey);`}
           </SyntaxHighlighter>
         </div>
 
-        <div className="border-l-4 border-green-400 pl-3">
+        <div className="border-l-4 border-success/50 pl-3">
           <strong className="text-sm">ECIES Encryption (Frontend)</strong>
           <SyntaxHighlighter language="typescript" style={vscDarkPlus} customStyle={{ borderRadius: '0.5rem', fontSize: '0.75rem', marginTop: '0.5rem' }}>
 {`import { encrypt } from 'eciesjs';
@@ -203,21 +203,21 @@ npm run build
 
       <h4 className="font-semibold mt-4 mb-2">Technical Highlights:</h4>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
-        <div className="p-3 bg-gray-50 border border-gray-200 rounded">
+        <div className="p-3 bg-card-muted border border-border rounded">
           <strong className="text-sm block mb-1">💰 Cost Efficiency</strong>
-          <p className="text-xs text-gray-700">Heavy cryptography off-chain: ~$0.001/vote<br/>ECIES + HKDF + Merkle trees feasible with OutLayer</p>
+          <p className="text-xs text-foreground">Heavy cryptography off-chain: ~$0.001/vote<br/>ECIES + HKDF + Merkle trees feasible with OutLayer</p>
         </div>
-        <div className="p-3 bg-gray-50 border border-gray-200 rounded">
+        <div className="p-3 bg-card-muted border border-border rounded">
           <strong className="text-sm block mb-1">🔒 Privacy Model</strong>
-          <p className="text-xs text-gray-700">Encrypted votes on-chain<br/>Dummy messages hide voting activity<br/>Vote changes allowed (latest wins)<br/>Decryption in secure enclave</p>
+          <p className="text-xs text-foreground">Encrypted votes on-chain<br/>Dummy messages hide voting activity<br/>Vote changes allowed (latest wins)<br/>Decryption in secure enclave</p>
         </div>
-        <div className="p-3 bg-gray-50 border border-gray-200 rounded">
+        <div className="p-3 bg-card-muted border border-border rounded">
           <strong className="text-sm block mb-1">✅ Verifiability</strong>
-          <p className="text-xs text-gray-700">Merkle proofs: Voters verify inclusion<br/>TEE attestation: Verify execution integrity</p>
+          <p className="text-xs text-foreground">Merkle proofs: Voters verify inclusion<br/>TEE attestation: Verify execution integrity</p>
         </div>
-        <div className="p-3 bg-gray-50 border border-gray-200 rounded">
+        <div className="p-3 bg-card-muted border border-border rounded">
           <strong className="text-sm block mb-1">⚡ Scalability</strong>
-          <p className="text-xs text-gray-700">Master secret in TEE → unlimited users<br/>No storage overhead for keys</p>
+          <p className="text-xs text-foreground">Master secret in TEE → unlimited users<br/>No storage overhead for keys</p>
         </div>
       </div>
 
@@ -239,7 +239,7 @@ npm run build
       ]} />
 
       <LearnMoreSection>
-        <ul className="text-sm text-gray-700 space-y-1">
+        <ul className="text-sm text-foreground space-y-1">
           <li>
             📖 <Link href="/docs/wasi#wasi-preview-1" className="text-[var(--primary-orange)] hover:underline">
               WASI Preview 1 Documentation

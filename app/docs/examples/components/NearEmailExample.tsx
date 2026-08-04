@@ -5,8 +5,8 @@ export function NearEmailExample() {
   const badges = (
     <>
       <span className="ml-3 text-sm bg-purple-100 text-purple-800 px-3 py-1 rounded">WASI P2</span>
-      <span className="ml-2 text-sm bg-red-100 text-red-800 px-3 py-1 rounded">Production</span>
-      <span className="ml-2 text-sm bg-yellow-100 text-yellow-800 px-3 py-1 rounded">Full Stack</span>
+      <span className="ml-2 text-sm bg-destructive/10 text-destructive-text px-3 py-1 rounded">Production</span>
+      <span className="ml-2 text-sm bg-warning/10 text-warning px-3 py-1 rounded">Full Stack</span>
     </>
   );
 
@@ -17,16 +17,16 @@ export function NearEmailExample() {
       badges={badges}
       githubUrl="https://github.com/out-layer/near-email"
     >
-      <p className="text-gray-700 mb-4">
+      <p className="text-foreground mb-4">
         Blockchain-native email for NEAR accounts. Every NEAR account automatically has an email address:{' '}
         <code>alice.near</code> becomes <code>alice@near.email</code>. Emails are encrypted on receipt and
         can only be decrypted inside the OutLayer TEE by the wallet owner.
       </p>
 
-      <div className="bg-blue-50 border-l-4 border-blue-400 p-4 mb-6">
-        <p className="text-sm text-blue-800">
+      <div className="bg-info/10 border-l-4 border-info/50 p-4 mb-6">
+        <p className="text-sm text-info">
           <strong>Live at:</strong>{' '}
-          <a href="https://near.email" target="_blank" rel="noopener noreferrer" className="underline hover:text-blue-600">
+          <a href="https://near.email" target="_blank" rel="noopener noreferrer" className="underline hover:text-accent-text">
             near.email
           </a>
           {' '}&mdash; A full production application demonstrating OutLayer&apos;s TEE capabilities, persistent storage,
@@ -55,8 +55,8 @@ export function NearEmailExample() {
       ]} />
 
       <div className="mb-6">
-        <h4 className="font-semibold text-gray-900 mb-3">Architecture</h4>
-        <pre className="text-sm bg-gray-50 p-4 rounded-lg overflow-x-auto whitespace-pre">
+        <h4 className="font-semibold text-foreground mb-3">Architecture</h4>
+        <pre className="text-sm bg-card-muted p-4 rounded-lg overflow-x-auto whitespace-pre">
 {`External World (Gmail, etc.)
         │ SMTP (port 25)
         ▼
@@ -89,11 +89,11 @@ export function NearEmailExample() {
       </div>
 
       <div className="mb-6">
-        <h4 className="font-semibold text-gray-900 mb-3">Key Derivation (BIP32-style)</h4>
-        <p className="text-gray-700 text-sm mb-2">
+        <h4 className="font-semibold text-foreground mb-3">Key Derivation (BIP32-style)</h4>
+        <p className="text-foreground text-sm mb-2">
           The critical feature: the SMTP server can derive per-user <strong>public keys</strong> without knowing the master secret.
         </p>
-        <pre className="text-sm bg-gray-50 p-4 rounded-lg overflow-x-auto whitespace-pre">
+        <pre className="text-sm bg-card-muted p-4 rounded-lg overflow-x-auto whitespace-pre">
 {`Public Key Derivation (SMTP server, no secret needed):
   user_pubkey = master_pubkey + SHA256("near-email:v1:" + account_id) * G
 
@@ -103,23 +103,23 @@ Private Key Derivation (OutLayer TEE, requires master secret):
       </div>
 
       <div className="mb-6">
-        <h4 className="font-semibold text-gray-900 mb-3">Dual-Mode Integration</h4>
-        <p className="text-gray-700 text-sm mb-3">
+        <h4 className="font-semibold text-foreground mb-3">Dual-Mode Integration</h4>
+        <p className="text-foreground text-sm mb-3">
           near.email demonstrates how one app can seamlessly use both integration modes:
         </p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="border border-gray-200 rounded-lg p-4">
-            <h5 className="font-semibold text-gray-900 mb-2">Blockchain Mode</h5>
-            <ul className="text-sm text-gray-700 space-y-1 list-disc list-inside">
+          <div className="border border-border rounded-lg p-4">
+            <h5 className="font-semibold text-foreground mb-2">Blockchain Mode</h5>
+            <ul className="text-sm text-foreground space-y-1 list-disc list-inside">
               <li>User signs with NEAR wallet</li>
               <li>1.5 MB max output</li>
               <li>Calls <code>request_execution()</code> on-chain</li>
               <li>No payment key needed</li>
             </ul>
           </div>
-          <div className="border border-blue-200 rounded-lg p-4 bg-blue-50">
-            <h5 className="font-semibold text-blue-900 mb-2">Payment Key Mode</h5>
-            <ul className="text-sm text-gray-700 space-y-1 list-disc list-inside">
+          <div className="border border-info/30 rounded-lg p-4 bg-info/10">
+            <h5 className="font-semibold text-info mb-2">Payment Key Mode</h5>
+            <ul className="text-sm text-foreground space-y-1 list-disc list-inside">
               <li>No wallet popup required</li>
               <li>25 MB max output (18 MB attachments)</li>
               <li>Direct HTTPS call to OutLayer API</li>
@@ -127,7 +127,7 @@ Private Key Derivation (OutLayer TEE, requires master secret):
             </ul>
           </div>
         </div>
-        <p className="text-gray-600 text-sm mt-3">
+        <p className="text-muted-foreground text-sm mt-3">
           The UI automatically routes through the correct mode based on a toggle in account settings.
           This pattern shows how OutLayer changes what apps can do &mdash; a single WASI module serves
           both blockchain and Web2 users transparently.
@@ -159,7 +159,7 @@ Private Key Derivation (OutLayer TEE, requires master secret):
       ]} />
 
       <LearnMoreSection>
-        <ul className="text-sm text-gray-700 space-y-1">
+        <ul className="text-sm text-foreground space-y-1">
           <li>
             <a href="https://near.email" target="_blank" rel="noopener noreferrer" className="text-[var(--primary-orange)] hover:underline">
               Try near.email (live)

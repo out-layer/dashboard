@@ -23,7 +23,7 @@ export default function ExamplesPage() {
   return (
     <div className="max-w-5xl">
       <h1 className="text-4xl font-bold mb-3">Example Projects</h1>
-      <p className="text-gray-600 mb-8">
+      <p className="text-muted-foreground mb-8">
         Production-ready examples demonstrating different WASI patterns and use cases. All examples are open-source and ready to deploy.
       </p>
 

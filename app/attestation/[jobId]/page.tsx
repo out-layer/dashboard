@@ -62,7 +62,7 @@ export default function AttestationPage() {
       <div className="flex justify-center items-center min-h-[600px]">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading attestation #{jobId}...</p>
+          <p className="text-muted-foreground">Loading attestation #{jobId}...</p>
         </div>
       </div>
     );
@@ -71,12 +71,12 @@ export default function AttestationPage() {
   if (error) {
     return (
       <div className="max-w-4xl mx-auto mt-8">
-        <div className="bg-red-50 border border-red-200 rounded-lg p-6">
-          <h2 className="text-xl font-bold text-red-800 mb-2">Error</h2>
-          <p className="text-red-700">{error}</p>
+        <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-6">
+          <h2 className="text-xl font-bold text-destructive-text mb-2">Error</h2>
+          <p className="text-destructive-text">{error}</p>
           <Link
             href="/executions"
-            className="inline-block mt-4 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+            className="inline-block mt-4 px-4 py-2 bg-destructive text-white rounded hover:bg-red-700"
           >
             Back to Executions
           </Link>
@@ -88,9 +88,9 @@ export default function AttestationPage() {
   if (!attestation) {
     return (
       <div className="max-w-4xl mx-auto mt-8">
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
-          <h2 className="text-xl font-bold text-yellow-800 mb-2">Not Found</h2>
-          <p className="text-yellow-700">No attestation data for job #{jobId}</p>
+        <div className="bg-warning/10 border border-warning/30 rounded-lg p-6">
+          <h2 className="text-xl font-bold text-warning mb-2">Not Found</h2>
+          <p className="text-warning">No attestation data for job #{jobId}</p>
           <Link
             href="/executions"
             className="inline-block mt-4 px-4 py-2 bg-yellow-600 text-white rounded hover:bg-yellow-700"
@@ -122,20 +122,20 @@ export default function AttestationPage() {
       )}
 
       {/* Header */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+      <div className="bg-card rounded-lg shadow-sm border border-border p-6 mb-6">
         <div className="flex justify-between items-start">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">
+            <h1 className="text-3xl font-bold text-foreground mb-2">
               TEE Attestation
             </h1>
-            <p className="text-gray-600">
+            <p className="text-muted-foreground">
               Job #{attestation.task_id} • {attestation.task_type === 'compile' ? 'Compilation' : 'Execution'}
-              {urlNetwork && <span className="ml-2 text-sm bg-gray-100 px-2 py-1 rounded">({urlNetwork})</span>}
+              {urlNetwork && <span className="ml-2 text-sm bg-card-muted px-2 py-1 rounded">({urlNetwork})</span>}
             </p>
           </div>
           <Link
             href="/executions"
-            className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded"
+            className="px-4 py-2 bg-card-muted hover:bg-card-muted text-foreground font-medium rounded"
           >
             All Executions
           </Link>
@@ -143,7 +143,7 @@ export default function AttestationPage() {
       </div>
 
       {/* Attestation Component */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+      <div className="bg-card rounded-lg shadow-sm border border-border p-6">
         <AttestationView
           attestation={attestation}
           network={displayNetwork}
@@ -154,8 +154,8 @@ export default function AttestationPage() {
       </div>
 
       {/* Share Section */}
-      <div className="mt-6 bg-gray-50 rounded-lg p-4 text-center">
-        <p className="text-sm text-gray-600 mb-3">Share this verifiable attestation:</p>
+      <div className="mt-6 bg-card-muted rounded-lg p-4 text-center">
+        <p className="text-sm text-muted-foreground mb-3">Share this verifiable attestation:</p>
         <div className="flex justify-center gap-3">
           <button
             onClick={() => {
@@ -167,7 +167,7 @@ export default function AttestationPage() {
               navigator.clipboard.writeText(shareUrl);
               alert('Link copied to clipboard!');
             }}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded"
+            className="px-4 py-2 bg-info hover:opacity-90 text-white font-medium rounded"
           >
             📋 Copy Link
           </button>

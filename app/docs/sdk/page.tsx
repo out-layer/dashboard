@@ -4,9 +4,9 @@ import { SyntaxHighlighter, vscDarkPlus } from '@/components/ui/syntax';
 
 function AnchorHeading({ id, children, level = 2 }: { id: string; children: React.ReactNode; level?: 2 | 3 | 4 }) {
   const sizeClass = level === 2 ? 'text-2xl' : level === 3 ? 'text-xl' : 'text-lg';
-  const className = `${sizeClass} font-bold text-gray-900 mb-4 scroll-mt-4 group`;
+  const className = `${sizeClass} font-bold text-foreground mb-4 scroll-mt-4 group`;
   const anchor = (
-    <a href={`#${id}`} className="ml-2 text-gray-400 hover:text-[var(--primary-orange)] opacity-0 group-hover:opacity-100 transition-opacity">
+    <a href={`#${id}`} className="ml-2 text-faint-foreground hover:text-[var(--primary-orange)] opacity-0 group-hover:opacity-100 transition-opacity">
       #
     </a>
   );
@@ -19,9 +19,9 @@ function AnchorHeading({ id, children, level = 2 }: { id: string; children: Reac
 export default function SdkPage() {
   return (
     <div className="prose prose-lg max-w-none">
-      <h1 className="text-3xl font-bold text-gray-900 mb-6">OutLayer SDK</h1>
+      <h1 className="text-3xl font-bold text-foreground mb-6">OutLayer SDK</h1>
 
-      <p className="text-gray-700 mb-8 text-lg">
+      <p className="text-foreground mb-8 text-lg">
         The <code>outlayer</code> crate provides a Rust SDK for building WASI applications on OutLayer.
         It gives you access to persistent encrypted storage, execution context (caller identity, secrets),
         and structured I/O.
@@ -31,7 +31,7 @@ export default function SdkPage() {
       <section className="mb-12">
         <AnchorHeading id="installation">Installation</AnchorHeading>
 
-        <p className="text-gray-700 mb-4">
+        <p className="text-foreground mb-4">
           Add the crate to your <code>Cargo.toml</code>:
         </p>
 
@@ -42,7 +42,7 @@ serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"`}
         </SyntaxHighlighter>
 
-        <p className="text-gray-700 mb-4">
+        <p className="text-foreground mb-4">
           Published at{' '}
           <a href="https://crates.io/crates/outlayer" target="_blank" rel="noopener noreferrer" className="text-[var(--primary-orange)] hover:underline">
             crates.io/crates/outlayer
@@ -55,8 +55,8 @@ serde_json = "1.0"`}
 cargo build --target wasm32-wasip2 --release`}
         </SyntaxHighlighter>
 
-        <div className="bg-red-50 border-l-4 border-red-400 p-4 mb-6">
-          <p className="text-sm text-red-800">
+        <div className="bg-destructive/10 border-l-4 border-destructive/50 p-4 mb-6">
+          <p className="text-sm text-destructive-text">
             <strong>WASI Preview 2 required.</strong> The SDK will fail to compile if you target
             <code> wasm32-wasip1</code> or <code>wasm32-wasi</code>. You must use <code>wasm32-wasip2</code>.
           </p>
@@ -68,47 +68,47 @@ cargo build --target wasm32-wasip2 --release`}
         <AnchorHeading id="when-to-use">When Do You Need the SDK?</AnchorHeading>
 
         <div className="overflow-x-auto mb-6">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+          <table className="min-w-full divide-y divide-border">
+            <thead className="bg-card-muted">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Use Case</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">SDK Required?</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Use Case</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">SDK Required?</th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="bg-card divide-y divide-border">
               <tr>
-                <td className="px-4 py-3 text-sm text-gray-600">Persistent storage across executions</td>
-                <td className="px-4 py-3 text-sm font-semibold text-green-700">Yes</td>
+                <td className="px-4 py-3 text-sm text-muted-foreground">Persistent storage across executions</td>
+                <td className="px-4 py-3 text-sm font-semibold text-success-text">Yes</td>
               </tr>
-              <tr className="bg-gray-50">
-                <td className="px-4 py-3 text-sm text-gray-600">Caller identity (who signed the transaction)</td>
-                <td className="px-4 py-3 text-sm font-semibold text-green-700">Yes (or read env vars directly)</td>
-              </tr>
-              <tr>
-                <td className="px-4 py-3 text-sm text-gray-600">Atomic operations (counters, compare-and-swap)</td>
-                <td className="px-4 py-3 text-sm font-semibold text-green-700">Yes</td>
-              </tr>
-              <tr className="bg-gray-50">
-                <td className="px-4 py-3 text-sm text-gray-600">Cross-project public data sharing</td>
-                <td className="px-4 py-3 text-sm font-semibold text-green-700">Yes</td>
+              <tr className="bg-card-muted">
+                <td className="px-4 py-3 text-sm text-muted-foreground">Caller identity (who signed the transaction)</td>
+                <td className="px-4 py-3 text-sm font-semibold text-success-text">Yes (or read env vars directly)</td>
               </tr>
               <tr>
-                <td className="px-4 py-3 text-sm text-gray-600">Pure computation (no state)</td>
-                <td className="px-4 py-3 text-sm text-gray-500">No</td>
+                <td className="px-4 py-3 text-sm text-muted-foreground">Atomic operations (counters, compare-and-swap)</td>
+                <td className="px-4 py-3 text-sm font-semibold text-success-text">Yes</td>
               </tr>
-              <tr className="bg-gray-50">
-                <td className="px-4 py-3 text-sm text-gray-600">HTTP requests to external APIs</td>
-                <td className="px-4 py-3 text-sm text-gray-500">No</td>
+              <tr className="bg-card-muted">
+                <td className="px-4 py-3 text-sm text-muted-foreground">Cross-project public data sharing</td>
+                <td className="px-4 py-3 text-sm font-semibold text-success-text">Yes</td>
               </tr>
               <tr>
-                <td className="px-4 py-3 text-sm text-gray-600">Reading secrets via env vars</td>
-                <td className="px-4 py-3 text-sm text-gray-500">No (use <code>std::env::var</code>)</td>
+                <td className="px-4 py-3 text-sm text-muted-foreground">Pure computation (no state)</td>
+                <td className="px-4 py-3 text-sm text-muted-foreground">No</td>
+              </tr>
+              <tr className="bg-card-muted">
+                <td className="px-4 py-3 text-sm text-muted-foreground">HTTP requests to external APIs</td>
+                <td className="px-4 py-3 text-sm text-muted-foreground">No</td>
+              </tr>
+              <tr>
+                <td className="px-4 py-3 text-sm text-muted-foreground">Reading secrets via env vars</td>
+                <td className="px-4 py-3 text-sm text-muted-foreground">No (use <code>std::env::var</code>)</td>
               </tr>
             </tbody>
           </table>
         </div>
 
-        <p className="text-gray-700 mb-4">
+        <p className="text-foreground mb-4">
           In short: if your WASI app needs <strong>persistent storage</strong> or <strong>structured access to execution context</strong>,
           use the SDK. For stateless computation (like API calls, random numbers, weather data), you can use plain Rust with stdin/stdout.
         </p>
@@ -118,7 +118,7 @@ cargo build --target wasm32-wasip2 --release`}
       <section className="mb-12">
         <AnchorHeading id="env-module">Environment Module (<code>outlayer::env</code>)</AnchorHeading>
 
-        <p className="text-gray-700 mb-4">
+        <p className="text-foreground mb-4">
           Access execution context: who called you, what input they sent, and environment variables (including secrets).
         </p>
 
@@ -162,7 +162,7 @@ fn main() {
 
         <AnchorHeading id="env-vars" level={3}>Environment Variables</AnchorHeading>
 
-        <p className="text-gray-700 mb-4">
+        <p className="text-foreground mb-4">
           Secrets stored via the dashboard are injected as environment variables. You can read them
           with <code>env::var()</code> or <code>std::env::var()</code>:
         </p>
@@ -175,8 +175,8 @@ let api_key = outlayer::env::var("OPENAI_API_KEY");
 let api_key = std::env::var("OPENAI_API_KEY").ok();`}
         </SyntaxHighlighter>
 
-        <div className="bg-blue-50 border-l-4 border-blue-400 p-4 mb-6">
-          <p className="text-sm text-blue-800">
+        <div className="bg-info/10 border-l-4 border-info/50 p-4 mb-6">
+          <p className="text-sm text-info">
             <strong>Injected environment variables:</strong>{' '}
             <code>NEAR_SENDER_ID</code>, <code>NEAR_PREDECESSOR_ID</code>,{' '}
             <code>NEAR_TRANSACTION_HASH</code>, <code>OUTLAYER_REQUEST_ID</code>,{' '}
@@ -191,7 +191,7 @@ let api_key = std::env::var("OPENAI_API_KEY").ok();`}
       <section className="mb-12">
         <AnchorHeading id="storage-module">Storage Module (<code>outlayer::storage</code>)</AnchorHeading>
 
-        <p className="text-gray-700 mb-4">
+        <p className="text-foreground mb-4">
           Persistent encrypted key-value storage that survives across executions.
           Storage is automatically isolated per caller — <code>alice.near</code> cannot read <code>bob.near</code>&apos;s data.
         </p>
@@ -227,7 +227,7 @@ storage::clear_all()?;`}
 
         <AnchorHeading id="storage-atomic" level={3}>Atomic Operations</AnchorHeading>
 
-        <p className="text-gray-700 mb-4">
+        <p className="text-foreground mb-4">
           For concurrent-safe operations (e.g., counters, voting):
         </p>
 
@@ -247,7 +247,7 @@ let (success, old) = storage::set_if_equals(
 
         <AnchorHeading id="storage-worker" level={3}>Worker Storage (Shared Across Users)</AnchorHeading>
 
-        <p className="text-gray-700 mb-4">
+        <p className="text-foreground mb-4">
           Worker storage is shared across all callers and accessible only from within the WASI module.
           Use it for global state like price feeds, configuration, or cached data.
         </p>
@@ -269,7 +269,7 @@ let price = storage::get_worker_from_project(
 
         <AnchorHeading id="storage-migration" level={3}>Version Migration</AnchorHeading>
 
-        <p className="text-gray-700 mb-4">
+        <p className="text-foreground mb-4">
           When upgrading your WASM binary, data from the previous version is accessible via its hash:
         </p>
 
@@ -287,36 +287,36 @@ storage::clear_version("abc123...")?;`}
         <AnchorHeading id="examples">Examples Using the SDK</AnchorHeading>
 
         <div className="overflow-x-auto mb-6">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+          <table className="min-w-full divide-y divide-border">
+            <thead className="bg-card-muted">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Example</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">SDK Features Used</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Example</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">SDK Features Used</th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="bg-card divide-y divide-border">
               <tr>
                 <td className="px-4 py-3 text-sm font-mono">oracle-example</td>
-                <td className="px-4 py-3 text-sm text-gray-600">
+                <td className="px-4 py-3 text-sm text-muted-foreground">
                   <code>storage::set_worker_with_options()</code> — stores prices as public (unencrypted) worker data for cross-project reads
                 </td>
               </tr>
-              <tr className="bg-gray-50">
+              <tr className="bg-card-muted">
                 <td className="px-4 py-3 text-sm font-mono">private-token-ark</td>
-                <td className="px-4 py-3 text-sm text-gray-600">
+                <td className="px-4 py-3 text-sm text-muted-foreground">
                   <code>storage::get_worker()</code>, <code>set_worker()</code> — private FT balances in worker storage;
                   <code> env::signer_account_id()</code> for authorization
                 </td>
               </tr>
               <tr>
                 <td className="px-4 py-3 text-sm font-mono">test-storage-ark</td>
-                <td className="px-4 py-3 text-sm text-gray-600">
+                <td className="px-4 py-3 text-sm text-muted-foreground">
                   All storage operations — comprehensive test suite for every API method
                 </td>
               </tr>
-              <tr className="bg-gray-50">
+              <tr className="bg-card-muted">
                 <td className="px-4 py-3 text-sm font-mono">payment-keys-with-intents</td>
-                <td className="px-4 py-3 text-sm text-gray-600">
+                <td className="px-4 py-3 text-sm text-muted-foreground">
                   <code>env::input_json()</code>, <code>env::output_json()</code> — structured I/O for token swap orchestration
                 </td>
               </tr>
@@ -415,27 +415,27 @@ cargo build --target wasm32-wasip2 --release
         <AnchorHeading id="env-api" level={3}>outlayer::env</AnchorHeading>
 
         <div className="overflow-x-auto mb-6">
-          <table className="min-w-full divide-y divide-gray-200 text-sm">
-            <thead className="bg-gray-50">
+          <table className="min-w-full divide-y divide-border text-sm">
+            <thead className="bg-card-muted">
               <tr>
-                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Function</th>
-                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Returns</th>
-                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Description</th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground uppercase">Function</th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground uppercase">Returns</th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground uppercase">Description</th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              <tr><td className="px-4 py-2 font-mono text-xs">signer_account_id()</td><td className="px-4 py-2 text-xs">Option&lt;String&gt;</td><td className="px-4 py-2 text-xs text-gray-600">User who initiated execution</td></tr>
-              <tr className="bg-gray-50"><td className="px-4 py-2 font-mono text-xs">predecessor_account_id()</td><td className="px-4 py-2 text-xs">Option&lt;String&gt;</td><td className="px-4 py-2 text-xs text-gray-600">Contract that called OutLayer</td></tr>
-              <tr><td className="px-4 py-2 font-mono text-xs">transaction_hash()</td><td className="px-4 py-2 text-xs">Option&lt;String&gt;</td><td className="px-4 py-2 text-xs text-gray-600">Transaction hash (if applicable)</td></tr>
-              <tr className="bg-gray-50"><td className="px-4 py-2 font-mono text-xs">request_id()</td><td className="px-4 py-2 text-xs">Option&lt;String&gt;</td><td className="px-4 py-2 text-xs text-gray-600">OutLayer-assigned request ID</td></tr>
-              <tr><td className="px-4 py-2 font-mono text-xs">input()</td><td className="px-4 py-2 text-xs">Vec&lt;u8&gt;</td><td className="px-4 py-2 text-xs text-gray-600">Raw stdin bytes</td></tr>
-              <tr className="bg-gray-50"><td className="px-4 py-2 font-mono text-xs">input_string()</td><td className="px-4 py-2 text-xs">Option&lt;String&gt;</td><td className="px-4 py-2 text-xs text-gray-600">Stdin as UTF-8 string</td></tr>
-              <tr><td className="px-4 py-2 font-mono text-xs">input_json&lt;T&gt;()</td><td className="px-4 py-2 text-xs">Result&lt;Option&lt;T&gt;&gt;</td><td className="px-4 py-2 text-xs text-gray-600">Deserialize stdin as JSON</td></tr>
-              <tr className="bg-gray-50"><td className="px-4 py-2 font-mono text-xs">output(data)</td><td className="px-4 py-2 text-xs">()</td><td className="px-4 py-2 text-xs text-gray-600">Write bytes to stdout</td></tr>
-              <tr><td className="px-4 py-2 font-mono text-xs">output_string(s)</td><td className="px-4 py-2 text-xs">()</td><td className="px-4 py-2 text-xs text-gray-600">Write string to stdout</td></tr>
-              <tr className="bg-gray-50"><td className="px-4 py-2 font-mono text-xs">output_json(value)</td><td className="px-4 py-2 text-xs">Result&lt;()&gt;</td><td className="px-4 py-2 text-xs text-gray-600">Serialize and write JSON</td></tr>
-              <tr><td className="px-4 py-2 font-mono text-xs">var(key)</td><td className="px-4 py-2 text-xs">Option&lt;String&gt;</td><td className="px-4 py-2 text-xs text-gray-600">Read env var (incl. secrets)</td></tr>
-              <tr className="bg-gray-50"><td className="px-4 py-2 font-mono text-xs">has_var(key)</td><td className="px-4 py-2 text-xs">bool</td><td className="px-4 py-2 text-xs text-gray-600">Check if env var exists</td></tr>
+            <tbody className="bg-card divide-y divide-border">
+              <tr><td className="px-4 py-2 font-mono text-xs">signer_account_id()</td><td className="px-4 py-2 text-xs">Option&lt;String&gt;</td><td className="px-4 py-2 text-xs text-muted-foreground">User who initiated execution</td></tr>
+              <tr className="bg-card-muted"><td className="px-4 py-2 font-mono text-xs">predecessor_account_id()</td><td className="px-4 py-2 text-xs">Option&lt;String&gt;</td><td className="px-4 py-2 text-xs text-muted-foreground">Contract that called OutLayer</td></tr>
+              <tr><td className="px-4 py-2 font-mono text-xs">transaction_hash()</td><td className="px-4 py-2 text-xs">Option&lt;String&gt;</td><td className="px-4 py-2 text-xs text-muted-foreground">Transaction hash (if applicable)</td></tr>
+              <tr className="bg-card-muted"><td className="px-4 py-2 font-mono text-xs">request_id()</td><td className="px-4 py-2 text-xs">Option&lt;String&gt;</td><td className="px-4 py-2 text-xs text-muted-foreground">OutLayer-assigned request ID</td></tr>
+              <tr><td className="px-4 py-2 font-mono text-xs">input()</td><td className="px-4 py-2 text-xs">Vec&lt;u8&gt;</td><td className="px-4 py-2 text-xs text-muted-foreground">Raw stdin bytes</td></tr>
+              <tr className="bg-card-muted"><td className="px-4 py-2 font-mono text-xs">input_string()</td><td className="px-4 py-2 text-xs">Option&lt;String&gt;</td><td className="px-4 py-2 text-xs text-muted-foreground">Stdin as UTF-8 string</td></tr>
+              <tr><td className="px-4 py-2 font-mono text-xs">input_json&lt;T&gt;()</td><td className="px-4 py-2 text-xs">Result&lt;Option&lt;T&gt;&gt;</td><td className="px-4 py-2 text-xs text-muted-foreground">Deserialize stdin as JSON</td></tr>
+              <tr className="bg-card-muted"><td className="px-4 py-2 font-mono text-xs">output(data)</td><td className="px-4 py-2 text-xs">()</td><td className="px-4 py-2 text-xs text-muted-foreground">Write bytes to stdout</td></tr>
+              <tr><td className="px-4 py-2 font-mono text-xs">output_string(s)</td><td className="px-4 py-2 text-xs">()</td><td className="px-4 py-2 text-xs text-muted-foreground">Write string to stdout</td></tr>
+              <tr className="bg-card-muted"><td className="px-4 py-2 font-mono text-xs">output_json(value)</td><td className="px-4 py-2 text-xs">Result&lt;()&gt;</td><td className="px-4 py-2 text-xs text-muted-foreground">Serialize and write JSON</td></tr>
+              <tr><td className="px-4 py-2 font-mono text-xs">var(key)</td><td className="px-4 py-2 text-xs">Option&lt;String&gt;</td><td className="px-4 py-2 text-xs text-muted-foreground">Read env var (incl. secrets)</td></tr>
+              <tr className="bg-card-muted"><td className="px-4 py-2 font-mono text-xs">has_var(key)</td><td className="px-4 py-2 text-xs">bool</td><td className="px-4 py-2 text-xs text-muted-foreground">Check if env var exists</td></tr>
             </tbody>
           </table>
         </div>
@@ -443,32 +443,32 @@ cargo build --target wasm32-wasip2 --release
         <AnchorHeading id="storage-api" level={3}>outlayer::storage</AnchorHeading>
 
         <div className="overflow-x-auto mb-6">
-          <table className="min-w-full divide-y divide-gray-200 text-sm">
-            <thead className="bg-gray-50">
+          <table className="min-w-full divide-y divide-border text-sm">
+            <thead className="bg-card-muted">
               <tr>
-                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Function</th>
-                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Description</th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground uppercase">Function</th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground uppercase">Description</th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              <tr><td className="px-4 py-2 font-mono text-xs">set(key, value)</td><td className="px-4 py-2 text-xs text-gray-600">Store bytes (user-isolated)</td></tr>
-              <tr className="bg-gray-50"><td className="px-4 py-2 font-mono text-xs">get(key)</td><td className="px-4 py-2 text-xs text-gray-600">Read bytes</td></tr>
-              <tr><td className="px-4 py-2 font-mono text-xs">has(key)</td><td className="px-4 py-2 text-xs text-gray-600">Check existence</td></tr>
-              <tr className="bg-gray-50"><td className="px-4 py-2 font-mono text-xs">delete(key)</td><td className="px-4 py-2 text-xs text-gray-600">Delete key</td></tr>
-              <tr><td className="px-4 py-2 font-mono text-xs">list_keys(prefix)</td><td className="px-4 py-2 text-xs text-gray-600">List keys by prefix</td></tr>
-              <tr className="bg-gray-50"><td className="px-4 py-2 font-mono text-xs">set_string / get_string</td><td className="px-4 py-2 text-xs text-gray-600">String convenience methods</td></tr>
-              <tr><td className="px-4 py-2 font-mono text-xs">set_json / get_json</td><td className="px-4 py-2 text-xs text-gray-600">JSON convenience methods</td></tr>
-              <tr className="bg-gray-50"><td className="px-4 py-2 font-mono text-xs">increment(key, delta)</td><td className="px-4 py-2 text-xs text-gray-600">Atomic counter increment</td></tr>
-              <tr><td className="px-4 py-2 font-mono text-xs">decrement(key, delta)</td><td className="px-4 py-2 text-xs text-gray-600">Atomic counter decrement</td></tr>
-              <tr className="bg-gray-50"><td className="px-4 py-2 font-mono text-xs">set_if_absent(key, value)</td><td className="px-4 py-2 text-xs text-gray-600">Insert only if key doesn&apos;t exist</td></tr>
-              <tr><td className="px-4 py-2 font-mono text-xs">set_if_equals(key, expected, new)</td><td className="px-4 py-2 text-xs text-gray-600">Compare-and-swap</td></tr>
-              <tr className="bg-gray-50"><td className="px-4 py-2 font-mono text-xs">set_worker(key, value)</td><td className="px-4 py-2 text-xs text-gray-600">Encrypted shared storage</td></tr>
-              <tr><td className="px-4 py-2 font-mono text-xs">get_worker(key)</td><td className="px-4 py-2 text-xs text-gray-600">Read shared storage</td></tr>
-              <tr className="bg-gray-50"><td className="px-4 py-2 font-mono text-xs">set_worker_with_options(key, val, encrypted)</td><td className="px-4 py-2 text-xs text-gray-600">Shared storage with encryption toggle</td></tr>
-              <tr><td className="px-4 py-2 font-mono text-xs">get_worker_from_project(key, uuid)</td><td className="px-4 py-2 text-xs text-gray-600">Cross-project public data read</td></tr>
-              <tr className="bg-gray-50"><td className="px-4 py-2 font-mono text-xs">get_by_version(key, hash)</td><td className="px-4 py-2 text-xs text-gray-600">Read data from previous WASM version</td></tr>
-              <tr><td className="px-4 py-2 font-mono text-xs">clear_all()</td><td className="px-4 py-2 text-xs text-gray-600">Delete all data for current caller</td></tr>
-              <tr className="bg-gray-50"><td className="px-4 py-2 font-mono text-xs">clear_version(hash)</td><td className="px-4 py-2 text-xs text-gray-600">Clean up old version data</td></tr>
+            <tbody className="bg-card divide-y divide-border">
+              <tr><td className="px-4 py-2 font-mono text-xs">set(key, value)</td><td className="px-4 py-2 text-xs text-muted-foreground">Store bytes (user-isolated)</td></tr>
+              <tr className="bg-card-muted"><td className="px-4 py-2 font-mono text-xs">get(key)</td><td className="px-4 py-2 text-xs text-muted-foreground">Read bytes</td></tr>
+              <tr><td className="px-4 py-2 font-mono text-xs">has(key)</td><td className="px-4 py-2 text-xs text-muted-foreground">Check existence</td></tr>
+              <tr className="bg-card-muted"><td className="px-4 py-2 font-mono text-xs">delete(key)</td><td className="px-4 py-2 text-xs text-muted-foreground">Delete key</td></tr>
+              <tr><td className="px-4 py-2 font-mono text-xs">list_keys(prefix)</td><td className="px-4 py-2 text-xs text-muted-foreground">List keys by prefix</td></tr>
+              <tr className="bg-card-muted"><td className="px-4 py-2 font-mono text-xs">set_string / get_string</td><td className="px-4 py-2 text-xs text-muted-foreground">String convenience methods</td></tr>
+              <tr><td className="px-4 py-2 font-mono text-xs">set_json / get_json</td><td className="px-4 py-2 text-xs text-muted-foreground">JSON convenience methods</td></tr>
+              <tr className="bg-card-muted"><td className="px-4 py-2 font-mono text-xs">increment(key, delta)</td><td className="px-4 py-2 text-xs text-muted-foreground">Atomic counter increment</td></tr>
+              <tr><td className="px-4 py-2 font-mono text-xs">decrement(key, delta)</td><td className="px-4 py-2 text-xs text-muted-foreground">Atomic counter decrement</td></tr>
+              <tr className="bg-card-muted"><td className="px-4 py-2 font-mono text-xs">set_if_absent(key, value)</td><td className="px-4 py-2 text-xs text-muted-foreground">Insert only if key doesn&apos;t exist</td></tr>
+              <tr><td className="px-4 py-2 font-mono text-xs">set_if_equals(key, expected, new)</td><td className="px-4 py-2 text-xs text-muted-foreground">Compare-and-swap</td></tr>
+              <tr className="bg-card-muted"><td className="px-4 py-2 font-mono text-xs">set_worker(key, value)</td><td className="px-4 py-2 text-xs text-muted-foreground">Encrypted shared storage</td></tr>
+              <tr><td className="px-4 py-2 font-mono text-xs">get_worker(key)</td><td className="px-4 py-2 text-xs text-muted-foreground">Read shared storage</td></tr>
+              <tr className="bg-card-muted"><td className="px-4 py-2 font-mono text-xs">set_worker_with_options(key, val, encrypted)</td><td className="px-4 py-2 text-xs text-muted-foreground">Shared storage with encryption toggle</td></tr>
+              <tr><td className="px-4 py-2 font-mono text-xs">get_worker_from_project(key, uuid)</td><td className="px-4 py-2 text-xs text-muted-foreground">Cross-project public data read</td></tr>
+              <tr className="bg-card-muted"><td className="px-4 py-2 font-mono text-xs">get_by_version(key, hash)</td><td className="px-4 py-2 text-xs text-muted-foreground">Read data from previous WASM version</td></tr>
+              <tr><td className="px-4 py-2 font-mono text-xs">clear_all()</td><td className="px-4 py-2 text-xs text-muted-foreground">Delete all data for current caller</td></tr>
+              <tr className="bg-card-muted"><td className="px-4 py-2 font-mono text-xs">clear_version(hash)</td><td className="px-4 py-2 text-xs text-muted-foreground">Clean up old version data</td></tr>
             </tbody>
           </table>
         </div>
@@ -479,23 +479,23 @@ cargo build --target wasm32-wasip2 --release
         <AnchorHeading id="storage-types">Storage Types Overview</AnchorHeading>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <div className="border border-blue-200 rounded-lg p-4 bg-blue-50">
-            <h4 className="font-semibold text-blue-900 mb-2">User Storage</h4>
-            <p className="text-sm text-gray-700 mb-2">
+          <div className="border border-info/30 rounded-lg p-4 bg-info/10">
+            <h4 className="font-semibold text-info mb-2">User Storage</h4>
+            <p className="text-sm text-foreground mb-2">
               <code>set()</code> / <code>get()</code>
             </p>
-            <ul className="text-xs text-gray-600 space-y-1 list-disc list-inside">
+            <ul className="text-xs text-muted-foreground space-y-1 list-disc list-inside">
               <li>Isolated per caller account</li>
               <li>Encrypted at rest</li>
               <li>alice.near can&apos;t read bob.near&apos;s data</li>
             </ul>
           </div>
-          <div className="border border-green-200 rounded-lg p-4 bg-green-50">
-            <h4 className="font-semibold text-green-900 mb-2">Worker Storage</h4>
-            <p className="text-sm text-gray-700 mb-2">
+          <div className="border border-success/30 rounded-lg p-4 bg-success/10">
+            <h4 className="font-semibold text-success-text mb-2">Worker Storage</h4>
+            <p className="text-sm text-foreground mb-2">
               <code>set_worker()</code> / <code>get_worker()</code>
             </p>
-            <ul className="text-xs text-gray-600 space-y-1 list-disc list-inside">
+            <ul className="text-xs text-muted-foreground space-y-1 list-disc list-inside">
               <li>Shared across all callers</li>
               <li>Encrypted by default</li>
               <li>Only accessible within WASI module</li>
@@ -503,10 +503,10 @@ cargo build --target wasm32-wasip2 --release
           </div>
           <div className="border border-purple-200 rounded-lg p-4 bg-purple-50">
             <h4 className="font-semibold text-purple-900 mb-2">Public Storage</h4>
-            <p className="text-sm text-gray-700 mb-2">
+            <p className="text-sm text-foreground mb-2">
               <code>set_worker_with_options(..., false)</code>
             </p>
-            <ul className="text-xs text-gray-600 space-y-1 list-disc list-inside">
+            <ul className="text-xs text-muted-foreground space-y-1 list-disc list-inside">
               <li>Unencrypted, readable by other projects</li>
               <li>Cross-project data sharing</li>
               <li>Useful for oracles, shared state</li>

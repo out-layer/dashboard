@@ -369,8 +369,8 @@ export default function PaymentKeysPage() {
       {/* Header */}
       <div className="sm:flex sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Payment Keys</h1>
-          <p className="mt-2 text-sm text-gray-700">
+          <h1 className="text-3xl font-bold text-foreground">Payment Keys</h1>
+          <p className="mt-2 text-sm text-foreground">
             Manage API keys for HTTPS calls to OutLayer projects
           </p>
         </div>
@@ -412,27 +412,27 @@ export default function PaymentKeysPage() {
 
       {/* Error Display */}
       {error && (
-        <div className="mt-4 bg-red-50 border border-red-200 rounded-md p-3">
-          <p className="text-sm text-red-800">{error}</p>
+        <div className="mt-4 bg-destructive/10 border border-destructive/30 rounded-md p-3">
+          <p className="text-sm text-destructive-text">{error}</p>
         </div>
       )}
 
       {/* Success Display */}
       {success && (
-        <div className="mt-4 bg-green-50 border border-green-200 rounded-md p-3">
-          <p className="text-sm text-green-800">{success}</p>
+        <div className="mt-4 bg-success/10 border border-success/30 rounded-md p-3">
+          <p className="text-sm text-success-text">{success}</p>
         </div>
       )}
 
       {/* Show generated key after creation */}
       {creationState.step === 'complete' && creationState.generatedKey && (
-        <div className="mt-6 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-          <h3 className="font-semibold text-yellow-800 mb-2">Your Payment Key (copy now!)</h3>
-          <p className="text-sm text-yellow-700 mb-3">
+        <div className="mt-6 bg-warning/10 border border-warning/30 rounded-lg p-4">
+          <h3 className="font-semibold text-warning mb-2">Your Payment Key (copy now!)</h3>
+          <p className="text-sm text-warning mb-3">
             This key will NOT be shown again. Store it securely.
           </p>
           <div className="flex gap-2">
-            <code className="flex-1 bg-white border border-yellow-300 p-3 rounded font-mono text-sm break-all text-gray-900">
+            <code className="flex-1 bg-card border border-warning/40 p-3 rounded font-mono text-sm break-all text-foreground">
               {accountId}:{creationState.nonce}:{creationState.generatedKey}
             </code>
             <button
@@ -447,14 +447,14 @@ export default function PaymentKeysPage() {
               Copy
             </button>
           </div>
-          <p className="text-xs text-yellow-700 mt-2">
+          <p className="text-xs text-warning mt-2">
             Format: owner:nonce:key — Use this in X-Payment-Key header
           </p>
 
           {/* Continue TopUp button - shown when first transaction completed but TopUp pending */}
           {pendingTopUp && pendingTopUp.nonce === creationState.nonce && (
-            <div className="mt-4 pt-4 border-t border-yellow-300">
-              <p className="text-sm text-yellow-800 mb-2">
+            <div className="mt-4 pt-4 border-t border-warning/40">
+              <p className="text-sm text-warning mb-2">
                 Step 2: Add initial balance of ${pendingTopUp.depositAmount} {stablecoin.symbol}
               </p>
               <button
@@ -519,15 +519,15 @@ export default function PaymentKeysPage() {
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
               </svg>
-              <span className="ml-3 text-gray-500">Loading payment keys...</span>
+              <span className="ml-3 text-muted-foreground">Loading payment keys...</span>
             </div>
           ) : paymentKeys.length === 0 ? (
             <div className="text-center py-12">
-              <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="mx-auto h-12 w-12 text-faint-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
               </svg>
-              <h3 className="mt-2 text-sm font-medium text-gray-900">No payment keys</h3>
-              <p className="mt-1 text-sm text-gray-500">Get started by creating a new payment key.</p>
+              <h3 className="mt-2 text-sm font-medium text-foreground">No payment keys</h3>
+              <p className="mt-1 text-sm text-muted-foreground">Get started by creating a new payment key.</p>
               <div className="mt-6">
                 <button
                   onClick={() => {
@@ -567,7 +567,7 @@ export default function PaymentKeysPage() {
             <div className="mt-4 flex justify-center">
               <button
                 onClick={loadPaymentKeys}
-                className="text-sm text-gray-500 hover:text-accent-text flex items-center"
+                className="text-sm text-muted-foreground hover:text-accent-text flex items-center"
               >
                 <svg className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -580,11 +580,11 @@ export default function PaymentKeysPage() {
       )}
 
       {/* Info Section */}
-      <div className="mt-8 bg-blue-50 border border-blue-200 rounded-lg p-6">
-        <h3 className="text-sm font-semibold text-blue-900 mb-3">
+      <div className="mt-8 bg-info/10 border border-info/30 rounded-lg p-6">
+        <h3 className="text-sm font-semibold text-info mb-3">
           About Payment Keys
         </h3>
-        <ul className="text-sm text-blue-800 space-y-2 list-disc list-inside">
+        <ul className="text-sm text-info space-y-2 list-disc list-inside">
           <li>
             <strong>HTTPS API Access</strong>: Call OutLayer projects without NEAR transactions
           </li>
@@ -599,9 +599,9 @@ export default function PaymentKeysPage() {
           </li>
         </ul>
 
-        <div className="mt-4 p-3 bg-white rounded border border-blue-200">
-          <h4 className="text-xs font-semibold text-blue-900 mb-2">Header Format</h4>
-          <code className="text-xs text-blue-800 font-mono">
+        <div className="mt-4 p-3 bg-card rounded border border-info/30">
+          <h4 className="text-xs font-semibold text-info mb-2">Header Format</h4>
+          <code className="text-xs text-info font-mono">
             X-Payment-Key: {accountId || 'yourname.near'}:1:your-secret-key
           </code>
         </div>

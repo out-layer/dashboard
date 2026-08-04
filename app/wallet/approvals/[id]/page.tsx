@@ -25,7 +25,7 @@ interface ApprovalDetail {
 
 export default function ApprovalDetailPage() {
   return (
-    <Suspense fallback={<div className="max-w-4xl mx-auto py-8 text-gray-400">Loading...</div>}>
+    <Suspense fallback={<div className="max-w-4xl mx-auto py-8 text-faint-foreground">Loading...</div>}>
       <ApprovalDetailContent />
     </Suspense>
   );
@@ -158,17 +158,17 @@ function ApprovalDetailContent() {
         </Link>
       </div>
 
-      <h1 className="text-3xl font-bold text-gray-900 mb-6">Approval Details</h1>
+      <h1 className="text-3xl font-bold text-foreground mb-6">Approval Details</h1>
 
       {error && (
-        <div className="mb-4 bg-red-50 border border-red-200 rounded-md p-3">
-          <p className="text-sm text-red-800">{error}</p>
+        <div className="mb-4 bg-destructive/10 border border-destructive/30 rounded-md p-3">
+          <p className="text-sm text-destructive-text">{error}</p>
         </div>
       )}
 
       {success && (
-        <div className="mb-4 bg-green-50 border border-green-200 rounded-md p-3">
-          <p className="text-sm text-green-800">{success}</p>
+        <div className="mb-4 bg-success/10 border border-success/30 rounded-md p-3">
+          <p className="text-sm text-success-text">{success}</p>
         </div>
       )}
 
@@ -178,49 +178,49 @@ function ApprovalDetailContent() {
             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
           </svg>
-          <span className="ml-3 text-gray-500">Loading...</span>
+          <span className="ml-3 text-muted-foreground">Loading...</span>
         </div>
       ) : !approval ? (
-        <div className="bg-white shadow rounded-lg p-8 text-center">
-          <p className="text-gray-500">Approval not found.</p>
+        <div className="bg-card shadow rounded-lg p-8 text-center">
+          <p className="text-muted-foreground">Approval not found.</p>
         </div>
       ) : (
         <div className="space-y-6">
           {/* Status card */}
-          <div className="bg-white shadow rounded-lg p-6 border border-gray-200">
+          <div className="bg-card shadow rounded-lg p-6 border border-border">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center space-x-3">
                 <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
-                  approval.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                  approval.status === 'approved' ? 'bg-green-100 text-green-800' :
-                  approval.status === 'expired' ? 'bg-gray-100 text-gray-800' :
-                  'bg-red-100 text-red-800'
+                  approval.status === 'pending' ? 'bg-warning/10 text-warning' :
+                  approval.status === 'approved' ? 'bg-success/10 text-success-text' :
+                  approval.status === 'expired' ? 'bg-card-muted text-foreground' :
+                  'bg-destructive/10 text-destructive-text'
                 }`}>
                   {approval.status.toUpperCase()}
                 </span>
-                <span className="text-sm text-gray-500">{approval.request_type}</span>
+                <span className="text-sm text-muted-foreground">{approval.request_type}</span>
               </div>
-              <span className="text-sm text-gray-400">
+              <span className="text-sm text-faint-foreground">
                 {approval.approvers?.length || 0} / {approval.required_approvals} approved
               </span>
             </div>
 
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
-                <p className="text-gray-500">Wallet</p>
-                <p className="font-mono text-gray-900 text-xs break-all">{approval.wallet_id}</p>
+                <p className="text-muted-foreground">Wallet</p>
+                <p className="font-mono text-foreground text-xs break-all">{approval.wallet_id}</p>
               </div>
               <div>
-                <p className="text-gray-500">Request Hash</p>
-                <p className="font-mono text-gray-900 text-xs break-all">{approval.request_hash}</p>
+                <p className="text-muted-foreground">Request Hash</p>
+                <p className="font-mono text-foreground text-xs break-all">{approval.request_hash}</p>
               </div>
               <div>
-                <p className="text-gray-500">Created</p>
-                <p className="text-gray-900">{formatDate(approval.created_at)}</p>
+                <p className="text-muted-foreground">Created</p>
+                <p className="text-foreground">{formatDate(approval.created_at)}</p>
               </div>
               <div>
-                <p className="text-gray-500">Expires</p>
-                <p className={`${isExpired ? 'text-red-600' : 'text-gray-900'}`}>
+                <p className="text-muted-foreground">Expires</p>
+                <p className={`${isExpired ? 'text-destructive-text' : 'text-foreground'}`}>
                   {formatDate(approval.expires_at)}
                   {isExpired && ' (EXPIRED)'}
                 </p>
@@ -230,13 +230,13 @@ function ApprovalDetailContent() {
 
           {/* Canonical op — what the keystore will actually sign. The signature you
               produce below covers request_hash = sha256(canonical_json(op)). */}
-          <div className="bg-white shadow rounded-lg p-6 border border-gray-200">
-            <h2 className="text-lg font-semibold text-gray-900 mb-3">Operation</h2>
-            <pre className="bg-gray-50 rounded p-4 text-sm text-gray-700 overflow-x-auto">
+          <div className="bg-card shadow rounded-lg p-6 border border-border">
+            <h2 className="text-lg font-semibold text-foreground mb-3">Operation</h2>
+            <pre className="bg-card-muted rounded p-4 text-sm text-foreground overflow-x-auto">
               {JSON.stringify(approval.op ?? approval.request_data, null, 2)}
             </pre>
             {!approval.op && (
-              <p className="text-xs text-gray-400 mt-2">
+              <p className="text-xs text-faint-foreground mt-2">
                 Legacy request (no canonical op stored) — showing request data.
               </p>
             )}
@@ -244,16 +244,16 @@ function ApprovalDetailContent() {
 
           {/* Existing approvers */}
           {approval.approvers && approval.approvers.length > 0 && (
-            <div className="bg-white shadow rounded-lg p-6 border border-gray-200">
-              <h2 className="text-lg font-semibold text-gray-900 mb-3">Approvers</h2>
+            <div className="bg-card shadow rounded-lg p-6 border border-border">
+              <h2 className="text-lg font-semibold text-foreground mb-3">Approvers</h2>
               <div className="space-y-2">
                 {approval.approvers.map((a, i) => (
-                  <div key={i} className="flex items-center justify-between bg-green-50 rounded p-3">
+                  <div key={i} className="flex items-center justify-between bg-success/10 rounded p-3">
                     <div>
-                      <p className="text-sm font-mono text-gray-800">{a.approver_id}</p>
-                      <p className="text-xs text-gray-500">Role: {a.approver_role}</p>
+                      <p className="text-sm font-mono text-foreground">{a.approver_id}</p>
+                      <p className="text-xs text-muted-foreground">Role: {a.approver_role}</p>
                     </div>
-                    <p className="text-xs text-gray-400">{formatDate(a.created_at)}</p>
+                    <p className="text-xs text-faint-foreground">{formatDate(a.created_at)}</p>
                   </div>
                 ))}
               </div>
@@ -265,14 +265,14 @@ function ApprovalDetailContent() {
             <div className="flex justify-end space-x-3">
               <button
                 onClick={() => router.push(backUrl)}
-                className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50"
+                className="px-6 py-3 border border-border-strong text-foreground rounded-lg font-medium hover:bg-card-muted"
               >
                 Back
               </button>
               <button
                 onClick={() => handleVote('reject')}
                 disabled={voting !== null || !isConnected}
-                className="px-6 py-3 border border-red-300 text-red-700 rounded-lg font-medium hover:bg-red-50 disabled:opacity-50"
+                className="px-6 py-3 border border-destructive/40 text-destructive-text rounded-lg font-medium hover:bg-destructive/10 disabled:opacity-50"
               >
                 {voting === 'reject' ? 'Rejecting...' : 'Reject'}
               </button>
@@ -287,8 +287,8 @@ function ApprovalDetailContent() {
           )}
 
           {!isConnected && approval.status === 'pending' && (
-            <div className="bg-yellow-50 border border-yellow-200 rounded-md p-3">
-              <p className="text-sm text-yellow-800">
+            <div className="bg-warning/10 border border-warning/30 rounded-md p-3">
+              <p className="text-sm text-warning">
                 Connect your NEAR wallet to approve this request.
               </p>
             </div>

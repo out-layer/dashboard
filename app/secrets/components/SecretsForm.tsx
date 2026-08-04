@@ -774,18 +774,18 @@ export function SecretsForm({
   };
 
   return (
-    <div className="bg-white shadow sm:rounded-lg">
+    <div className="bg-card shadow sm:rounded-lg">
       <div className="px-4 py-5 sm:p-6">
         {/* Header with cancel button for update mode */}
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-lg font-medium text-gray-900">
+          <h2 className="text-lg font-medium text-foreground">
             {isUpdateMode ? 'Update Secrets (Preserve PROTECTED_)' : initialData ? 'Replace Secrets' : 'Create New Secrets'}
           </h2>
           {isUpdateMode && onCancelUpdate && (
             <button
               onClick={onCancelUpdate}
               disabled={encrypting}
-              className="text-sm text-gray-500 hover:text-gray-700"
+              className="text-sm text-muted-foreground hover:text-foreground"
             >
               Cancel
             </button>
@@ -805,13 +805,13 @@ export function SecretsForm({
         {/* Update mode selector (append/reset) - only in update mode */}
         {isUpdateMode && (
           <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-foreground mb-2">
               Update Mode *
             </label>
             <select
               value={secretsUpdateMode}
               onChange={(e) => setSecretsUpdateMode(e.target.value as UpdateMode)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2 border border-border-strong rounded-md shadow-sm focus:outline-none focus:ring-accent focus:border-accent"
               disabled={encrypting}
             >
               <option value="append">Append - Add or update secrets, keep existing user secrets</option>
@@ -827,7 +827,7 @@ export function SecretsForm({
 
         {/* Source Type Selector */}
         <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-medium text-foreground mb-2">
             Secret Binding Type *
           </label>
           <div className="flex flex-wrap gap-4">
@@ -837,10 +837,10 @@ export function SecretsForm({
                 value="repo"
                 checked={sourceType === 'repo'}
                 onChange={(e) => setSourceType(e.target.value as SecretSourceType)}
-                className="form-radio h-4 w-4 text-blue-600"
+                className="form-radio h-4 w-4 text-accent-text"
                 disabled={encrypting}
               />
-              <span className="ml-2 text-sm text-gray-700">GitHub Repository</span>
+              <span className="ml-2 text-sm text-foreground">GitHub Repository</span>
             </label>
             <label className="inline-flex items-center">
               <input
@@ -848,10 +848,10 @@ export function SecretsForm({
                 value="wasm_hash"
                 checked={sourceType === 'wasm_hash'}
                 onChange={(e) => setSourceType(e.target.value as SecretSourceType)}
-                className="form-radio h-4 w-4 text-blue-600"
+                className="form-radio h-4 w-4 text-accent-text"
                 disabled={encrypting}
               />
-              <span className="ml-2 text-sm text-gray-700">WASM Hash</span>
+              <span className="ml-2 text-sm text-foreground">WASM Hash</span>
             </label>
             <label className="inline-flex items-center">
               <input
@@ -862,10 +862,10 @@ export function SecretsForm({
                 className="form-radio h-4 w-4 text-accent-text"
                 disabled={encrypting}
               />
-              <span className="ml-2 text-sm text-gray-700">Project</span>
+              <span className="ml-2 text-sm text-foreground">Project</span>
             </label>
           </div>
-          <p className="mt-1 text-xs text-gray-500">
+          <p className="mt-1 text-xs text-muted-foreground">
             {sourceType === 'repo'
               ? 'Bind secrets to a GitHub repository (for CodeSource::GitHub)'
               : sourceType === 'wasm_hash'
@@ -911,7 +911,7 @@ export function SecretsForm({
         {sourceType === 'repo' && (
           <>
             <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-foreground mb-2">
                 GitHub Repository *
               </label>
               <input
@@ -919,16 +919,16 @@ export function SecretsForm({
                 value={repo}
                 onChange={(e) => setRepo(e.target.value)}
                 placeholder="owner/repo or https://github.com/owner/repo"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-3 py-2 border border-border-strong rounded-md shadow-sm focus:outline-none focus:ring-accent focus:border-accent"
                 disabled={encrypting}
               />
-              <p className="mt-1 text-xs text-gray-500">
+              <p className="mt-1 text-xs text-muted-foreground">
                 Examples: alice/project, https://github.com/alice/project
               </p>
             </div>
 
             <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-foreground mb-2">
                 Branch (optional)
               </label>
               <input
@@ -936,7 +936,7 @@ export function SecretsForm({
                 value={branch}
                 onChange={(e) => setBranch(e.target.value)}
                 placeholder="main, develop, etc. (leave empty for all branches)"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-3 py-2 border border-border-strong rounded-md shadow-sm focus:outline-none focus:ring-accent focus:border-accent"
                 disabled={encrypting}
               />
             </div>
@@ -946,7 +946,7 @@ export function SecretsForm({
         {/* WASM Hash field - shown when sourceType is 'wasm_hash' */}
         {sourceType === 'wasm_hash' && (
           <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-foreground mb-2">
               WASM SHA256 Hash *
             </label>
             <input
@@ -954,11 +954,11 @@ export function SecretsForm({
               value={wasmHash}
               onChange={(e) => setWasmHash(e.target.value.toLowerCase())}
               placeholder="64-character hex hash (e.g., a1b2c3d4...)"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm font-mono text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2 border border-border-strong rounded-md shadow-sm font-mono text-sm focus:outline-none focus:ring-accent focus:border-accent"
               disabled={encrypting}
               maxLength={64}
             />
-            <p className="mt-1 text-xs text-gray-500">
+            <p className="mt-1 text-xs text-muted-foreground">
               The SHA256 hash of your compiled WASM binary (used with CodeSource::WasmUrl)
             </p>
           </div>
@@ -967,20 +967,20 @@ export function SecretsForm({
         {/* Project selector - shown when sourceType is 'project' */}
         {sourceType === 'project' && (
           <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-foreground mb-2">
               Project *
             </label>
             {loadingProjects ? (
               <div className="flex items-center py-2">
-                <svg className="animate-spin h-4 w-4 text-gray-400 mr-2" fill="none" viewBox="0 0 24 24">
+                <svg className="animate-spin h-4 w-4 text-faint-foreground mr-2" fill="none" viewBox="0 0 24 24">
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                 </svg>
-                <span className="text-sm text-gray-500">Loading your projects...</span>
+                <span className="text-sm text-muted-foreground">Loading your projects...</span>
               </div>
             ) : userProjects.length === 0 ? (
-              <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-md">
-                <p className="text-sm text-yellow-800">
+              <div className="p-3 bg-warning/10 border border-warning/30 rounded-md">
+                <p className="text-sm text-warning">
                   You don&apos;t have any projects yet. <a href="/projects" className="text-accent-text hover:underline">Create a project first</a>.
                 </p>
               </div>
@@ -988,7 +988,7 @@ export function SecretsForm({
               <select
                 value={projectId}
                 onChange={(e) => setProjectId(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-accent focus:border-accent"
+                className="w-full px-3 py-2 border border-border-strong rounded-md shadow-sm focus:outline-none focus:ring-accent focus:border-accent"
                 disabled={encrypting}
               >
                 <option value="">Select a project...</option>
@@ -999,7 +999,7 @@ export function SecretsForm({
                 ))}
               </select>
             )}
-            <p className="mt-1 text-xs text-gray-500">
+            <p className="mt-1 text-xs text-muted-foreground">
               Secrets will be available to all versions of this project
             </p>
           </div>
@@ -1007,7 +1007,7 @@ export function SecretsForm({
 
         {/* Profile */}
         <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-medium text-foreground mb-2">
             Profile *
           </label>
           <input
@@ -1015,28 +1015,28 @@ export function SecretsForm({
             value={profile}
             onChange={(e) => setProfile(e.target.value)}
             placeholder="default, prod, staging, etc."
-            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+            className="w-full px-3 py-2 border border-border-strong rounded-md shadow-sm focus:outline-none focus:ring-accent focus:border-accent"
             disabled={encrypting}
           />
-          <p className="mt-1 text-xs text-gray-500">
+          <p className="mt-1 text-xs text-muted-foreground">
             Profile name for organizing multiple secret sets per repo
           </p>
         </div>
 
         {/* Plaintext Secrets (JSON) */}
         <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-medium text-foreground mb-2">
             Secrets (JSON format, optional)
           </label>
           <textarea
             value={plaintextSecrets}
             onChange={(e) => setPlaintextSecrets(e.target.value)}
             rows={8}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm font-mono text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+            className="w-full px-3 py-2 border border-border-strong rounded-md shadow-sm font-mono text-sm focus:outline-none focus:ring-accent focus:border-accent"
             placeholder='{\n  "OPENAI_KEY": "sk-...",\n  "DATABASE_URL": "postgres://..."\n}'
             disabled={encrypting}
           />
-          <p className="mt-1 text-xs text-gray-500">
+          <p className="mt-1 text-xs text-muted-foreground">
             JSON object with key-value pairs. Keys will be available as environment variables in WASM execution.
           </p>
           <p className="mt-1 text-xs text-amber-600">
@@ -1046,14 +1046,14 @@ export function SecretsForm({
 
         {/* Secrets to Generate */}
         <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-medium text-foreground mb-2">
             Secrets to Generate (optional)
           </label>
-          <p className="text-xs text-gray-600 mb-2">
+          <p className="text-xs text-muted-foreground mb-2">
             Auto-generate cryptographically secure secrets without seeing their values. Perfect for MASTER_KEY, API tokens, passwords, and ED25519 keys.
           </p>
-          <p className="text-xs text-green-600 mb-2">
-            ✅ Must start with <code className="bg-green-100 px-1 rounded">PROTECTED_*</code> prefix (proves secret was generated in TEE)
+          <p className="text-xs text-success-text mb-2">
+            ✅ Must start with <code className="bg-success/15 px-1 rounded">PROTECTED_*</code> prefix (proves secret was generated in TEE)
           </p>
 
           {secretsToGenerate.length > 0 && (
@@ -1065,13 +1065,13 @@ export function SecretsForm({
                     value={secret.name}
                     onChange={(e) => updateSecretRow(secret.id, 'name', e.target.value)}
                     placeholder="e.g., PROTECTED_MASTER_KEY"
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                    className="flex-1 px-3 py-2 border border-border-strong rounded-md shadow-sm focus:outline-none focus:ring-accent focus:border-accent"
                     disabled={encrypting}
                   />
                   <select
                     value={secret.generationType}
                     onChange={(e) => updateSecretRow(secret.id, 'generationType', e.target.value)}
-                    className="w-64 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                    className="w-64 px-3 py-2 border border-border-strong rounded-md shadow-sm focus:outline-none focus:ring-accent focus:border-accent"
                     disabled={encrypting}
                   >
                     {GENERATION_TYPES.map((type) => (
@@ -1083,7 +1083,7 @@ export function SecretsForm({
                   <button
                     onClick={() => removeSecretRow(secret.id)}
                     disabled={encrypting}
-                    className="px-3 py-2 border border-red-300 text-red-700 rounded-md hover:bg-red-50 disabled:opacity-50"
+                    className="px-3 py-2 border border-destructive/40 text-destructive-text rounded-md hover:bg-destructive/10 disabled:opacity-50"
                   >
                     ✕
                   </button>
@@ -1095,7 +1095,7 @@ export function SecretsForm({
           <button
             onClick={addSecretRow}
             disabled={encrypting}
-            className="px-3 py-1 text-sm border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 disabled:opacity-50"
+            className="px-3 py-1 text-sm border border-border-strong text-foreground rounded-md hover:bg-card-muted disabled:opacity-50"
           >
             + Add Generated Secret
           </button>
@@ -1103,16 +1103,16 @@ export function SecretsForm({
 
         {/* All Encrypted Keys Display */}
         {generatedKeys.length > 0 && (
-          <div className="mb-4 bg-green-50 border border-green-200 rounded-lg p-4">
-            <h3 className="text-sm font-medium text-green-900 mb-2">
+          <div className="mb-4 bg-success/10 border border-success/30 rounded-lg p-4">
+            <h3 className="text-sm font-medium text-success-text mb-2">
               ✅ Encrypted Keys ({generatedKeys.length} total)
             </h3>
-            <ul className="text-xs text-green-800 space-y-1 list-disc list-inside">
+            <ul className="text-xs text-success-text space-y-1 list-disc list-inside">
               {generatedKeys.map((key) => (
                 <li key={key}>{key}</li>
               ))}
             </ul>
-            <p className="mt-2 text-xs text-green-700">
+            <p className="mt-2 text-xs text-success-text">
               All secrets are now encrypted and stored. You cannot retrieve their values later.
             </p>
           </div>
@@ -1120,7 +1120,7 @@ export function SecretsForm({
 
         {/* Access Condition */}
         <div className="mb-6">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-medium text-foreground mb-2">
             Access Control *
           </label>
           <AccessConditionBuilder condition={accessCondition} onChange={setAccessCondition} />
@@ -1128,18 +1128,18 @@ export function SecretsForm({
 
         {/* Error Display */}
         {error && (
-          <div className="mb-4 bg-red-50 border border-red-200 rounded-lg p-4">
-            <p className="text-sm text-red-800">{error}</p>
+          <div className="mb-4 bg-destructive/10 border border-destructive/30 rounded-lg p-4">
+            <p className="text-sm text-destructive-text">{error}</p>
           </div>
         )}
 
         {/* Pending Update Banner - Step 2 */}
         {pendingUpdate && (
-          <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg">
-            <h4 className="text-sm font-semibold text-green-900 mb-2">
+          <div className="mb-4 p-4 bg-success/10 border border-success/30 rounded-lg">
+            <h4 className="text-sm font-semibold text-success-text mb-2">
               ✅ Secrets encrypted by TEE keystore. Ready to store in contract.
             </h4>
-            <p className="text-xs text-green-800 mb-3">
+            <p className="text-xs text-success-text mb-3">
               PROTECTED_ preserved: {pendingUpdate.summary.protected_preserved} |
               Updated/added: {pendingUpdate.summary.updated} |
               Removed: {pendingUpdate.summary.removed}
@@ -1148,14 +1148,14 @@ export function SecretsForm({
               <button
                 onClick={handleStorePendingUpdate}
                 disabled={encrypting}
-                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:bg-gray-300"
+                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-success hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-accent disabled:opacity-50"
               >
                 {encrypting ? '🔄 Storing...' : '🔐 Store Secrets'}
               </button>
               <button
                 onClick={() => setPendingUpdate(null)}
                 disabled={encrypting}
-                className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 disabled:bg-gray-100"
+                className="inline-flex items-center px-4 py-2 border border-border-strong text-sm font-medium rounded-md text-foreground bg-card hover:bg-card-muted focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 disabled:bg-card-muted"
               >
                 Cancel
               </button>
@@ -1178,10 +1178,10 @@ export function SecretsForm({
                 encrypting ||
                 (isUpdateMode && updateModeVaultLookupPending)
               }
-              className={`inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:bg-gray-300 disabled:cursor-not-allowed ${
+              className={`inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed ${
                 isUpdateMode
                   ? 'bg-purple-600 hover:bg-purple-700 focus:ring-purple-500'
-                  : 'bg-blue-600 hover:bg-blue-700 focus:ring-blue-500'
+                  : 'bg-info hover:opacity-90 focus:ring-accent'
               }`}
             >
               {encrypting
@@ -1194,7 +1194,7 @@ export function SecretsForm({
             </button>
 
             {!isConnected && (
-              <p className="text-sm text-red-600">
+              <p className="text-sm text-destructive-text">
                 Please connect your wallet to {isUpdateMode ? 'update' : 'create'} secrets
               </p>
             )}
@@ -1212,8 +1212,8 @@ export function SecretsForm({
               </div>
               <span className="text-purple-400">→</span>
               <div className="flex items-center space-x-2">
-                <span className="flex items-center justify-center w-6 h-6 rounded-full bg-gray-300 text-gray-600 text-xs font-bold">2</span>
-                <span className="text-sm text-gray-500">Store in contract</span>
+                <span className="flex items-center justify-center w-6 h-6 rounded-full bg-card-muted text-muted-foreground text-xs font-bold">2</span>
+                <span className="text-sm text-muted-foreground">Store in contract</span>
               </div>
             </div>
           </div>
@@ -1221,26 +1221,26 @@ export function SecretsForm({
 
         {/* Step 2 indicator when pending */}
         {pendingUpdate && (
-          <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
-            <p className="text-xs text-green-700 mb-2 font-medium">Step 2 of 2:</p>
+          <div className="mt-4 p-3 bg-success/10 border border-success/30 rounded-lg">
+            <p className="text-xs text-success-text mb-2 font-medium">Step 2 of 2:</p>
             <div className="flex items-center space-x-3">
               <div className="flex items-center space-x-2">
-                <span className="flex items-center justify-center w-6 h-6 rounded-full bg-green-500 text-white text-xs">✓</span>
-                <span className="text-sm text-green-700">Signed</span>
+                <span className="flex items-center justify-center w-6 h-6 rounded-full bg-success/100 text-white text-xs">✓</span>
+                <span className="text-sm text-success-text">Signed</span>
               </div>
               <span className="text-green-400">→</span>
               <div className="flex items-center space-x-2">
-                <span className="flex items-center justify-center w-6 h-6 rounded-full bg-green-600 text-white text-xs font-bold">2</span>
-                <span className="text-sm font-medium text-green-800">Store in contract</span>
+                <span className="flex items-center justify-center w-6 h-6 rounded-full bg-success text-white text-xs font-bold">2</span>
+                <span className="text-sm font-medium text-success-text">Store in contract</span>
               </div>
             </div>
           </div>
         )}
 
         {/* Info Box */}
-        <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <h3 className="text-sm font-medium text-blue-900 mb-2">💡 How it works</h3>
-          <ul className="text-xs text-blue-800 space-y-1 list-disc list-inside">
+        <div className="mt-6 bg-info/10 border border-info/30 rounded-lg p-4">
+          <h3 className="text-sm font-medium text-info mb-2">💡 How it works</h3>
+          <ul className="text-xs text-info space-y-1 list-disc list-inside">
             <li><strong>Manual secrets</strong>: Encrypted in this browser with ECIES — ephemeral X25519 ECDH + HKDF-SHA256 + ChaCha20-Poly1305 AEAD</li>
             <li><strong>Generated secrets</strong>: Keystore generates inside TEE (you never see values)</li>
             <li><strong>Combined flow</strong>: Manual secrets encrypted → sent with generation specs → keystore decrypts, generates, merges, re-encrypts</li>

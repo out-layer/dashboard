@@ -6,7 +6,7 @@ export function IntentsExample() {
   const badges = (
     <>
       <span className="ml-3 text-sm bg-purple-100 text-purple-800 px-3 py-1 rounded">WASI P2</span>
-      <span className="ml-2 text-sm bg-red-100 text-red-800 px-3 py-1 rounded">Advanced</span>
+      <span className="ml-2 text-sm bg-destructive/10 text-destructive-text px-3 py-1 rounded">Advanced</span>
     </>
   );
 
@@ -18,7 +18,7 @@ export function IntentsExample() {
       githubUrl="https://github.com/out-layer/intents-example"
       playgroundId="near-intents-swap"
     >
-      <p className="text-gray-700 mb-4">
+      <p className="text-foreground mb-4">
         DEX token swaps via NEAR Intents protocol. User&apos;s FT transfer transaction pauses, WASI performs swap off-chain, then resolves by sending swapped tokens back - all within single transaction.
       </p>
 
@@ -32,8 +32,8 @@ export function IntentsExample() {
       ]} />
 
       <h4 className="font-semibold mt-4 mb-2">Transaction Flow:</h4>
-      <ol className="list-decimal list-inside text-gray-700 space-y-2 mb-4 ml-4">
-        <li>User calls <code className="bg-gray-100 px-2 py-1 rounded">ft_transfer_call</code> to swap contract</li>
+      <ol className="list-decimal list-inside text-foreground space-y-2 mb-4 ml-4">
+        <li>User calls <code className="bg-card-muted px-2 py-1 rounded">ft_transfer_call</code> to swap contract</li>
         <li>Contract receives tokens and calls OutLayer</li>
         <li><strong>Transaction pauses</strong> - contract enters yield state</li>
         <li>WASI worker performs swap via NEAR Intents API</li>
@@ -74,8 +74,8 @@ near call wrap.near ft_transfer_call '{
 # - Resume and send swapped USDC to user`}
       </SyntaxHighlighter>
 
-      <div className="mt-4 p-3 bg-yellow-50 border-l-4 border-yellow-400">
-        <p className="text-sm text-gray-700">
+      <div className="mt-4 p-3 bg-warning/10 border-l-4 border-warning/50">
+        <p className="text-sm text-foreground">
           <strong>Note:</strong> NEAR Intents works on mainnet only. For testnet testing, use mock swap implementation.
         </p>
       </div>
@@ -92,7 +92,7 @@ near call wrap.near ft_transfer_call '{
       ]} />
 
       <LearnMoreSection>
-        <ul className="text-sm text-gray-700 space-y-1">
+        <ul className="text-sm text-foreground space-y-1">
           <li>
             📖 <Link href="/docs/wasi#wasi-preview-2" className="text-[var(--primary-orange)] hover:underline">
               WASI Preview 2 Documentation

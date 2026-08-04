@@ -5,9 +5,9 @@ import { SyntaxHighlighter, vscDarkPlus } from '@/components/ui/syntax';
 
 function AnchorHeading({ id, children, level = 2 }: { id: string; children: React.ReactNode; level?: 2 | 3 | 4 }) {
   const sizeClass = level === 2 ? 'text-2xl' : level === 3 ? 'text-xl' : 'text-lg';
-  const className = `${sizeClass} font-bold text-gray-900 mb-4 scroll-mt-4 group`;
+  const className = `${sizeClass} font-bold text-foreground mb-4 scroll-mt-4 group`;
   const anchor = (
-    <a href={`#${id}`} className="ml-2 text-gray-400 hover:text-[var(--primary-orange)] opacity-0 group-hover:opacity-100 transition-opacity">
+    <a href={`#${id}`} className="ml-2 text-faint-foreground hover:text-[var(--primary-orange)] opacity-0 group-hover:opacity-100 transition-opacity">
       #
     </a>
   );
@@ -20,9 +20,9 @@ function AnchorHeading({ id, children, level = 2 }: { id: string; children: Reac
 export default function PaymentKeysPage() {
   return (
     <div className="prose prose-lg max-w-none">
-      <h1 className="text-3xl font-bold text-gray-900 mb-6">Payment Keys</h1>
+      <h1 className="text-3xl font-bold text-foreground mb-6">Payment Keys</h1>
 
-      <p className="text-gray-700 mb-8 text-lg">
+      <p className="text-foreground mb-8 text-lg">
         Payment Keys enable HTTPS API access to OutLayer projects without NEAR transactions.
         Users prepay in USD stablecoins and spend from their balance with simple HTTP requests.
       </p>
@@ -31,18 +31,18 @@ export default function PaymentKeysPage() {
       <section className="mb-12">
         <AnchorHeading id="what-are-payment-keys">What are Payment Keys?</AnchorHeading>
 
-        <p className="text-gray-700 mb-4">
+        <p className="text-foreground mb-4">
           A Payment Key is a secret token linked to your NEAR account with a prepaid USD balance.
           It allows you to call OutLayer projects via{' '}
           <Link href="/docs/https-api" className="text-[var(--primary-orange)] hover:underline">HTTPS API</Link>
           {' '}without signing NEAR transactions.
         </p>
 
-        <div className="bg-blue-50 border-l-4 border-blue-400 p-4 mb-6">
-          <p className="text-sm text-blue-800">
+        <div className="bg-info/10 border-l-4 border-info/50 p-4 mb-6">
+          <p className="text-sm text-info">
             <strong>Key benefits:</strong>
           </p>
-          <ul className="list-disc list-inside text-sm text-blue-800 mt-2 space-y-1">
+          <ul className="list-disc list-inside text-sm text-info mt-2 space-y-1">
             <li>No blockchain transactions per API call (only key setup/withdrawal)</li>
             <li>Sub-second response times</li>
             <li>Easy integration with existing backends</li>
@@ -52,7 +52,7 @@ export default function PaymentKeysPage() {
 
         <AnchorHeading id="key-format" level={3}>Key Format</AnchorHeading>
 
-        <p className="text-gray-700 mb-4">
+        <p className="text-foreground mb-4">
           Payment Keys are passed in the <code>X-Payment-Key</code> HTTP header:
         </p>
 
@@ -63,35 +63,35 @@ Example: X-Payment-Key: alice.near:1:K7xR2mN9pQs5vW3yZ8bF...`}
         </SyntaxHighlighter>
 
         <div className="overflow-x-auto mb-6">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+          <table className="min-w-full divide-y divide-border">
+            <thead className="bg-card-muted">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Part</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Description</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Example</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Part</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Description</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Example</th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="bg-card divide-y divide-border">
               <tr>
                 <td className="px-4 py-3 text-sm font-mono">owner</td>
-                <td className="px-4 py-3 text-sm text-gray-600">Your NEAR account ID</td>
+                <td className="px-4 py-3 text-sm text-muted-foreground">Your NEAR account ID</td>
                 <td className="px-4 py-3 text-sm font-mono">alice.near</td>
               </tr>
               <tr>
                 <td className="px-4 py-3 text-sm font-mono">nonce</td>
-                <td className="px-4 py-3 text-sm text-gray-600">Key number (1, 2...)</td>
+                <td className="px-4 py-3 text-sm text-muted-foreground">Key number (1, 2...)</td>
                 <td className="px-4 py-3 text-sm font-mono">1</td>
               </tr>
               <tr>
                 <td className="px-4 py-3 text-sm font-mono">secret</td>
-                <td className="px-4 py-3 text-sm text-gray-600">32-byte random token (Base64)</td>
+                <td className="px-4 py-3 text-sm text-muted-foreground">32-byte random token (Base64)</td>
                 <td className="px-4 py-3 text-sm font-mono">K7xR2mN9pQs5vW3yZ8bF...</td>
               </tr>
             </tbody>
           </table>
         </div>
 
-        <p className="text-gray-700 mb-4">
+        <p className="text-foreground mb-4">
           The <strong>secret</strong> is a 32-byte cryptographically random value encoded in Base64 (44 characters).
           It&apos;s generated client-side and shown only once during creation.
         </p>
@@ -101,11 +101,11 @@ Example: X-Payment-Key: alice.near:1:K7xR2mN9pQs5vW3yZ8bF...`}
       <section className="mb-12">
         <AnchorHeading id="creating-keys">Creating Payment Keys</AnchorHeading>
 
-        <p className="text-gray-700 mb-4">
+        <p className="text-foreground mb-4">
           Creating a Payment Key requires <strong>two transactions</strong>:
         </p>
 
-        <ol className="list-decimal list-inside text-gray-700 space-y-3 mb-6">
+        <ol className="list-decimal list-inside text-foreground space-y-3 mb-6">
           <li>
             <strong>Create the key</strong> - Stores encrypted key data on-chain via <code>store_secrets</code>
           </li>
@@ -116,7 +116,7 @@ Example: X-Payment-Key: alice.near:1:K7xR2mN9pQs5vW3yZ8bF...`}
 
         <AnchorHeading id="via-dashboard" level={3}>Via Dashboard</AnchorHeading>
 
-        <ol className="list-decimal list-inside text-gray-700 space-y-2 mb-6">
+        <ol className="list-decimal list-inside text-foreground space-y-2 mb-6">
           <li>Go to <Link href="/payment-keys" className="text-[var(--primary-orange)] hover:underline">/payment-keys</Link></li>
           <li>Click <strong>&quot;Create Payment Key&quot;</strong></li>
           <li>Configure restrictions (see below)</li>
@@ -125,8 +125,8 @@ Example: X-Payment-Key: alice.near:1:K7xR2mN9pQs5vW3yZ8bF...`}
           <li><strong>Copy the key immediately</strong> - it&apos;s shown only once!</li>
         </ol>
 
-        <div className="bg-red-50 border-l-4 border-red-400 p-4 mb-6">
-          <p className="text-sm text-red-800">
+        <div className="bg-destructive/10 border-l-4 border-destructive/50 p-4 mb-6">
+          <p className="text-sm text-destructive-text">
             <strong>Critical:</strong> The secret key is displayed only once after creation.
             Copy it immediately and store securely (e.g., password manager, environment variable).
             If lost, you must create a new key.
@@ -160,37 +160,37 @@ near call usdt.tether-token.near ft_transfer_call '{
       <section className="mb-12">
         <AnchorHeading id="restrictions">Key Restrictions</AnchorHeading>
 
-        <p className="text-gray-700 mb-4">
+        <p className="text-foreground mb-4">
           Payment Keys can be restricted to limit their capabilities for security:
         </p>
 
         <AnchorHeading id="project-restrictions" level={3}>Project Restrictions</AnchorHeading>
 
         <div className="overflow-x-auto mb-6">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+          <table className="min-w-full divide-y divide-border">
+            <thead className="bg-card-muted">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Option</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Description</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Use Case</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Option</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Description</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Use Case</th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="bg-card divide-y divide-border">
               <tr>
                 <td className="px-4 py-3 text-sm font-semibold">Any project</td>
-                <td className="px-4 py-3 text-sm text-gray-600">
+                <td className="px-4 py-3 text-sm text-muted-foreground">
                   Key works with all OutLayer projects
                 </td>
-                <td className="px-4 py-3 text-sm text-gray-600">
+                <td className="px-4 py-3 text-sm text-muted-foreground">
                   General-purpose API access
                 </td>
               </tr>
               <tr>
                 <td className="px-4 py-3 text-sm font-semibold">Specific projects</td>
-                <td className="px-4 py-3 text-sm text-gray-600">
+                <td className="px-4 py-3 text-sm text-muted-foreground">
                   Key only works with selected projects (e.g., <code>alice.near/my-app</code>)
                 </td>
-                <td className="px-4 py-3 text-sm text-gray-600">
+                <td className="px-4 py-3 text-sm text-muted-foreground">
                   Production keys for specific services
                 </td>
               </tr>
@@ -211,17 +211,17 @@ near call usdt.tether-token.near ft_transfer_call '{
         <AnchorHeading id="spending-limits" level={3}>Spending Limits</AnchorHeading>
 
         <div className="border rounded-lg p-4 mb-6">
-          <h4 className="font-semibold text-gray-900 mb-2">max_per_call</h4>
-          <p className="text-sm text-gray-600 mb-2">
+          <h4 className="font-semibold text-foreground mb-2">max_per_call</h4>
+          <p className="text-sm text-muted-foreground mb-2">
             Maximum amount that can be spent in a single API call (compute + attached deposit combined).
           </p>
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-muted-foreground">
             <strong>Example:</strong> <code>max_per_call: &quot;1000000&quot;</code> limits each call to $1.00 maximum.
           </p>
         </div>
 
-        <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6">
-          <p className="text-sm text-yellow-800">
+        <div className="bg-warning/10 border-l-4 border-warning/50 p-4 mb-6">
+          <p className="text-sm text-warning">
             <strong>Security tip:</strong> For production keys, always set both project restrictions
             and spending limits to minimize damage if a key is compromised.
           </p>
@@ -234,13 +234,13 @@ near call usdt.tether-token.near ft_transfer_call '{
 
         <AnchorHeading id="checking-balance" level={3}>Checking Balance</AnchorHeading>
 
-        <p className="text-gray-700 mb-4">
+        <p className="text-foreground mb-4">
           View your key balance on the{' '}
           <Link href="/payment-keys" className="text-[var(--primary-orange)] hover:underline">Payment Keys</Link>
           {' '}dashboard page. The balance shows:
         </p>
 
-        <ul className="list-disc list-inside text-gray-700 space-y-2 mb-6">
+        <ul className="list-disc list-inside text-foreground space-y-2 mb-6">
           <li><strong>Initial balance</strong> - Total amount deposited</li>
           <li><strong>Spent</strong> - Amount already used</li>
           <li><strong>Available</strong> - Remaining balance (initial - spent)</li>
@@ -248,11 +248,11 @@ near call usdt.tether-token.near ft_transfer_call '{
 
         <AnchorHeading id="top-up" level={3}>Topping Up Balance</AnchorHeading>
 
-        <p className="text-gray-700 mb-4">
+        <p className="text-foreground mb-4">
           Add more funds to an existing key:
         </p>
 
-        <ol className="list-decimal list-inside text-gray-700 space-y-2 mb-6">
+        <ol className="list-decimal list-inside text-foreground space-y-2 mb-6">
           <li>Go to <Link href="/payment-keys" className="text-[var(--primary-orange)] hover:underline">/payment-keys</Link></li>
           <li>Find your key and click <strong>&quot;Top Up&quot;</strong></li>
           <li>Enter amount (minimum $1)</li>
@@ -270,17 +270,17 @@ near call usdt.tether-token.near ft_transfer_call '{
 
         <AnchorHeading id="balance-protection" level={3}>Balance Protection</AnchorHeading>
 
-        <p className="text-gray-700 mb-4">
+        <p className="text-foreground mb-4">
           OutLayer uses a <strong>reserved balance</strong> mechanism to prevent overdraft attacks:
         </p>
 
-        <ol className="list-decimal list-inside text-gray-700 space-y-2 mb-6">
+        <ol className="list-decimal list-inside text-foreground space-y-2 mb-6">
           <li>When a call starts, the estimated cost is <strong>reserved</strong></li>
           <li>Call is rejected if <code>available - reserved &lt; estimated_cost</code></li>
           <li>After completion, actual cost is charged and reservation is released</li>
         </ol>
 
-        <p className="text-gray-700 mb-4">
+        <p className="text-foreground mb-4">
           This prevents an attacker from spending $90 with a $1 balance by launching many parallel requests.
         </p>
       </section>
@@ -289,7 +289,7 @@ near call usdt.tether-token.near ft_transfer_call '{
       <section className="mb-12">
         <AnchorHeading id="storage">How Keys are Stored</AnchorHeading>
 
-        <p className="text-gray-700 mb-4">
+        <p className="text-foreground mb-4">
           Payment Key data is stored as an encrypted secret on the OutLayer contract:
         </p>
 
@@ -305,16 +305,16 @@ near call usdt.tether-token.near ft_transfer_call '{
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
           <div className="border rounded-lg p-4">
-            <h4 className="font-semibold text-gray-900 mb-2">On-Chain (Contract)</h4>
-            <ul className="list-disc list-inside text-sm text-gray-600 space-y-1">
+            <h4 className="font-semibold text-foreground mb-2">On-Chain (Contract)</h4>
+            <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
               <li>Encrypted key data</li>
               <li>Owner (NEAR account)</li>
               <li>Nonce (key number)</li>
             </ul>
           </div>
           <div className="border rounded-lg p-4">
-            <h4 className="font-semibold text-gray-900 mb-2">Off-Chain (Coordinator)</h4>
-            <ul className="list-disc list-inside text-sm text-gray-600 space-y-1">
+            <h4 className="font-semibold text-foreground mb-2">Off-Chain (Coordinator)</h4>
+            <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
               <li>Spent amount (running total)</li>
               <li>Reserved amount (in-flight)</li>
               <li>Usage history (audit log)</li>
@@ -322,8 +322,8 @@ near call usdt.tether-token.near ft_transfer_call '{
           </div>
         </div>
 
-        <div className="bg-blue-50 border-l-4 border-blue-400 p-4 mb-6">
-          <p className="text-sm text-blue-800">
+        <div className="bg-info/10 border-l-4 border-info/50 p-4 mb-6">
+          <p className="text-sm text-info">
             <strong>Security:</strong> The secret key is encrypted with TEE keys and can only be
             decrypted inside the Trusted Execution Environment during API validation. The coordinator
             never sees the plaintext key - it only validates hashes.
@@ -335,45 +335,45 @@ near call usdt.tether-token.near ft_transfer_call '{
       <section className="mb-12">
         <AnchorHeading id="rate-limits">Rate Limits</AnchorHeading>
 
-        <p className="text-gray-700 mb-4">
+        <p className="text-foreground mb-4">
           To prevent abuse, Payment Keys have rate limits:
         </p>
 
         <div className="overflow-x-auto mb-6">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+          <table className="min-w-full divide-y divide-border">
+            <thead className="bg-card-muted">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Limit</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Value</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Scope</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Limit</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Value</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Scope</th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="bg-card divide-y divide-border">
               <tr>
                 <td className="px-4 py-3 text-sm">Requests per minute (IP)</td>
                 <td className="px-4 py-3 text-sm font-mono">100</td>
-                <td className="px-4 py-3 text-sm text-gray-600">Before key validation</td>
+                <td className="px-4 py-3 text-sm text-muted-foreground">Before key validation</td>
               </tr>
               <tr>
                 <td className="px-4 py-3 text-sm">Requests per minute (Key)</td>
                 <td className="px-4 py-3 text-sm font-mono">1000</td>
-                <td className="px-4 py-3 text-sm text-gray-600">After key validation</td>
+                <td className="px-4 py-3 text-sm text-muted-foreground">After key validation</td>
               </tr>
               <tr>
                 <td className="px-4 py-3 text-sm">Concurrent jobs per key</td>
                 <td className="px-4 py-3 text-sm font-mono">10</td>
-                <td className="px-4 py-3 text-sm text-gray-600">Simultaneous executions</td>
+                <td className="px-4 py-3 text-sm text-muted-foreground">Simultaneous executions</td>
               </tr>
               <tr>
                 <td className="px-4 py-3 text-sm">Minimum compute limit</td>
                 <td className="px-4 py-3 text-sm font-mono">$0.001</td>
-                <td className="px-4 py-3 text-sm text-gray-600">Per request</td>
+                <td className="px-4 py-3 text-sm text-muted-foreground">Per request</td>
               </tr>
             </tbody>
           </table>
         </div>
 
-        <p className="text-gray-700 mb-4">
+        <p className="text-foreground mb-4">
           Rate limit headers are included in responses:
         </p>
 
@@ -383,7 +383,7 @@ X-RateLimit-Remaining: 950
 X-RateLimit-Reset: 1704067260`}
         </SyntaxHighlighter>
 
-        <p className="text-gray-700">
+        <p className="text-foreground">
           When limits are exceeded, you&apos;ll receive HTTP <code>429 Too Many Requests</code>.
         </p>
       </section>
@@ -393,37 +393,37 @@ X-RateLimit-Reset: 1704067260`}
         <AnchorHeading id="security">Security Best Practices</AnchorHeading>
 
         <div className="space-y-4">
-          <div className="border-l-4 border-green-400 pl-4">
-            <h4 className="font-semibold text-gray-900">1. Restrict to specific projects</h4>
-            <p className="text-sm text-gray-600">
+          <div className="border-l-4 border-success/50 pl-4">
+            <h4 className="font-semibold text-foreground">1. Restrict to specific projects</h4>
+            <p className="text-sm text-muted-foreground">
               Production keys should only work with the projects they need. Avoid &quot;any project&quot; keys.
             </p>
           </div>
 
-          <div className="border-l-4 border-green-400 pl-4">
-            <h4 className="font-semibold text-gray-900">2. Set spending limits</h4>
-            <p className="text-sm text-gray-600">
+          <div className="border-l-4 border-success/50 pl-4">
+            <h4 className="font-semibold text-foreground">2. Set spending limits</h4>
+            <p className="text-sm text-muted-foreground">
               Always set <code>max_per_call</code> to limit damage from a compromised key.
             </p>
           </div>
 
-          <div className="border-l-4 border-green-400 pl-4">
-            <h4 className="font-semibold text-gray-900">3. Use environment variables</h4>
-            <p className="text-sm text-gray-600">
+          <div className="border-l-4 border-success/50 pl-4">
+            <h4 className="font-semibold text-foreground">3. Use environment variables</h4>
+            <p className="text-sm text-muted-foreground">
               Never hardcode keys in source code. Use environment variables or secret managers.
             </p>
           </div>
 
-          <div className="border-l-4 border-green-400 pl-4">
-            <h4 className="font-semibold text-gray-900">4. Rotate keys periodically</h4>
-            <p className="text-sm text-gray-600">
+          <div className="border-l-4 border-success/50 pl-4">
+            <h4 className="font-semibold text-foreground">4. Rotate keys periodically</h4>
+            <p className="text-sm text-muted-foreground">
               Create new keys and revoke old ones regularly, especially after team changes.
             </p>
           </div>
 
-          <div className="border-l-4 border-green-400 pl-4">
-            <h4 className="font-semibold text-gray-900">5. Monitor usage</h4>
-            <p className="text-sm text-gray-600">
+          <div className="border-l-4 border-success/50 pl-4">
+            <h4 className="font-semibold text-foreground">5. Monitor usage</h4>
+            <p className="text-sm text-muted-foreground">
               Regularly check the <Link href="/payment-keys" className="text-[var(--primary-orange)] hover:underline">Payment Keys</Link>
               {' '}dashboard for unexpected spending patterns.
             </p>
@@ -432,8 +432,8 @@ X-RateLimit-Reset: 1704067260`}
       </section>
 
       {/* Related Documentation */}
-      <section className="bg-gray-50 rounded-lg p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Related Documentation</h3>
+      <section className="bg-card-muted rounded-lg p-6">
+        <h3 className="text-lg font-semibold text-foreground mb-4">Related Documentation</h3>
 
         <ul className="space-y-2 text-sm">
           <li>

@@ -28,12 +28,12 @@ interface WalletEntry {
 
 const EVENT_TYPE_COLORS: Record<string, string> = {
   withdraw: 'bg-orange-100 text-orange-800',
-  withdraw_pending_approval: 'bg-yellow-100 text-yellow-800',
-  withdraw_auto_executed: 'bg-green-100 text-green-800',
-  deposit: 'bg-green-100 text-green-800',
+  withdraw_pending_approval: 'bg-warning/10 text-warning',
+  withdraw_auto_executed: 'bg-success/10 text-success-text',
+  deposit: 'bg-success/10 text-success-text',
   policy_change: 'bg-purple-100 text-purple-800',
-  approval: 'bg-blue-100 text-blue-800',
-  freeze: 'bg-red-100 text-red-800',
+  approval: 'bg-info/10 text-info',
+  freeze: 'bg-destructive/10 text-destructive-text',
   unfreeze: 'bg-teal-100 text-teal-800',
 };
 
@@ -41,7 +41,7 @@ const PAGE_SIZE = 50;
 
 export default function WalletAuditPage() {
   return (
-    <Suspense fallback={<div className="max-w-4xl mx-auto py-8 text-gray-400">Loading...</div>}>
+    <Suspense fallback={<div className="max-w-4xl mx-auto py-8 text-faint-foreground">Loading...</div>}>
       <WalletAuditContent />
     </Suspense>
   );
@@ -237,9 +237,9 @@ function WalletAuditContent() {
   if (noKeys && wallets.length === 0) {
     return (
       <div className="max-w-6xl mx-auto">
-        <h1 className="text-3xl font-bold text-gray-900 mb-6">Wallet Audit Log</h1>
-        <div className="bg-white shadow rounded-lg p-8">
-          <p className="text-gray-600 mb-4">
+        <h1 className="text-3xl font-bold text-foreground mb-6">Wallet Audit Log</h1>
+        <div className="bg-card shadow rounded-lg p-8">
+          <p className="text-muted-foreground mb-4">
             No saved wallet keys found. Enter an API key to view the audit log.
           </p>
           <div className="flex gap-3">
@@ -249,7 +249,7 @@ function WalletAuditContent() {
               onChange={(e) => setManualKeyInput(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleManualKeySubmit()}
               placeholder="wk_..."
-              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent focus:border-transparent font-mono text-sm"
+              className="flex-1 px-4 py-2 border border-border-strong rounded-lg focus:ring-2 focus:ring-accent font-mono text-sm"
             />
             <button
               onClick={handleManualKeySubmit}
@@ -267,7 +267,7 @@ function WalletAuditContent() {
   return (
     <div className="max-w-6xl mx-auto">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">Wallet Audit Log</h1>
+        <h1 className="text-3xl font-bold text-foreground">Wallet Audit Log</h1>
         <div className="flex items-center space-x-3">
           <Link
             href="/wallet/approvals"
@@ -292,7 +292,7 @@ function WalletAuditContent() {
             className={`px-3 py-1.5 text-sm rounded-lg border transition-colors ${
               selectedWallet === 'all'
                 ? 'bg-accent text-white border-accent'
-                : 'bg-white text-gray-600 border-gray-300 hover:border-accent'
+                : 'bg-card text-muted-foreground border-border-strong hover:border-accent'
             }`}
           >
             All wallets ({wallets.length})
@@ -304,7 +304,7 @@ function WalletAuditContent() {
               className={`px-3 py-1.5 text-sm rounded-lg border transition-colors font-mono ${
                 selectedWallet === w.walletId
                   ? 'bg-accent text-white border-accent'
-                  : 'bg-white text-gray-600 border-gray-300 hover:border-accent'
+                  : 'bg-card text-muted-foreground border-border-strong hover:border-accent'
               }`}
             >
               {w.label}
@@ -315,9 +315,9 @@ function WalletAuditContent() {
       )}
 
       {errors.length > 0 && (
-        <div className="mb-4 bg-red-50 border border-red-200 rounded-md p-3">
+        <div className="mb-4 bg-destructive/10 border border-destructive/30 rounded-md p-3">
           {errors.map((e, i) => (
-            <p key={i} className="text-sm text-red-800">{e}</p>
+            <p key={i} className="text-sm text-destructive-text">{e}</p>
           ))}
         </div>
       )}
@@ -329,64 +329,64 @@ function WalletAuditContent() {
             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
           </svg>
-          <span className="ml-3 text-gray-500">Loading audit log...</span>
+          <span className="ml-3 text-muted-foreground">Loading audit log...</span>
         </div>
       ) : mergedEvents.length === 0 ? (
-        <div className="bg-white shadow rounded-lg p-8 text-center">
-          <p className="text-gray-500">No audit events found.</p>
+        <div className="bg-card shadow rounded-lg p-8 text-center">
+          <p className="text-muted-foreground">No audit events found.</p>
         </div>
       ) : (
         <>
-          <div className="bg-white shadow rounded-lg overflow-hidden">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+          <div className="bg-card shadow rounded-lg overflow-hidden">
+            <table className="min-w-full divide-y divide-border">
+              <thead className="bg-card-muted">
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     Time
                   </th>
                   {multiWallet && selectedWallet === 'all' && (
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                       Wallet
                     </th>
                   )}
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     Type
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     Details
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     Request
                   </th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="bg-card divide-y divide-border">
                 {mergedEvents.map((event, i) => (
-                  <tr key={`${event._walletId}-${i}`} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 whitespace-nowrap text-xs text-gray-500">
+                  <tr key={`${event._walletId}-${i}`} className="hover:bg-card-muted">
+                    <td className="px-4 py-3 whitespace-nowrap text-xs text-muted-foreground">
                       {formatDate(event.at)}
                     </td>
                     {multiWallet && selectedWallet === 'all' && (
-                      <td className="px-4 py-3 whitespace-nowrap text-xs text-gray-400 font-mono">
+                      <td className="px-4 py-3 whitespace-nowrap text-xs text-faint-foreground font-mono">
                         {event._walletLabel}
                       </td>
                     )}
                     <td className="px-4 py-3 whitespace-nowrap">
                       <span
                         className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-                          EVENT_TYPE_COLORS[event.type] || 'bg-gray-100 text-gray-800'
+                          EVENT_TYPE_COLORS[event.type] || 'bg-card-muted text-foreground'
                         }`}
                       >
                         {event.type}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-xs text-gray-600 max-w-md">
+                    <td className="px-4 py-3 text-xs text-muted-foreground max-w-md">
                       <pre className="whitespace-pre-wrap break-all">
                         {(JSON.stringify(event.details ?? {}, null, 2) || '{}').substring(0, 200)}
                         {(JSON.stringify(event.details ?? {}) || '{}').length > 200 ? '...' : ''}
                       </pre>
                     </td>
-                    <td className="px-4 py-3 text-xs text-gray-500 font-mono">
+                    <td className="px-4 py-3 text-xs text-muted-foreground font-mono">
                       {event.request_id ? shortenId(event.request_id) : '-'}
                     </td>
                   </tr>
@@ -401,15 +401,15 @@ function WalletAuditContent() {
               <button
                 onClick={() => loadPage(singleWallet.walletId, Math.max(0, singleWallet.page - 1))}
                 disabled={singleWallet.page === 0 || loading}
-                className="px-4 py-2 text-sm border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-4 py-2 text-sm border border-border-strong rounded hover:bg-card-muted disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Previous
               </button>
-              <span className="text-sm text-gray-500">Page {singleWallet.page + 1}</span>
+              <span className="text-sm text-muted-foreground">Page {singleWallet.page + 1}</span>
               <button
                 onClick={() => loadPage(singleWallet.walletId, singleWallet.page + 1)}
                 disabled={!singleWallet.hasMore || loading}
-                className="px-4 py-2 text-sm border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-4 py-2 text-sm border border-border-strong rounded hover:bg-card-muted disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Next
               </button>

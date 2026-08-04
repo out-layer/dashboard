@@ -4,8 +4,8 @@ import { ExampleCard, UseCasesSection, KeyFeaturesSection, TechnicalDetailsSecti
 export function EchoExample() {
   const badges = (
     <>
-      <span className="ml-3 text-sm bg-blue-100 text-blue-800 px-3 py-1 rounded">WASI P1</span>
-      <span className="ml-2 text-sm bg-green-100 text-green-800 px-3 py-1 rounded">Beginner</span>
+      <span className="ml-3 text-sm bg-info/10 text-info px-3 py-1 rounded">WASI P1</span>
+      <span className="ml-2 text-sm bg-success/10 text-success-text px-3 py-1 rounded">Beginner</span>
     </>
   );
 
@@ -17,7 +17,7 @@ export function EchoExample() {
       githubUrl="https://github.com/out-layer/echo-example"
       playgroundId="echo"
     >
-      <p className="text-gray-700 mb-4">
+      <p className="text-foreground mb-4">
         Simple echo service that accepts JSON input and returns it with a timestamp. Demonstrates basic WASI I/O and data processing.
       </p>
 
@@ -77,7 +77,7 @@ export function EchoExample() {
       ]} />
 
       <LearnMoreSection>
-        <ul className="text-sm text-gray-700 space-y-1">
+        <ul className="text-sm text-foreground space-y-1">
           <li>
             📖 <Link href="/docs/wasi#wasi-preview-1" className="text-[var(--primary-orange)] hover:underline">
               WASI Preview 1 Documentation

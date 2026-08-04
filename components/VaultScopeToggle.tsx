@@ -149,12 +149,12 @@ export function VaultScopeToggle({
   const verifyIcon = useMemo(() => {
     switch (verifyState.kind) {
       case 'checking':
-        return <span className="text-xs text-gray-500">checking…</span>;
+        return <span className="text-xs text-muted-foreground">checking…</span>;
       case 'verified':
-        return <span className="text-xs text-green-700">✓ verified on DAO</span>;
+        return <span className="text-xs text-success-text">✓ verified on DAO</span>;
       case 'not_verified':
         return (
-          <span className="text-xs text-red-600" title={verifyState.reason}>
+          <span className="text-xs text-destructive-text" title={verifyState.reason}>
             ✗ not verified
           </span>
         );
@@ -171,11 +171,11 @@ export function VaultScopeToggle({
           type="button"
           onClick={() => setExpanded(true)}
           disabled={disabled}
-          className="text-xs text-gray-600 underline hover:text-gray-900 disabled:text-gray-400"
+          className="text-xs text-muted-foreground underline hover:text-foreground disabled:text-faint-foreground"
         >
           Use a custom MPC vault?
         </button>
-        <span className="text-xs text-gray-500 ml-2">
+        <span className="text-xs text-muted-foreground ml-2">
           (default: OutLayer master key)
         </span>
       </div>
@@ -195,13 +195,13 @@ export function VaultScopeToggle({
           onChange={(e) => setText(e.target.value)}
           disabled={disabled}
           placeholder="vault.alice.testnet (any DAO-verified vault)"
-          className="flex-1 rounded border border-gray-300 bg-white text-gray-900 px-3 py-2 text-sm font-mono"
+          className="flex-1 rounded border border-border-strong bg-card text-foreground px-3 py-2 text-sm font-mono"
         />
         <div className="min-w-[8rem] text-right">{verifyIcon}</div>
       </div>
 
       {verifyState.kind === 'not_verified' && (
-        <p className="text-xs text-red-600 mt-1">{verifyState.reason}</p>
+        <p className="text-xs text-destructive-text mt-1">{verifyState.reason}</p>
       )}
 
       {/* Secondary path: dropdown for customers who already have wallets. */}
@@ -209,22 +209,22 @@ export function VaultScopeToggle({
         <button
           type="button"
           onClick={() => setShowList(true)}
-          className="text-xs text-blue-600 underline hover:text-blue-800 mt-2"
+          className="text-xs text-accent-text underline  mt-2"
         >
           ← Choose from registered ({vaults.length})
         </button>
       )}
 
       {showList && (
-        <div className="mt-2 border border-gray-200 rounded p-2 bg-gray-50">
+        <div className="mt-2 border border-border rounded p-2 bg-card-muted">
           <div className="flex items-center justify-between mb-1">
-            <span className="text-xs text-gray-700">
+            <span className="text-xs text-foreground">
               Vaults with at least one minted wallet (from coordinator):
             </span>
             <button
               type="button"
               onClick={() => setShowList(false)}
-              className="text-xs text-gray-500 underline hover:text-gray-700"
+              className="text-xs text-muted-foreground underline hover:text-foreground"
             >
               hide list
             </button>
@@ -235,7 +235,7 @@ export function VaultScopeToggle({
               if (e.target.value) setText(e.target.value);
             }}
             disabled={disabled}
-            className="w-full rounded border border-gray-300 bg-white text-gray-900 px-2 py-1 text-sm font-mono"
+            className="w-full rounded border border-border-strong bg-card text-foreground px-2 py-1 text-sm font-mono"
           >
             <option value="">— pick one —</option>
             {(vaults ?? []).map((v) => (
@@ -247,14 +247,14 @@ export function VaultScopeToggle({
             ))}
           </select>
           {listError && (
-            <p className="text-xs text-red-600 mt-1">
+            <p className="text-xs text-destructive-text mt-1">
               Could not load vaults: {listError}
             </p>
           )}
         </div>
       )}
 
-      <p className="text-xs text-gray-600 mt-2">
+      <p className="text-xs text-muted-foreground mt-2">
         {verifyState.kind === 'verified' ? (
           <>
             Keys derive from your MPC vault <code>{value}</code>. You can
@@ -268,7 +268,7 @@ export function VaultScopeToggle({
             A vault appears in the list above only after you mint at least
             one wallet under it via <code>/wallet</code>, so secret-only
             customers usually need to type it in here directly.{' '}
-            <a href="/vault" className="underline text-blue-600 hover:text-blue-800">
+            <a href="/vault" className="underline text-accent-text">
               Create a vault →
             </a>
             <button
@@ -277,7 +277,7 @@ export function VaultScopeToggle({
                 setExpanded(false);
                 setText('');
               }}
-              className="underline hover:text-gray-900 ml-2"
+              className="underline hover:text-foreground ml-2"
             >
               cancel
             </button>

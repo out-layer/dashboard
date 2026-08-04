@@ -129,7 +129,7 @@ export function PaymentKeyCard({
   const available = balance?.available || '0';
 
   return (
-    <div className="bg-white shadow rounded-lg overflow-hidden">
+    <div className="bg-card shadow rounded-lg overflow-hidden">
       {/* Header */}
       <div className="px-4 py-4 sm:px-6">
         <div className="flex justify-between items-start">
@@ -140,8 +140,8 @@ export function PaymentKeyCard({
               </svg>
             </div>
             <div>
-              <h3 className="text-lg font-medium text-gray-900">Key #{paymentKey.nonce}</h3>
-              <p className="text-sm text-gray-500">
+              <h3 className="text-lg font-medium text-foreground">Key #{paymentKey.nonce}</h3>
+              <p className="text-sm text-muted-foreground">
                 Created: {formatDate(paymentKey.created_at)}
               </p>
             </div>
@@ -157,7 +157,7 @@ export function PaymentKeyCard({
             {onTopUpNear && (
               <button
                 onClick={onTopUpNear}
-                className="inline-flex items-center px-3 py-1.5 border border-accent text-sm font-medium rounded-md text-accent-text bg-white hover:bg-orange-50 transition-colors"
+                className="inline-flex items-center px-3 py-1.5 border border-accent text-sm font-medium rounded-md text-accent-text bg-card hover:bg-orange-50 transition-colors"
                 title="Top up with NEAR (swapped to USDC)"
               >
                 + NEAR
@@ -165,7 +165,7 @@ export function PaymentKeyCard({
             )}
             <button
               onClick={onDelete}
-              className="inline-flex items-center px-3 py-1.5 border border-red-300 text-sm font-medium rounded-md text-red-700 bg-white hover:bg-red-50 transition-colors"
+              className="inline-flex items-center px-3 py-1.5 border border-destructive/40 text-sm font-medium rounded-md text-destructive-text bg-card hover:bg-destructive/10 transition-colors"
               title="Delete Payment Key. WARNING: Remaining balance will be lost! Refunds are not yet implemented."
             >
               <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -177,27 +177,27 @@ export function PaymentKeyCard({
 
         {/* Balance section */}
         <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-3">
-          <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
-            <p className="text-xs text-gray-500">Initial Balance</p>
-            <p className="font-mono text-sm text-gray-900 font-medium">
+          <div className="bg-card-muted rounded-lg p-3 border border-border">
+            <p className="text-xs text-muted-foreground">Initial Balance</p>
+            <p className="font-mono text-sm text-foreground font-medium">
               {formatUsd(initialBalance, stablecoin.decimals)}
             </p>
           </div>
-          <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
-            <p className="text-xs text-gray-500">Spent</p>
-            <p className="font-mono text-sm text-red-600 font-medium">
+          <div className="bg-card-muted rounded-lg p-3 border border-border">
+            <p className="text-xs text-muted-foreground">Spent</p>
+            <p className="font-mono text-sm text-destructive-text font-medium">
               -{formatUsd(spent, stablecoin.decimals)}
             </p>
           </div>
-          <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
-            <p className="text-xs text-gray-500">Reserved</p>
-            <p className="font-mono text-sm text-yellow-600 font-medium">
+          <div className="bg-card-muted rounded-lg p-3 border border-border">
+            <p className="text-xs text-muted-foreground">Reserved</p>
+            <p className="font-mono text-sm text-warning font-medium">
               {formatUsd(reserved, stablecoin.decimals)}
             </p>
           </div>
-          <div className="bg-green-50 rounded-lg p-3 border border-green-200">
-            <p className="text-xs text-gray-500">Available</p>
-            <p className="font-mono text-sm text-green-700 font-bold">
+          <div className="bg-success/10 rounded-lg p-3 border border-success/30">
+            <p className="text-xs text-muted-foreground">Available</p>
+            <p className="font-mono text-sm text-success-text font-bold">
               {formatUsd(available, stablecoin.decimals)}
             </p>
           </div>
@@ -205,7 +205,7 @@ export function PaymentKeyCard({
 
         {/* Last used */}
         {balance?.last_used_at && (
-          <p className="text-xs text-gray-500 mt-3">
+          <p className="text-xs text-muted-foreground mt-3">
             Last used: {new Date(balance.last_used_at).toLocaleString()}
           </p>
         )}
@@ -221,22 +221,22 @@ export function PaymentKeyCard({
 
       {/* Usage table */}
       {showUsage && (
-        <div className="border-t border-gray-200 px-4 py-4 sm:px-6 bg-gray-50">
+        <div className="border-t border-border px-4 py-4 sm:px-6 bg-card-muted">
           {loadingUsage ? (
             <div className="flex items-center justify-center py-4">
-              <svg className="animate-spin h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24">
+              <svg className="animate-spin h-5 w-5 text-faint-foreground" fill="none" viewBox="0 0 24 24">
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
               </svg>
-              <span className="ml-2 text-sm text-gray-500">Loading usage...</span>
+              <span className="ml-2 text-sm text-muted-foreground">Loading usage...</span>
             </div>
           ) : usage.length === 0 ? (
-            <p className="text-gray-500 text-sm py-2">No usage history yet.</p>
+            <p className="text-muted-foreground text-sm py-2">No usage history yet.</p>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="text-left text-gray-500 border-b border-gray-200">
+                  <tr className="text-left text-muted-foreground border-b border-border">
                     <th className="pb-2 font-medium">Date</th>
                     <th className="pb-2 font-medium">Project</th>
                     <th className="pb-2 font-medium">Compute</th>
@@ -247,27 +247,27 @@ export function PaymentKeyCard({
                 </thead>
                 <tbody>
                   {usage.map((u) => (
-                    <tr key={u.id} className="border-b border-gray-100">
-                      <td className="py-2 text-gray-700">
+                    <tr key={u.id} className="border-b border-border">
+                      <td className="py-2 text-foreground">
                         {new Date(u.created_at).toLocaleString()}
                       </td>
-                      <td className="py-2 text-gray-700 font-mono text-xs">
+                      <td className="py-2 text-foreground font-mono text-xs">
                         {u.project_id}
                       </td>
-                      <td className="py-2 text-gray-700">
+                      <td className="py-2 text-foreground">
                         {formatUsd(u.compute_cost, stablecoin.decimals)}
                       </td>
-                      <td className="py-2 text-gray-700">
+                      <td className="py-2 text-foreground">
                         {formatUsd(u.attached_deposit, stablecoin.decimals)}
                       </td>
                       <td className="py-2">
                         <span
                           className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${
                             u.status === 'completed'
-                              ? 'bg-green-100 text-green-800'
+                              ? 'bg-success/10 text-success-text'
                               : u.status === 'failed'
-                              ? 'bg-red-100 text-red-800'
-                              : 'bg-yellow-100 text-yellow-800'
+                              ? 'bg-destructive/10 text-destructive-text'
+                              : 'bg-warning/10 text-warning'
                           }`}
                         >
                           {u.status}
@@ -283,7 +283,7 @@ export function PaymentKeyCard({
                             View
                           </button>
                         ) : (
-                          <span className="text-gray-400 text-xs">-</span>
+                          <span className="text-faint-foreground text-xs">-</span>
                         )}
                       </td>
                     </tr>
@@ -292,8 +292,8 @@ export function PaymentKeyCard({
               </table>
               {/* Pagination controls */}
               {usageTotal > usageLimit && (
-                <div className="flex items-center justify-between mt-4 pt-3 border-t border-gray-200">
-                  <span className="text-xs text-gray-500">
+                <div className="flex items-center justify-between mt-4 pt-3 border-t border-border">
+                  <span className="text-xs text-muted-foreground">
                     Showing {usageOffset + 1}-{Math.min(usageOffset + usageLimit, usageTotal)} of {usageTotal}
                   </span>
                   <div className="flex gap-2">
@@ -302,8 +302,8 @@ export function PaymentKeyCard({
                       disabled={usageOffset === 0 || loadingUsage}
                       className={`px-3 py-1 text-sm rounded border ${
                         usageOffset === 0 || loadingUsage
-                          ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
-                          : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                          ? 'bg-card-muted text-faint-foreground border-border cursor-not-allowed'
+                          : 'bg-card text-foreground border-border-strong hover:bg-card-muted'
                       }`}
                     >
                       Previous
@@ -313,8 +313,8 @@ export function PaymentKeyCard({
                       disabled={usageOffset + usageLimit >= usageTotal || loadingUsage}
                       className={`px-3 py-1 text-sm rounded border ${
                         usageOffset + usageLimit >= usageTotal || loadingUsage
-                          ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
-                          : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                          ? 'bg-card-muted text-faint-foreground border-border cursor-not-allowed'
+                          : 'bg-card text-foreground border-border-strong hover:bg-card-muted'
                       }`}
                     >
                       Next
@@ -334,13 +334,13 @@ export function PaymentKeyCard({
           onClick={() => setAttestationModal(null)}
         >
           <div
-            className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto"
+            className="bg-card rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="p-6">
               <div className="flex justify-between items-center mb-4">
                 <div className="flex items-center gap-3">
-                  <h2 className="text-2xl font-bold text-gray-900">
+                  <h2 className="text-2xl font-bold text-foreground">
                     TEE Attestation - HTTPS Call
                   </h2>
                   <span className="inline-flex rounded-full px-2 text-xs font-semibold leading-5 bg-orange-100 text-orange-800">
@@ -349,7 +349,7 @@ export function PaymentKeyCard({
                 </div>
                 <button
                   onClick={() => setAttestationModal(null)}
-                  className="text-gray-400 hover:text-gray-600"
+                  className="text-faint-foreground hover:text-foreground"
                 >
                   <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -357,7 +357,7 @@ export function PaymentKeyCard({
                 </button>
               </div>
 
-              <p className="text-sm text-gray-500 mb-4 font-mono">
+              <p className="text-sm text-muted-foreground mb-4 font-mono">
                 Job ID: #{attestationModal.jobId}
               </p>
 
@@ -368,8 +368,8 @@ export function PaymentKeyCard({
               )}
 
               {attestationModal.error && (
-                <div className="bg-red-50 border border-red-200 rounded-md p-4 mb-4">
-                  <p className="text-red-800">{attestationModal.error}</p>
+                <div className="bg-destructive/10 border border-destructive/30 rounded-md p-4 mb-4">
+                  <p className="text-destructive-text">{attestationModal.error}</p>
                 </div>
               )}
 

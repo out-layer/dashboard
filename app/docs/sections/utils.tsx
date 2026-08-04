@@ -17,7 +17,7 @@ export function AnchorHeading({ id, children }: { id: string; children: React.Re
     <h3 id={id} className="text-xl font-semibold mb-3 group relative">
       <a href={`#${id}`} onClick={handleClick} className="hover:text-[var(--primary-orange)] transition-colors">
         {children}
-        <span className="absolute -left-6 opacity-0 group-hover:opacity-100 transition-opacity text-gray-400">#</span>
+        <span className="absolute -left-6 opacity-0 group-hover:opacity-100 transition-opacity text-faint-foreground">#</span>
       </a>
     </h3>
   );

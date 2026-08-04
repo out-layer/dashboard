@@ -4,8 +4,8 @@ import { ExampleCard, UseCasesSection, KeyFeaturesSection, TechnicalDetailsSecti
 export function VrfExample() {
   const badges = (
     <>
-      <span className="ml-3 text-sm bg-blue-100 text-blue-800 px-3 py-1 rounded">WASI P1</span>
-      <span className="ml-2 text-sm bg-yellow-100 text-yellow-800 px-3 py-1 rounded">Intermediate</span>
+      <span className="ml-3 text-sm bg-info/10 text-info px-3 py-1 rounded">WASI P1</span>
+      <span className="ml-2 text-sm bg-warning/10 text-warning px-3 py-1 rounded">Intermediate</span>
     </>
   );
 
@@ -17,7 +17,7 @@ export function VrfExample() {
       githubUrl="https://github.com/out-layer/vrf-example"
       playgroundId="vrf-coin-flip"
     >
-      <p className="text-gray-700 mb-4">
+      <p className="text-foreground mb-4">
         Generate <strong>verifiable random numbers</strong> with cryptographic proof. Unlike plain randomness,
         each VRF output includes an Ed25519 signature that anyone can verify on-chain &mdash; no trust in the server required.
         Includes a companion NEAR smart contract for provably fair coin flip with on-chain proof verification.
@@ -112,7 +112,7 @@ let side = (bytes as u64 * 2 / (u32::MAX as u64 + 1)) as u32; // 0 or 1`}
       ]} />
 
       <LearnMoreSection>
-        <ul className="text-sm text-gray-700 space-y-1">
+        <ul className="text-sm text-foreground space-y-1">
           <li>
             <Link href="/docs/vrf" className="text-[var(--primary-orange)] hover:underline">
               VRF Documentation &mdash; full technical guide

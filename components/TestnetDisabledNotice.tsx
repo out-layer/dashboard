@@ -16,7 +16,7 @@ export default function TestnetDisabledNotice({ variant = 'block' }: Props) {
 
   if (variant === 'banner') {
     return (
-      <div className="bg-yellow-50 border-b border-yellow-200 text-yellow-900 text-sm">
+      <div className="bg-warning/10 border-b border-warning/30 text-warning text-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2 flex items-start gap-2">
           <svg className="w-4 h-4 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
             <path fillRule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 6a1 1 0 011 1v3a1 1 0 11-2 0V7a1 1 0 011-1zm0 8a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
@@ -32,12 +32,12 @@ export default function TestnetDisabledNotice({ variant = 'block' }: Props) {
   }
 
   return (
-    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
+    <div className="bg-warning/10 border border-warning/30 rounded-lg p-6">
       <div className="flex items-start gap-3">
-        <svg className="w-6 h-6 text-yellow-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+        <svg className="w-6 h-6 text-warning flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
           <path fillRule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 6a1 1 0 011 1v3a1 1 0 11-2 0V7a1 1 0 011-1zm0 8a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
         </svg>
-        <div className="text-sm text-yellow-900 space-y-2">
+        <div className="text-sm text-warning space-y-2">
           <p className="font-semibold text-base">Testnet infrastructure is offline</p>
           <p>
             OutLayer testnet workers are currently disabled due to low usage. We recommend

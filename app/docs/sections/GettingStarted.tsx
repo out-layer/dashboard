@@ -18,7 +18,7 @@ function AnchorHeading({ id, children }: { id: string; children: React.ReactNode
     <h3 id={id} className="text-xl font-semibold mb-3 group relative">
       <a href={`#${id}`} onClick={handleClick} className="hover:text-[var(--primary-orange)] transition-colors">
         {children}
-        <span className="absolute -left-6 opacity-0 group-hover:opacity-100 transition-opacity text-gray-400">#</span>
+        <span className="absolute -left-6 opacity-0 group-hover:opacity-100 transition-opacity text-faint-foreground">#</span>
       </a>
     </h3>
   );
@@ -52,11 +52,11 @@ export default function GettingStartedSection() {
       <div className="space-y-8">
         <section id="what-is-outlayer">
           <AnchorHeading id="what-is-outlayer">What is OutLayer?</AnchorHeading>
-          <p className="text-gray-700 mb-3">
+          <p className="text-foreground mb-3">
             OutLayer lets you run <strong>any off-chain code</strong> (random numbers, HTTP requests, AI models, heavy computations)
             with <strong>cryptographic proof</strong> that exactly the code you specified ran with the inputs you provided.
           </p>
-          <p className="text-gray-700">
+          <p className="text-foreground">
             Call OutLayer from <strong>NEAR smart contracts</strong> (yield/resume) or <strong>any app via HTTPS</strong>.
             Every execution produces verifiable TEE attestation - no trust required, just math.
           </p>
@@ -64,7 +64,7 @@ export default function GettingStartedSection() {
 
         <section id="tee-attestation">
           <AnchorHeading id="tee-attestation">Verifiable Execution (TEE)</AnchorHeading>
-          <p className="text-gray-700 mb-3">
+          <p className="text-foreground mb-3">
             Every OutLayer execution runs inside <strong>Intel TDX</strong> (Trusted Execution Environment) and produces
             a cryptographic attestation proving:
           </p>
@@ -82,8 +82,8 @@ export default function GettingStartedSection() {
               <p className="text-sm text-purple-800"><strong>🛡️ Worker Identity</strong> - Verified TEE measurements</p>
             </div>
           </div>
-          <div className="bg-green-50 border-l-4 border-green-500 p-4">
-            <p className="text-sm text-gray-700">
+          <div className="bg-success/10 border-l-4 border-success/60 p-4">
+            <p className="text-sm text-foreground">
               <strong>🎯 Why this matters:</strong> Anyone can independently verify that your code ran correctly.
               No &quot;trust us&quot; - cryptographic proof signed by Intel hardware.
               <Link href="/docs/tee-attestation" className="ml-2 text-[var(--primary-orange)] hover:underline">Learn more →</Link>
@@ -93,7 +93,7 @@ export default function GettingStartedSection() {
 
         <section id="tee-vault">
           <AnchorHeading id="tee-vault">Upgradeable TEE Vault</AnchorHeading>
-          <p className="text-gray-700 mb-3">
+          <p className="text-foreground mb-3">
             Build wallet apps where <strong>private keys live inside TEE</strong>. Update your code anytime —
             secrets persist across upgrades thanks to <strong>Confidential Key Derivation (CKD)</strong>.
           </p>
@@ -103,8 +103,8 @@ export default function GettingStartedSection() {
               Only your WASM code running in TEE can access it. Change your code — same key, same secrets.
             </p>
           </div>
-          <div className="bg-blue-50 border-l-4 border-blue-500 p-4">
-            <p className="text-sm text-blue-800">
+          <div className="bg-info/10 border-l-4 border-info/60 p-4">
+            <p className="text-sm text-info">
               💡 <Link href="/docs/secrets#confidential-key-derivation" className="underline font-medium">CKD Documentation</Link> •{' '}
               <Link href="/docs/secrets#dao-governance" className="underline font-medium">DAO Governance →</Link>
             </p>
@@ -113,7 +113,7 @@ export default function GettingStartedSection() {
 
         <section id="two-modes">
           <AnchorHeading id="two-modes">Two Ways to Use OutLayer</AnchorHeading>
-          <p className="text-gray-700 mb-4">
+          <p className="text-foreground mb-4">
             Choose based on your use case. Both provide the same verifiable execution guarantees.
           </p>
 
@@ -148,13 +148,13 @@ export default function GettingStartedSection() {
 
         <section id="blockchain-flow">
           <AnchorHeading id="blockchain-flow">Blockchain Flow (NEAR Yield/Resume)</AnchorHeading>
-          <p className="text-gray-700 mb-3">
+          <p className="text-foreground mb-3">
             NEAR&apos;s yield/resume allows smart contracts to <strong>pause execution</strong>, wait for off-chain
             computation, then <strong>resume with the result</strong> - all in one logical transaction.
           </p>
 
           {/* Desktop Diagram - Hidden on mobile */}
-          <div className="hidden md:block bg-white border-2 border-gray-300 rounded-lg p-6 mb-4 overflow-x-auto">
+          <div className="hidden md:block bg-card border-2 border-border-strong rounded-lg p-6 mb-4 overflow-x-auto">
             <svg viewBox="0 0 800 600" className="w-full" style={{ maxWidth: '800px', margin: '0 auto' }}>
               {/* Participant boxes */}
               <rect x="50" y="20" width="100" height="50" fill="#3b82f6" rx="8" />
@@ -239,14 +239,14 @@ export default function GettingStartedSection() {
           </div>
 
           {/* Mobile Simplified Diagram */}
-          <div className="md:hidden bg-gradient-to-b from-gray-50 to-blue-50 border-2 border-gray-300 rounded-lg p-4 mb-4">
+          <div className="md:hidden bg-gradient-to-b from-card-muted to-blue-50 border-2 border-border-strong rounded-lg p-4 mb-4">
             <div className="space-y-3 text-sm">
               {/* Step 1 */}
               <div className="flex items-center gap-2">
-                <div className="flex-shrink-0 w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white font-bold text-xs">1</div>
+                <div className="flex-shrink-0 w-8 h-8 bg-info/100 rounded-full flex items-center justify-center text-white font-bold text-xs">1</div>
                 <div className="flex items-center gap-2 flex-1">
-                  <span className="font-semibold text-blue-800">User</span>
-                  <span className="text-gray-600">→</span>
+                  <span className="font-semibold text-info">User</span>
+                  <span className="text-muted-foreground">→</span>
                   <span className="font-semibold text-purple-800">Contract</span>
                 </div>
               </div>
@@ -257,7 +257,7 @@ export default function GettingStartedSection() {
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
                     <span className="font-semibold text-purple-800">Contract</span>
-                    <span className="text-gray-600">→</span>
+                    <span className="text-muted-foreground">→</span>
                     <span className="font-semibold text-orange-800">OutLayer</span>
                   </div>
                   <div className="text-xs text-purple-600 ml-8 mt-0.5">
@@ -267,8 +267,8 @@ export default function GettingStartedSection() {
               </div>
 
               {/* YIELD */}
-              <div className="ml-10 p-3 bg-yellow-100 border-l-4 border-yellow-500 rounded">
-                <div className="font-bold text-yellow-900 text-xs">⏸️ YIELD - Transaction paused</div>
+              <div className="ml-10 p-3 bg-warning/15 border-l-4 border-yellow-500 rounded">
+                <div className="font-bold text-warning text-xs">⏸️ YIELD - Transaction paused</div>
               </div>
 
               {/* Step 3 */}
@@ -276,15 +276,15 @@ export default function GettingStartedSection() {
                 <div className="flex-shrink-0 w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center text-white font-bold text-xs">3</div>
                 <div className="flex items-center gap-2 flex-1">
                   <span className="font-semibold text-orange-800">OutLayer</span>
-                  <span className="text-gray-600">→</span>
-                  <span className="font-semibold text-green-800">Worker</span>
+                  <span className="text-muted-foreground">→</span>
+                  <span className="font-semibold text-success-text">Worker</span>
                 </div>
               </div>
 
               {/* Execution */}
-              <div className="ml-10 p-3 bg-green-50 border-l-4 border-green-500 rounded">
-                <div className="font-bold text-green-900 text-xs mb-1">🔨 Off-chain work:</div>
-                <div className="text-xs text-green-800 space-y-0.5">
+              <div className="ml-10 p-3 bg-success/10 border-l-4 border-success/60 rounded">
+                <div className="font-bold text-success-text text-xs mb-1">🔨 Off-chain work:</div>
+                <div className="text-xs text-success-text space-y-0.5">
                   <div>• Clone from GitHub</div>
                   <div>• Compile code (10 sec+)</div>
                   <div>• Execute WASM (&lt;1 sec - few min)</div>
@@ -294,16 +294,16 @@ export default function GettingStartedSection() {
 
               {/* Step 4 */}
               <div className="flex items-center gap-2">
-                <div className="flex-shrink-0 w-8 h-8 bg-green-600 rounded-full flex items-center justify-center text-white font-bold text-xs">4</div>
+                <div className="flex-shrink-0 w-8 h-8 bg-success rounded-full flex items-center justify-center text-white font-bold text-xs">4</div>
                 <div className="flex items-center gap-2 flex-1">
-                  <span className="font-semibold text-green-800">Worker</span>
-                  <span className="text-gray-600">→</span>
+                  <span className="font-semibold text-success-text">Worker</span>
+                  <span className="text-muted-foreground">→</span>
                   <span className="font-semibold text-orange-800">OutLayer</span>
                 </div>
               </div>
 
-              <div className="ml-10 p-3 bg-green-100 border-l-4 border-green-600 rounded">
-                <div className="font-bold text-green-900 text-xs">Return execution output</div>
+              <div className="ml-10 p-3 bg-success/15 border-l-4 border-green-600 rounded">
+                <div className="font-bold text-success-text text-xs">Return execution output</div>
               </div>
 
               {/* Step 5 */}
@@ -311,26 +311,26 @@ export default function GettingStartedSection() {
                 <div className="flex-shrink-0 w-8 h-8 bg-orange-600 rounded-full flex items-center justify-center text-white font-bold text-xs">5</div>
                 <div className="flex items-center gap-2 flex-1">
                   <span className="font-semibold text-orange-800">OutLayer</span>
-                  <span className="text-gray-600">→</span>
+                  <span className="text-muted-foreground">→</span>
                   <span className="font-semibold text-purple-800">Contract</span>
                 </div>
               </div>
 
               {/* RESUME */}
-              <div className="ml-10 p-3 bg-green-100 border-l-4 border-green-600 rounded">
-                <div className="font-bold text-green-900 text-xs">▶️ RESUME - Process result in callback</div>
+              <div className="ml-10 p-3 bg-success/15 border-l-4 border-green-600 rounded">
+                <div className="font-bold text-success-text text-xs">▶️ RESUME - Process result in callback</div>
               </div>
 
               {/* Complete */}
-              <div className="p-3 bg-green-100 border-2 border-green-600 rounded-lg text-center">
-                <div className="font-bold text-green-900 text-xs">✅ Transaction Complete!</div>
-                <div className="text-xs text-green-800 mt-1">User receives final result</div>
+              <div className="p-3 bg-success/15 border-2 border-green-600 rounded-lg text-center">
+                <div className="font-bold text-success-text text-xs">✅ Transaction Complete!</div>
+                <div className="text-xs text-success-text mt-1">User receives final result</div>
               </div>
             </div>
           </div>
 
-          <div className="bg-green-50 border-l-4 border-green-500 p-4">
-            <p className="text-sm text-gray-700">
+          <div className="bg-success/10 border-l-4 border-success/60 p-4">
+            <p className="text-sm text-foreground">
               <strong>🎯 Key benefit:</strong> From the user&apos;s perspective, it&apos;s still ONE transaction. They click once,
               wait a few seconds, and get the final result. No manual follow-up transactions needed.
             </p>
@@ -339,14 +339,14 @@ export default function GettingStartedSection() {
 
         <section id="https-flow">
           <AnchorHeading id="https-flow">HTTPS Flow (Direct API)</AnchorHeading>
-          <p className="text-gray-700 mb-3">
+          <p className="text-foreground mb-3">
             Call OutLayer directly via HTTPS - no blockchain transactions, instant response.
             Ideal for developers who want to <strong>monetize their APIs</strong> and provide users
             with <strong>cryptographic proof</strong> of what code actually ran.
           </p>
 
           {/* Desktop Diagram - Hidden on mobile */}
-          <div className="hidden md:block bg-white border-2 border-gray-300 rounded-lg p-6 mb-4 overflow-x-auto">
+          <div className="hidden md:block bg-card border-2 border-border-strong rounded-lg p-6 mb-4 overflow-x-auto">
             <svg viewBox="0 0 700 400" className="w-full" style={{ maxWidth: '700px', margin: '0 auto' }}>
               {/* Participant boxes */}
               <rect x="50" y="20" width="120" height="50" fill="#3b82f6" rx="8" />
@@ -411,18 +411,18 @@ export default function GettingStartedSection() {
           </div>
 
           {/* Mobile Simplified Diagram */}
-          <div className="md:hidden bg-gradient-to-b from-gray-50 to-orange-50 border-2 border-gray-300 rounded-lg p-4 mb-4">
+          <div className="md:hidden bg-gradient-to-b from-card-muted to-orange-50 border-2 border-border-strong rounded-lg p-4 mb-4">
             <div className="space-y-3 text-sm">
               {/* Step 1 */}
               <div className="flex items-center gap-2">
-                <div className="flex-shrink-0 w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white font-bold text-xs">1</div>
+                <div className="flex-shrink-0 w-8 h-8 bg-info/100 rounded-full flex items-center justify-center text-white font-bold text-xs">1</div>
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
-                    <span className="font-semibold text-blue-800">Your App</span>
-                    <span className="text-gray-600">→</span>
+                    <span className="font-semibold text-info">Your App</span>
+                    <span className="text-muted-foreground">→</span>
                     <span className="font-semibold text-orange-800">OutLayer API</span>
                   </div>
-                  <div className="text-xs text-gray-600 ml-0 mt-0.5">
+                  <div className="text-xs text-muted-foreground ml-0 mt-0.5">
                     POST + Payment Key + optional tip to author
                   </div>
                 </div>
@@ -433,15 +433,15 @@ export default function GettingStartedSection() {
                 <div className="flex-shrink-0 w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center text-white font-bold text-xs">2</div>
                 <div className="flex items-center gap-2 flex-1">
                   <span className="font-semibold text-orange-800">API</span>
-                  <span className="text-gray-600">→</span>
-                  <span className="font-semibold text-green-800">TEE Worker</span>
+                  <span className="text-muted-foreground">→</span>
+                  <span className="font-semibold text-success-text">TEE Worker</span>
                 </div>
               </div>
 
               {/* Execution */}
-              <div className="ml-10 p-3 bg-green-50 border-l-4 border-green-500 rounded">
-                <div className="font-bold text-green-900 text-xs mb-1">🔨 TEE execution:</div>
-                <div className="text-xs text-green-800 space-y-0.5">
+              <div className="ml-10 p-3 bg-success/10 border-l-4 border-success/60 rounded">
+                <div className="font-bold text-success-text text-xs mb-1">🔨 TEE execution:</div>
+                <div className="text-xs text-success-text space-y-0.5">
                   <div>• Load cached WASM</div>
                   <div>• Execute with input</div>
                   <div>• Generate attestation</div>
@@ -450,26 +450,26 @@ export default function GettingStartedSection() {
 
               {/* Step 3 */}
               <div className="flex items-center gap-2">
-                <div className="flex-shrink-0 w-8 h-8 bg-green-600 rounded-full flex items-center justify-center text-white font-bold text-xs">3</div>
+                <div className="flex-shrink-0 w-8 h-8 bg-success rounded-full flex items-center justify-center text-white font-bold text-xs">3</div>
                 <div className="flex items-center gap-2 flex-1">
-                  <span className="font-semibold text-green-800">Worker</span>
-                  <span className="text-gray-600">→</span>
+                  <span className="font-semibold text-success-text">Worker</span>
+                  <span className="text-muted-foreground">→</span>
                   <span className="font-semibold text-orange-800">API</span>
-                  <span className="text-gray-600">→</span>
-                  <span className="font-semibold text-blue-800">App</span>
+                  <span className="text-muted-foreground">→</span>
+                  <span className="font-semibold text-info">App</span>
                 </div>
               </div>
 
               {/* Complete */}
-              <div className="p-3 bg-green-100 border-2 border-green-600 rounded-lg text-center">
-                <div className="font-bold text-green-900 text-xs">✅ Instant Response!</div>
-                <div className="text-xs text-green-800 mt-1">JSON with result + attestation proof</div>
+              <div className="p-3 bg-success/15 border-2 border-green-600 rounded-lg text-center">
+                <div className="font-bold text-success-text text-xs">✅ Instant Response!</div>
+                <div className="text-xs text-success-text mt-1">JSON with result + attestation proof</div>
               </div>
             </div>
           </div>
 
           <div className="bg-orange-50 border-l-4 border-orange-500 p-4">
-            <p className="text-sm text-gray-700">
+            <p className="text-sm text-foreground">
               <strong>🎯 Key benefit:</strong> Sub-second response, no blockchain knowledge needed.
               Same verifiable execution, just via HTTP. Pay with USDC via Payment Keys.
               Optionally send payment to app author via <code className="bg-orange-100 px-1 rounded text-xs">X-Attached-Deposit</code> header.
@@ -480,31 +480,31 @@ export default function GettingStartedSection() {
         <section id="why-outlayer">
           <AnchorHeading id="why-outlayer">Why OutLayer Makes This Easy</AnchorHeading>
           <div className="space-y-3">
-            <div className="bg-gray-50 p-4 rounded-lg border-l-4 border-orange-400">
-              <p className="text-sm text-gray-700">
+            <div className="bg-card-muted p-4 rounded-lg border-l-4 border-orange-400">
+              <p className="text-sm text-foreground">
                 <strong>✅ No infrastructure setup</strong> - We run the workers, you just write code
               </p>
             </div>
-            <div className="bg-gray-50 p-4 rounded-lg border-l-4 border-orange-400">
-              <p className="text-sm text-gray-700">
+            <div className="bg-card-muted p-4 rounded-lg border-l-4 border-orange-400">
+              <p className="text-sm text-foreground">
                 <strong>✅ No access control headaches</strong> - Your contract stays in control. We just return results,
                 you decide what to do with them in your callback
               </p>
             </div>
-            <div className="bg-gray-50 p-4 rounded-lg border-l-4 border-orange-400">
-              <p className="text-sm text-gray-700">
+            <div className="bg-card-muted p-4 rounded-lg border-l-4 border-orange-400">
+              <p className="text-sm text-foreground">
                 <strong>✅ No worker delegation</strong> - You don&apos;t give us permissions on your contract.
                 We can&apos;t do anything except call your callback with results
               </p>
             </div>
-            <div className="bg-gray-50 p-4 rounded-lg border-l-4 border-orange-400">
-              <p className="text-sm text-gray-700">
+            <div className="bg-card-muted p-4 rounded-lg border-l-4 border-orange-400">
+              <p className="text-sm text-foreground">
                 <strong>✅ GitHub-based deployment</strong> - Push code to GitHub, reference the repo in your contract call.
                 We compile and execute automatically
               </p>
             </div>
-            <div className="bg-gray-50 p-4 rounded-lg border-l-4 border-orange-400">
-              <p className="text-sm text-gray-700">
+            <div className="bg-card-muted p-4 rounded-lg border-l-4 border-orange-400">
+              <p className="text-sm text-foreground">
                 <strong>✅ Encrypted secrets support</strong> - Need API keys? Store them encrypted on-chain with access control,
                 we inject them as environment variables during execution
               </p>
@@ -515,76 +515,76 @@ export default function GettingStartedSection() {
         <section id="quick-start">
           <AnchorHeading id="quick-start">Quick Start: 4 Steps</AnchorHeading>
           <div className="space-y-4">
-            <div className="bg-white border-2 border-gray-200 rounded-lg p-4">
-              <h4 className="font-semibold text-gray-800 mb-2">1️⃣ Write Your Code</h4>
-              <p className="text-sm text-gray-700 mb-2">
+            <div className="bg-card border-2 border-border rounded-lg p-4">
+              <h4 className="font-semibold text-foreground mb-2">1️⃣ Write Your Code</h4>
+              <p className="text-sm text-foreground mb-2">
                 Create a project that compiles to WebAssembly. Rust recommended, other languages supported.
               </p>
-              <p className="text-xs text-gray-600">
+              <p className="text-xs text-muted-foreground">
                 📖 <Link href="/docs/dev-guide" className="text-[var(--primary-orange)] hover:underline">Tutorial</Link> •{' '}
                 <Link href="/docs/examples" className="text-[var(--primary-orange)] hover:underline">Examples</Link> •{' '}
                 <Link href="/docs/wasi" className="text-[var(--primary-orange)] hover:underline">Building Apps</Link>
               </p>
             </div>
 
-            <div className="bg-white border-2 border-gray-200 rounded-lg p-4">
-              <h4 className="font-semibold text-gray-800 mb-2">2️⃣ Push to GitHub or Provide WASM URL</h4>
-              <p className="text-sm text-gray-700 mb-2">
+            <div className="bg-card border-2 border-border rounded-lg p-4">
+              <h4 className="font-semibold text-foreground mb-2">2️⃣ Push to GitHub or Provide WASM URL</h4>
+              <p className="text-sm text-foreground mb-2">
                 <strong>Option A:</strong> Push to GitHub (public or private with access tokens). OutLayer will clone and compile on-demand.
               </p>
-              <p className="text-sm text-gray-700 mb-2">
+              <p className="text-sm text-foreground mb-2">
                 <strong>Option B:</strong> Host pre-compiled WASM file anywhere and provide direct URL.
               </p>
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-muted-foreground">
                 ⏱️ GitHub: first execution compiles (10-30 sec), then cached. WASM URL: instant execution.
               </p>
             </div>
 
-            <div className="bg-white border-2 border-gray-200 rounded-lg p-4">
-              <h4 className="font-semibold text-gray-800 mb-2">3️⃣ Call OutLayer</h4>
-              <p className="text-sm text-gray-700 mb-2">
+            <div className="bg-card border-2 border-border rounded-lg p-4">
+              <h4 className="font-semibold text-foreground mb-2">3️⃣ Call OutLayer</h4>
+              <p className="text-sm text-foreground mb-2">
                 <strong>Option A:</strong> HTTPS API — call directly from any app
               </p>
-              <pre className="text-xs bg-gray-100 p-2 rounded mt-1 overflow-x-auto">
+              <pre className="text-xs bg-card-muted p-2 rounded mt-1 overflow-x-auto">
 {`curl -X POST https://api.outlayer.ai/call/owner/project \\
   -H "X-Payment-Key: pk_..." \\
   -d '{"param": 123}'`}
               </pre>
-              <p className="text-xs text-gray-600 mt-1 mb-3">
+              <p className="text-xs text-muted-foreground mt-1 mb-3">
                 📖 <Link href="/docs/web2-integration" className="text-[var(--primary-orange)] hover:underline">HTTPS Guide</Link> •{' '}
                 <Link href="/docs/https-api" className="text-[var(--primary-orange)] hover:underline">API Reference</Link>
               </p>
-              <p className="text-sm text-gray-700 mb-2">
+              <p className="text-sm text-foreground mb-2">
                 <strong>Option B:</strong> NEAR transaction
               </p>
-              <pre className="text-xs bg-gray-100 p-2 rounded mt-1 overflow-x-auto">
+              <pre className="text-xs bg-card-muted p-2 rounded mt-1 overflow-x-auto">
 {`near call outlayer.testnet request_execution '\\
   {"source": {"GitHub": {"repo": "github.com/you/project", "commit": "main"}}, \\
    "input_data": "{\\"param\\":123}"}' \\
   --accountId you.testnet --deposit 0.1`}
               </pre>
-              <p className="text-sm text-gray-700 mt-3 mb-2">
+              <p className="text-sm text-foreground mt-3 mb-2">
                 <strong>Option C:</strong> Smart contract integration
               </p>
-              <p className="text-xs text-gray-600">
+              <p className="text-xs text-muted-foreground">
                 📖 <Link href="/docs/near-integration" className="text-[var(--primary-orange)] hover:underline">Contract Integration Guide</Link>
               </p>
             </div>
 
-            <div className="bg-white border-2 border-gray-200 rounded-lg p-4">
-              <h4 className="font-semibold text-gray-800 mb-2">4️⃣ Receive Result</h4>
-              <p className="text-sm text-gray-700">
+            <div className="bg-card border-2 border-border rounded-lg p-4">
+              <h4 className="font-semibold text-foreground mb-2">4️⃣ Receive Result</h4>
+              <p className="text-sm text-foreground">
                 HTTPS returns JSON response instantly. NEAR contract receives callback automatically.
                 Excess payment refunded based on actual resources used.
               </p>
             </div>
 
-            <div className="bg-white border-2 border-gray-200 rounded-lg p-4">
-              <h4 className="font-semibold text-gray-800 mb-2">5️⃣ Verify Attestation</h4>
-              <p className="text-sm text-gray-700 mb-2">
+            <div className="bg-card border-2 border-border rounded-lg p-4">
+              <h4 className="font-semibold text-foreground mb-2">5️⃣ Verify Attestation</h4>
+              <p className="text-sm text-foreground mb-2">
                 Every execution produces TEE attestation — cryptographic proof of what code ran with what inputs.
               </p>
-              <p className="text-xs text-gray-600">
+              <p className="text-xs text-muted-foreground">
                 📖 <Link href="/docs/tee-attestation" className="text-[var(--primary-orange)] hover:underline">How Attestation Works</Link> •{' '}
                 <Link href="/executions" className="text-[var(--primary-orange)] hover:underline">View Executions</Link>
               </p>
@@ -594,7 +594,7 @@ export default function GettingStartedSection() {
 
         <section id="secrets">
           <AnchorHeading id="secrets">Secrets</AnchorHeading>
-          <p className="text-gray-700 mb-3">
+          <p className="text-foreground mb-3">
             Store encrypted API keys and credentials with access control. OutLayer decrypts them
             during execution — your code reads them as environment variables.
             <strong> Update your code anytime — secrets persist across upgrades.</strong>
@@ -605,8 +605,8 @@ export default function GettingStartedSection() {
               Only your WASM code running in TEE can access them. Perfect for wallet apps and signing keys.
             </p>
           </div>
-          <div className="bg-blue-50 border-l-4 border-blue-500 p-4">
-            <p className="text-sm text-blue-800">
+          <div className="bg-info/10 border-l-4 border-info/60 p-4">
+            <p className="text-sm text-info">
               💡 <Link href="/secrets" className="underline font-medium">Manage Secrets</Link> •{' '}
               <Link href="/docs/secrets#confidential-key-derivation" className="underline font-medium">CKD Docs</Link> •{' '}
               <Link href="/docs/secrets" className="underline font-medium">Learn more →</Link>
@@ -616,11 +616,11 @@ export default function GettingStartedSection() {
 
         <section id="payment">
           <AnchorHeading id="payment">Payment & Pricing</AnchorHeading>
-          <p className="text-gray-700 mb-3">
+          <p className="text-foreground mb-3">
             Pay per execution based on actual resources used. Unused deposit automatically refunded.
           </p>
-          <div className="bg-blue-50 border-l-4 border-blue-500 p-4">
-            <p className="text-sm text-blue-800">
+          <div className="bg-info/10 border-l-4 border-info/60 p-4">
+            <p className="text-sm text-info">
               💡 <Link href="/docs/pricing" className="underline font-medium">Pricing details →</Link>
             </p>
           </div>
@@ -628,12 +628,12 @@ export default function GettingStartedSection() {
 
         <section id="persistent-storage">
           <AnchorHeading id="persistent-storage">Persistent Storage</AnchorHeading>
-          <p className="text-gray-700 mb-3">
+          <p className="text-foreground mb-3">
             Store data between executions with encrypted persistent storage.
             Data persists across code updates and is only accessible by your code.
           </p>
-          <div className="bg-blue-50 border-l-4 border-blue-500 p-4">
-            <p className="text-sm text-blue-800">
+          <div className="bg-info/10 border-l-4 border-info/60 p-4">
+            <p className="text-sm text-info">
               💡 <Link href="/docs/storage" className="underline font-medium">Storage Guide</Link> •{' '}
               <Link href="/docs/projects" className="underline font-medium">Projects →</Link>
             </p>
@@ -644,18 +644,18 @@ export default function GettingStartedSection() {
           <AnchorHeading id="ready-to-build">Ready to Build?</AnchorHeading>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Link href="/docs/dev-guide" className="block bg-gradient-to-br from-orange-50 to-red-50 border-2 border-orange-200 rounded-lg p-4 hover:shadow-lg transition-shadow">
-              <h4 className="font-semibold text-gray-800 mb-2">Developer Guide</h4>
-              <p className="text-sm text-gray-700">Step-by-step tutorial: Build a random number generator</p>
+              <h4 className="font-semibold text-foreground mb-2">Developer Guide</h4>
+              <p className="text-sm text-foreground">Step-by-step tutorial: Build a random number generator</p>
             </Link>
 
-            <Link href="/docs/examples" className="block bg-gradient-to-br from-blue-50 to-purple-50 border-2 border-blue-200 rounded-lg p-4 hover:shadow-lg transition-shadow">
-              <h4 className="font-semibold text-gray-800 mb-2">Working Examples</h4>
-              <p className="text-sm text-gray-700">Production-ready examples with full source code</p>
+            <Link href="/docs/examples" className="block bg-gradient-to-br from-blue-50 to-purple-50 border-2 border-info/30 rounded-lg p-4 hover:shadow-lg transition-shadow">
+              <h4 className="font-semibold text-foreground mb-2">Working Examples</h4>
+              <p className="text-sm text-foreground">Production-ready examples with full source code</p>
             </Link>
 
-            <Link href="/docs/near-integration" className="block bg-gradient-to-br from-green-50 to-teal-50 border-2 border-green-200 rounded-lg p-4 hover:shadow-lg transition-shadow">
-              <h4 className="font-semibold text-gray-800 mb-2">NEAR Integration</h4>
-              <p className="text-sm text-gray-700">Smart contract integration with yield/resume callbacks</p>
+            <Link href="/docs/near-integration" className="block bg-gradient-to-br from-green-50 to-teal-50 border-2 border-success/30 rounded-lg p-4 hover:shadow-lg transition-shadow">
+              <h4 className="font-semibold text-foreground mb-2">NEAR Integration</h4>
+              <p className="text-sm text-foreground">Smart contract integration with yield/resume callbacks</p>
             </Link>
           </div>
         </section>

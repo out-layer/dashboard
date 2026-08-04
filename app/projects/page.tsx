@@ -354,8 +354,8 @@ export default function ProjectsPage() {
       {/* Header */}
       <div className="sm:flex sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Projects</h1>
-          <p className="mt-2 text-sm text-gray-700">
+          <h1 className="text-3xl font-bold text-foreground">Projects</h1>
+          <p className="mt-2 text-sm text-foreground">
             Manage your OutLayer projects with persistent storage across versions
           </p>
         </div>
@@ -394,15 +394,15 @@ export default function ProjectsPage() {
 
       {/* Error Display */}
       {error && (
-        <div className="mt-4 bg-red-50 border border-red-200 rounded-md p-3">
-          <p className="text-sm text-red-800">{error}</p>
+        <div className="mt-4 bg-destructive/10 border border-destructive/30 rounded-md p-3">
+          <p className="text-sm text-destructive-text">{error}</p>
         </div>
       )}
 
       {/* Success Display */}
       {success && (
-        <div className="mt-4 bg-green-50 border border-green-200 rounded-md p-3">
-          <p className="text-sm text-green-800">{success}</p>
+        <div className="mt-4 bg-success/10 border border-success/30 rounded-md p-3">
+          <p className="text-sm text-success-text">{success}</p>
         </div>
       )}
 
@@ -426,15 +426,15 @@ export default function ProjectsPage() {
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
               </svg>
-              <span className="ml-3 text-gray-500">Loading projects...</span>
+              <span className="ml-3 text-muted-foreground">Loading projects...</span>
             </div>
           ) : projects.length === 0 ? (
             <div className="text-center py-12">
-              <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="mx-auto h-12 w-12 text-faint-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
               </svg>
-              <h3 className="mt-2 text-sm font-medium text-gray-900">No projects</h3>
-              <p className="mt-1 text-sm text-gray-500">Get started by creating a new project.</p>
+              <h3 className="mt-2 text-sm font-medium text-foreground">No projects</h3>
+              <p className="mt-1 text-sm text-muted-foreground">Get started by creating a new project.</p>
               <div className="mt-6">
                 <button
                   onClick={() => setShowCreateForm(true)}
@@ -486,7 +486,7 @@ export default function ProjectsPage() {
             <div className="mt-4 flex justify-center">
               <button
                 onClick={loadProjects}
-                className="text-sm text-gray-500 hover:text-accent-text flex items-center"
+                className="text-sm text-muted-foreground hover:text-accent-text flex items-center"
               >
                 <svg className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -499,11 +499,11 @@ export default function ProjectsPage() {
       )}
 
       {/* Info Section */}
-      <div className="mt-8 bg-blue-50 border border-blue-200 rounded-lg p-6">
-        <h3 className="text-sm font-semibold text-blue-900 mb-3">
+      <div className="mt-8 bg-info/10 border border-info/30 rounded-lg p-6">
+        <h3 className="text-sm font-semibold text-info mb-3">
           About Projects
         </h3>
-        <ul className="text-sm text-blue-800 space-y-2 list-disc list-inside">
+        <ul className="text-sm text-info space-y-2 list-disc list-inside">
           <li>
             <strong>Persistent Storage</strong>: Data persists across version updates within a project
           </li>
@@ -518,9 +518,9 @@ export default function ProjectsPage() {
           </li>
         </ul>
 
-        <div className="mt-4 p-3 bg-white rounded border border-blue-200">
-          <h4 className="text-xs font-semibold text-blue-900 mb-2">Project ID Format</h4>
-          <code className="text-xs text-blue-800 font-mono">
+        <div className="mt-4 p-3 bg-card rounded border border-info/30">
+          <h4 className="text-xs font-semibold text-info mb-2">Project ID Format</h4>
+          <code className="text-xs text-info font-mono">
             {accountId || 'yourname.near'}/project-name
           </code>
         </div>

@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import { useNearWallet } from '@/contexts/NearWalletContext';
+import { RequireWallet } from '@/components/ui/require-wallet';
 import { fetchUserEarnings, UserEarnings, createApiKey } from '@/lib/api';
 import NetworkSwitcher from '@/components/NetworkSwitcher';
-import WalletConnectionModal from '@/components/WalletConnectionModal';
 
 export default function SettingsPage() {
   const { accountId, isConnected, disconnect, shouldReopenModal, clearReopenModal } = useNearWallet();
@@ -98,39 +98,7 @@ export default function SettingsPage() {
   if (!isConnected) {
     return (
       <div className="max-w-4xl mx-auto">
-        <div className="text-center py-12">
-          <svg
-            className="mx-auto h-12 w-12 text-gray-400"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
-            />
-          </svg>
-          <h3 className="mt-2 text-sm font-medium text-gray-900">Not Connected</h3>
-          <p className="mt-1 text-sm text-gray-500">
-            Connect your NEAR wallet to view your settings and earnings
-          </p>
-          <div className="mt-6">
-            <button
-              onClick={() => setShowWalletModal(true)}
-              className="inline-flex items-center px-6 py-3 border border-transparent shadow-sm text-base font-medium rounded-md text-white bg-accent hover:bg-accent-hover transition-all"
-            >
-              Connect Wallet
-            </button>
-          </div>
-        </div>
-
-        {/* Wallet Connection Modal */}
-        <WalletConnectionModal
-          isOpen={showWalletModal}
-          onClose={() => setShowWalletModal(false)}
-        />
+        <RequireWallet subject="your settings and earnings" />
       </div>
     );
   }

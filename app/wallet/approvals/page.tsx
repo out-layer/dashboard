@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useNearWallet } from '@/contexts/NearWalletContext';
-import WalletConnectionModal from '@/components/WalletConnectionModal';
+import { RequireWallet } from '@/components/ui/require-wallet';
 import { getCoordinatorApiUrl } from '@/lib/api';
 import Link from 'next/link';
 import { findKeyForWallets, saveWalletKey } from '@/lib/wallet-keys';
@@ -331,18 +331,7 @@ function WalletApprovalsContent() {
     return (
       <div className="max-w-4xl mx-auto">
         <h1 className="text-3xl font-bold text-gray-900 mb-6">Wallet Approvals</h1>
-        <div className="bg-white shadow rounded-lg p-8 text-center">
-          <p className="text-gray-600 mb-4">
-            Connect your NEAR wallet to view pending approvals for your AI wallets.
-          </p>
-          <button
-            onClick={() => setShowWalletModal(true)}
-            className="px-6 py-2 bg-accent text-white rounded-lg font-medium"
-          >
-            Connect Wallet
-          </button>
-        </div>
-        {showWalletModal && <WalletConnectionModal isOpen={showWalletModal} onClose={() => setShowWalletModal(false)} />}
+        <RequireWallet subject="pending approvals for your AI wallets" />
       </div>
     );
   }

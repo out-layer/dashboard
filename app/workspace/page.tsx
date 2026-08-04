@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useNearWallet } from '@/contexts/NearWalletContext';
+import { RequireWallet } from '@/components/ui/require-wallet';
 import WalletConnectionModal from '@/components/WalletConnectionModal';
 import NetworkSwitcher from '@/components/NetworkSwitcher';
 import { getCoordinatorApiUrl, fetchUserEarnings, UserEarnings } from '@/lib/api';
@@ -210,22 +211,7 @@ export default function WorkspacePage() {
   if (!isConnected) {
     return (
       <div className="max-w-4xl mx-auto">
-        <div className="text-center py-12">
-          <svg className="mx-auto h-16 w-16 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          <h2 className="mt-4 text-2xl font-bold text-gray-900">My Workspace</h2>
-          <p className="mt-2 text-gray-600">Connect your NEAR wallet to access your workspace</p>
-          <div className="mt-6">
-            <button
-              onClick={() => setShowWalletModal(true)}
-              className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-accent hover:bg-accent-hover shadow-sm"
-            >
-              Connect Wallet
-            </button>
-          </div>
-        </div>
-        <WalletConnectionModal isOpen={showWalletModal} onClose={() => setShowWalletModal(false)} />
+        <RequireWallet subject="your workspace" />
       </div>
     );
   }

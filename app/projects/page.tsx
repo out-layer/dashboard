@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNearWallet } from '@/contexts/NearWalletContext';
 import { actionCreators } from '@near-js/transactions';
 import WalletConnectionModal from '@/components/WalletConnectionModal';
+import { EmptyState } from '@/components/ui/empty-state';
 import { ProjectCard } from './components/ProjectCard';
 import { CreateProjectForm } from './components/CreateProjectForm';
 import { AddVersionForm } from './components/AddVersionForm';
@@ -429,24 +430,19 @@ export default function ProjectsPage() {
  <span className="ml-3 text-muted-foreground">Loading projects...</span>
             </div>
           ) : projects.length === 0 ? (
- <div className="text-center py-12">
- <svg className="mx-auto h-12 w-12 text-faint-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
-              </svg>
- <h3 className="mt-2 text-sm font-medium text-foreground">No projects</h3>
- <p className="mt-1 text-sm text-muted-foreground">Get started by creating a new project.</p>
- <div className="mt-6">
+            <EmptyState
+              className="max-w-3xl"
+              title="No projects yet"
+              description="A project is a named home for your code: versions, secrets and persistent storage that survives updates."
+              action={
                 <button
                   onClick={() => setShowCreateForm(true)}
- className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-on-accent bg-accent hover:bg-accent-hover"
+                  className="inline-flex items-center px-4 py-2 text-sm font-semibold rounded-lg text-on-accent bg-accent hover:bg-accent-hover cursor-pointer"
                 >
- <svg className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                  </svg>
-                  Create Project
+                  Create project
                 </button>
-              </div>
-            </div>
+              }
+            />
           ) : (
  <div className="space-y-4">
               {projects.map((project) => (

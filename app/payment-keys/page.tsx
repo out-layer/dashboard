@@ -522,8 +522,8 @@ export default function PaymentKeysPage() {
  <span className="ml-3 text-muted-foreground">Loading payment keys...</span>
             </div>
           ) : paymentKeys.length === 0 ? (
- <div className="text-center py-12">
- <svg className="mx-auto h-12 w-12 text-faint-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+ <div className="py-8">
+ <svg className="h-10 w-10 text-faint-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
               </svg>
  <h3 className="mt-2 text-sm font-medium text-foreground">No payment keys</h3>

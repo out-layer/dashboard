@@ -374,7 +374,7 @@ deploy requires at least ${(Number(VAULT_PARENT_BUDGET_YOCTO) / 1e24).toFixed(2)
  <p className="text-sm">Connect a NEAR wallet to create or manage vaults.</p>
           <button
             onClick={() => setShowWalletModal(true)}
- className="mt-2 px-4 py-2 bg-accent text-on-accent rounded hover:bg-accent-hover"
+ className="mt-2 px-4 py-2 bg-accent text-on-accent rounded-lg hover:bg-accent-hover"
           >
             Connect Wallet
           </button>
@@ -415,7 +415,7 @@ deploy requires at least ${(Number(VAULT_PARENT_BUDGET_YOCTO) / 1e24).toFixed(2)
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
- className="mt-1 block w-full rounded-md border border-border-strong bg-card px-3 py-2 text-foreground shadow-sm focus:border-accent focus:ring-accent"
+ className="mt-1 block w-full max-w-xl rounded-md border border-border-strong bg-card px-3 py-2 text-foreground shadow-sm focus:border-accent focus:ring-accent"
               placeholder="vault"
             />
           </label>
@@ -424,7 +424,7 @@ deploy requires at least ${(Number(VAULT_PARENT_BUDGET_YOCTO) / 1e24).toFixed(2)
             <select
               value={exitWindow}
               onChange={(e) => setExitWindow(e.target.value)}
- className="mt-1 block w-full rounded-md border border-border-strong bg-card px-3 py-2 text-foreground shadow-sm focus:border-accent focus:ring-accent"
+ className="mt-1 block w-full max-w-xl rounded-md border border-border-strong bg-card px-3 py-2 text-foreground shadow-sm focus:border-accent focus:ring-accent"
             >
               {EXIT_WINDOW_OPTIONS.map((o) => (
                 <option key={o.value} value={o.value}>
@@ -437,7 +437,7 @@ deploy requires at least ${(Number(VAULT_PARENT_BUDGET_YOCTO) / 1e24).toFixed(2)
             <button
               onClick={handleCreate}
               disabled={!isConnected || !!busy}
- className="w-full px-4 py-2 bg-accent text-on-accent rounded hover:bg-accent-hover disabled:opacity-50"
+ className="w-full px-4 py-2 bg-accent text-on-accent rounded-lg hover:bg-accent-hover disabled:opacity-50"
             >
               Create vault
             </button>
@@ -463,7 +463,7 @@ deploy requires at least ${(Number(VAULT_PARENT_BUDGET_YOCTO) / 1e24).toFixed(2)
           <button
             onClick={handleFind}
             disabled={!!busy}
- className="px-4 py-2 bg-accent text-on-accent rounded hover:bg-accent-hover disabled:opacity-50 cursor-pointer"
+ className="px-4 py-2 bg-accent text-on-accent rounded-lg hover:bg-accent-hover disabled:opacity-50 cursor-pointer"
           >
             Load
           </button>

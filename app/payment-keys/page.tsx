@@ -381,7 +381,7 @@ export default function PaymentKeysPage() {
                 setShowCreateForm(true);
                 setCreationState({ step: 'form' });
               }}
- className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-on-accent bg-accent hover:bg-accent-hover shadow-sm"
+ className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-semibold rounded-lg text-on-accent bg-accent hover:bg-accent-hover shadow-sm"
             >
  <svg className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -534,7 +534,7 @@ export default function PaymentKeysPage() {
                     setShowCreateForm(true);
                     setCreationState({ step: 'form' });
                   }}
- className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-on-accent bg-accent hover:bg-accent-hover"
+ className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-semibold rounded-lg text-on-accent bg-accent hover:bg-accent-hover"
                 >
  <svg className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -544,7 +544,7 @@ export default function PaymentKeysPage() {
               </div>
             </div>
           ) : (
- <div className="space-y-4">
+ <div className="max-w-3xl space-y-4">
               {paymentKeys.map((key) => (
                 <PaymentKeyCard
                   key={key.nonce}

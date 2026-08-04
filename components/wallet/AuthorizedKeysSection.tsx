@@ -171,7 +171,7 @@ export function AuthorizedKeysSection({
             type="button"
             onClick={handleHashAndAdd}
             disabled={!keyInput.trim()}
- className="px-3 py-1.5 text-xs bg-accent text-on-accent rounded hover:bg-accent-hover disabled:opacity-40"
+ className="px-3 py-1.5 text-xs bg-accent text-on-accent rounded-lg hover:bg-accent-hover disabled:opacity-40"
           >
             Hash &amp; Add
           </button>
@@ -201,7 +201,7 @@ export function AuthorizedKeysSection({
                 <button
                   type="button"
                   onClick={handleSaveToStorage}
- className="px-2 py-1 text-xs bg-accent text-on-accent rounded hover:bg-accent-hover whitespace-nowrap"
+ className="px-2 py-1 text-xs bg-accent text-on-accent rounded-lg hover:bg-accent-hover whitespace-nowrap"
                 >
                   Save to Browser
                 </button>

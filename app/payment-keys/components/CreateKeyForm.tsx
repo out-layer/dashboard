@@ -269,7 +269,7 @@ export function CreateKeyForm({
         </div>
 
         {/* Form */}
- <div className="space-y-4">
+ <div className="max-w-3xl space-y-4">
           {/* Project restrictions */}
           <div>
  <label className="block text-sm font-medium text-foreground mb-1">

@@ -18,7 +18,7 @@ export function PolicyFormFields({ policyForm, onChange, apiKeyHash, knownKeyHas
   const [showWebhookInfo, setShowWebhookInfo] = useState(false);
 
   return (
- <div className="space-y-4">
+ <div className="max-w-3xl space-y-4">
       {/* Spending Limits */}
       <div>
  <h3 className="text-sm font-semibold text-foreground mb-2">Spending Limits (NEAR)</h3>

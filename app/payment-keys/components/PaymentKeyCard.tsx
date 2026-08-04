@@ -149,7 +149,7 @@ export function PaymentKeyCard({
  <div className="flex gap-2">
             <button
               onClick={onTopUp}
- className="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-on-accent bg-accent hover:bg-accent-hover transition-colors"
+ className="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-semibold rounded-lg text-on-accent bg-accent hover:bg-accent-hover transition-colors"
               title="Top up with USDC"
             >
               Top Up

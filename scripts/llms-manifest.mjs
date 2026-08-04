@@ -211,7 +211,7 @@ export const SECTIONS = [
       },
       {
         title: 'Dashboard',
-        url: 'https://outlayer.fastnear.com/dashboard',
+        url: 'https://outlayer.fastnear.com/workspace',
         summary: 'Projects, secrets, payment keys, executions and earnings',
       },
     ],

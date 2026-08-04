@@ -1,10 +1,15 @@
 #!/usr/bin/env node
 // Generates public/llms.txt and public/llms-full.txt from scripts/llms-manifest.mjs.
 //
+// The inlined source markdown lives in the near-outlayer monorepo this repo was
+// extracted from. Set LLMS_SOURCES_ROOT to a local checkout of that monorepo to
+// regenerate; without it the committed public/llms*.txt are left untouched, so
+// dev/build keep working in a standalone clone.
+//
 // Run automatically by `npm run dev` and `npm run build` (see predev/prebuild).
 // Pass --strict to fail on a missing source file instead of warning — use that in CI.
 
-import { readFileSync, statSync } from 'node:fs'
+import { existsSync, readFileSync, statSync } from 'node:fs'
 import { readFile, writeFile } from 'node:fs/promises'
 import { dirname, resolve } from 'node:path'
 import { posix } from 'node:path'
@@ -55,12 +60,12 @@ function submoduleUrl(target) {
 
 const scriptDir = dirname(fileURLToPath(import.meta.url))
 const dashboardDir = resolve(scriptDir, '..')
-const repoRoot = resolve(dashboardDir, '..')
+const repoRoot = process.env.LLMS_SOURCES_ROOT ? resolve(process.env.LLMS_SOURCES_ROOT) : null
 
 // Declared after repoRoot on purpose: readSubmodules() needs it. An empty map here would
 // silently send every example link back to a 404, so it is loud rather than best-effort.
-const SUBMODULES = readSubmodules()
-if (SUBMODULES.size === 0) {
+const SUBMODULES = repoRoot ? readSubmodules() : new Map()
+if (repoRoot && SUBMODULES.size === 0) {
   console.warn('llms: no submodules found in .gitmodules — example links will not resolve')
 }
 const publicDir = resolve(dashboardDir, 'public')
@@ -183,6 +188,23 @@ function buildFullText(sources) {
 }
 
 async function main() {
+  if (!repoRoot) {
+    const missingArtifacts = ['llms.txt', 'llms-full.txt'].filter(
+      (f) => !existsSync(resolve(publicDir, f)),
+    )
+    if (missingArtifacts.length > 0) {
+      throw new Error(
+        `llms: committed public/${missingArtifacts.join(', public/')} missing and ` +
+          'LLMS_SOURCES_ROOT is not set. Point it at a local near-outlayer checkout to generate.',
+      )
+    }
+    console.log(
+      'llms: keeping committed public/llms.txt and public/llms-full.txt ' +
+        '(set LLMS_SOURCES_ROOT to a near-outlayer checkout to regenerate)',
+    )
+    return
+  }
+
   const { loaded, missing } = await loadSources()
 
   if (missing.length > 0) {

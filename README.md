@@ -1,39 +1,35 @@
-# NEAR OutLayer Dashboard
+# OutLayer Dashboard
 
-Next.js dashboard for NEAR OutLayer off-chain computation platform.
+Web dashboard for [OutLayer](https://outlayer.ai) — verifiable off-chain compute and agent custody for NEAR, running in Intel TDX enclaves.
 
-## Setup Complete
+Live at [outlayer.fastnear.com](https://outlayer.fastnear.com) (moving to `app.outlayer.ai`).
 
-✅ Next.js 15 + TypeScript + Tailwind CSS
-✅ API client (lib/api.ts) 
-✅ NEAR Wallet context (contexts/NearWalletContext.tsx)
-✅ Layout with navigation
-✅ .env.local configured
+Extracted 2026-08-04 from the [near-outlayer](https://github.com/fastnear/near-outlayer) monorepo (`dashboard/`) with full history.
 
-## To Implement
+## Stack
 
-Create pages in app/:
-- workers/page.tsx
-- executions/page.tsx  
-- stats/page.tsx
-- playground/page.tsx
-- settings/page.tsx
+- Next.js 16 (App Router, Turbopack) + React 19 + TypeScript
+- Tailwind CSS v4
+- NEAR wallets via `@hot-labs/near-connect`
 
-## Run
+## Develop
 
 ```bash
-npm run dev
+npm install
+cp .env.example .env.local   # contracts, RPC URLs, coordinator API per network
+npm run dev                  # http://localhost:3000
 ```
 
 ## llms.txt
 
-`public/llms.txt` and `public/llms-full.txt` are **generated** — do not edit them by hand.
-Edit `scripts/llms-manifest.mjs` (page summaries, link sections, which repo docs get inlined)
-and regenerate:
+`public/llms.txt` and `public/llms-full.txt` are **tracked artifacts**. Their markdown
+sources (README, API.md, CUSTODY.md, wasi-examples, …) live in the near-outlayer
+monorepo, so a standalone clone cannot rebuild them. To refresh after monorepo docs
+change:
 
 ```bash
-npm run llms            # regenerate both files
-npm run llms -- --strict  # fail if a manifest entry no longer exists — use in CI
+LLMS_SOURCES_ROOT=~/projects/near-offshore npm run llms
 ```
 
-`predev` and `prebuild` run this automatically, so the files stay in sync with the repo docs.
+Without `LLMS_SOURCES_ROOT`, `dev`/`build` keep the committed files untouched.
+Edit `scripts/llms-manifest.mjs` to change what is indexed or inlined.

@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { AttestationBadge } from '@/components/ui/attestation-badge';
 import { HashChip } from '@/components/ui/hash-chip';
 import PendingApprovalsBadge from '@/components/PendingApprovalsBadge';
+import DepositUsdcModal from '@/components/home/DepositUsdcModal';
 
 interface UserSecret {
   accessor: Record<string, unknown>;
@@ -58,6 +59,7 @@ export default function Overview() {
   const [usdcBalance, setUsdcBalance] = useState<string | null>(null);
   const [earningsBalance, setEarningsBalance] = useState<string | null>(null);
   const [workersCount, setWorkersCount] = useState<number | null>(null);
+  const [depositOpen, setDepositOpen] = useState(false);
 
   const load = useCallback(async () => {
     if (!accountId) return;
@@ -145,12 +147,17 @@ export default function Overview() {
         <MetricCard label="Projects" value={dash(projectCount)} href="/projects" />
         <MetricCard label="Secrets" value={dash(secretsCount)} href="/secrets" />
         <MetricCard label="Payment keys" value={dash(paymentKeysCount)} href="/payment-keys" />
-        <MetricCard
-          label="USDC balance"
-          value={usdcBalance === null ? '—' : formatUsd(usdcBalance)}
-          href="/workspace"
-          hint="deposit & details →"
-        />
+        <button type="button" onClick={() => setDepositOpen(true)} className="text-left cursor-pointer">
+          <Card className="h-full transition-colors hover:border-border-strong">
+            <CardContent className="p-5">
+              <p className="text-xs text-muted-foreground">USDC balance</p>
+              <p className="mt-1 text-2xl font-semibold tabular-nums tracking-tight">
+                {usdcBalance === null ? '—' : formatUsd(usdcBalance)}
+              </p>
+              <p className="mt-1 text-xs font-semibold text-accent-text">deposit →</p>
+            </CardContent>
+          </Card>
+        </button>
       </div>
 
       <div className="mt-4 grid gap-4 lg:grid-cols-3">
@@ -201,6 +208,7 @@ export default function Overview() {
           </CardContent>
         </Card>
       </div>
+      <DepositUsdcModal open={depositOpen} onClose={() => setDepositOpen(false)} onSuccess={load} />
     </div>
   );
 }

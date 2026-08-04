@@ -33,3 +33,18 @@ LLMS_SOURCES_ROOT=~/projects/near-offshore npm run llms
 
 Without `LLMS_SOURCES_ROOT`, `dev`/`build` keep the committed files untouched.
 Edit `scripts/llms-manifest.mjs` to change what is indexed or inlined.
+
+### Refreshing on the server
+
+The deploy host can regenerate at build time from its own monorepo checkout:
+
+```bash
+cd /path/to/near-outlayer && git pull          # sources must be fresh first
+cd /path/to/dashboard
+git checkout -- public/llms.txt public/llms-full.txt   # drop last build's rewrite so git pull is clean
+git pull
+LLMS_SOURCES_ROOT=/path/to/near-outlayer npm run build
+```
+
+The `git checkout --` line matters: regeneration rewrites two TRACKED files, and a
+dirty tree makes the next `git pull` abort.

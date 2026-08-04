@@ -33,7 +33,7 @@ export function getCoordinatorApiUrl(network?: NetworkType): string {
   }
 
   if (currentNetwork === 'mainnet') {
-    return process.env.NEXT_PUBLIC_MAINNET_COORDINATOR_API_URL || 'https://api.outlayer.near.org';
+    return process.env.NEXT_PUBLIC_MAINNET_COORDINATOR_API_URL || 'https://api.outlayer.ai';
   }
 
   return process.env.NEXT_PUBLIC_TESTNET_COORDINATOR_API_URL || 'http://localhost:8080';

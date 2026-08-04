@@ -4,11 +4,12 @@ import { ThemeProvider } from 'next-themes';
 import './globals.css';
 import { NearWalletProvider } from '@/contexts/NearWalletContext';
 import AppShell from '@/components/shell/AppShell';
+import { SITE_ORIGIN } from '@/lib/site';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://outlayer.fastnear.com'),
+  metadataBase: new URL(SITE_ORIGIN),
   title: {
     default: 'OutLayer Dashboard',
     template: '%s · OutLayer',

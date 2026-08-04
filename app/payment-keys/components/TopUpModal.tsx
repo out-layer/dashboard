@@ -103,7 +103,7 @@ export function TopUpModal({
         </div>
 
         {/* Info */}
- <div className="mb-4 p-3 bg-info/10 border border-info/30 rounded-lg">
+ <div className="mb-4 p-3 bg-card-muted border border-border rounded-lg">
  <p className="text-sm text-info">
             This will transfer {amount} {stablecoin.symbol} from your wallet to top up the payment key balance.
           </p>

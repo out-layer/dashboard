@@ -1238,7 +1238,7 @@ export function SecretsForm({
         )}
 
         {/* Info Box */}
- <div className="mt-6 bg-info/10 border border-info/30 rounded-lg p-4">
+ <div className="mt-6 bg-card-muted border border-border rounded-lg p-4">
  <h3 className="text-sm font-medium text-info mb-2"> How it works</h3>
  <ul className="text-xs text-info space-y-1 list-disc list-inside">
  <li><strong>Manual secrets</strong>: Encrypted in this browser with ECIES — ephemeral X25519 ECDH + HKDF-SHA256 + ChaCha20-Poly1305 AEAD</li>

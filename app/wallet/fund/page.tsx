@@ -381,7 +381,7 @@ function FundContent() {
 
         {/* Agent message */}
         {msg && (
- <div className="bg-info/10 border border-info/30 rounded-lg p-3 mb-4">
+ <div className="bg-card-muted border border-border rounded-lg p-3 mb-4">
  <p className="text-info text-sm">{msg}</p>
           </div>
         )}

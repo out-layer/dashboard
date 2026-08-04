@@ -220,7 +220,7 @@ export default function SettingsPage() {
 
       {/* Usage Statistics */}
       {loading ? (
- <div className="mt-8 flex justify-center">
+ <div className="mt-8">
  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
         </div>
       ) : error ? (
@@ -280,7 +280,7 @@ export default function SettingsPage() {
 
           {/* Cost Breakdown */}
           {earnings.total_executions > 0 && (
- <div className="mt-8 bg-info/10 border border-info/30 rounded-lg p-4">
+ <div className="mt-8 bg-card-muted border border-border rounded-lg p-4">
  <div className="flex">
  <div className="flex-shrink-0">
                   <svg

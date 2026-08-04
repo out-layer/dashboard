@@ -44,11 +44,20 @@ export default function DocsLayout({
 
   return (
  <div className="w-full">
- <h1 className="text-3xl font-bold mb-8 text-foreground">OutLayer Documentation</h1>
+ <h1 className="text-xl font-bold tracking-tight mb-6 text-foreground">Documentation</h1>
 
  <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-        {/* Sidebar Navigation */}
- <div className="lg:col-span-1">
+        {/* Sidebar Navigation: collapsible drawer on mobile, fixed column on lg+ */}
+ <details className="lg:hidden mb-2 rounded-lg border border-border bg-card group">
+ <summary className="cursor-pointer list-none px-4 py-2.5 text-sm font-semibold flex items-center justify-between">
+            Docs navigation
+            <svg className="h-4 w-4 transition-transform group-open:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" d="M19 9l-7 7-7-7" /></svg>
+          </summary>
+ <div className="border-t border-border p-2">
+            <MobileDocsNav pathname={pathname} />
+          </div>
+        </details>
+ <div className="lg:col-span-1 hidden lg:block">
  <div className="bg-card border border-border rounded-lg p-2">
  <nav className="space-y-0.5">
               {DOCS_NAV.map((group) => (
@@ -111,9 +120,40 @@ export default function DocsLayout({
 
         {/* Main Content */}
  <div className="lg:col-span-3">
- <div className="bg-card border border-border rounded-lg p-8">{children}</div>
+ <div className="bg-card border border-border rounded-lg p-4 sm:p-8">{children}</div>
         </div>
       </div>
     </div>
+  );
+}
+
+function MobileDocsNav({ pathname }: { pathname: string }) {
+  return (
+    <nav className="space-y-0.5">
+      {DOCS_NAV.map((group) => (
+        <div key={group.group ?? 'root'}>
+          {group.group && (
+            <div className="pt-3 pb-1">
+              <span className="px-3 text-xs font-semibold text-faint-foreground uppercase tracking-wider">
+                {group.group}
+              </span>
+            </div>
+          )}
+          {group.pages.map((page) => (
+            <Link
+              key={page.href}
+              href={page.href}
+              className={`block px-3 py-1.5 rounded-md text-sm font-medium ${
+                pathname === page.href
+                  ? 'bg-accent/10 text-accent-text font-semibold'
+                  : 'text-foreground hover:bg-card-muted'
+              }`}
+            >
+              {page.label}
+            </Link>
+          ))}
+        </div>
+      ))}
+    </nav>
   );
 }

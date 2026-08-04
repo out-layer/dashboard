@@ -394,7 +394,7 @@ export default function PaymentKeysPage() {
 
       {/* Connect Wallet Button */}
       {!isConnected && (
- <div className="mt-8 flex justify-center">
+ <div className="mt-8">
           <button
             onClick={() => setShowWalletModal(true)}
  className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-on-accent bg-accent hover:bg-accent-hover shadow-sm hover:shadow-md transition-all"
@@ -564,7 +564,7 @@ export default function PaymentKeysPage() {
 
           {/* Refresh Button */}
           {paymentKeys.length > 0 && (
- <div className="mt-4 flex justify-center">
+ <div className="mt-4">
               <button
                 onClick={loadPaymentKeys}
  className="text-sm text-muted-foreground hover:text-accent-text flex items-center"
@@ -580,7 +580,7 @@ export default function PaymentKeysPage() {
       )}
 
       {/* Info Section */}
- <div className="mt-8 bg-info/10 border border-info/30 rounded-lg p-6">
+ <div className="mt-8 max-w-3xl bg-card-muted border border-border rounded-lg p-6">
  <h3 className="text-sm font-semibold text-foreground mb-3">
           About Payment Keys
         </h3>

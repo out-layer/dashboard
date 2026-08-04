@@ -245,7 +245,7 @@ export function CreateKeyForm({
 
         {/* Progress indicator */}
         {isSubmitting && (
- <div className="mb-4 p-3 bg-info/10 border border-info/30 rounded-lg">
+ <div className="mb-4 p-3 bg-card-muted border border-border rounded-lg">
  <div className="flex items-center gap-2">
  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-accent"></div>
  <span className="text-info">

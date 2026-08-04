@@ -845,7 +845,7 @@ function PlaygroundContent() {
         </div>
       </div>
 
- <div className="mt-8 bg-card border border-border sm:rounded-lg">
+ <div className="mt-6 max-w-3xl bg-card border border-border rounded-lg">
  <div className="px-4 py-5 sm:p-6">
           {/* Current Network & Contract Info */}
  <div className="mb-6 p-3 bg-card-muted rounded-md">

@@ -2,7 +2,7 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: "Wallet handoff",
+  title: { default: "Wallet handoff", template: '%s · OutLayer' },
   robots: { index: false, follow: false },
 };
 

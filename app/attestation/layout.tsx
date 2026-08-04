@@ -2,7 +2,7 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: "Execution attestation",
+  title: { default: "Execution attestation", template: '%s · OutLayer' },
   description: "Cryptographic proof of an OutLayer execution: enclave signature, TDX measurements and the inputs and outputs of the job.",
 };
 

@@ -40,8 +40,14 @@ const NOINDEX_PAGES = [
   ['app/wallet/fund', 'Fund wallet'],
 ]
 
-function layoutSource({ title, description, robots }) {
-  const meta = [`  title: ${JSON.stringify(title)},`]
+function layoutSource({ title, description, robots, retemplate }) {
+  // An intermediate layout that sets a plain-string title swallows the root
+  // title.template for its children — segments with child routes re-declare it.
+  const meta = [
+    retemplate
+      ? `  title: { default: ${JSON.stringify(title)}, template: '%s · OutLayer' },`
+      : `  title: ${JSON.stringify(title)},`,
+  ]
   if (description) meta.push(`  description: ${JSON.stringify(description)},`)
   if (robots === 'noindex') meta.push(`  robots: { index: false, follow: false },`)
   if (robots === 'index') meta.push(`  robots: { index: true, follow: true },`)
@@ -74,8 +80,14 @@ for (const [dir, title, description, reindex] of APP_PAGES) {
   emit(dir, { title, description, robots: reindex ? 'index' : undefined })
 }
 for (const [dir, title] of NOINDEX_PAGES) {
-  emit(dir, { title, robots: 'noindex' })
+  emit(dir, { title, robots: 'noindex', retemplate: dir === 'app/wallet' })
 }
+// app/attestation wraps the dynamic [jobId] segment the same way.
+emit('app/attestation', {
+  title: 'Execution attestation',
+  description: 'Cryptographic proof of an OutLayer execution: enclave signature, TDX measurements and the inputs and outputs of the job.',
+  retemplate: true,
+})
 for (const page of DOCS_NAV.flatMap((g) => g.pages)) {
   const dir = 'app' + page.href
   const description = summaries.has(page.href) ? trim(summaries.get(page.href)) : undefined

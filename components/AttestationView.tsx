@@ -242,7 +242,7 @@ print(f"Signed commitment matches: {td['report_data'][:64] == final_hash}")`
             <button
               onClick={runVerification}
               disabled={verifying}
- className="px-3 py-1 bg-info hover:opacity-90 disabled:opacity-60 text-white text-sm font-medium rounded"
+ className="px-3 py-1 bg-accent hover:bg-accent-hover disabled:opacity-60 text-on-accent text-sm font-medium rounded"
             >
               {verifying ? 'Verifying…' : verification ? '↻ Re-verify' : ' Verify'}
             </button>

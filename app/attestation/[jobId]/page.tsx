@@ -167,7 +167,7 @@ export default function AttestationPage() {
               navigator.clipboard.writeText(shareUrl);
               alert('Link copied to clipboard!');
             }}
- className="px-4 py-2 bg-info hover:opacity-90 text-white font-medium rounded"
+ className="px-4 py-2 bg-accent hover:bg-accent-hover text-on-accent font-medium rounded"
           >
              Copy Link
           </button>

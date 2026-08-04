@@ -1148,7 +1148,7 @@ export function SecretsForm({
               <button
                 onClick={handleStorePendingUpdate}
                 disabled={encrypting}
- className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-success hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-accent disabled:opacity-50"
+ className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-on-accent bg-accent hover:bg-accent-hover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-accent disabled:opacity-50"
               >
                 {encrypting ? ' Storing...' : ' Store Secrets'}
               </button>
@@ -1181,7 +1181,7 @@ export function SecretsForm({
  className={`inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed ${
                 isUpdateMode
                   ? 'bg-card-muted hover:bg-card-muted focus:ring-purple-500'
-                  : 'bg-info hover:opacity-90 focus:ring-accent'
+                  : 'bg-accent hover:bg-accent-hover focus:ring-accent'
               }`}
             >
               {encrypting
@@ -1230,7 +1230,7 @@ export function SecretsForm({
               </div>
  <span className="text-green-400">→</span>
  <div className="flex items-center space-x-2">
- <span className="flex items-center justify-center w-6 h-6 rounded-full bg-success text-white text-xs font-bold">2</span>
+ <span className="flex items-center justify-center w-6 h-6 rounded-full bg-accent text-on-accent text-xs font-bold">2</span>
  <span className="text-sm font-medium text-success-text">Store in contract</span>
               </div>
             </div>
@@ -1238,8 +1238,8 @@ export function SecretsForm({
         )}
 
         {/* Info Box */}
- <div className="mt-6 bg-card-muted border border-border rounded-lg p-4">
- <h3 className="text-sm font-medium text-info mb-2"> How it works</h3>
+ <div className="mt-6 max-w-3xl bg-card-muted border border-border rounded-lg p-4">
+ <h3 className="text-sm font-medium text-foreground mb-2"> How it works</h3>
  <ul className="text-xs text-info space-y-1 list-disc list-inside">
  <li><strong>Manual secrets</strong>: Encrypted in this browser with ECIES — ephemeral X25519 ECDH + HKDF-SHA256 + ChaCha20-Poly1305 AEAD</li>
  <li><strong>Generated secrets</strong>: Keystore generates inside TEE (you never see values)</li>

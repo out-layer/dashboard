@@ -374,7 +374,7 @@ deploy requires at least ${(Number(VAULT_PARENT_BUDGET_YOCTO) / 1e24).toFixed(2)
  <p className="text-sm">Connect a NEAR wallet to create or manage vaults.</p>
           <button
             onClick={() => setShowWalletModal(true)}
- className="mt-2 px-4 py-2 bg-info text-white rounded hover:bg-blue-700"
+ className="mt-2 px-4 py-2 bg-accent text-on-accent rounded hover:bg-accent-hover"
           >
             Connect Wallet
           </button>
@@ -437,7 +437,7 @@ deploy requires at least ${(Number(VAULT_PARENT_BUDGET_YOCTO) / 1e24).toFixed(2)
             <button
               onClick={handleCreate}
               disabled={!isConnected || !!busy}
- className="w-full px-4 py-2 bg-info text-white rounded hover:bg-blue-700 disabled:opacity-50"
+ className="w-full px-4 py-2 bg-accent text-on-accent rounded hover:bg-accent-hover disabled:opacity-50"
             >
               Create vault
             </button>

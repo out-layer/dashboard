@@ -1583,7 +1583,7 @@ function PlaygroundContent() {
 
               {/* Transaction Details */}
  <div className="bg-info/10 border border-info/30 rounded-md p-4">
- <h3 className="text-sm font-medium text-info mb-2">Transaction Details</h3>
+ <h3 className="text-sm font-medium text-foreground mb-2">Transaction Details</h3>
                 {result.transactionHash && (
  <p className="text-xs text-info mb-2">
                     Hash: <a

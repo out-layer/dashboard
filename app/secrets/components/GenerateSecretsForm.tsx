@@ -297,7 +297,7 @@ export function GenerateSecretsForm({
           <button
             onClick={handleGenerateAndEncrypt}
             disabled={!isConnected || generating}
- className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-success hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-accent disabled:opacity-50 disabled:cursor-not-allowed"
+ className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-on-accent bg-accent hover:bg-accent-hover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-accent disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {generating ? ' Generating...' : ' Generate & Encrypt Secrets'}
           </button>
@@ -310,8 +310,8 @@ export function GenerateSecretsForm({
         </div>
 
         {/* Info Box */}
- <div className="mt-6 bg-card-muted border border-border rounded-lg p-4">
- <h3 className="text-sm font-medium text-info mb-2"> How it works</h3>
+ <div className="mt-6 max-w-3xl bg-card-muted border border-border rounded-lg p-4">
+ <h3 className="text-sm font-medium text-foreground mb-2"> How it works</h3>
  <ul className="text-xs text-info space-y-1 list-disc list-inside">
  <li>Keystore generates secrets inside TEE (you never see the values)</li>
  <li>Generated secrets are encrypted inside the TEE before they ever leave it (ChaCha20-Poly1305 AEAD), so the plaintext never reaches your browser or the chain</li>

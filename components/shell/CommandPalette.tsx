@@ -87,6 +87,19 @@ export default function CommandPalette({ open, onOpenChange }: CommandPalettePro
  <span className="ml-2 text-xs text-faint-foreground">docs</span>
                 </Command.Item>
               ))}
+              {DOCS_NAV.flatMap((g) => g.pages).flatMap((page) =>
+                page.sections.map((section) => (
+                  <Command.Item
+                    key={`${page.href}#${section.id}`}
+                    value={`docs ${page.label} ${section.title}`}
+                    onSelect={() => go(`${page.href}#${section.id}`)}
+ className="cursor-pointer rounded-md px-3 py-2 text-sm text-foreground aria-selected:bg-accent/10 aria-selected:text-accent-text"
+                  >
+ <span className="text-faint-foreground">{page.label}&nbsp;›&nbsp;</span>
+                    {section.title}
+                  </Command.Item>
+                )),
+              )}
             </Command.Group>
           </Command.List>
         </Command>

@@ -202,22 +202,11 @@ function WalletManagePage() {
 
   return (
  <div className="w-full">
- <div className="flex items-center justify-between mb-6">
+ <div className="mb-6">
  <h1 className="text-xl font-bold tracking-tight">Wallets</h1>
- <div className="flex items-center space-x-3">
-          <Link
-            href="/wallet/approvals"
- className="text-sm text-accent-text hover:text-accent-text font-medium"
-          >
-            Approvals
-          </Link>
-          <Link
-            href="/wallet/audit"
- className="text-sm text-accent-text hover:text-accent-text font-medium"
-          >
-            Audit Log
-          </Link>
-        </div>
+ <p className="mt-1 text-sm text-muted-foreground">
+          Policy-guarded agent wallets you control: freeze, unfreeze and edit policies.
+        </p>
       </div>
 
       {error && (

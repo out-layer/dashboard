@@ -45,15 +45,14 @@ same precedence as the app):
 LLMS_SOURCES_ROOT=/path/to/near-outlayer
 ```
 
-Then every deploy is just:
+Then every deploy is one command (as `nextjs-user`):
 
 ```bash
-cd /path/to/near-outlayer && git pull          # sources must be fresh first
-cd /path/to/dashboard
-git checkout -- public/llms.txt public/llms-full.txt   # drop last build's rewrite so git pull is clean
-git pull
-npm run build
+scripts/deploy.sh   # resets llms artifacts, pulls, npm ci, builds, restarts the service
 ```
 
-The `git checkout --` line matters: regeneration rewrites two TRACKED files, and a
-dirty tree makes the next `git pull` abort.
+To also refresh the llms *content*, `git pull` the monorepo checkout first — the
+script deliberately does not touch it. The `git checkout --` step inside the
+script matters: regeneration rewrites two TRACKED files, and a dirty tree makes
+the next `git pull` abort. Restarting needs a narrow sudoers rule (see the
+script header).

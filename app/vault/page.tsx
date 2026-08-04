@@ -370,7 +370,7 @@ deploy requires at least ${(Number(VAULT_PARENT_BUDGET_YOCTO) / 1e24).toFixed(2)
       </details>
 
       {!isConnected && (
- <div className="bg-warning/10 border border-warning/40 rounded p-4 mb-6">
+ <div className="bg-card-muted border border-border rounded-md p-4 mb-6">
  <p className="text-sm">Connect a NEAR wallet to create or manage vaults.</p>
           <button
             onClick={() => setShowWalletModal(true)}
@@ -405,7 +405,7 @@ deploy requires at least ${(Number(VAULT_PARENT_BUDGET_YOCTO) / 1e24).toFixed(2)
  <section className="border border-border rounded p-4 mb-6">
  <h2 className="text-xl font-semibold mb-3">Create vault</h2>
  <div className="text-sm text-muted-foreground mb-3">
- Deploys <code>{name || 'vault'}.{accountId || '&lt;your-account&gt;'}</code> with a single atomic
+ Deploys <code>{name || 'vault'}.{accountId || '<your-account>'}</code> with a single atomic
           NEAR transaction (CreateAccount + Transfer          {(Number(VAULT_INITIAL_YOCTO) / 1e24).toFixed(2)} NEAR + DeployContract +          new() + AddKey TEE function-call key).
         </div>
  <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
@@ -458,12 +458,12 @@ deploy requires at least ${(Number(VAULT_PARENT_BUDGET_YOCTO) / 1e24).toFixed(2)
             value={findInput}
             onChange={(e) => setFindInput(e.target.value)}
             placeholder="vault.alice.near"
- className="flex-1 rounded-md border border-border-strong bg-card px-3 py-2 text-foreground shadow-sm focus:border-accent focus:ring-accent"
+ className="flex-1 max-w-xl rounded-md border border-border-strong px-3 py-2 text-foreground shadow-sm focus:border-accent focus:ring-accent"
           />
           <button
             onClick={handleFind}
             disabled={!!busy}
- className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 disabled:opacity-50"
+ className="px-4 py-2 bg-accent text-on-accent rounded hover:bg-accent-hover disabled:opacity-50 cursor-pointer"
           >
             Load
           </button>
@@ -770,7 +770,7 @@ near send <your_account> ${report.vaultId} ${(Number(VAULT_TOPUP_SUGGESTED_YOCTO
           {s.recovery ? (
             <>
  <strong>Recovery in progress.</strong>              Finalize with <code className="bg-card px-1 rounded">
-                outlayer vault finalize-recovery {report.vaultId} &lt;your_new_pubkey&gt;
+                outlayer vault finalize-recovery {report.vaultId} <your_new_pubkey>
               </code>              after the timer elapses. Generate the keypair locally via <code className="bg-card px-1 rounded">
                 customer-recovery generate-key
               </code>.

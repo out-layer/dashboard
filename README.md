@@ -36,14 +36,23 @@ Edit `scripts/llms-manifest.mjs` to change what is indexed or inlined.
 
 ### Refreshing on the server
 
-The deploy host can regenerate at build time from its own monorepo checkout:
+The deploy host can regenerate at build time from its own monorepo checkout.
+Set the path once in `.env.local` (the script loads env files via `@next/env`,
+same precedence as the app):
+
+```bash
+# .env.local on the deploy host
+LLMS_SOURCES_ROOT=/path/to/near-outlayer
+```
+
+Then every deploy is just:
 
 ```bash
 cd /path/to/near-outlayer && git pull          # sources must be fresh first
 cd /path/to/dashboard
 git checkout -- public/llms.txt public/llms-full.txt   # drop last build's rewrite so git pull is clean
 git pull
-LLMS_SOURCES_ROOT=/path/to/near-outlayer npm run build
+npm run build
 ```
 
 The `git checkout --` line matters: regeneration rewrites two TRACKED files, and a

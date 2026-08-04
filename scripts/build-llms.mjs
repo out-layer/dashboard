@@ -6,6 +6,10 @@
 // regenerate; without it the committed public/llms*.txt are left untouched, so
 // dev/build keep working in a standalone clone.
 //
+// LLMS_SOURCES_ROOT can come from the shell OR from .env.local / .env — this script
+// loads them through Next's own loader (@next/env), same files and precedence as
+// the app itself. A deploy host sets the path once in .env.local and just builds.
+//
 // Run automatically by `npm run dev` and `npm run build` (see predev/prebuild).
 // Pass --strict to fail on a missing source file instead of warning — use that in CI.
 
@@ -14,6 +18,10 @@ import { readFile, writeFile } from 'node:fs/promises'
 import { dirname, resolve } from 'node:path'
 import { posix } from 'node:path'
 import { fileURLToPath } from 'node:url'
+
+import nextEnv from '@next/env'
+
+const { loadEnvConfig } = nextEnv
 
 import { FULL_TEXT_SOURCES, SECTIONS, SITE } from './llms-manifest.mjs'
 
@@ -60,6 +68,11 @@ function submoduleUrl(target) {
 
 const scriptDir = dirname(fileURLToPath(import.meta.url))
 const dashboardDir = resolve(scriptDir, '..')
+
+// Pull .env.local / .env into process.env with Next's own loader, so
+// LLMS_SOURCES_ROOT can live in an env file instead of the deploy command line.
+loadEnvConfig(dashboardDir)
+
 const repoRoot = process.env.LLMS_SOURCES_ROOT ? resolve(process.env.LLMS_SOURCES_ROOT) : null
 
 // Declared after repoRoot on purpose: readSubmodules() needs it. An empty map here would

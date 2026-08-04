@@ -4,6 +4,9 @@ import { useState, useEffect, useRef, useCallback, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useNearWallet } from '@/contexts/NearWalletContext';
 import { RequireWallet } from '@/components/ui/require-wallet';
+import { EmptyState } from '@/components/ui/empty-state';
+import { CodeBlock } from '@/components/ui/code-block';
+import { HashChip } from '@/components/ui/hash-chip';
 import { getCoordinatorApiUrl } from '@/lib/api';
 import Link from 'next/link';
 import { findKeyForWallets, saveWalletKey } from '@/lib/wallet-keys';
@@ -34,7 +37,7 @@ const REFRESH_INTERVAL = 60_000;
 
 export default function WalletApprovalsPage() {
   return (
-    <Suspense fallback={<div className="max-w-4xl mx-auto py-8 text-gray-400">Loading...</div>}>
+    <Suspense fallback={<div className="max-w-4xl mx-auto py-8 text-faint-foreground">Loading...</div>}>
       <WalletApprovalsContent />
     </Suspense>
   );
@@ -330,7 +333,7 @@ function WalletApprovalsContent() {
   if (!isConnected) {
     return (
       <div className="max-w-4xl mx-auto">
-        <h1 className="text-3xl font-bold text-gray-900 mb-6">Wallet Approvals</h1>
+        <h1 className="text-xl font-bold tracking-tight mb-6">Approvals</h1>
         <RequireWallet subject="pending approvals for your AI wallets" />
       </div>
     );
@@ -339,20 +342,20 @@ function WalletApprovalsContent() {
   return (
     <div className="max-w-4xl mx-auto">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">
-          Wallet Approvals
+        <h1 className="text-xl font-bold tracking-tight">
+          Approvals
           {approvals.length > 0 && (
-            <span className="ml-2 inline-flex items-center justify-center px-2.5 py-0.5 rounded-full text-sm font-bold text-white bg-red-500">
+            <span className="ml-2 inline-flex items-center justify-center px-2.5 py-0.5 rounded-full text-sm font-bold text-white bg-destructive">
               {approvals.length}
             </span>
           )}
         </h1>
         <div className="flex items-center space-x-3">
-          <span className="text-xs text-gray-400 font-mono">
+          <span className="text-xs text-faint-foreground font-mono">
             {accountId}
           </span>
           {nextRefreshIn !== null && (
-            <span className="text-xs text-gray-400">
+            <span className="text-xs text-faint-foreground tabular-nums">
               {nextRefreshIn}s
             </span>
           )}
@@ -378,21 +381,21 @@ function WalletApprovalsContent() {
       </div>
 
       {error && (
-        <div className="mb-4 bg-red-50 border border-red-200 rounded-md p-3">
-          <p className="text-sm text-red-800">{error}</p>
+        <div className="mb-4 rounded-md border border-destructive/30 bg-destructive/10 p-3">
+          <p className="text-sm text-destructive-text">{error}</p>
         </div>
       )}
 
       {success && (
-        <div className="mb-4 bg-green-50 border border-green-200 rounded-md p-3">
-          <p className="text-sm text-green-800">{success}</p>
+        <div className="mb-4 rounded-md border border-success/30 bg-success/10 p-3">
+          <p className="text-sm text-success-text">{success}</p>
         </div>
       )}
 
       {/* API key prompt dialog */}
       {showApiKeyPrompt && (
-        <div className="mb-4 bg-blue-50 border border-blue-200 rounded-md p-4">
-          <p className="text-sm text-blue-800 mb-2">
+        <div className="mb-4 rounded-md border border-info/30 bg-info/10 p-4">
+          <p className="text-sm text-info mb-2">
             Enter the wallet API key to reject this request.
             It will be saved in this browser for future use.
           </p>
@@ -403,19 +406,19 @@ function WalletApprovalsContent() {
               onChange={(e) => setApiKey(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleApiKeySubmit()}
               placeholder="wk_..."
-              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent focus:border-transparent font-mono text-sm"
+              className="flex-1 px-4 py-2 border border-border-strong bg-background rounded-lg outline-none focus:border-accent focus:ring-1 focus:ring-accent font-mono text-sm"
               autoFocus
             />
             <button
               onClick={handleApiKeySubmit}
               disabled={!apiKey.trim()}
-              className="px-4 py-2 bg-accent text-white rounded-lg text-sm font-medium disabled:opacity-50"
+              className="px-4 py-2 bg-accent text-on-accent rounded-lg text-sm font-semibold disabled:opacity-50 cursor-pointer"
             >
               Submit
             </button>
             <button
               onClick={() => { setShowApiKeyPrompt(false); setPendingApprovalId(null); }}
-              className="px-4 py-2 text-gray-600 hover:text-gray-800 text-sm"
+              className="px-4 py-2 text-muted-foreground hover:text-foreground text-sm cursor-pointer"
             >
               Cancel
             </button>
@@ -429,87 +432,94 @@ function WalletApprovalsContent() {
             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
           </svg>
-          <span className="ml-3 text-gray-500">Loading approvals...</span>
+          <span className="ml-3 text-muted-foreground">Loading approvals...</span>
         </div>
       ) : !hasPolicies ? (
-        <div className="bg-white shadow rounded-lg p-8 text-center">
-          <p className="text-gray-500">No wallet policies found for this account.</p>
-          <p className="text-sm text-gray-400 mt-2">
-            Go to <Link href="/wallet/manage" className="text-accent-text hover:underline">Manage</Link> to set up policies for your AI wallets.
-          </p>
-        </div>
+        <EmptyState
+          title="No wallet policies found"
+          description="Set up policies for your AI wallets first — approvals appear for wallets you control."
+          action={
+            <Link href="/wallet/manage" className="text-sm font-semibold text-accent-text hover:underline">
+              Open Wallets →
+            </Link>
+          }
+        />
       ) : approvals.length === 0 ? (
-        <div className="bg-white shadow rounded-lg p-8 text-center">
-          <p className="text-gray-500">No pending approvals.</p>
-          <p className="text-sm text-gray-400 mt-2">
-            Approvals appear when a wallet operation requires multisig confirmation.
-          </p>
-        </div>
+        <EmptyState
+          title="No pending approvals"
+          description="Approvals appear here when a wallet operation crosses a policy threshold and needs your multisig confirmation."
+        />
       ) : (
         <div className="space-y-4">
           {approvals.map((approval) => (
             <div
               key={approval.id}
-              className={`bg-white shadow rounded-lg border ${
+              className={`rounded-xl border bg-card ${
                 isExpired(approval.expires_at)
-                  ? 'border-gray-300 opacity-60'
-                  : 'border-accent'
+                  ? 'border-border opacity-60'
+                  : 'border-accent/50'
               }`}
             >
               <div className="px-4 py-4 sm:px-6">
                 <div className="flex items-center justify-between">
                   <div>
                     <div className="flex items-center space-x-2">
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-accent/10 text-accent-text">
                         {approval.request_type}
                       </span>
                       {isExpired(approval.expires_at) && (
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border border-border-strong text-muted-foreground">
                           Expired
                         </span>
                       )}
                     </div>
                     {approval.wallet_pubkey && (
-                      <p className="mt-1 text-xs text-gray-400 font-mono">
-                        Wallet: {approval.wallet_pubkey.substring(0, 24)}...
-                      </p>
+                      <div className="mt-1.5 flex items-center gap-1.5 text-xs text-faint-foreground">
+                        Wallet: <HashChip value={approval.wallet_pubkey} trim={10} />
+                      </div>
                     )}
                   </div>
                   <div className="text-right">
-                    <p className="text-sm text-gray-500">
+                    <p className="text-sm text-muted-foreground tabular-nums">
                       {approval.approved_count} / {approval.required_approvals} approved
                     </p>
-                    <p className="text-xs text-gray-400 mt-1">
+                    <p className="text-xs text-faint-foreground mt-1">
                       Expires: {formatDate(approval.expires_at)}
                     </p>
                   </div>
                 </div>
 
-                {/* Request details */}
-                <div className="mt-3 bg-gray-50 rounded p-3">
-                  <pre className="text-xs text-gray-700 overflow-x-auto">
-                    {JSON.stringify(approval.request_data, null, 2)}
-                  </pre>
+                {/* Canonical operation — exactly what your approval signs off on */}
+                <div className="mt-3">
+                  <CodeBlock
+                    code={JSON.stringify(approval.request_data, null, 2)}
+                    language="json"
+                    filename={`${approval.request_type} — requested operation`}
+                  />
+                  <div className="mt-2 flex flex-wrap items-center gap-1.5 text-xs text-faint-foreground">
+                    Signed hash: <HashChip value={approval.request_hash} trim={10} />
+                    <span>— your NEP-413 approval signs this exact hash; it commits to the operation above.</span>
+                  </div>
                 </div>
 
                 {/* Action buttons */}
                 {!isExpired(approval.expires_at) && (
                   <div className="mt-4 flex items-center justify-between">
-                    <p className="text-xs text-gray-400">
+                    <p className="text-xs text-faint-foreground">
                       Created: {formatDate(approval.created_at)}
                     </p>
                     <div className="flex items-center space-x-2">
                       <button
                         onClick={() => handleReject(approval.id)}
                         disabled={approvingId === approval.id}
-                        className="px-4 py-2 border border-red-300 text-red-600 text-sm rounded-lg font-medium hover:bg-red-50 disabled:opacity-50"
+                        className="px-4 py-2 border border-destructive/40 text-destructive-text text-sm rounded-lg font-semibold hover:bg-destructive/10 disabled:opacity-50 cursor-pointer"
                       >
                         Reject
                       </button>
                       <button
                         onClick={() => handleApprove(approval.id)}
                         disabled={approvingId === approval.id}
-                        className="px-4 py-2 bg-accent text-white text-sm rounded-lg font-medium disabled:opacity-50"
+                        className="px-4 py-2 bg-accent text-on-accent text-sm rounded-lg font-semibold hover:bg-accent-hover disabled:opacity-50 cursor-pointer"
                       >
                         {approvingId === approval.id ? 'Processing...' : 'Approve'}
                       </button>

@@ -39,7 +39,9 @@ export function getCoordinatorApiUrl(network?: NetworkType): string {
   return process.env.NEXT_PUBLIC_TESTNET_COORDINATOR_API_URL || 'http://localhost:8080';
 }
 
-const API_BASE_URL = getCoordinatorApiUrl();
+// Resolved PER CALL (not at module load): the base depends on the network the user
+// has selected in localStorage, which changes without a page reload.
+const apiBase = () => getCoordinatorApiUrl();
 
 export interface WorkerInfo {
   worker_id: string;
@@ -158,7 +160,7 @@ export interface PricingConfig {
  * Fetch list of workers
  */
 export async function fetchWorkers(): Promise<WorkerInfo[]> {
-  const response = await axios.get(`${API_BASE_URL}/public/workers`);
+  const response = await axios.get(`${apiBase()}/public/workers`);
   return response.data;
 }
 
@@ -179,7 +181,7 @@ export async function fetchJobs(
   if (source) {
     params.source = source;
   }
-  const response = await axios.get(`${API_BASE_URL}/public/jobs`, { params });
+  const response = await axios.get(`${apiBase()}/public/jobs`, { params });
   return response.data;
 }
 
@@ -187,7 +189,7 @@ export async function fetchJobs(
  * Fetch system statistics
  */
 export async function fetchStats(): Promise<ExecutionStats> {
-  const response = await axios.get(`${API_BASE_URL}/public/stats`);
+  const response = await axios.get(`${apiBase()}/public/stats`);
   return response.data;
 }
 
@@ -199,7 +201,7 @@ export async function checkWasmExists(
   commitHash: string,
   buildTarget: string = 'wasm32-wasip1'
 ): Promise<WasmInfo> {
-  const response = await axios.get(`${API_BASE_URL}/public/wasm/info`, {
+  const response = await axios.get(`${apiBase()}/public/wasm/info`, {
     params: {
       repo_url: repoUrl,
       commit_hash: commitHash,
@@ -216,7 +218,7 @@ export async function checkWasmExistsByChecksum(
   checksum: string
 ): Promise<WasmInfo> {
   try {
-    const response = await axios.get(`${API_BASE_URL}/public/wasm/exists/${checksum}`);
+    const response = await axios.get(`${apiBase()}/public/wasm/exists/${checksum}`);
     return {
       exists: response.data.exists,
       checksum: checksum,
@@ -238,7 +240,7 @@ export async function checkWasmExistsByChecksum(
  * Fetch user earnings
  */
 export async function fetchUserEarnings(userAccountId: string): Promise<UserEarnings> {
-  const response = await axios.get(`${API_BASE_URL}/public/users/${userAccountId}/earnings`);
+  const response = await axios.get(`${apiBase()}/public/users/${userAccountId}/earnings`);
   return response.data;
 }
 
@@ -246,7 +248,7 @@ export async function fetchUserEarnings(userAccountId: string): Promise<UserEarn
  * Fetch popular repositories
  */
 export async function fetchPopularRepos(): Promise<PopularRepo[]> {
-  const response = await axios.get(`${API_BASE_URL}/public/repos/popular`);
+  const response = await axios.get(`${apiBase()}/public/repos/popular`);
   return response.data;
 }
 
@@ -254,7 +256,7 @@ export async function fetchPopularRepos(): Promise<PopularRepo[]> {
  * Fetch pricing configuration
  */
 export async function fetchPricing(): Promise<PricingConfig> {
-  const response = await axios.get(`${API_BASE_URL}/public/pricing`);
+  const response = await axios.get(`${apiBase()}/public/pricing`);
   return response.data;
 }
 
@@ -275,7 +277,7 @@ export interface WalletStats {
 }
 
 export async function fetchWalletStats(): Promise<WalletStats> {
-  const response = await axios.get(`${API_BASE_URL}/wallet/v1/stats`);
+  const response = await axios.get(`${apiBase()}/wallet/v1/stats`);
   return response.data;
 }
 
@@ -359,7 +361,7 @@ export async function fetchAttestation(
   network?: NetworkType
 ): Promise<AttestationResponse | null> {
   try {
-    // Resolved per call, not from the module-level API_BASE_URL: that one is computed once at
+    // Resolved per call, same as every helper above (apiBase()): the base is computed at
     // import time from the connected wallet's network, so a shared link like
     // /attestation/2008?network=testnet opened in a mainnet-connected browser would silently fetch
     // the MAINNET job with that id — a different execution entirely, which then fails verification

@@ -3,8 +3,7 @@ import { Inter } from 'next/font/google';
 import { ThemeProvider } from 'next-themes';
 import './globals.css';
 import { NearWalletProvider } from '@/contexts/NearWalletContext';
-import TestnetDisabledNotice from '@/components/TestnetDisabledNotice';
-import AppHeader from '@/components/AppHeader';
+import AppShell from '@/components/shell/AppShell';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 
@@ -42,20 +41,7 @@ export default function RootLayout({
       <body className={`${inter.variable} font-sans antialiased`}>
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
           <NearWalletProvider>
-            <div className="min-h-screen bg-background text-foreground">
-              <TestnetDisabledNotice variant="banner" />
-              <AppHeader />
-              <main className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-                {children}
-              </main>
-              <footer className="bg-card mt-12 border-t border-border">
-                <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-                  <p className="text-center text-muted-foreground text-sm">
-                    © 2026 OutLayer. Verifiable compute and custody for AI agents.
-                  </p>
-                </div>
-              </footer>
-            </div>
+            <AppShell>{children}</AppShell>
           </NearWalletProvider>
         </ThemeProvider>
       </body>

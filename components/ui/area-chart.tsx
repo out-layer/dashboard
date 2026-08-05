@@ -37,7 +37,7 @@ function niceMax(v: number): number {
 
 function fmtAxis(v: number): string {
   if (v >= 1000) return `${(v / 1000).toFixed(v % 1000 === 0 ? 0 : 1)}k`;
-  return String(v);
+  return String(Math.round(v));
 }
 
 function fmtDate(iso: string): string {

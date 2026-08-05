@@ -193,7 +193,8 @@ export default function Overview() {
   const allDone = steps.every((s) => s.done === true);
 
   return (
-    <div className="w-full">
+    <div className="w-full xl:grid xl:grid-cols-[minmax(0,64rem)_300px] xl:gap-8">
+    <div className="w-full max-w-5xl min-w-0">
       <PageHeader
         title="Overview"
         description="Your OutLayer workspace at a glance."
@@ -205,58 +206,6 @@ export default function Overview() {
           ) : undefined
         }
       />
-
-      {/* Getting started — hidden once every step is done */}
-      {!allDone && (
-        <Card className="mt-6">
-          <CardHeader className="flex-row items-baseline justify-between space-y-0">
-            <CardTitle>Getting started</CardTitle>
-            <span className="text-xs font-semibold tabular-nums text-muted-foreground">
-              {doneCount}/{steps.length}
-            </span>
-          </CardHeader>
-          <CardContent>
-            <ol className="grid gap-x-8 gap-y-3 lg:grid-cols-2">
-              {steps.map((step) => {
-                const inner = (
-                  <span className="flex items-start gap-3">
-                    <StepIcon done={step.done} />
-                    <span className="min-w-0">
-                      <span
-                        className={`block text-sm font-semibold ${
-                          step.done
-                            ? 'text-muted-foreground line-through decoration-border-strong'
-                            : 'text-foreground group-hover:text-accent-text'
-                        }`}
-                      >
-                        {step.label}
-                      </span>
-                      <span className="block text-xs text-muted-foreground">{step.sub}</span>
-                    </span>
-                  </span>
-                );
-                return (
-                  <li key={step.label}>
-                    {step.href ? (
-                      <Link href={step.href} className="group block">
-                        {inner}
-                      </Link>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={step.onClick}
-                        className="group block text-left cursor-pointer"
-                      >
-                        {inner}
-                      </button>
-                    )}
-                  </li>
-                );
-              })}
-            </ol>
-          </CardContent>
-        </Card>
-      )}
 
       {/* Metrics */}
       <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -455,6 +404,59 @@ export default function Overview() {
       </div>
 
       <DepositUsdcModal open={depositOpen} onClose={() => setDepositOpen(false)} onSuccess={load} />
+    </div>
+
+    {/* Getting started — secondary info, wide screens only, gone when complete */}
+    {!allDone && (
+      <aside className="hidden xl:block">
+        <div className="rounded-lg border border-border bg-card p-4">
+          <div className="flex items-baseline justify-between gap-2">
+            <p className="text-sm font-semibold text-foreground">Getting started</p>
+            <span className="text-xs font-semibold tabular-nums text-muted-foreground">
+              {doneCount}/{steps.length}
+            </span>
+          </div>
+          <ol className="mt-3 space-y-3">
+            {steps.map((step) => {
+              const inner = (
+                <span className="flex items-start gap-3">
+                  <StepIcon done={step.done} />
+                  <span className="min-w-0">
+                    <span
+                      className={`block text-sm font-semibold ${
+                        step.done
+                          ? 'text-muted-foreground line-through decoration-border-strong'
+                          : 'text-foreground group-hover:text-accent-text'
+                      }`}
+                    >
+                      {step.label}
+                    </span>
+                    <span className="block text-xs text-muted-foreground">{step.sub}</span>
+                  </span>
+                </span>
+              );
+              return (
+                <li key={step.label}>
+                  {step.href ? (
+                    <Link href={step.href} className="group block">
+                      {inner}
+                    </Link>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={step.onClick}
+                      className="group block text-left cursor-pointer"
+                    >
+                      {inner}
+                    </button>
+                  )}
+                </li>
+              );
+            })}
+          </ol>
+        </div>
+      </aside>
+    )}
     </div>
   );
 }

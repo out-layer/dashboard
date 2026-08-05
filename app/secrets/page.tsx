@@ -1,5 +1,6 @@
 'use client';
 
+import { PageHeader } from '@/components/ui/page-header';
 import { useState, useEffect, useCallback } from 'react';
 import { useNearWallet } from '@/contexts/NearWalletContext';
 import { actionCreators } from '@near-js/transactions';
@@ -280,14 +281,10 @@ export default function SecretsPage() {
   return (
  <div className="w-full">
       {/* Header */}
- <div className="sm:flex sm:items-center">
- <div className="sm:flex-auto">
- <h1 className="text-xl font-bold tracking-tight">Secrets Management</h1>
- <p className="mt-1 text-sm text-muted-foreground">
-            Create and manage encrypted secrets for your repositories
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        title="Secrets"
+        description="Create and manage encrypted secrets for your repositories."
+      />
 
       {/* Connect Wallet Button - Only if not connected */}
       {!isConnected && (

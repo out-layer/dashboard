@@ -1,5 +1,6 @@
 'use client';
 
+import { PageHeader } from '@/components/ui/page-header';
 import { useState, useEffect, useCallback, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useNearWallet } from '@/contexts/NearWalletContext';
@@ -194,7 +195,7 @@ function WalletManagePage() {
   if (!isConnected) {
     return (
  <div className="w-full">
- <h1 className="text-xl font-bold tracking-tight mb-6">Wallets</h1>
+        <PageHeader title="Wallets" />
         <RequireWallet subject="your wallet policies" />
       </div>
     );
@@ -202,12 +203,10 @@ function WalletManagePage() {
 
   return (
  <div className="w-full">
- <div className="mb-6">
- <h1 className="text-xl font-bold tracking-tight">Wallets</h1>
- <p className="mt-1 text-sm text-muted-foreground">
-          Policy-guarded agent wallets you control: freeze, unfreeze and edit policies.
-        </p>
-      </div>
+      <PageHeader
+        title="Wallets"
+        description="Policy-guarded agent wallets you control: freeze, unfreeze and edit policies."
+      />
 
       {error && (
  <div className="mb-4 rounded-md border border-destructive/30 bg-destructive/10 p-3">

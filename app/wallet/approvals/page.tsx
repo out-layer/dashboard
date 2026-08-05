@@ -1,5 +1,6 @@
 'use client';
 
+import { PageHeader } from '@/components/ui/page-header';
 import { useState, useEffect, useRef, useCallback, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useNearWallet } from '@/contexts/NearWalletContext';
@@ -333,7 +334,7 @@ function WalletApprovalsContent() {
   if (!isConnected) {
     return (
  <div className="w-full">
- <h1 className="text-xl font-bold tracking-tight mb-6">Approvals</h1>
+        <PageHeader title="Approvals" />
         <RequireWallet subject="pending approvals for your AI wallets" />
       </div>
     );
@@ -341,44 +342,31 @@ function WalletApprovalsContent() {
 
   return (
  <div className="w-full">
- <div className="flex items-center justify-between mb-6">
- <h1 className="text-xl font-bold tracking-tight">
-          Approvals
-          {approvals.length > 0 && (
- <span className="ml-2 inline-flex items-center justify-center px-2.5 py-0.5 rounded-full text-sm font-bold text-white bg-destructive">
+      <PageHeader
+        title="Approvals"
+        badge={
+          approvals.length > 0 ? (
+            <span className="inline-flex items-center justify-center rounded-full bg-destructive px-2.5 py-0.5 text-sm font-bold text-white">
               {approvals.length}
             </span>
-          )}
-        </h1>
- <div className="flex items-center space-x-3">
- <span className="text-xs text-faint-foreground font-mono">
-            {accountId}
-          </span>
-          {nextRefreshIn !== null && (
- <span className="text-xs text-faint-foreground tabular-nums">
-              {nextRefreshIn}s
-            </span>
-          )}
-          <button
-            onClick={() => loadApprovals()}
- className="text-sm text-accent-text hover:text-accent-text font-medium"
-          >
-            Refresh
-          </button>
-          <Link
-            href="/wallet/manage"
- className="text-sm text-accent-text hover:text-accent-text font-medium"
-          >
-            Manage
-          </Link>
-          <Link
-            href="/wallet/audit"
- className="text-sm text-accent-text hover:text-accent-text font-medium"
-          >
-            Audit
-          </Link>
-        </div>
-      </div>
+          ) : undefined
+        }
+        description="Operations from your AI wallets waiting for your signature."
+        action={
+          <div className="flex items-center gap-3">
+            <span className="font-mono text-xs text-faint-foreground">{accountId}</span>
+            {nextRefreshIn !== null && (
+              <span className="text-xs tabular-nums text-faint-foreground">{nextRefreshIn}s</span>
+            )}
+            <button
+              onClick={() => loadApprovals()}
+              className="text-sm font-medium text-accent-text hover:underline"
+            >
+              Refresh
+            </button>
+          </div>
+        }
+      />
 
       {error && (
  <div className="mb-4 rounded-md border border-destructive/30 bg-destructive/10 p-3">

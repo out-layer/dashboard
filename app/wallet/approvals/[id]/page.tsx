@@ -1,5 +1,6 @@
 'use client';
 
+import { PageHeader } from '@/components/ui/page-header';
 import { useState, useEffect, useCallback, Suspense } from 'react';
 import { getCoordinatorApiUrl } from '@/lib/api';
 import { useNearWallet } from '@/contexts/NearWalletContext';
@@ -158,7 +159,7 @@ function ApprovalDetailContent() {
         </Link>
       </div>
 
- <h1 className="text-xl font-bold tracking-tight mb-6">Approval Details</h1>
+      <PageHeader title="Approval details" />
 
       {error && (
  <div className="mb-4 bg-destructive/10 border border-destructive/30 rounded-md p-3">

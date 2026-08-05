@@ -1,5 +1,6 @@
 'use client';
 
+import { PageHeader } from '@/components/ui/page-header';
 import { useEffect, useState } from 'react';
 import { fetchWorkers, WorkerInfo } from '@/lib/api';
 import { Card } from '@/components/ui/card';
@@ -87,21 +88,18 @@ export default function WorkersPage() {
 
   return (
  <div className="w-full">
- <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
- <h1 className="text-xl font-bold tracking-tight">Workers</h1>
- <p className="mt-1 text-sm text-muted-foreground">
-            The TEE fleet executing off-chain computation. Every worker&apos;s enclave is
-            independently verifiable.
-          </p>
-        </div>
- <div className="flex items-center gap-2 text-sm text-muted-foreground">
- <span className="tabular-nums font-semibold text-foreground">{online}</span> online ·
-          <a href="https://workers.outlayer.ai" target="_blank" rel="noreferrer">
-            <AttestationBadge label="Fleet attestation" />
-          </a>
-        </div>
-      </div>
+      <PageHeader
+        title="Workers"
+        description="The TEE fleet executing off-chain computation. Every worker's enclave is independently verifiable."
+        action={
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <span className="font-semibold tabular-nums text-foreground">{online}</span> online ·
+            <a href="https://workers.outlayer.ai" target="_blank" rel="noreferrer">
+              <AttestationBadge label="Fleet attestation" />
+            </a>
+          </div>
+        }
+      />
 
  <Card className="mt-6 overflow-hidden rounded-md">
         {workers.length === 0 ? (

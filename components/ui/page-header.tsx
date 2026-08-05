@@ -15,6 +15,8 @@ import { cn } from '@/lib/utils';
 export interface PageHeaderProps {
   /** Must equal the sidebar label ("Vaults", not "Manage Vaults"). */
   title: string;
+  /** Inline chip after the title (e.g. pending-approvals count). */
+  badge?: React.ReactNode;
   description?: React.ReactNode;
   /** ONE primary action, right-aligned. */
   action?: React.ReactNode;
@@ -24,7 +26,7 @@ export interface PageHeaderProps {
 const STROKE_CLS =
   'absolute w-[3px] rounded-full transition-transform duration-300 ease-in-out motion-reduce:transition-none';
 
-export function PageHeader({ title, description, action, className }: PageHeaderProps) {
+export function PageHeader({ title, badge, description, action, className }: PageHeaderProps) {
   return (
     <div className={cn('mb-6 sm:flex sm:items-start sm:justify-between sm:gap-4', className)}>
       <div className="group relative w-fit pl-5">
@@ -44,7 +46,10 @@ export function PageHeader({ title, description, action, className }: PageHeader
             'group-hover:-translate-x-[7px] group-hover:translate-y-[7px]',
           )}
         />
-        <h1 className="text-xl font-bold tracking-tight">{title}</h1>
+        <h1 className="flex items-center gap-2 text-xl font-bold tracking-tight">
+          {title}
+          {badge}
+        </h1>
         {description && <p className="mt-1 text-sm text-muted-foreground">{description}</p>}
       </div>
       {action && <div className="mt-3 shrink-0 sm:mt-0">{action}</div>}

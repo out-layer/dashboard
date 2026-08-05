@@ -1,5 +1,7 @@
 'use client';
 
+import { PageHeader } from '@/components/ui/page-header';
+import { Button } from '@/components/ui/button';
 import { useEffect, useState } from 'react';
 import { useNearWallet } from '@/contexts/NearWalletContext';
 import { RequireWallet } from '@/components/ui/require-wallet';
@@ -97,7 +99,8 @@ export default function SettingsPage() {
 
   if (!isConnected) {
     return (
- <div className="w-full">
+      <div className="w-full">
+        <PageHeader title="Settings" />
         <RequireWallet subject="your settings and earnings" />
       </div>
     );
@@ -105,20 +108,15 @@ export default function SettingsPage() {
 
   return (
  <div className="w-full">
- <div className="sm:flex sm:items-center sm:justify-between">
- <div className="sm:flex-auto">
- <h1 className="text-xl font-bold tracking-tight">Settings</h1>
- <p className="mt-1 text-sm text-muted-foreground">Manage your account and view usage statistics</p>
-        </div>
- <div className="mt-4 sm:mt-0">
-          <button
-            onClick={disconnect}
- className="inline-flex items-center px-4 py-2 border border-border-strong shadow-sm text-sm font-medium rounded-md text-foreground bg-card hover:bg-card-muted"
-          >
+      <PageHeader
+        title="Settings"
+        description="Manage your account and view usage statistics."
+        action={
+          <Button variant="outline" onClick={disconnect}>
             Disconnect
-          </button>
-        </div>
-      </div>
+          </Button>
+        }
+      />
 
       {/* Account Information */}
  <div className="mt-8 bg-card border border-border overflow-hidden rounded-md">

@@ -1,10 +1,10 @@
 'use client';
 
+import { PageHeader } from '@/components/ui/page-header';
 import { useState, useEffect, useCallback, useRef, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useNearWallet } from '@/contexts/NearWalletContext';
 import { getCoordinatorApiUrl } from '@/lib/api';
-import Link from 'next/link';
 import { getAllWalletKeys } from '@/lib/wallet-keys';
 
 interface AuditEvent {
@@ -237,7 +237,7 @@ function WalletAuditContent() {
   if (noKeys && wallets.length === 0) {
     return (
  <div className="w-full">
- <h1 className="text-xl font-bold tracking-tight mb-6">Wallet Audit Log</h1>
+        <PageHeader title="Audit log" />
  <div className="bg-card border border-border rounded-lg p-8">
  <p className="text-muted-foreground mb-4">
             No saved wallet keys found. Enter an API key to view the audit log.
@@ -266,23 +266,10 @@ function WalletAuditContent() {
 
   return (
  <div className="w-full">
- <div className="flex items-center justify-between mb-6">
- <h1 className="text-xl font-bold tracking-tight">Wallet Audit Log</h1>
- <div className="flex items-center space-x-3">
-          <Link
-            href="/wallet/approvals"
- className="text-sm text-accent-text hover:text-accent-text font-medium"
-          >
-            Approvals
-          </Link>
-          <Link
-            href="/wallet/manage"
- className="text-sm text-accent-text hover:text-accent-text font-medium"
-          >
-            Manage
-          </Link>
-        </div>
-      </div>
+      <PageHeader
+        title="Audit log"
+        description="Signed operations recorded for your agent wallets."
+      />
 
       {/* Wallet filter tabs */}
       {multiWallet && (

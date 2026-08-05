@@ -1,5 +1,7 @@
 'use client';
 
+import { PageHeader } from '@/components/ui/page-header';
+import { Button } from '@/components/ui/button';
 import { useState, useEffect, useCallback } from 'react';
 import { useNearWallet } from '@/contexts/NearWalletContext';
 import WalletConnectionModal from '@/components/WalletConnectionModal';
@@ -207,28 +209,20 @@ export default function EarningsPage() {
 
   return (
  <div className="w-full">
-      {/* Header */}
- <div className="sm:flex sm:items-center sm:justify-between">
-        <div>
- <h1 className="text-xl font-bold tracking-tight">My Earnings</h1>
- <p className="mt-1 text-sm text-muted-foreground">
-            Track earnings from blockchain calls and HTTPS API calls to your projects
-          </p>
-        </div>
-        {isConnected && (
- <div className="mt-4 sm:mt-0">
-            <button
+      <PageHeader
+        title="Earnings"
+        description="Track earnings from blockchain calls and HTTPS API calls to your projects."
+        action={
+          isConnected ? (
+            <Button
+              variant="outline"
               onClick={() => { loadBlockchainBalance(); loadHttpsBalance(); loadHistory(); }}
- className="inline-flex items-center px-4 py-2 border border-border-strong text-sm font-medium rounded-md text-foreground bg-card hover:bg-card-muted shadow-sm"
             >
- <svg className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-              </svg>
               Refresh
-            </button>
-          </div>
-        )}
-      </div>
+            </Button>
+          ) : undefined
+        }
+      />
 
       {/* Connect Wallet Button */}
       {!isConnected && (

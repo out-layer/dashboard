@@ -1,5 +1,6 @@
 'use client';
 
+import { PageHeader } from '@/components/ui/page-header';
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useNearWallet } from '@/contexts/NearWalletContext';
@@ -198,23 +199,17 @@ export default function Overview() {
 
   return (
     <div className="w-full">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-bold tracking-tight">Overview</h1>
-          {accountId && (
-            <div className="mt-1">
-              <HashChip value={accountId} trim={0} />
-            </div>
-          )}
-        </div>
-        <div className="flex items-center gap-2">
-          {workersCount !== null && (
+      <PageHeader
+        title="Overview"
+        description={accountId ? <HashChip value={accountId} trim={0} /> : undefined}
+        action={
+          workersCount !== null ? (
             <a href="https://workers.outlayer.ai" target="_blank" rel="noreferrer">
               <AttestationBadge label={`${workersCount} workers attested`} />
             </a>
-          )}
-        </div>
-      </div>
+          ) : undefined
+        }
+      />
 
       {/* Getting started — hidden once every step is done */}
       {!allDone && (

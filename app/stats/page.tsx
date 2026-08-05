@@ -1,5 +1,6 @@
 'use client';
 
+import { PageHeader } from '@/components/ui/page-header';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import {
@@ -141,12 +142,10 @@ export default function StatsPage() {
 
   return (
  <div className="w-full">
-      <div>
- <h1 className="text-xl font-bold tracking-tight">Stats</h1>
- <p className="mt-1 text-sm text-muted-foreground">
-          Platform-wide metrics, refreshed every 30 seconds.
-        </p>
-      </div>
+      <PageHeader
+        title="Stats"
+        description="Platform-wide metrics, refreshed every 30 seconds."
+      />
 
       {/* KPI tiles */}
  <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

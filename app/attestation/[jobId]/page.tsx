@@ -1,5 +1,6 @@
 'use client';
 
+import { PageHeader } from '@/components/ui/page-header';
 import { useEffect, useState } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
 import { AttestationResponse } from '@/lib/api';
@@ -122,25 +123,18 @@ export default function AttestationPage() {
       )}
 
       {/* Header */}
- <div className="bg-card rounded-lg border border-border border border-border p-6 mb-6">
- <div className="flex justify-between items-start">
-          <div>
- <h1 className="text-xl font-bold tracking-tight mb-2">
-              TEE Attestation
-            </h1>
- <p className="text-muted-foreground">
-              Job #{attestation.task_id} • {attestation.task_type === 'compile' ? 'Compilation' : 'Execution'}
- {urlNetwork && <span className="ml-2 text-sm bg-card-muted px-2 py-1 rounded">({urlNetwork})</span>}
-            </p>
-          </div>
-          <Link
-            href="/executions"
- className="px-4 py-2 bg-card-muted hover:bg-card-muted text-foreground font-medium rounded"
-          >
-            All Executions
-          </Link>
-        </div>
-      </div>
+      <PageHeader
+        title="TEE Attestation"
+        description={
+          <>
+            Job #{attestation.task_id} •{' '}
+            {attestation.task_type === 'compile' ? 'Compilation' : 'Execution'}
+            {urlNetwork && (
+              <span className="ml-2 rounded bg-card-muted px-2 py-0.5 text-xs">({urlNetwork})</span>
+            )}
+          </>
+        }
+      />
 
       {/* Attestation Component */}
  <div className="bg-card rounded-lg border border-border border border-border p-6">

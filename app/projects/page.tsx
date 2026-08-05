@@ -1,5 +1,7 @@
 'use client';
 
+import { PageHeader } from '@/components/ui/page-header';
+import { Button } from '@/components/ui/button';
 import { useState, useEffect, useCallback } from 'react';
 import { useNearWallet } from '@/contexts/NearWalletContext';
 import { actionCreators } from '@near-js/transactions';
@@ -353,27 +355,15 @@ export default function ProjectsPage() {
   return (
  <div className="w-full">
       {/* Header */}
- <div className="sm:flex sm:items-center sm:justify-between">
-        <div>
- <h1 className="text-xl font-bold tracking-tight">Projects</h1>
- <p className="mt-1 text-sm text-muted-foreground">
-            Manage your OutLayer projects with persistent storage across versions
-          </p>
-        </div>
-        {isConnected && (
- <div className="mt-4 sm:mt-0">
-            <button
-              onClick={() => setShowCreateForm(true)}
- className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-on-accent bg-accent hover:bg-accent-hover shadow-sm"
-            >
- <svg className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
-              New Project
-            </button>
-          </div>
-        )}
-      </div>
+      <PageHeader
+        title="Projects"
+        description="Manage your OutLayer projects with persistent storage across versions."
+        action={
+          isConnected ? (
+            <Button onClick={() => setShowCreateForm(true)}>New project</Button>
+          ) : undefined
+        }
+      />
 
       {/* Connect Wallet Button */}
       {!isConnected && (

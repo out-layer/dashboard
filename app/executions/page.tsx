@@ -1,5 +1,6 @@
 'use client';
 
+import { PageHeader } from '@/components/ui/page-header';
 import { useEffect, useState, useCallback } from 'react';
 import { fetchJobs, JobHistoryEntry, AttestationResponse, fetchAttestation, isTestnetWorkersEnabled } from '@/lib/api';
 import { getTransactionUrl } from '@/lib/explorer';
@@ -325,17 +326,14 @@ export default function JobsPage() {
 
   return (
  <div className="w-full">
- <div className="sm:flex sm:items-center sm:justify-between">
- <div className="sm:flex-auto">
- <h1 className="text-xl font-bold tracking-tight">Executions</h1>
- <p className="mt-1 text-sm text-muted-foreground">
-            Compilation and execution jobs. Click an id to open its TEE attestation.
-          </p>
-        </div>
+      <PageHeader
+        title="Executions"
+        description="Compilation and execution jobs. Click an id to open its TEE attestation."
+      />
 
-        {/* Controls (hidden when testnet workers are offline — nothing to filter) */}
-        {!testnetDisabled && (
- <div className="mt-4 sm:mt-0 flex items-center gap-4">
+      {/* Controls (hidden when testnet workers are offline — nothing to filter) */}
+      {!testnetDisabled && (
+        <div className="-mt-2 mb-4 flex flex-wrap items-center justify-end gap-4">
           {/* Source filter checkboxes */}
  <div className="flex items-center gap-4">
  <label className="flex items-center gap-2 cursor-pointer">
@@ -403,8 +401,7 @@ export default function JobsPage() {
             )}
           </div>
         </div>
-        )}
-      </div>
+      )}
 
       {testnetDisabled && (
  <div className="mt-8">

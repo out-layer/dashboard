@@ -1,5 +1,6 @@
 'use client';
 
+import { PageHeader } from '@/components/ui/page-header';
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useNearWallet } from '@/contexts/NearWalletContext';
@@ -836,14 +837,10 @@ function PlaygroundContent() {
 
   return (
  <div className="w-full">
- <div className="sm:flex sm:items-center">
- <div className="sm:flex-auto">
- <h1 className="text-xl font-bold tracking-tight">Playground</h1>
- <p className="mt-1 text-sm text-muted-foreground">
-            Test off-chain execution with your GitHub repository
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        title="Playground"
+        description="Test off-chain execution with your GitHub repository."
+      />
 
  <div className="mt-6 bg-card border border-border rounded-lg">
  <div className="px-4 py-5 sm:p-6">

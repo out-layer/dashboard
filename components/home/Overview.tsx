@@ -7,9 +7,10 @@ import { useNearWallet } from '@/contexts/NearWalletContext';
 import { fetchWorkers, fetchJobs, getCoordinatorApiUrl } from '@/lib/api';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { AttestationBadge } from '@/components/ui/attestation-badge';
-import { HashChip } from '@/components/ui/hash-chip';
 import PendingApprovalsBadge from '@/components/PendingApprovalsBadge';
 import DepositUsdcModal from '@/components/home/DepositUsdcModal';
+import LiveActivity from '@/components/home/LiveActivity';
+import { SkillUrlBox } from '@/components/ui/skill-url-box';
 
 interface UserSecret {
   accessor: Record<string, unknown>;
@@ -195,7 +196,7 @@ export default function Overview() {
     <div className="w-full">
       <PageHeader
         title="Overview"
-        description={accountId ? <HashChip value={accountId} trim={0} /> : undefined}
+        description="Your OutLayer workspace at a glance."
         action={
           workersCount !== null ? (
             <a href="https://workers.outlayer.ai" target="_blank" rel="noreferrer">
@@ -288,6 +289,11 @@ export default function Overview() {
             </CardContent>
           </Card>
         </button>
+      </div>
+
+      {/* Platform activity — same switchable charts as the public home */}
+      <div className="mt-4">
+        <LiveActivity network={network} />
       </div>
 
       {/* First call + approvals/earnings */}
@@ -383,19 +389,13 @@ export default function Overview() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <ol className="max-w-3xl list-inside list-decimal space-y-1.5 text-sm text-muted-foreground">
-            <li>
-              Drop the{' '}
-              <a
-                href="https://skills.outlayer.ai/agent-custody/SKILL.md"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="font-medium text-accent-text hover:underline"
-              >
-                agent-custody skill
-              </a>{' '}
-              into your agent — it teaches it the whole API.
-            </li>
+          <p className="text-sm text-muted-foreground">
+            Paste this skill into Claude, Cursor or your own agent — it teaches it the whole API:
+          </p>
+          <div className="mt-2">
+            <SkillUrlBox url="https://skills.outlayer.ai/agent-custody/SKILL.md" />
+          </div>
+          <ol className="mt-3 max-w-3xl list-inside list-decimal space-y-1.5 text-sm text-muted-foreground">
             <li>
               The agent mints its wallet with one call (<code>POST /register</code>) and gets a
               NEAR, EVM and Solana address backed by the TEE.
@@ -412,15 +412,7 @@ export default function Overview() {
               .
             </li>
           </ol>
-          <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1">
-            <a
-              href="https://skills.outlayer.ai/agent-custody/SKILL.md"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-sm font-semibold text-accent-text hover:underline"
-            >
-              Get the skill →
-            </a>
+          <div className="mt-3">
             <Link href="/docs/agent-custody" className="text-sm font-semibold text-accent-text hover:underline">
               How custody works →
             </Link>

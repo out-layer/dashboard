@@ -1,14 +1,15 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useNearWallet } from '@/contexts/NearWalletContext';
 import WalletConnectionModal from '@/components/WalletConnectionModal';
-import { fetchStats, fetchWorkers, fetchWalletStats, WalletStats } from '@/lib/api';
+import { fetchStats, fetchWorkers, fetchWalletStats, fetchExecutionsPerDay, WalletStats, ExecutionsPerDayEntry } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { AttestationBadge } from '@/components/ui/attestation-badge';
 import { AreaChart } from '@/components/ui/area-chart';
+import { PRODUCTS } from '@/lib/products';
 
 /** Examples shown as a gallery — playground presets open pre-filled. */
 const EXAMPLES: Array<{ label: string; href: string; desc: string }> = [
@@ -25,7 +26,7 @@ const EXAMPLES: Array<{ label: string; href: string; desc: string }> = [
 ];
 
 
-type SeriesKey = 'wallets' | 'transactions' | 'registrations';
+type SeriesKey = 'executions' | 'wallets' | 'transactions' | 'registrations';
 
 interface DayPoint {
   date: string;
@@ -50,6 +51,7 @@ function cumulativeWindow(days: DayPoint[]) {
 }
 
 const SERIES_META: Record<SeriesKey, { title: string; unit: string }> = {
+  executions: { title: 'Executions — last 30 days', unit: 'executions' },
   wallets: { title: 'Agent wallets — total', unit: 'wallets' },
   transactions: { title: 'Custody transactions — total', unit: 'transactions' },
   registrations: { title: 'Wallet registrations — last 30 days', unit: 'new wallets' },
@@ -81,6 +83,10 @@ export default function ProductHome() {
   const [walletStats, setWalletStats] = useState<WalletStats | null>(null);
   const [walletStatsFailed, setWalletStatsFailed] = useState(false);
   const [series, setSeries] = useState<SeriesKey>('wallets');
+  const [execDays, setExecDays] = useState<ExecutionsPerDayEntry[] | null>(null);
+  // Don't yank the chart from under the user: executions becomes the default
+  // series when its data arrives, unless a tile was already clicked.
+  const userPickedRef = useRef(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -101,6 +107,15 @@ export default function ProductHome() {
     fetchWalletStats('mainnet')
       .then((ws) => !cancelled && setWalletStats(ws))
       .catch(() => !cancelled && setWalletStatsFailed(true));
+    // Optional endpoint (ships with a newer coordinator): absent → tile just
+    // has no chart icon and the default series stays on wallets.
+    fetchExecutionsPerDay('mainnet')
+      .then((days) => {
+        if (cancelled || !Array.isArray(days) || days.length < 2) return;
+        setExecDays(days);
+        if (!userPickedRef.current) setSeries('executions');
+      })
+      .catch(() => {});
     return () => {
       cancelled = true;
     };
@@ -146,7 +161,14 @@ export default function ProductHome() {
             <CardTitle>{SERIES_META[series].title}</CardTitle>
           </CardHeader>
           <CardContent>
-            {walletStats ? (
+            {series === 'executions' && execDays ? (
+              <AreaChart
+                key={series}
+                data={execDays.map((d) => ({ date: d.date, value: d.count }))}
+                unit={SERIES_META[series].unit}
+                kind="bar"
+              />
+            ) : walletStats ? (
               <AreaChart
                 key={series}
                 data={
@@ -175,7 +197,7 @@ export default function ProductHome() {
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-1">
           {(
             [
-              { label: 'Executions', value: executions, href: '/executions', chart: null },
+              { label: 'Executions', value: executions, href: '/executions', chart: execDays ? ('executions' as SeriesKey) : null },
               { label: 'Agent wallets', value: walletStats?.wallets.total ?? null, href: '/stats', chart: 'wallets' as SeriesKey },
               { label: 'Custody transactions', value: walletStats?.transactions.total ?? null, href: '/stats', chart: 'transactions' as SeriesKey },
               {
@@ -203,7 +225,10 @@ export default function ProductHome() {
                   type="button"
                   aria-label={`Show ${m.label} chart`}
                   title="Show chart"
-                  onClick={() => setSeries(m.chart!)}
+                  onClick={() => {
+                    userPickedRef.current = true;
+                    setSeries(m.chart!);
+                  }}
                   className="absolute right-2 top-2 inline-flex h-6 w-6 items-center justify-center rounded-md border border-border text-muted-foreground hover:border-accent hover:text-accent-text"
                 >
                   <ChartIcon active={series === m.chart} />
@@ -253,6 +278,37 @@ export default function ProductHome() {
               </span>
               <span className="mt-0.5 block text-xs text-muted-foreground">{ex.desc}</span>
             </Link>
+          ))}
+        </div>
+      </div>
+
+      {/* Built on OutLayer */}
+      <div className="mt-8">
+        <div className="flex items-baseline justify-between gap-3">
+          <h2 className="text-sm font-semibold">Built on OutLayer</h2>
+          <Link href="/products" className="text-sm font-semibold text-accent-text hover:underline">
+            All products →
+          </Link>
+        </div>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Live products running their critical path on OutLayer compute and custody.
+        </p>
+        <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+          {PRODUCTS.map((p) => (
+            <a
+              key={p.name}
+              href={p.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group rounded-md border border-border bg-card px-3 py-2 transition-colors hover:border-accent"
+            >
+              <span className="block text-sm font-medium text-foreground group-hover:text-accent-text">
+                {p.name}
+              </span>
+              <span className="mt-0.5 line-clamp-2 block text-xs text-muted-foreground">
+                {p.tagline}
+              </span>
+            </a>
           ))}
         </div>
       </div>

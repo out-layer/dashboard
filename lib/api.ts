@@ -276,6 +276,21 @@ export interface WalletStats {
   transactions_per_day: Array<{ date: string; count: number }>;
 }
 
+export interface ExecutionsPerDayEntry {
+  date: string;
+  count: number;
+}
+
+/** Executions per day, last 30 days (`/public/stats/executions_per_day`). */
+export async function fetchExecutionsPerDay(
+  network?: NetworkType,
+): Promise<ExecutionsPerDayEntry[]> {
+  const response = await axios.get(
+    `${getCoordinatorApiUrl(network)}/public/stats/executions_per_day`,
+  );
+  return response.data;
+}
+
 export async function fetchWalletStats(network?: NetworkType): Promise<WalletStats> {
   const response = await axios.get(`${getCoordinatorApiUrl(network)}/wallet/v1/stats`);
   return response.data;

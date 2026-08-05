@@ -53,6 +53,10 @@ export const APP_NAV: NavGroup[] = [
       { href: '/stats', label: 'Stats' },
     ],
   },
+  {
+    group: 'Ecosystem',
+    items: [{ href: '/products', label: 'Products' }],
+  },
 ];
 
 export const FOOTER_NAV: NavItem[] = [

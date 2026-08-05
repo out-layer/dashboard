@@ -42,6 +42,19 @@ interface NearWalletContextType {
   viewMethod: (params: { contractId: string; method: string; args?: Record<string, unknown> }) => Promise<unknown>;
 }
 
+// Synchronous "was connected" hint for the home page: lets `/` show a quiet
+// loader instead of flashing the anonymous marketing page while the wallet
+// session is being restored (which takes the connector a moment).
+export const CONNECTED_HINT_KEY = 'outlayer:connected-hint';
+function setConnectedHint(on: boolean) {
+  try {
+    if (on) localStorage.setItem(CONNECTED_HINT_KEY, '1');
+    else localStorage.removeItem(CONNECTED_HINT_KEY);
+  } catch {
+    /* storage unavailable */
+  }
+}
+
 const NearWalletContext = createContext<NearWalletContextType | undefined>(undefined);
 
 const getNetworkConfig = (network: NetworkType) => ({
@@ -140,6 +153,8 @@ export function NearWalletProvider({ children }: { children: ReactNode }) {
   }, []);
 
   // Initialize connector and restore session on every network change.
+  // NOTE: the hint deliberately survives this reset — it is what the home
+  // page reads while this very restore is still in flight.
   useEffect(() => {
     setIsWalletReady(false);
     setAccountId(null);
@@ -150,11 +165,13 @@ export function NearWalletProvider({ children }: { children: ReactNode }) {
     const handleSignIn = ({ accounts }: { accounts: Array<{ accountId: string }> }) => {
       if (accounts.length > 0) {
         setAccountId(accounts[0].accountId);
+        setConnectedHint(true);
       }
     };
 
     const handleSignOut = () => {
       setAccountId(null);
+      setConnectedHint(false);
     };
 
     (async () => {
@@ -239,6 +256,7 @@ export function NearWalletProvider({ children }: { children: ReactNode }) {
         const { accounts } = await connector.getConnectedWallet();
         if (!cancelled && accounts.length > 0) {
           setAccountId(accounts[0].accountId);
+          setConnectedHint(true);
         }
       } catch {
         // No existing session — that's fine.
@@ -273,6 +291,7 @@ export function NearWalletProvider({ children }: { children: ReactNode }) {
       // Already disconnected.
     }
     setAccountId(null);
+    setConnectedHint(false);
   }, []);
 
   const switchNetwork = useCallback(async (newNetwork: NetworkType) => {

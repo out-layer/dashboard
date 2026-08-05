@@ -2,9 +2,10 @@
 
 import { PageHeader } from '@/components/ui/page-header';
 import { Button } from '@/components/ui/button';
+import { RequireWallet } from '@/components/ui/require-wallet';
+import { EmptyState } from '@/components/ui/empty-state';
 import { useState, useEffect, useCallback } from 'react';
 import { useNearWallet } from '@/contexts/NearWalletContext';
-import WalletConnectionModal from '@/components/WalletConnectionModal';
 import { getCoordinatorApiUrl } from '@/lib/api';
 import { actionCreators } from '@near-js/transactions';
 
@@ -60,8 +61,6 @@ export default function EarningsPage() {
     contractId,
     viewMethod,
     signAndSendTransaction,
-    shouldReopenModal,
-    clearReopenModal,
   } = useNearWallet();
   const coordinatorUrl = getCoordinatorApiUrl(network);
 
@@ -75,7 +74,6 @@ export default function EarningsPage() {
   const [sourceFilter, setSourceFilter] = useState<'all' | 'blockchain' | 'https'>('all');
 
   const [loading, setLoading] = useState(false);
-  const [showWalletModal, setShowWalletModal] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [withdrawing, setWithdrawing] = useState(false);
@@ -172,14 +170,6 @@ export default function EarningsPage() {
     }
   };
 
-  // Auto-open modal if we switched networks
-  useEffect(() => {
-    if (shouldReopenModal && !isConnected) {
-      setShowWalletModal(true);
-      clearReopenModal();
-    }
-  }, [shouldReopenModal, isConnected, clearReopenModal]);
-
   // Load data when connected
   useEffect(() => {
     if (isConnected && accountId) {
@@ -214,33 +204,18 @@ export default function EarningsPage() {
         description="Track earnings from blockchain calls and HTTPS API calls to your projects."
         action={
           isConnected ? (
-            <Button
-              variant="outline"
-              onClick={() => { loadBlockchainBalance(); loadHttpsBalance(); loadHistory(); }}
-            >
+            <Button onClick={() => { loadBlockchainBalance(); loadHttpsBalance(); loadHistory(); }}>
               Refresh
             </Button>
           ) : undefined
         }
       />
 
-      {/* Connect Wallet Button */}
       {!isConnected && (
- <div className="mt-8">
-          <button
-            onClick={() => setShowWalletModal(true)}
- className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-on-accent bg-accent hover:bg-accent-hover shadow-sm hover:shadow-md transition-all"
-          >
-            Connect Wallet
-          </button>
+        <div className="mb-6">
+          <RequireWallet subject="your earnings" />
         </div>
       )}
-
-      {/* Wallet Modal */}
-      <WalletConnectionModal
-        isOpen={showWalletModal}
-        onClose={() => setShowWalletModal(false)}
-      />
 
       {/* Error/Success Display */}
       {error && (
@@ -258,7 +233,7 @@ export default function EarningsPage() {
       {isConnected && (
  <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Blockchain Earnings Card */}
- <div className="bg-gradient-to-br from-card-muted to-card-muted shadow rounded-lg p-6 border border-border">
+ <div className="bg-card rounded-lg p-6 border border-border">
  <div className="flex items-center mb-4">
  <div className="flex-shrink-0">
  <div className="w-12 h-12 bg-card-muted rounded-full flex items-center justify-center">
@@ -272,17 +247,17 @@ export default function EarningsPage() {
  <p className="text-xs text-muted-foreground">From smart contract calls</p>
               </div>
             </div>
- <p className="text-3xl font-bold text-accent-text tabular-nums mb-4">
+ <p className="text-3xl font-bold text-foreground tabular-nums mb-4">
               {formatUsd(blockchainBalance, stablecoin.decimals)}
             </p>
             <button
               onClick={handleWithdraw}
               disabled={withdrawing || BigInt(blockchainBalance || '0') <= BigInt(0)}
- className="w-full inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-card-muted hover:bg-card-muted disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+ className="inline-flex items-center px-4 py-2 text-sm font-semibold rounded-lg bg-accent text-on-accent hover:bg-accent-hover disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {withdrawing ? (
                 <>
- <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+ <svg className="animate-spin -ml-1 mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24">
  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                   </svg>
@@ -298,31 +273,31 @@ export default function EarningsPage() {
           </div>
 
           {/* HTTPS Earnings Card */}
- <div className="bg-gradient-to-br from-green-50 to-card-muted shadow rounded-lg p-6 border border-success/30">
+ <div className="bg-card rounded-lg p-6 border border-border">
  <div className="flex items-center mb-4">
  <div className="flex-shrink-0">
- <div className="w-12 h-12 bg-success/15 rounded-full flex items-center justify-center">
- <svg className="h-6 w-6 text-success-text" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+ <div className="w-12 h-12 bg-card-muted rounded-full flex items-center justify-center">
+ <svg className="h-6 w-6 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
                   </svg>
                 </div>
               </div>
  <div className="ml-4">
- <p className="text-sm font-medium text-success-text">HTTPS API Earnings</p>
- <p className="text-xs text-success-text">From payment key calls</p>
+ <p className="text-sm font-medium text-muted-foreground">HTTPS API Earnings</p>
+ <p className="text-xs text-muted-foreground">From payment key calls</p>
               </div>
             </div>
- <p className="text-3xl font-bold text-success-text mb-4">
+ <p className="text-3xl font-bold text-foreground tabular-nums mb-4">
               {httpsBalance ? formatUsd(httpsBalance.balance, stablecoin.decimals) : '$0.000000'}
             </p>
             <button
               disabled
- className="w-full inline-flex justify-center items-center px-4 py-2 border border-border-strong text-sm font-medium rounded-md text-faint-foreground bg-card-muted cursor-not-allowed"
+ className="inline-flex items-center px-4 py-2 border border-border-strong text-sm font-medium rounded-lg text-faint-foreground bg-card-muted cursor-not-allowed"
               title="Withdrawal coming soon"
             >
               Withdraw (Coming Soon)
             </button>
- <p className="mt-2 text-xs text-success-text">
+ <p className="mt-2 text-xs text-muted-foreground">
               Stored in coordinator database
             </p>
           </div>
@@ -331,10 +306,10 @@ export default function EarningsPage() {
 
       {/* Total Summary */}
       {isConnected && (
- <div className="mt-4 bg-card border border-border rounded-lg p-4 border border-border">
+ <div className="mt-4 bg-card border border-border rounded-lg p-4">
  <div className="flex items-center justify-between">
  <span className="text-sm font-medium text-muted-foreground">Total Available</span>
- <span className="text-xl font-bold text-foreground">
+ <span className="text-xl font-bold tabular-nums text-foreground">
               {formatUsd(
                 (BigInt(blockchainBalance || '0') + BigInt(httpsBalance?.balance || '0')).toString(),
                 stablecoin.decimals
@@ -346,9 +321,9 @@ export default function EarningsPage() {
 
       {/* Earnings History */}
       {isConnected && (
- <div className="mt-8 bg-card border border-border rounded-lg border border-border overflow-hidden">
+ <div className="mt-8 bg-card border border-border rounded-lg overflow-hidden">
  <div className="px-6 py-4 border-b border-border flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
- <h2 className="text-lg font-semibold text-foreground">
+ <h2 className="text-sm font-semibold text-foreground">
               Earnings History
               {totalCount > 0 && (
  <span className="text-sm font-normal text-muted-foreground ml-2">
@@ -362,8 +337,8 @@ export default function EarningsPage() {
                 onClick={() => setSourceFilter('all')}
  className={`px-3 py-1 text-xs font-medium rounded-full ${
                   sourceFilter === 'all'
-                    ? 'bg-gray-800 text-white'
-                    : 'bg-card-muted text-muted-foreground hover:bg-card-muted'
+                    ? 'bg-accent text-on-accent border border-accent'
+                    : 'bg-card text-muted-foreground border border-border-strong hover:border-accent hover:text-accent-text'
                 }`}
               >
                 All
@@ -372,8 +347,8 @@ export default function EarningsPage() {
                 onClick={() => setSourceFilter('blockchain')}
  className={`px-3 py-1 text-xs font-medium rounded-full ${
                   sourceFilter === 'blockchain'
-                    ? 'bg-card-muted text-white'
-                    : 'bg-card-muted text-muted-foreground hover:bg-card-muted'
+                    ? 'bg-accent text-on-accent border border-accent'
+                    : 'bg-card text-muted-foreground border border-border-strong hover:border-accent hover:text-accent-text'
                 }`}
               >
                 Blockchain
@@ -382,8 +357,8 @@ export default function EarningsPage() {
                 onClick={() => setSourceFilter('https')}
  className={`px-3 py-1 text-xs font-medium rounded-full ${
                   sourceFilter === 'https'
-                    ? 'bg-success text-white'
-                    : 'bg-success/15 text-success-text hover:bg-green-200'
+                    ? 'bg-accent text-on-accent border border-accent'
+                    : 'bg-card text-muted-foreground border border-border-strong hover:border-accent hover:text-accent-text'
                 }`}
               >
                 HTTPS
@@ -392,33 +367,31 @@ export default function EarningsPage() {
           </div>
 
           {loading ? (
- <div className="flex items-center justify-center py-12">
- <svg className="animate-spin h-8 w-8 text-accent-text" fill="none" viewBox="0 0 24 24">
- <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
- <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-              </svg>
- <span className="ml-3 text-muted-foreground">Loading history...</span>
+            <div className="flex items-center gap-3 px-6 py-8">
+              <span className="h-8 w-8 shrink-0 animate-spin rounded-full border-b-2 border-accent" aria-hidden="true" />
+              <span className="text-sm text-muted-foreground">Loading history…</span>
             </div>
           ) : history.length === 0 ? (
- <div className="py-8">
- <svg className="h-10 w-10 text-faint-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-              </svg>
- <h3 className="mt-2 text-sm font-medium text-foreground">No earnings yet</h3>
- <p className="mt-1 text-sm text-muted-foreground">
-                Earnings will appear here when users call your projects with attached deposits.
-              </p>
-            </div>
+            <EmptyState
+              className="border-0"
+              icon={
+                <svg className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                </svg>
+              }
+              title="No earnings yet"
+              description="Earnings will appear here when users call your projects with attached deposits."
+            />
           ) : (
  <div className="overflow-x-auto">
  <table className="w-full text-sm">
- <thead className="bg-card-muted">
- <tr className="text-left text-muted-foreground">
- <th className="px-6 py-3 font-medium">Date</th>
- <th className="px-6 py-3 font-medium">Source</th>
- <th className="px-6 py-3 font-medium">Project</th>
- <th className="px-6 py-3 font-medium">Details</th>
- <th className="px-6 py-3 font-medium text-right">Amount</th>
+ <thead>
+ <tr className="border-b border-border text-left text-[11px] font-semibold uppercase tracking-wider text-faint-foreground">
+ <th className="px-6 py-3 font-semibold">Date</th>
+ <th className="px-6 py-3 font-semibold">Source</th>
+ <th className="px-6 py-3 font-semibold">Project</th>
+ <th className="px-6 py-3 font-semibold">Details</th>
+ <th className="px-6 py-3 font-semibold text-right">Amount</th>
                   </tr>
                 </thead>
  <tbody className="divide-y divide-border">
@@ -429,11 +402,11 @@ export default function EarningsPage() {
                       </td>
  <td className="px-6 py-4">
                         {record.source === 'blockchain' ? (
- <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-card-muted text-foreground">
+ <span className="inline-flex items-center px-2 py-0.5 rounded border border-border-strong text-xs font-medium text-muted-foreground">
                             Blockchain
                           </span>
                         ) : (
- <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-success/10 text-success-text">
+ <span className="inline-flex items-center px-2 py-0.5 rounded border border-border-strong text-xs font-medium text-muted-foreground">
                             HTTPS
                           </span>
                         )}
@@ -458,7 +431,7 @@ export default function EarningsPage() {
                       </td>
  <td className="px-6 py-4 text-right">
                         <div>
- <span className="text-success-text font-semibold">
+ <span className="font-semibold tabular-nums text-success-text">
                             +{formatUsd(record.amount, stablecoin.decimals)}
                           </span>
                           {BigInt(record.refund_usd || '0') > BigInt(0) && (
@@ -478,13 +451,13 @@ export default function EarningsPage() {
       )}
 
       {/* Info Section */}
- <div className="mt-8 max-w-3xl bg-card-muted border border-border rounded-lg p-6">
+ <div className="mt-8 max-w-3xl bg-card-muted border border-border rounded-lg p-4">
  <h3 className="text-sm font-semibold text-foreground mb-3">
           About Earnings
         </h3>
- <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-info">
+ <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-muted-foreground">
           <div>
- <h4 className="font-medium text-muted-foreground mb-1">Blockchain Earnings</h4>
+ <h4 className="font-medium text-foreground mb-1">Blockchain Earnings</h4>
  <ul className="space-y-1 list-disc list-inside text-xs">
  <li>From request_execution with attached_usd</li>
  <li>Stored in OutLayer smart contract</li>
@@ -492,7 +465,7 @@ export default function EarningsPage() {
             </ul>
           </div>
           <div>
- <h4 className="font-medium text-success-text mb-1">HTTPS API Earnings</h4>
+ <h4 className="font-medium text-foreground mb-1">HTTPS API Earnings</h4>
  <ul className="space-y-1 list-disc list-inside text-xs">
  <li>From payment key calls with X-Attached-Deposit</li>
  <li>Stored in coordinator database</li>

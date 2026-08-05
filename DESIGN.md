@@ -48,6 +48,16 @@ order — nothing above the header, nothing wraps the page in a width container:
   reverses smoothly mid-flight, disabled under `prefers-reduced-motion`).
   This is the ONLY sanctioned decorative element and the only allowed
   gradient outside charts — do not invent page-level ornaments elsewhere.
+- The header `action` button is ALWAYS the solid accent `<Button>` — the one
+  attention-drawing control of the page ("New key", "Refresh", "Disconnect").
+  Never render the connected account in a page header — the shell's
+  AccountChip already shows it. Filter/toolbar clusters (checkboxes, column
+  pickers) may also live in `action`; they keep their quiet styling.
+- Gated returns (`!isConnected`) still render `<PageHeader title …/>` above
+  `<RequireWallet …/>` — the page must not lose its header when logged out.
+- A create-form + list pair may sit side-by-side on wide screens:
+  `grid items-start gap-6 xl:grid-cols-2` (stacked below `xl`). Width rules
+  then apply per column.
 
 ## Width rules
 
@@ -125,6 +135,13 @@ categories use `outline`; the attestation chip is ALWAYS `<AttestationBadge>`.
 
 **Code**: only `<CodeBlock>` (new UI) or the `components/ui/syntax` shim (docs).
 Ids/accounts/hashes: `<HashChip>` — never a raw truncated string.
+
+## Shell footer
+
+Left-aligned, never centered: `© 2026 OutLayer · tagline` on the left, a
+link row (Docs, Workers, GitHub, X) on the right, all `text-xs
+text-muted-foreground hover:text-foreground`. Pages never render their own
+footers.
 
 ## Typography
 

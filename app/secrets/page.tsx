@@ -1,23 +1,22 @@
 'use client';
 
 import { PageHeader } from '@/components/ui/page-header';
+import { RequireWallet } from '@/components/ui/require-wallet';
 import { useState, useEffect, useCallback } from 'react';
 import { useNearWallet } from '@/contexts/NearWalletContext';
 import { actionCreators } from '@near-js/transactions';
-import WalletConnectionModal from '@/components/WalletConnectionModal';
 import { SecretsForm } from './components/SecretsForm';
 import { SecretsList } from './components/SecretsList';
 import { UserSecret, FormData, isRepoAccessor, isWasmHashAccessor, isProjectAccessor } from './components/types';
 import { getCoordinatorApiUrl } from '@/lib/api';
 
 export default function SecretsPage() {
-  const { accountId, isConnected, signAndSendTransaction, contractId, viewMethod, network, shouldReopenModal, clearReopenModal } = useNearWallet();
+  const { accountId, isConnected, signAndSendTransaction, contractId, viewMethod, network } = useNearWallet();
   const coordinatorUrl = getCoordinatorApiUrl(network);
 
   // User's secrets list
   const [userSecrets, setUserSecrets] = useState<UserSecret[]>([]);
   const [loadingSecrets, setLoadingSecrets] = useState(false);
-  const [showWalletModal, setShowWalletModal] = useState(false);
 
   // UI state
   const [error, setError] = useState<string | null>(null);
@@ -80,14 +79,6 @@ export default function SecretsPage() {
       setLoadingSecrets(false);
     }
   }, [accountId, contractId, viewMethod]);
-
-  // Auto-open modal if we switched networks
-  useEffect(() => {
-    if (shouldReopenModal && !isConnected) {
-      setShowWalletModal(true);
-      clearReopenModal();
-    }
-  }, [shouldReopenModal, isConnected, clearReopenModal]);
 
   // Load user secrets when connected
   useEffect(() => {
@@ -286,23 +277,11 @@ export default function SecretsPage() {
         description="Create and manage encrypted secrets for your repositories."
       />
 
-      {/* Connect Wallet Button - Only if not connected */}
       {!isConnected && (
- <div className="mt-4">
-          <button
-            onClick={() => setShowWalletModal(true)}
- className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-on-accent bg-accent hover:bg-accent-hover shadow-sm hover:shadow-md transition-all"
-          >
-            Connect Wallet
-          </button>
+        <div className="mb-6">
+          <RequireWallet subject="your secrets" />
         </div>
       )}
-
-      {/* Wallet Connection Modal */}
-      <WalletConnectionModal
-        isOpen={showWalletModal}
-        onClose={() => setShowWalletModal(false)}
-      />
 
       {/* Error Display */}
       {error && (
@@ -318,8 +297,9 @@ export default function SecretsPage() {
         </div>
       )}
 
-      {/* Secrets Form (Manual + Generated) */}
- <div className="mt-8">
+      {/* Create + list side-by-side on wide screens */}
+      <div className="mt-6 grid items-start gap-6 xl:grid-cols-2">
+      <div>
         <SecretsForm
           isConnected={isConnected}
           accountId={accountId}
@@ -407,18 +387,19 @@ export default function SecretsPage() {
         onDelete={handleDeleteSecret}
         onRefresh={loadUserSecrets}
       />
+      </div>
 
       {/* Info Section */}
- <div className="mt-8 max-w-3xl bg-card-muted border border-border rounded-lg p-6">
+ <div className="mt-8 max-w-3xl bg-card-muted border border-border rounded-lg p-4">
  <h3 className="text-sm font-semibold text-foreground mb-3">
-           How Repo-Based Secrets Work
+          How repo-based secrets work
         </h3>
  <ol className="text-sm text-muted-foreground space-y-2 list-decimal list-inside">
           <li>
  <strong>Create secrets</strong>: Secrets are encrypted with keystore&apos;s public key and stored in the contract
           </li>
           <li>
- <strong>Reference in execution</strong>: Use <code className="bg-info/15 px-1 py-0.5 rounded text-xs font-mono">secrets_ref: {`{profile: "production", account_id: "you.near"}`}</code>
+ <strong>Reference in execution</strong>: Use <code className="bg-card-muted px-1 py-0.5 rounded text-xs font-mono">secrets_ref: {`{profile: "production", account_id: "you.near"}`}</code>
           </li>
           <li>
  <strong>Automatic decryption</strong>: Worker fetches secrets from contract and decrypts via keystore
@@ -430,13 +411,13 @@ export default function SecretsPage() {
  <strong>WASI injection</strong>: Decrypted secrets injected as environment variables into WASM
           </li>
           <li>
- <strong>Code access</strong>: Your WASM code uses <code className="bg-info/15 px-1 py-0.5 rounded text-xs font-mono">std::env::var(&quot;API_KEY&quot;)</code>
+ <strong>Code access</strong>: Your WASM code uses <code className="bg-card-muted px-1 py-0.5 rounded text-xs font-mono">std::env::var(&quot;API_KEY&quot;)</code>
           </li>
         </ol>
 
- <div className="mt-4 p-3 bg-card rounded border border-info/30">
+ <div className="mt-4 p-3 bg-card rounded-md border border-border">
  <h4 className="text-xs font-semibold text-foreground mb-2">Example: Request Execution with Secrets</h4>
- <pre className="text-xs text-info overflow-x-auto">
+ <pre className="text-xs text-foreground overflow-x-auto">
 {`near call outlayer.testnet request_execution '{
   "source": {
     "GitHub": {

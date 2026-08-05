@@ -15,7 +15,7 @@ interface SecretsListProps {
 
 export function SecretsList({ secrets, loading, isConnected, onEdit, onUpdate, onDelete, onRefresh }: SecretsListProps) {
   return (
- <div className="mt-8 bg-card border border-border sm:rounded-lg">
+ <div className="bg-card border border-border rounded-lg">
  <div className="px-4 py-5 sm:p-6">
  <div className="flex items-center justify-between mb-4">
  <h2 className="text-lg font-medium text-foreground">

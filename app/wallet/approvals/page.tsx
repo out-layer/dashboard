@@ -1,6 +1,7 @@
 'use client';
 
 import { PageHeader } from '@/components/ui/page-header';
+import { Button } from '@/components/ui/button';
 import { useState, useEffect, useRef, useCallback, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useNearWallet } from '@/contexts/NearWalletContext';
@@ -354,16 +355,10 @@ function WalletApprovalsContent() {
         description="Operations from your AI wallets waiting for your signature."
         action={
           <div className="flex items-center gap-3">
-            <span className="font-mono text-xs text-faint-foreground">{accountId}</span>
             {nextRefreshIn !== null && (
               <span className="text-xs tabular-nums text-faint-foreground">{nextRefreshIn}s</span>
             )}
-            <button
-              onClick={() => loadApprovals()}
-              className="text-sm font-medium text-accent-text hover:underline"
-            >
-              Refresh
-            </button>
+            <Button onClick={() => loadApprovals()}>Refresh</Button>
           </div>
         }
       />

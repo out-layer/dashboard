@@ -318,8 +318,14 @@ export default function JobsPage() {
 
   if (error && !loading) {
     return (
- <div className="rounded-md border border-destructive/30 bg-destructive/10 p-4">
- <p className="text-sm text-destructive-text">{error}</p>
+      <div className="w-full">
+        <PageHeader
+          title="Executions"
+          description="Compilation and execution jobs. Click an id to open its TEE attestation."
+        />
+        <div className="rounded-md border border-destructive/30 bg-destructive/10 p-4">
+          <p className="text-sm text-destructive-text">{error}</p>
+        </div>
       </div>
     );
   }
@@ -329,11 +335,9 @@ export default function JobsPage() {
       <PageHeader
         title="Executions"
         description="Compilation and execution jobs. Click an id to open its TEE attestation."
-      />
-
-      {/* Controls (hidden when testnet workers are offline — nothing to filter) */}
-      {!testnetDisabled && (
-        <div className="-mt-2 mb-4 flex flex-wrap items-center justify-end gap-4">
+        action={
+          !testnetDisabled ? (
+            <div className="flex flex-wrap items-center gap-4">
           {/* Source filter checkboxes */}
  <div className="flex items-center gap-4">
  <label className="flex items-center gap-2 cursor-pointer">
@@ -400,8 +404,10 @@ export default function JobsPage() {
               </>
             )}
           </div>
-        </div>
-      )}
+            </div>
+          ) : undefined
+        }
+      />
 
       {testnetDisabled && (
  <div className="mt-8">

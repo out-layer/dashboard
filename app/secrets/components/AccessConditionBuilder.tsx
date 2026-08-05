@@ -20,15 +20,15 @@ export function AccessConditionBuilder({ condition, onChange }: AccessConditionB
   }, [condition]);
 
   const ruleTypes = [
-    { value: 'AllowAll', label: ' Everyone can access', description: 'No restrictions - open for all users' },
-    { value: 'Logic', label: ' Multiple rules (AND/OR)', description: 'Combine several rules together' },
-    { value: 'Not', label: ' Opposite rule (NOT)', description: 'Flip a rule to mean the opposite' },
-    { value: 'NearBalance', label: ' NEAR Balance Check', description: 'Require minimum NEAR balance' },
-    { value: 'FtBalance', label: ' FT Balance Check', description: 'Require specific token balance' },
-    { value: 'NftOwned', label: ' NFT Ownership Check', description: 'Require NFT ownership' },
-    { value: 'DaoMember', label: ' DAO Membership', description: 'Require membership in DAO role' },
-    { value: 'Whitelist', label: ' Whitelist', description: 'Only specific accounts allowed' },
-    { value: 'AccountPattern', label: ' Account Pattern', description: 'Match account name with regex' },
+    { value: 'AllowAll', label: 'Everyone can access', description: 'No restrictions - open for all users' },
+    { value: 'Logic', label: 'Multiple rules (AND/OR)', description: 'Combine several rules together' },
+    { value: 'Not', label: 'Opposite rule (NOT)', description: 'Flip a rule to mean the opposite' },
+    { value: 'NearBalance', label: 'NEAR Balance Check', description: 'Require minimum NEAR balance' },
+    { value: 'FtBalance', label: 'FT Balance Check', description: 'Require specific token balance' },
+    { value: 'NftOwned', label: 'NFT Ownership Check', description: 'Require NFT ownership' },
+    { value: 'DaoMember', label: 'DAO Membership', description: 'Require membership in DAO role' },
+    { value: 'Whitelist', label: 'Whitelist', description: 'Only specific accounts allowed' },
+    { value: 'AccountPattern', label: 'Account Pattern', description: 'Match account name with regex' },
   ];
 
   const operators = [
@@ -147,7 +147,7 @@ export function AccessConditionBuilder({ condition, onChange }: AccessConditionB
         <select
           value={currentCondition.type}
           onChange={(e) => handleTypeChange(e.target.value)}
- className="block w-full max-w-xl rounded-md border-border-strong shadow-sm focus:border-accent focus:ring-accent sm:text-sm"
+ className="block w-full max-w-xl rounded-md border border-border-strong px-3 py-2 text-sm outline-none focus:border-accent focus:ring-1 focus:ring-accent"
         >
           {ruleTypes.map(rule => (
             <option key={rule.value} value={rule.value} title={rule.description}>
@@ -172,10 +172,10 @@ export function AccessConditionBuilder({ condition, onChange }: AccessConditionB
             <select
               value={currentCondition.operator}
               onChange={(e) => updateCondition({ operator: e.target.value as LogicOperator })}
- className="block w-full max-w-xl rounded-md border-border-strong shadow-sm focus:border-accent focus:ring-accent sm:text-sm"
+ className="block w-full max-w-xl rounded-md border border-border-strong px-3 py-2 text-sm outline-none focus:border-accent focus:ring-1 focus:ring-accent"
             >
- <option value="And"> ALL rules must pass (AND - stricter)</option>
- <option value="Or"> ANY rule can pass (OR - easier)</option>
+ <option value="And">ALL rules must pass (AND - stricter)</option>
+ <option value="Or">ANY rule can pass (OR - easier)</option>
             </select>
  <p className="mt-1 text-xs text-muted-foreground">
                {currentCondition.operator === 'And'
@@ -249,7 +249,7 @@ export function AccessConditionBuilder({ condition, onChange }: AccessConditionB
               updateCondition({ accounts });
             }}
             placeholder="alice.near, bob.near"
- className="block w-full max-w-xl rounded-md border-border-strong shadow-sm focus:border-accent focus:ring-accent sm:text-sm"
+ className="block w-full max-w-xl rounded-md border border-border-strong px-3 py-2 text-sm outline-none focus:border-accent focus:ring-1 focus:ring-accent"
           />
         </div>
       )}
@@ -265,7 +265,7 @@ export function AccessConditionBuilder({ condition, onChange }: AccessConditionB
             value={currentCondition.pattern}
             onChange={(e) => updateCondition({ pattern: e.target.value })}
             placeholder=".*\.gov\.near"
- className="block w-full max-w-xl rounded-md border-border-strong shadow-sm focus:border-accent focus:ring-accent sm:text-sm font-mono"
+ className="block w-full max-w-xl rounded-md border border-border-strong px-3 py-2 text-sm outline-none focus:border-accent focus:ring-1 focus:ring-accent font-mono"
           />
  <p className="mt-2 text-xs text-muted-foreground">
  Example: <code className="bg-card px-1 py-0.5 rounded">.*\.gov\.near</code> matches all .gov.near accounts
@@ -283,7 +283,7 @@ export function AccessConditionBuilder({ condition, onChange }: AccessConditionB
             <select
               value={currentCondition.operator}
               onChange={(e) => updateCondition({ operator: e.target.value as ComparisonOperator })}
- className="block w-32 rounded-md border-border-strong shadow-sm focus:border-accent focus:ring-accent sm:text-sm"
+ className="block w-32 rounded-md border border-border-strong px-3 py-2 text-sm outline-none focus:border-accent focus:ring-1 focus:ring-accent"
             >
               {operators.map(op => (
                 <option key={op.value} value={op.value} title={op.description}>
@@ -300,7 +300,7 @@ export function AccessConditionBuilder({ condition, onChange }: AccessConditionB
                 updateCondition({ value: yoctoValue });
               }}
               placeholder="1.0"
- className="block flex-1 rounded-md border-border-strong shadow-sm focus:border-accent focus:ring-accent sm:text-sm"
+ className="block flex-1 rounded-md border border-border-strong px-3 py-2 text-sm outline-none focus:border-accent focus:ring-1 focus:ring-accent"
             />
  <span className="inline-flex items-center px-3 text-sm text-foreground font-medium">
               NEAR
@@ -321,7 +321,7 @@ export function AccessConditionBuilder({ condition, onChange }: AccessConditionB
               value={currentCondition.contract}
               onChange={(e) => updateCondition({ contract: e.target.value })}
               placeholder="usdt.near"
- className="block w-full max-w-xl rounded-md border-border-strong shadow-sm focus:border-accent focus:ring-accent sm:text-sm"
+ className="block w-full max-w-xl rounded-md border border-border-strong px-3 py-2 text-sm outline-none focus:border-accent focus:ring-1 focus:ring-accent"
             />
           </div>
           <div>
@@ -332,7 +332,7 @@ export function AccessConditionBuilder({ condition, onChange }: AccessConditionB
               <select
                 value={currentCondition.operator}
                 onChange={(e) => updateCondition({ operator: e.target.value as ComparisonOperator })}
- className="block w-32 rounded-md border-border-strong shadow-sm focus:border-accent focus:ring-accent sm:text-sm"
+ className="block w-32 rounded-md border border-border-strong px-3 py-2 text-sm outline-none focus:border-accent focus:ring-1 focus:ring-accent"
               >
                 {operators.map(op => (
                   <option key={op.value} value={op.value}>
@@ -345,7 +345,7 @@ export function AccessConditionBuilder({ condition, onChange }: AccessConditionB
                 value={currentCondition.value}
                 onChange={(e) => updateCondition({ value: e.target.value })}
                 placeholder="1000000"
- className="block flex-1 rounded-md border-border-strong shadow-sm focus:border-accent focus:ring-accent sm:text-sm font-mono"
+ className="block flex-1 rounded-md border border-border-strong px-3 py-2 text-sm outline-none focus:border-accent focus:ring-1 focus:ring-accent font-mono"
               />
             </div>
  <p className="mt-1 text-xs text-muted-foreground">
@@ -367,7 +367,7 @@ export function AccessConditionBuilder({ condition, onChange }: AccessConditionB
               value={currentCondition.contract}
               onChange={(e) => updateCondition({ contract: e.target.value })}
               placeholder="paras-token.near"
- className="block w-full max-w-xl rounded-md border-border-strong shadow-sm focus:border-accent focus:ring-accent sm:text-sm"
+ className="block w-full max-w-xl rounded-md border border-border-strong px-3 py-2 text-sm outline-none focus:border-accent focus:ring-1 focus:ring-accent"
             />
           </div>
           <div>
@@ -379,7 +379,7 @@ export function AccessConditionBuilder({ condition, onChange }: AccessConditionB
               value={currentCondition.token_id || ''}
               onChange={(e) => updateCondition({ token_id: e.target.value || null })}
               placeholder="Leave empty for any NFT from collection"
- className="block w-full max-w-xl rounded-md border-border-strong shadow-sm focus:border-accent focus:ring-accent sm:text-sm"
+ className="block w-full max-w-xl rounded-md border border-border-strong px-3 py-2 text-sm outline-none focus:border-accent focus:ring-1 focus:ring-accent"
             />
  <p className="mt-2 text-xs text-muted-foreground">
               {currentCondition.token_id
@@ -402,7 +402,7 @@ export function AccessConditionBuilder({ condition, onChange }: AccessConditionB
               value={currentCondition.dao_contract}
               onChange={(e) => updateCondition({ dao_contract: e.target.value })}
               placeholder="my-dao.sputnik-dao.near"
- className="block w-full max-w-xl rounded-md border-border-strong shadow-sm focus:border-accent focus:ring-accent sm:text-sm"
+ className="block w-full max-w-xl rounded-md border border-border-strong px-3 py-2 text-sm outline-none focus:border-accent focus:ring-1 focus:ring-accent"
             />
  <p className="mt-1 text-xs text-muted-foreground">
  Example: <code className="bg-card px-1 py-0.5 rounded">my-dao.sputnik-dao.near</code>
@@ -417,7 +417,7 @@ export function AccessConditionBuilder({ condition, onChange }: AccessConditionB
               value={currentCondition.role}
               onChange={(e) => updateCondition({ role: e.target.value })}
               placeholder="council"
- className="block w-full max-w-xl rounded-md border-border-strong shadow-sm focus:border-accent focus:ring-accent sm:text-sm"
+ className="block w-full max-w-xl rounded-md border border-border-strong px-3 py-2 text-sm outline-none focus:border-accent focus:ring-1 focus:ring-accent"
             />
  <p className="mt-2 text-xs text-muted-foreground">
  Common roles: <code className="bg-card px-1 py-0.5 rounded">council</code>, <code className="bg-card px-1 py-0.5 rounded">members</code>

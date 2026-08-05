@@ -159,8 +159,8 @@ export interface PricingConfig {
 /**
  * Fetch list of workers
  */
-export async function fetchWorkers(): Promise<WorkerInfo[]> {
-  const response = await axios.get(`${apiBase()}/public/workers`);
+export async function fetchWorkers(network?: NetworkType): Promise<WorkerInfo[]> {
+  const response = await axios.get(`${getCoordinatorApiUrl(network)}/public/workers`);
   return response.data;
 }
 

@@ -1052,8 +1052,8 @@ export function SecretsForm({
  <p className="text-xs text-muted-foreground mb-2">
             Auto-generate cryptographically secure secrets without seeing their values. Perfect for MASTER_KEY, API tokens, passwords, and ED25519 keys.
           </p>
- <p className="text-xs text-success-text mb-2">
- Must start with <code className="bg-success/15 px-1 rounded">PROTECTED_*</code> prefix (proves secret was generated in TEE)
+ <p className="text-xs text-muted-foreground mb-2">
+ Must start with <code className="bg-card-muted px-1 rounded">PROTECTED_*</code> prefix (proves secret was generated in TEE)
           </p>
 
           {secretsToGenerate.length > 0 && (
@@ -1194,8 +1194,8 @@ export function SecretsForm({
             </button>
 
             {!isConnected && (
- <p className="text-sm text-destructive-text">
-                Please connect your wallet to {isUpdateMode ? 'update' : 'create'} secrets
+ <p className="text-sm text-muted-foreground">
+                Connect your wallet to {isUpdateMode ? 'update' : 'create'} secrets.
               </p>
             )}
           </div>
@@ -1228,7 +1228,7 @@ export function SecretsForm({
  <span className="flex items-center justify-center w-6 h-6 rounded-full bg-success/100 text-white text-xs"></span>
  <span className="text-sm text-success-text">Signed</span>
               </div>
- <span className="text-green-400">→</span>
+ <span className="text-muted-foreground">→</span>
  <div className="flex items-center space-x-2">
  <span className="flex items-center justify-center w-6 h-6 rounded-full bg-accent text-on-accent text-xs font-bold">2</span>
  <span className="text-sm font-medium text-success-text">Store in contract</span>
@@ -1239,8 +1239,8 @@ export function SecretsForm({
 
         {/* Info Box */}
  <div className="mt-6 max-w-3xl bg-card-muted border border-border rounded-lg p-4">
- <h3 className="text-sm font-medium text-foreground mb-2"> How it works</h3>
- <ul className="text-xs text-info space-y-1 list-disc list-inside">
+ <h3 className="text-sm font-semibold text-foreground mb-2">How it works</h3>
+ <ul className="text-xs text-muted-foreground space-y-1 list-disc list-inside">
  <li><strong>Manual secrets</strong>: Encrypted in this browser with ECIES — ephemeral X25519 ECDH + HKDF-SHA256 + ChaCha20-Poly1305 AEAD</li>
  <li><strong>Generated secrets</strong>: Keystore generates inside TEE (you never see values)</li>
  <li><strong>Combined flow</strong>: Manual secrets encrypted → sent with generation specs → keystore decrypts, generates, merges, re-encrypts</li>

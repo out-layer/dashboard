@@ -985,7 +985,7 @@ function PlaygroundContent() {
                     value={proxyMethod}
                     onChange={(e) => setProxyMethod(e.target.value)}
                     placeholder="method_name"
- className="mt-1 block w-full max-w-xl rounded-md border-border-strong shadow-sm focus:border-accent focus:ring-accent sm:text-sm font-mono px-3 py-2"
+ className="mt-1 block w-full max-w-xl rounded-md border border-border-strong px-3 py-2 text-sm outline-none focus:border-accent focus:ring-1 focus:ring-accent font-mono px-3 py-2"
                   />
                 </div>
               </>
@@ -1052,7 +1052,7 @@ function PlaygroundContent() {
                         value={projectId}
                         onChange={(e) => setProjectId(e.target.value)}
                         placeholder="account.near/project-name"
- className="mt-1 block w-full max-w-xl rounded-md border-border-strong shadow-sm focus:border-accent focus:ring-accent sm:text-sm px-3 py-2"
+ className="mt-1 block w-full max-w-xl rounded-md border border-border-strong px-3 py-2 text-sm outline-none focus:border-accent focus:ring-1 focus:ring-accent px-3 py-2"
                       />
  <p className="mt-1 text-xs text-muted-foreground">
                         Enter your project ID in format: owner_account/project_name (e.g., alice.near/my-app)
@@ -1068,7 +1068,7 @@ function PlaygroundContent() {
                         value={versionKey}
                         onChange={(e) => setVersionKey(e.target.value)}
                         placeholder="Leave empty for active version"
- className="mt-1 block w-full max-w-xl rounded-md border-border-strong shadow-sm focus:border-accent focus:ring-accent sm:text-sm font-mono px-3 py-2"
+ className="mt-1 block w-full max-w-xl rounded-md border border-border-strong px-3 py-2 text-sm outline-none focus:border-accent focus:ring-1 focus:ring-accent font-mono px-3 py-2"
                       />
  <p className="mt-1 text-xs text-muted-foreground">
                         For WasmUrl: use hash. For GitHub: use &quot;repo@commit&quot;. Leave empty for active version.
@@ -1090,7 +1090,7 @@ function PlaygroundContent() {
                             value={attachedUsdc}
                             onChange={(e) => setAttachedUsdc(e.target.value)}
                             placeholder="0.00"
- className="block w-full max-w-xl pl-7 pr-3 py-2 rounded-md border-border-strong shadow-sm focus:border-accent focus:ring-accent sm:text-sm"
+ className="block w-full max-w-xl pl-7 pr-3 py-2 rounded-md border border-border-strong px-3 py-2 text-sm outline-none focus:border-accent focus:ring-1 focus:ring-accent"
                           />
                         </div>
  <span className="text-sm text-muted-foreground">
@@ -1130,7 +1130,7 @@ function PlaygroundContent() {
                         value={repo}
                         onChange={(e) => setRepo(e.target.value)}
                         placeholder="https://github.com/user/repo"
- className="mt-1 block w-full max-w-xl rounded-md border-border-strong shadow-sm focus:border-accent focus:ring-accent sm:text-sm px-3 py-2"
+ className="mt-1 block w-full max-w-xl rounded-md border border-border-strong px-3 py-2 text-sm outline-none focus:border-accent focus:ring-1 focus:ring-accent px-3 py-2"
                       />
                     </div>
 
@@ -1145,7 +1145,7 @@ function PlaygroundContent() {
                         value={commit}
                         onChange={(e) => setCommit(e.target.value)}
                         placeholder="main"
- className="mt-1 block w-full max-w-xl rounded-md border-border-strong shadow-sm focus:border-accent focus:ring-accent sm:text-sm px-3 py-2"
+ className="mt-1 block w-full max-w-xl rounded-md border border-border-strong px-3 py-2 text-sm outline-none focus:border-accent focus:ring-1 focus:ring-accent px-3 py-2"
                       />
                     </div>
 
@@ -1163,7 +1163,7 @@ function PlaygroundContent() {
                         value={wasmUrl}
                         onChange={(e) => setWasmUrl(e.target.value)}
                         placeholder="https://example.com/compiled.wasm or ipfs://..."
- className="mt-1 block w-full max-w-xl rounded-md border-border-strong shadow-sm focus:border-accent focus:ring-accent sm:text-sm px-3 py-2"
+ className="mt-1 block w-full max-w-xl rounded-md border border-border-strong px-3 py-2 text-sm outline-none focus:border-accent focus:ring-1 focus:ring-accent px-3 py-2"
                       />
  <p className="mt-1 text-xs text-muted-foreground">
                         Direct URL to pre-compiled WASM file (HTTP/HTTPS or IPFS)
@@ -1180,7 +1180,7 @@ function PlaygroundContent() {
                           value={wasmHash}
                           onChange={(e) => setWasmHash(e.target.value)}
                           placeholder="e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
- className="block w-full max-w-xl rounded-md border-border-strong shadow-sm focus:border-accent focus:ring-accent sm:text-sm font-mono px-3 py-2"
+ className="block w-full max-w-xl rounded-md border border-border-strong px-3 py-2 text-sm outline-none focus:border-accent focus:ring-1 focus:ring-accent font-mono px-3 py-2"
                         />
                         <button
                           type="button"
@@ -1222,7 +1222,7 @@ function PlaygroundContent() {
                         id="buildTarget"
                         value={buildTarget}
                         onChange={(e) => setBuildTarget(e.target.value)}
- className="mt-1 block w-full max-w-xl rounded-md border-border-strong shadow-sm focus:border-accent focus:ring-accent sm:text-sm px-3 py-2"
+ className="mt-1 block w-full max-w-xl rounded-md border border-border-strong px-3 py-2 text-sm outline-none focus:border-accent focus:ring-1 focus:ring-accent px-3 py-2"
                       >
  <option value="wasm32-wasip1">wasm32-wasip1</option>
  <option value="wasm32-wasip2">wasm32-wasip2</option>
@@ -1237,7 +1237,7 @@ function PlaygroundContent() {
                       id="responseFormat"
                       value={responseFormat}
                       onChange={(e) => setResponseFormat(e.target.value)}
- className="mt-1 block w-full max-w-xl rounded-md border-border-strong shadow-sm focus:border-accent focus:ring-accent sm:text-sm px-3 py-2"
+ className="mt-1 block w-full max-w-xl rounded-md border border-border-strong px-3 py-2 text-sm outline-none focus:border-accent focus:ring-1 focus:ring-accent px-3 py-2"
                     >
  <option value="Json">JSON</option>
  <option value="Text">Text</option>
@@ -1309,7 +1309,7 @@ function PlaygroundContent() {
               onChange={(e) => setArgs(e.target.value)}
               placeholder='{"key": "value"}'
               rows={4}
- className="mt-1 block w-full max-w-xl rounded-md border-border-strong shadow-sm focus:border-accent focus:ring-accent sm:text-sm font-mono px-3 py-2"
+ className="mt-1 block w-full max-w-xl rounded-md border border-border-strong px-3 py-2 text-sm outline-none focus:border-accent focus:ring-1 focus:ring-accent font-mono px-3 py-2"
             />
  <p className="mt-1 text-xs text-muted-foreground">
               {(() => {
@@ -1402,7 +1402,7 @@ function PlaygroundContent() {
                       value={secretsProfile}
                       onChange={(e) => setSecretsProfile(e.target.value)}
                       placeholder="default"
- className="block w-full max-w-xl rounded-md border-border-strong shadow-sm focus:border-accent focus:ring-accent sm:text-sm px-3 py-2"
+ className="block w-full max-w-xl rounded-md border border-border-strong px-3 py-2 text-sm outline-none focus:border-accent focus:ring-1 focus:ring-accent px-3 py-2"
                     />
                   </div>
                   <div>
@@ -1415,7 +1415,7 @@ function PlaygroundContent() {
                       value={secretsOwner}
                       onChange={(e) => setSecretsOwner(e.target.value)}
                       placeholder="your-account.testnet"
- className="block w-full max-w-xl rounded-md border-border-strong shadow-sm focus:border-accent focus:ring-accent sm:text-sm px-3 py-2"
+ className="block w-full max-w-xl rounded-md border border-border-strong px-3 py-2 text-sm outline-none focus:border-accent focus:ring-1 focus:ring-accent px-3 py-2"
                     />
                   </div>
                 </div>
@@ -1448,7 +1448,7 @@ function PlaygroundContent() {
                 }
               }}
               disabled={loading}
- className="w-full inline-flex justify-center items-center px-6 py-3 text-base font-semibold rounded-lg bg-accent text-on-accent hover:bg-accent-hover disabled:opacity-50"
+ className="inline-flex items-center px-6 py-2.5 text-sm font-semibold rounded-lg bg-accent text-on-accent hover:bg-accent-hover disabled:opacity-50"
             >
               {loading ? (
                 <>

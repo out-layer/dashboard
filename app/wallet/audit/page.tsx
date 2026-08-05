@@ -1,5 +1,7 @@
 'use client';
 
+import { Button } from '@/components/ui/button';
+import { EmptyState } from '@/components/ui/empty-state';
 import { PageHeader } from '@/components/ui/page-header';
 import { useState, useEffect, useCallback, useRef, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
@@ -238,26 +240,22 @@ function WalletAuditContent() {
     return (
  <div className="w-full">
         <PageHeader title="Audit log" />
- <div className="bg-card border border-border rounded-lg p-8">
- <p className="text-muted-foreground mb-4">
+        <div className="rounded-lg border border-border bg-card p-5">
+          <p className="mb-3 text-sm text-muted-foreground">
             No saved wallet keys found. Enter an API key to view the audit log.
           </p>
- <div className="flex gap-3">
+          <div className="flex max-w-xl gap-2">
             <input
               type="text"
               value={manualKeyInput}
               onChange={(e) => setManualKeyInput(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleManualKeySubmit()}
               placeholder="wk_..."
- className="flex-1 px-4 py-2 border border-border-strong rounded-lg focus:ring-2 focus:ring-accent font-mono text-sm"
+              className="min-w-0 flex-1 rounded-md border border-border-strong px-3 py-2 font-mono text-sm outline-none focus:border-accent focus:ring-1 focus:ring-accent"
             />
-            <button
-              onClick={handleManualKeySubmit}
-              disabled={!manualKeyInput.trim()}
- className="px-6 py-2 bg-accent text-on-accent rounded-lg font-medium disabled:opacity-50"
-            >
+            <Button onClick={handleManualKeySubmit} disabled={!manualKeyInput.trim()}>
               Load
-            </button>
+            </Button>
           </div>
         </div>
       </div>
@@ -295,7 +293,7 @@ function WalletAuditContent() {
               }`}
             >
               {w.label}
- {w.error && <span className="ml-1 text-red-400">!</span>}
+              {w.error && <span className="ml-1 text-destructive-text">!</span>}
             </button>
           ))}
         </div>
@@ -311,17 +309,15 @@ function WalletAuditContent() {
 
       {/* Events table */}
       {loading && mergedEvents.length === 0 ? (
- <div className="flex items-center justify-center py-12">
- <svg className="animate-spin h-8 w-8 text-accent-text" fill="none" viewBox="0 0 24 24">
- <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
- <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-          </svg>
- <span className="ml-3 text-muted-foreground">Loading audit log...</span>
+        <div className="flex items-center gap-3 py-8">
+          <span className="h-8 w-8 shrink-0 animate-spin rounded-full border-b-2 border-accent" aria-hidden="true" />
+          <span className="text-sm text-muted-foreground">Loading audit log…</span>
         </div>
       ) : mergedEvents.length === 0 ? (
- <div className="bg-card border border-border rounded-lg p-6">
- <p className="text-muted-foreground">No audit events found.</p>
-        </div>
+        <EmptyState
+          title="No audit events yet"
+          description="Signed operations from your agent wallets will appear here."
+        />
       ) : (
         <>
  <div className="bg-card border border-border rounded-lg overflow-hidden">
@@ -384,22 +380,26 @@ function WalletAuditContent() {
 
           {/* Pagination - only when single wallet is focused */}
           {singleWallet && (
- <div className="flex items-center justify-between mt-4">
-              <button
+            <div className="mt-4 flex items-center justify-between">
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={() => loadPage(singleWallet.walletId, Math.max(0, singleWallet.page - 1))}
                 disabled={singleWallet.page === 0 || loading}
- className="px-4 py-2 text-sm border border-border-strong rounded hover:bg-card-muted disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Previous
-              </button>
- <span className="text-sm text-muted-foreground">Page {singleWallet.page + 1}</span>
-              <button
+              </Button>
+              <span className="text-sm tabular-nums text-muted-foreground">
+                Page {singleWallet.page + 1}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={() => loadPage(singleWallet.walletId, singleWallet.page + 1)}
                 disabled={!singleWallet.hasMore || loading}
- className="px-4 py-2 text-sm border border-border-strong rounded hover:bg-card-muted disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Next
-              </button>
+              </Button>
             </div>
           )}
         </>

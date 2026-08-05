@@ -111,11 +111,7 @@ export default function SettingsPage() {
       <PageHeader
         title="Settings"
         description="Manage your account and view usage statistics."
-        action={
-          <Button variant="outline" onClick={disconnect}>
-            Disconnect
-          </Button>
-        }
+        action={<Button onClick={disconnect}>Disconnect</Button>}
       />
 
       {/* Account Information */}

@@ -157,12 +157,34 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
  <main className="flex-1 px-4 py-6 sm:px-6 lg:px-8">{children}</main>
 
- <footer className="border-t border-border px-4 py-4 sm:px-6">
- <p className="text-center text-xs text-muted-foreground">
-            © 2026 OutLayer · Verifiable compute and custody for AI agents · <a href="https://workers.outlayer.ai" className="text-accent-text hover:underline">
-              fleet attestation
-            </a>
-          </p>
+        <footer className="border-t border-border px-4 py-4 sm:px-6">
+          <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2 text-xs text-muted-foreground">
+            <p>© 2026 OutLayer · Verifiable compute and custody for AI agents</p>
+            <nav className="flex flex-wrap items-center gap-4">
+              <Link href="/docs/getting-started" className="hover:text-foreground">
+                Docs
+              </Link>
+              <Link href="/workers" className="hover:text-foreground">
+                Workers
+              </Link>
+              <a
+                href="https://github.com/out-layer"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:text-foreground"
+              >
+                GitHub
+              </a>
+              <a
+                href="https://x.com/out_layer"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:text-foreground"
+              >
+                X
+              </a>
+            </nav>
+          </div>
         </footer>
       </div>
 

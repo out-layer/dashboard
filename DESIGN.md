@@ -25,15 +25,12 @@ order — nothing above the header, nothing wraps the page in a width container:
 
 ```tsx
 <div className="w-full">
-  {/* 1. Header */}
-  <div className="sm:flex sm:items-center sm:justify-between">
-    <div>
-      <h1 className="text-xl font-bold tracking-tight">Page name</h1>
-      <p className="mt-1 text-sm text-muted-foreground">One factual sentence.</p>
-    </div>
-    {/* optional: ONE primary action, right-aligned */}
-    <Button onClick={...}>Create thing</Button>
-  </div>
+  {/* 1. Header — ALWAYS components/ui/page-header.tsx, never a raw h1 */}
+  <PageHeader
+    title="Page name"                    // = sidebar label, exactly
+    description="One factual sentence."
+    action={<Button onClick={...}>Create thing</Button>}  // optional, ONE
+  />
 
   {/* 2. Feedback banners (only when present) */}
   {/* 3. Content: tiles / table / cards / form — see width rules */}
@@ -43,6 +40,14 @@ order — nothing above the header, nothing wraps the page in a width container:
 
 - Page name matches the sidebar label exactly ("Wallets", not "Manage Wallets").
 - The wallet gate is ALWAYS `<RequireWallet subject="…" />` — never bespoke.
+- `PageHeader` carries the brand "layer shift" mark: a faint base stroke and
+  the same stroke in amber, moved out in front (the » of the wordmark,
+  verticalized — OutLayer runs your work on another, better layer). It also
+  starts the h1 on the same vertical line as card content (`pl-5` =
+  CardHeader padding). On hover the strokes trade places (300 ms transition,
+  reverses smoothly mid-flight, disabled under `prefers-reduced-motion`).
+  This is the ONLY sanctioned decorative element and the only allowed
+  gradient outside charts — do not invent page-level ornaments elsewhere.
 
 ## Width rules
 
@@ -84,6 +89,9 @@ per view.
 - Semantic green solid only for un-dangerous state restore (Unfreeze).
 - Forbidden: blue buttons, gray buttons, gradients, raw `text-white`/hex on
   accent instead of the `text-on-accent` token.
+- Cursor: globals.css gives every enabled button/`[role=button]`/select/summary
+  `cursor: pointer` — never sprinkle `cursor-pointer` per element, and disabled
+  controls keep the arrow.
 
 **Cards**: `components/ui/card.tsx` (`rounded-lg border border-border bg-card`).
 Tables sit in `rounded-md` + `overflow-hidden` variants. No shadows on static

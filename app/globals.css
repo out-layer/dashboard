@@ -96,6 +96,15 @@ select {
   background-color: var(--background);
 }
 
+/* Tailwind v4 preflight leaves buttons with `cursor: default`; everything
+   clickable in the app must show the hand. Disabled buttons keep the arrow. */
+button:not(:disabled),
+[role='button']:not([aria-disabled='true']),
+select:not(:disabled),
+summary {
+  cursor: pointer;
+}
+
 @media (max-width: 640px) {
   body {
     font-size: 14px;

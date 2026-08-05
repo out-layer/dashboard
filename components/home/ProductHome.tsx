@@ -11,6 +11,7 @@ import { AttestationBadge } from '@/components/ui/attestation-badge';
 import { AreaChart } from '@/components/ui/area-chart';
 import { PRODUCTS } from '@/lib/products';
 import { SkillUrlBox } from '@/components/ui/skill-url-box';
+import { InfoHint } from '@/components/ui/info-hint';
 
 /** Examples shown as a gallery — playground presets open pre-filled. */
 const EXAMPLES: Array<{ label: string; href: string; desc: string; icon: ExampleIconName }> = [
@@ -177,10 +178,11 @@ export default function ProductHome() {
   }, []);
 
   return (
-    <div className="w-full xl:grid xl:grid-cols-[minmax(0,1fr)_300px] xl:gap-8">
+    <div className="w-full xl:grid xl:grid-cols-[minmax(0,64rem)_300px] xl:gap-8">
     <div className="w-full max-w-5xl min-w-0">
       {/* Hero — the layer mark, scaled up */}
-      <div className="py-10 sm:py-14">
+      <div className="py-10 sm:py-14 lg:flex lg:items-start lg:justify-between lg:gap-10">
+      <div className="min-w-0">
         <div className="group relative w-fit pl-6">
           <span
             aria-hidden="true"
@@ -208,6 +210,30 @@ export default function ProductHome() {
             <Button variant="ghost">Read docs</Button>
           </Link>
         </div>
+      </div>
+
+      {/* Powered by — the primitives underneath */}
+      <div className="mt-8 hidden shrink-0 lg:mt-3 lg:block">
+        <p className="text-[11px] font-semibold uppercase tracking-wider text-faint-foreground">
+          Powered by
+        </p>
+        <div className="mt-2 flex flex-col gap-2">
+          <span className="inline-flex items-center gap-1.5 rounded-md border border-border bg-card px-3 py-2 text-sm font-medium text-foreground">
+            NEAR Intents
+            <InfoHint
+              align="right"
+              text="Solvers execute what your agent asks for: swaps, cross-chain deposits and withdrawals, and gasless transactions — the agent signs an intent, a solver settles it on-chain and covers the gas, so the wallet needs no native token."
+            />
+          </span>
+          <span className="inline-flex items-center gap-1.5 rounded-md border border-border bg-card px-3 py-2 text-sm font-medium text-foreground">
+            NEAR MPC Network
+            <InfoHint
+              align="right"
+              text="Runs Confidential Key Derivation (CKD): NEAR's validator MPC network derives keys jointly, in shares — no single node ever assembles a secret. That's how OutLayer workers receive their keys and secrets: distributed, never held whole by anyone, including us."
+            />
+          </span>
+        </div>
+      </div>
       </div>
 
       {/* Live activity: real numbers + real charts, not claims */}
@@ -526,8 +552,8 @@ export default function ProductHome() {
     </div>
 
     {/* Sidenote for the agents themselves — wide screens only */}
-    <aside className="hidden xl:flex xl:flex-col">
-      <div className="mt-14 flex-1 rounded-lg border border-border bg-card p-4">
+    <aside className="hidden xl:block">
+      <div className="mt-14 rounded-lg border border-border bg-card p-4">
         <p className="text-[11px] font-semibold uppercase tracking-wider text-faint-foreground">
           For the agents reading this
         </p>

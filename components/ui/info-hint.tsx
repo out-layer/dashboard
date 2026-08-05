@@ -9,7 +9,16 @@ import { cn } from '@/lib/utils';
  * toggle; closes on outside click or Escape. For supplementary explanations
  * only — never put information the user MUST read behind it.
  */
-export function InfoHint({ text, className }: { text: React.ReactNode; className?: string }) {
+export function InfoHint({
+  text,
+  className,
+  align = 'left',
+}: {
+  text: React.ReactNode;
+  className?: string;
+  /** Popover edge relative to the (i) button — use 'right' near the viewport's right edge. */
+  align?: 'left' | 'right';
+}) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLSpanElement>(null);
 
@@ -41,7 +50,11 @@ export function InfoHint({ text, className }: { text: React.ReactNode; className
         i
       </button>
       {open && (
-        <span className="absolute left-0 top-5 z-50 block w-64 rounded-md border border-border-strong bg-card p-3 text-xs font-normal normal-case tracking-normal text-muted-foreground shadow-2xl">
+        <span
+          className={`absolute top-5 z-50 block w-64 rounded-md border border-border-strong bg-card p-3 text-xs font-normal normal-case tracking-normal text-muted-foreground shadow-2xl ${
+            align === 'right' ? 'right-0' : 'left-0'
+          }`}
+        >
           {text}
         </span>
       )}

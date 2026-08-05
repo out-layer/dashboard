@@ -134,14 +134,14 @@ const NETWORKS: NetworkType[] = ['mainnet', 'testnet'];
 interface FleetState {
   workers: WorkerInfo[];
   failed: boolean;
+  loading: boolean;
 }
 
 export default function WorkersPage() {
   const [fleets, setFleets] = useState<Record<NetworkType, FleetState>>({
-    mainnet: { workers: [], failed: false },
-    testnet: { workers: [], failed: false },
+    mainnet: { workers: [], failed: false, loading: true },
+    testnet: { workers: [], failed: false, loading: true },
   });
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     loadWorkers();
@@ -149,35 +149,30 @@ export default function WorkersPage() {
     return () => clearInterval(interval);
   }, []);
 
-  const loadWorkers = async () => {
-    // Both networks in parallel; one failing does not blank the other.
-    const [main, test] = await Promise.allSettled(
-      NETWORKS.map((n) => fetchWorkers(n)),
-    );
-    setFleets({
-      mainnet:
-        main.status === 'fulfilled'
-          ? { workers: sortWorkers(main.value), failed: false }
-          : { workers: [], failed: true },
-      testnet:
-        test.status === 'fulfilled'
-          ? { workers: sortWorkers(test.value), failed: false }
-          : { workers: [], failed: true },
-    });
-    setLoading(false);
+  const loadWorkers = () => {
+    // Each network renders as soon as ITS fetch lands — a slow or broken
+    // coordinator on one network must not hold the other's table hostage.
+    for (const n of NETWORKS) {
+      fetchWorkers(n)
+        .then((list) =>
+          setFleets((prev) => ({
+            ...prev,
+            [n]: { workers: sortWorkers(list), failed: false, loading: false },
+          })),
+        )
+        .catch(() =>
+          setFleets((prev) => ({
+            ...prev,
+            // Keep the last good list on a failed refresh — no flicker to empty.
+            [n]: { workers: prev[n].workers, failed: prev[n].workers.length === 0, loading: false },
+          })),
+        );
+    }
   };
 
   const online = NETWORKS.flatMap((n) => fleets[n].workers).filter(
     (w) => w.status === 'online' || w.status === 'busy',
   ).length;
-
-  if (loading) {
-    return (
-      <div className="flex min-h-[400px] items-center justify-center">
-        <div className="h-10 w-10 animate-spin rounded-full border-b-2 border-accent" />
-      </div>
-    );
-  }
 
   return (
     <div className="w-full">
@@ -198,14 +193,19 @@ export default function WorkersPage() {
         <section key={network} className="mb-8">
           <div className="mb-3 flex items-baseline gap-2">
             <h2 className="text-sm font-semibold capitalize">{network}</h2>
-            {!fleets[network].failed && (
+            {!fleets[network].failed && !fleets[network].loading && (
               <span className="text-xs tabular-nums text-muted-foreground">
                 {fleets[network].workers.filter((w) => w.status === 'online' || w.status === 'busy').length}{' '}
                 online / {fleets[network].workers.length} total
               </span>
             )}
           </div>
-          {fleets[network].failed ? (
+          {fleets[network].loading ? (
+            <div className="flex items-center gap-3 rounded-md border border-border bg-card p-4">
+              <span className="h-5 w-5 shrink-0 animate-spin rounded-full border-b-2 border-accent" aria-hidden="true" />
+              <span className="text-sm text-muted-foreground">Loading {network} workers…</span>
+            </div>
+          ) : fleets[network].failed ? (
             <div className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive-text">
               Failed to load {network} workers.
             </div>

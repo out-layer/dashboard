@@ -232,6 +232,13 @@ export default function ProductHome() {
               text="Runs Confidential Key Derivation (CKD): NEAR's validator MPC network derives keys jointly, in shares — no single node ever assembles a secret. That's how OutLayer workers receive their keys and secrets: distributed, never held whole by anyone, including us."
             />
           </span>
+          <span className="inline-flex items-center gap-1.5 rounded-md border border-border bg-card px-3 py-2 text-sm font-medium text-foreground">
+            FastNEAR
+            <InfoHint
+              align="right"
+              text="Workers read the chain through FastNEAR: the NEAR Data block stream plus mainnet and testnet RPC. Worker code also gets built-in hosted functions with private RPC access, so heavy reads never run into public rate limits."
+            />
+          </span>
         </div>
       </div>
       </div>

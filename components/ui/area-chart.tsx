@@ -17,6 +17,10 @@ export interface AreaChartProps {
   data: AreaChartPoint[];
   /** Tooltip unit, e.g. "transactions". */
   unit?: string;
+  /** 'area' (line + gradient fill) or 'bar' (per-day columns). */
+  kind?: 'area' | 'bar';
+  /** Dot on every data point — for cumulative curves. */
+  showPoints?: boolean;
   height?: number;
   className?: string;
 }
@@ -45,7 +49,7 @@ function fmtDate(iso: string): string {
   return isNaN(d.getTime()) ? iso : d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
-export function AreaChart({ data, unit = '', height = 215, className }: AreaChartProps) {
+export function AreaChart({ data, unit = '', kind = 'area', showPoints = false, height = 215, className }: AreaChartProps) {
   const gradId = useId();
   const wrapRef = useRef<HTMLDivElement>(null);
   const [hover, setHover] = useState<number | null>(null);
@@ -125,9 +129,35 @@ export function AreaChart({ data, unit = '', height = 215, className }: AreaChar
             {fmtDate(data[i].date)}
           </text>
         ))}
-        <path d={`${line} L${px(data.length - 1)} ${py(0)} L${px(0)} ${py(0)} Z`} fill={`url(#${gradId})`} />
-        <path d={line} fill="none" stroke="var(--chart)" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
-        {hover !== null && (
+        {kind === 'area' ? (
+          <>
+            <path d={`${line} L${px(data.length - 1)} ${py(0)} L${px(0)} ${py(0)} Z`} fill={`url(#${gradId})`} />
+            <path d={line} fill="none" stroke="var(--chart)" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
+            {showPoints &&
+              data.map((p, i) => (
+                <circle key={i} cx={px(i)} cy={py(p.value)} r="2" fill="var(--chart)" />
+              ))}
+          </>
+        ) : (
+          data.map((p, i) => {
+            const bw = Math.max(4, ((W - PADL - PADR) / data.length) * 0.7);
+            const x = px(i) - bw / 2;
+            const y = py(p.value);
+            return (
+              <rect
+                key={i}
+                x={x}
+                y={y}
+                width={bw}
+                height={Math.max(0, py(0) - y)}
+                rx="2"
+                fill="var(--chart)"
+                opacity={hover === i ? 1 : 0.8}
+              />
+            );
+          })
+        )}
+        {hover !== null && kind === 'area' && (
           <>
             <line
               x1={px(hover)}
@@ -140,7 +170,9 @@ export function AreaChart({ data, unit = '', height = 215, className }: AreaChar
             <circle cx={px(hover)} cy={py(data[hover].value)} r="3.2" fill="var(--chart)" stroke="var(--card)" strokeWidth="2" />
           </>
         )}
-        <circle cx={px(data.length - 1)} cy={py(last.value)} r="3.4" fill="var(--chart)" stroke="var(--card)" strokeWidth="2" />
+        {kind === 'area' && (
+          <circle cx={px(data.length - 1)} cy={py(last.value)} r="3.4" fill="var(--chart)" stroke="var(--card)" strokeWidth="2" />
+        )}
       </svg>
       {hovered && wrapRef.current && (
         <div

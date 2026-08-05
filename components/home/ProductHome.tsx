@@ -24,6 +24,54 @@ const EXAMPLES: Array<{ label: string; href: string; desc: string }> = [
   { label: '2FA verification', href: '/docs/examples#captcha-ark', desc: 'human checks for agents' },
 ];
 
+
+type SeriesKey = 'wallets' | 'transactions' | 'registrations';
+
+interface DayPoint {
+  date: string;
+  count: number;
+}
+
+/** Running total ending at today's known lifetime total. */
+function cumulativeAnchored(days: DayPoint[], total: number) {
+  const out = new Array<{ date: string; value: number }>(days.length);
+  let running = total;
+  for (let i = days.length - 1; i >= 0; i--) {
+    out[i] = { date: days[i].date, value: running };
+    running -= days[i].count;
+  }
+  return out;
+}
+
+/** Running total within the window, starting from its first day. */
+function cumulativeWindow(days: DayPoint[]) {
+  let sum = 0;
+  return days.map((d) => ({ date: d.date, value: (sum += d.count) }));
+}
+
+const SERIES_META: Record<SeriesKey, { title: string; unit: string }> = {
+  wallets: { title: 'Agent wallets — total', unit: 'wallets' },
+  transactions: { title: 'Custody transactions — total', unit: 'transactions' },
+  registrations: { title: 'Wallet registrations — last 30 days', unit: 'new wallets' },
+};
+
+function ChartIcon({ active }: { active: boolean }) {
+  return (
+    <svg
+      viewBox="0 0 16 16"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      className={`h-3.5 w-3.5 ${active ? 'text-accent-text' : ''}`}
+      aria-hidden="true"
+    >
+      <path d="M2 13.5V2.5" strokeLinecap="round" />
+      <path d="M2 13.5H14" strokeLinecap="round" />
+      <path d="M4.5 10.5 7.5 7l2.5 2 3.5-4.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 export default function ProductHome() {
   const { isConnected } = useNearWallet();
   const [modalOpen, setModalOpen] = useState(false);
@@ -32,20 +80,25 @@ export default function ProductHome() {
   const [workersAttested, setWorkersAttested] = useState<number | null>(null);
   const [walletStats, setWalletStats] = useState<WalletStats | null>(null);
   const [walletStatsFailed, setWalletStatsFailed] = useState(false);
+  const [series, setSeries] = useState<SeriesKey>('wallets');
 
   useEffect(() => {
     let cancelled = false;
-    fetchStats()
+    // The anonymous home always shows MAINNET, regardless of the header toggle.
+    fetchStats('mainnet')
       .then((s) => {
         if (cancelled) return;
         setExecutions(s.total_executions);
         setUniqueUsers(s.unique_users);
       })
       .catch(() => {});
-    fetchWorkers()
-      .then((w) => !cancelled && setWorkersAttested(w.length))
-      .catch(() => {});
-    fetchWalletStats()
+    // Fleet size = both networks; one failing must not blank the number.
+    Promise.allSettled([fetchWorkers('mainnet'), fetchWorkers('testnet')]).then((rs) => {
+      if (cancelled) return;
+      const total = rs.reduce((n, r) => n + (r.status === 'fulfilled' ? r.value.length : 0), 0);
+      if (rs.some((r) => r.status === 'fulfilled')) setWorkersAttested(total);
+    });
+    fetchWalletStats('mainnet')
       .then((ws) => !cancelled && setWalletStats(ws))
       .catch(() => !cancelled && setWalletStatsFailed(true));
     return () => {
@@ -54,7 +107,7 @@ export default function ProductHome() {
   }, []);
 
   return (
-    <div className="mx-auto max-w-5xl">
+    <div className="w-full max-w-5xl">
       {/* Hero — the layer mark, scaled up */}
       <div className="py-10 sm:py-14">
         <div className="group relative w-fit pl-6">
@@ -86,19 +139,26 @@ export default function ProductHome() {
         </div>
       </div>
 
-      {/* Live activity: real numbers + real chart, not claims */}
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_220px]">
+      {/* Live activity: real numbers + real charts, not claims */}
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_230px]">
         <Card>
-          <CardHeader className="flex-row items-baseline justify-between space-y-0">
-            <CardTitle>Custody transactions — last 30 days</CardTitle>
-            <span className="inline-flex items-center gap-2 text-xs font-semibold text-muted-foreground">
-              <span className="h-2 w-2 rounded-full bg-success" />
-              Live on NEAR mainnet
-            </span>
+          <CardHeader>
+            <CardTitle>{SERIES_META[series].title}</CardTitle>
           </CardHeader>
           <CardContent>
             {walletStats ? (
-              <AreaChart data={walletStats.transactions_per_day.map((d) => ({ date: d.date, value: d.count }))} unit="transactions" />
+              <AreaChart
+                key={series}
+                data={
+                  series === 'wallets'
+                    ? cumulativeAnchored(walletStats.registrations_per_day, walletStats.wallets.total)
+                    : series === 'transactions'
+                      ? cumulativeAnchored(walletStats.transactions_per_day, walletStats.transactions.total)
+                      : cumulativeWindow(walletStats.registrations_per_day)
+                }
+                unit={SERIES_META[series].unit}
+                showPoints
+              />
             ) : walletStatsFailed ? (
               <div className="flex h-[215px] items-center">
                 <span className="text-sm text-muted-foreground">Live data unavailable right now.</span>
@@ -112,22 +172,66 @@ export default function ProductHome() {
           </CardContent>
         </Card>
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-1">
-          {[
-            { label: 'Executions', value: executions, href: '/stats' },
-            { label: 'Agent wallets', value: walletStats?.wallets.total ?? null, href: '/stats' },
-            { label: 'Workers attested', value: workersAttested, href: '/workers' },
-            { label: 'Unique users', value: uniqueUsers, href: '/stats' },
-          ].map((m) => (
-            <Link key={m.label} href={m.href} className="group">
-              <div className="h-full rounded-lg border border-border bg-card p-4 transition-colors hover:border-border-strong">
+          {(
+            [
+              { label: 'Executions', value: executions, href: '/executions', chart: null },
+              { label: 'Agent wallets', value: walletStats?.wallets.total ?? null, href: '/stats', chart: 'wallets' as SeriesKey },
+              { label: 'Custody transactions', value: walletStats?.transactions.total ?? null, href: '/stats', chart: 'transactions' as SeriesKey },
+              {
+                label: 'Wallet registrations · 30d',
+                value: walletStats ? walletStats.registrations_per_day.reduce((n, d) => n + d.count, 0) : null,
+                href: '/stats',
+                chart: 'registrations' as SeriesKey,
+              },
+            ] as Array<{ label: string; value: number | null; href: string; chart: SeriesKey | null }>
+          ).map((m) => (
+            <div
+              key={m.label}
+              className={`relative rounded-lg border bg-card transition-colors ${
+                m.chart && series === m.chart ? 'border-accent' : 'border-border hover:border-border-strong'
+              }`}
+            >
+              <Link href={m.href} className="group block p-4 pr-9">
                 <p className="text-xs text-muted-foreground">{m.label}</p>
                 <p className="mt-0.5 text-xl font-bold tabular-nums text-foreground group-hover:text-accent-text">
                   {m.value === null || m.value === undefined ? '—' : m.value.toLocaleString('en-US')}
                 </p>
-              </div>
-            </Link>
+              </Link>
+              {m.chart && (
+                <button
+                  type="button"
+                  aria-label={`Show ${m.label} chart`}
+                  title="Show chart"
+                  onClick={() => setSeries(m.chart!)}
+                  className="absolute right-2 top-2 inline-flex h-6 w-6 items-center justify-center rounded-md border border-border text-muted-foreground hover:border-accent hover:text-accent-text"
+                >
+                  <ChartIcon active={series === m.chart} />
+                </button>
+              )}
+            </div>
           ))}
         </div>
+      </div>
+
+      {/* Live strip */}
+      <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-1.5 text-sm text-muted-foreground">
+        <span className="inline-flex items-center gap-2 font-semibold text-foreground">
+          <span className="h-2 w-2 rounded-full bg-success" />
+          Live on NEAR mainnet
+        </span>
+        <Link href="/workers" className="hover:text-accent-text">
+          <span className="font-semibold tabular-nums text-foreground">{workersAttested ?? '—'}</span>{' '}
+          workers attested (both networks)
+        </Link>
+        <Link href="/stats" className="hover:text-accent-text">
+          <span className="font-semibold tabular-nums text-foreground">
+            {uniqueUsers === null ? '—' : uniqueUsers.toLocaleString('en-US')}
+          </span>{' '}
+          unique users
+        </Link>
+        <a href="https://workers.outlayer.ai" className="ml-auto inline-flex" target="_blank" rel="noreferrer">
+          <AttestationBadge label="Verify the fleet" />
+        </a>
       </div>
 
       {/* Example gallery — the breadth, not code */}

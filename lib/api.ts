@@ -188,8 +188,8 @@ export async function fetchJobs(
 /**
  * Fetch system statistics
  */
-export async function fetchStats(): Promise<ExecutionStats> {
-  const response = await axios.get(`${apiBase()}/public/stats`);
+export async function fetchStats(network?: NetworkType): Promise<ExecutionStats> {
+  const response = await axios.get(`${getCoordinatorApiUrl(network)}/public/stats`);
   return response.data;
 }
 
@@ -276,8 +276,8 @@ export interface WalletStats {
   transactions_per_day: Array<{ date: string; count: number }>;
 }
 
-export async function fetchWalletStats(): Promise<WalletStats> {
-  const response = await axios.get(`${apiBase()}/wallet/v1/stats`);
+export async function fetchWalletStats(network?: NetworkType): Promise<WalletStats> {
+  const response = await axios.get(`${getCoordinatorApiUrl(network)}/wallet/v1/stats`);
   return response.data;
 }
 

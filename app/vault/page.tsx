@@ -1,9 +1,13 @@
 'use client';
 
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useRef } from 'react';
 
 import { useNearWallet } from '@/contexts/NearWalletContext';
-import WalletConnectionModal from '@/components/WalletConnectionModal';
+import { RequireWallet } from '@/components/ui/require-wallet';
+import { Button } from '@/components/ui/button';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
+import { EmptyState } from '@/components/ui/empty-state';
+import { HashChip } from '@/components/ui/hash-chip';
 import {
   buildVaultDeployActions,
   deriveVaultTeeKey,
@@ -28,6 +32,9 @@ const EXIT_WINDOW_OPTIONS = [
   { label: '30 days', value: '30d' },
 ] as const;
 
+const FIELD_CLS =
+  'mt-1 block w-full max-w-xl rounded-md border border-border-strong px-3 py-2 text-sm outline-none focus:border-accent focus:ring-1 focus:ring-accent';
+
 export default function VaultPage() {
   const {
     accountId,
@@ -36,12 +43,9 @@ export default function VaultPage() {
     network,
     rpcUrl,
     viewMethod,
-    shouldReopenModal,
-    clearReopenModal,
   } = useNearWallet();
 
   // ── UI state ──────────────────────────────────────────────────────────
-  const [showWalletModal, setShowWalletModal] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
@@ -69,26 +73,6 @@ export default function VaultPage() {
   const [activeVaultId, setActiveVaultId] = useState<string | null>(null);
   const [report, setReport] = useState<VerifyReport | null>(null);
 
-  // ── Modal handling matches existing pages ─────────────────────────────
-  useEffect(() => {
-    if (shouldReopenModal) {
-      setShowWalletModal(true);
-      clearReopenModal();
-    }
-  }, [shouldReopenModal, clearReopenModal]);
-
-  const guard = useCallback(
-    (msg: string) => {
-      if (!isConnected || !accountId) {
-        setShowWalletModal(true);
-        setError(msg);
-        return false;
-      }
-      return true;
-    },
-    [isConnected, accountId],
-  );
-
   const refreshReport = useCallback(
     async (vaultId: string) => {
       try {
@@ -106,8 +90,7 @@ export default function VaultPage() {
   // ── Create vault ──────────────────────────────────────────────────────
   const handleCreate = async () => {
     if (inFlight.current) return; // synchronous double-submit guard
-    if (!guard('Connect a NEAR wallet to deploy a vault.')) return;
-    if (!accountId) return;
+    if (!isConnected || !accountId) return;
     setError(null);
     setSuccess(null);
     setIssuedApiKey(null);
@@ -170,7 +153,7 @@ deploy requires at least ${(Number(VAULT_PARENT_BUDGET_YOCTO) / 1e24).toFixed(2)
       // vault version, the dashboard picks it up automatically.
       // Bails with a clear error if no non-deprecated version exists.
       setBusy('Resolving vault code hash from keystore-DAO…');
-      const { hashB58, hashBytes } = await getVaultCodeHash(viewMethod, network);
+      const { hashBytes } = await getVaultCodeHash(viewMethod, network);
 
       // 2. TEE pubkey BEFORE deploy.
       setBusy('Fetching TEE function-call pubkey…');
@@ -224,7 +207,7 @@ deploy requires at least ${(Number(VAULT_PARENT_BUDGET_YOCTO) / 1e24).toFixed(2)
       if (!vaultVisible) {
         throw new Error(
           `Atomic deploy tx ${txHash} landed but ${vaultAccountId} is still not visible at final finality after 20 s. ` +
-            `Click "Resume vault init" below to retry sign-verification.`,
+            `Click "Resume" below to retry sign-verification.`,
         );
       }
 
@@ -327,168 +310,171 @@ deploy requires at least ${(Number(VAULT_PARENT_BUDGET_YOCTO) / 1e24).toFixed(2)
 
   // ── Render ────────────────────────────────────────────────────────────
   return (
- <div className="w-full">
- <h1 className="text-xl font-bold tracking-tight mb-2">Vaults</h1>
- <p className="text-foreground mb-2">
-        Deploy a CKD-issuer contract bound to your NEAR account. OutLayer&apos;s
- keystore TEE derives your per-customer master <em>inside the enclave</em>
-        via NEAR&apos;s MPC network; from that master it generates keys for
-        your agents&apos; wallets, encrypted secrets, and payment checks on
-        demand &mdash; all without anyone seeing the raw master.
-      </p>
- <p className="text-foreground mb-2">
-        You either let OutLayer&apos;s TEE manage this vault, or later take it
-        over yourself (run it from your own TEE / runtime, or use the master
-        manually). It&apos;s a one-way switch: once you take over, OutLayer
-        stops serving this vault &mdash; but you keep every derived key,
-        because the same MPC path reproduces the same master.
-      </p>
- <details className="mb-6 text-sm text-foreground bg-card-muted border border-border rounded p-3">
- <summary className="cursor-pointer font-medium text-foreground">
-          What is CKD?
-        </summary>
- <div className="mt-2 space-y-2">
-          <p>
- <strong>Conditional Key Derivation</strong> is a NEAR MPC primitive.
-            The MPC network&apos;s threshold-key holders jointly derive a
- private key for a given <em>app id</em> &mdash; deterministically,
-            without any single node ever assembling the secret. The key is
-            unique to the predecessor account that requested it.
-          </p>
-          <p>
-            Here, the predecessor is your vault contract and the app id is
- an HMAC of <code>vault-master:{'<your_vault_id>'}</code>. The
-            keystore TEE asks NEAR MPC for the 32 bytes; same inputs &rArr;
-            same master, every time. From that master, all your wallet keys
-            and secret-encryption keys are HKDF-derived inside the enclave.
-            Detaching from OutLayer = you query the same MPC path from the
-            vault account and get the same master back. <a className="text-accent-text hover:underline" href="/docs/vaults">
-              Full explanation
-            </a>.
-          </p>
-        </div>
-      </details>
+    <div className="w-full">
+      {/* Header */}
+      <div className="mb-6">
+        <h1 className="text-xl font-bold tracking-tight">Vaults</h1>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Per-customer custody roots: on-chain CKD-issuer contracts bound to your NEAR account.
+        </p>
+      </div>
 
-      {!isConnected && (
- <div className="bg-card-muted border border-border rounded-md p-4 mb-6">
- <p className="text-sm">Connect a NEAR wallet to create or manage vaults.</p>
-          <button
-            onClick={() => setShowWalletModal(true)}
- className="mt-2 px-4 py-2 bg-accent text-on-accent rounded-lg hover:bg-accent-hover"
-          >
-            Connect Wallet
-          </button>
-        </div>
-      )}
-
+      {/* Feedback banners */}
       {error && (
- <div className="bg-destructive/10 border border-destructive/40 rounded p-3 mb-4 text-sm">
- <strong>Error:</strong> {error}
+        <div className="mb-4 rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive-text">
+          {error}
         </div>
       )}
       {success && (
- <div className="bg-success/10 border border-success/40 rounded p-3 mb-4 text-sm">
+        <div className="mb-4 rounded-md border border-success/30 bg-success/10 p-3 text-sm text-success-text">
           {success}
         </div>
       )}
       {busy && (
- <div className="bg-info/10 border border-info/40 rounded p-3 mb-4 text-sm">
-          ⏳ {busy}
+        <div className="mb-4 flex items-center gap-2 rounded-md border border-border bg-card-muted p-3 text-sm text-muted-foreground">
+          <span className="h-4 w-4 shrink-0 animate-spin rounded-full border-b-2 border-accent" aria-hidden="true" />
+          {busy}
         </div>
       )}
 
-      {issuedApiKey && (
-        <IssuedVaultPanel data={issuedApiKey} />
+      {issuedApiKey && <IssuedVaultPanel data={issuedApiKey} />}
+
+      {!isConnected && (
+        <div className="mb-6">
+          <RequireWallet subject="vault deployment" />
+        </div>
       )}
 
       {/* ── Create vault ─────────────────────────────────────────────── */}
- <section className="border border-border rounded p-4 mb-6">
- <h2 className="text-xl font-semibold mb-3">Create vault</h2>
- <div className="text-sm text-muted-foreground mb-3">
- Deploys <code>{name || 'vault'}.{accountId || '<your-account>'}</code> with a single atomic
-          NEAR transaction (CreateAccount + Transfer          {(Number(VAULT_INITIAL_YOCTO) / 1e24).toFixed(2)} NEAR + DeployContract +          new() + AddKey TEE function-call key).
-        </div>
- <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
- <label className="block">
- <span className="text-sm">Sub-account name</span>
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
- className="mt-1 block w-full max-w-xl rounded-md border border-border-strong bg-card px-3 py-2 text-foreground shadow-sm focus:border-accent focus:ring-accent"
-              placeholder="vault"
-            />
-          </label>
- <label className="block">
- <span className="text-sm">Unilateral exit window</span>
-            <select
-              value={exitWindow}
-              onChange={(e) => setExitWindow(e.target.value)}
- className="mt-1 block w-full max-w-xl rounded-md border border-border-strong bg-card px-3 py-2 text-foreground shadow-sm focus:border-accent focus:ring-accent"
-            >
-              {EXIT_WINDOW_OPTIONS.map((o) => (
-                <option key={o.value} value={o.value}>
-                  {o.label}
-                </option>
-              ))}
-            </select>
-          </label>
- <div className="flex items-end">
-            <button
-              onClick={handleCreate}
-              disabled={!isConnected || !!busy}
- className="w-full px-4 py-2 bg-accent text-on-accent rounded-lg hover:bg-accent-hover disabled:opacity-50"
-            >
-              Create vault
-            </button>
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle>Create vault</CardTitle>
+          <CardDescription>
+            Deploys <code>{name || 'vault'}.{accountId || '<your-account>'}</code> with a single
+            atomic NEAR transaction (CreateAccount + Transfer{' '}
+            {(Number(VAULT_INITIAL_YOCTO) / 1e24).toFixed(2)} NEAR + DeployContract + new() +
+            AddKey TEE function-call key).
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid max-w-3xl gap-4 sm:grid-cols-2">
+            <label className="block">
+              <span className="block text-sm font-medium">Sub-account name</span>
+              <input
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className={FIELD_CLS}
+                placeholder="vault"
+              />
+            </label>
+            <label className="block">
+              <span className="block text-sm font-medium">Unilateral exit window</span>
+              <select
+                value={exitWindow}
+                onChange={(e) => setExitWindow(e.target.value)}
+                className={FIELD_CLS}
+              >
+                {EXIT_WINDOW_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
+            </label>
           </div>
-        </div>
- <p className="text-xs text-muted-foreground">
-          Parent (= your account, immutable post-deploy) is the only NEAR account
- that can call <code>unilateral_initiate_recovery</code>, <code>set_exit_window</code>, or <code>unlocked_add_key</code>.
-        </p>
-      </section>
+          <div className="mt-4">
+            <Button onClick={handleCreate} disabled={!isConnected || !!busy}>
+              Create vault
+            </Button>
+          </div>
+          <p className="mt-3 max-w-3xl text-xs text-faint-foreground">
+            Parent (= your account, immutable post-deploy) is the only NEAR account that can
+            call <code>unilateral_initiate_recovery</code>, <code>set_exit_window</code>, or{' '}
+            <code>unlocked_add_key</code>.
+          </p>
+        </CardContent>
+      </Card>
 
       {/* ── Find / inspect vault ─────────────────────────────────────── */}
- <section className="border border-border rounded p-4 mb-6">
- <h2 className="text-xl font-semibold mb-3">Inspect a vault</h2>
- <div className="flex gap-2 mb-3">
-          <input
-            type="text"
-            value={findInput}
-            onChange={(e) => setFindInput(e.target.value)}
-            placeholder="vault.alice.near"
- className="flex-1 max-w-xl rounded-md border border-border-strong px-3 py-2 text-foreground shadow-sm focus:border-accent focus:ring-accent"
-          />
-          <button
-            onClick={handleFind}
-            disabled={!!busy}
- className="px-4 py-2 bg-accent text-on-accent rounded-lg hover:bg-accent-hover disabled:opacity-50 cursor-pointer"
-          >
-            Load
-          </button>
-          <button
-            onClick={() => findInput.trim() && handleResume(findInput.trim())}
-            disabled={!isConnected || !!busy || !findInput.trim()}
- className="px-4 py-2 bg-card-muted text-white rounded hover:bg-card-muted disabled:opacity-50"
-            title="Re-run sign-verification against an already-deployed vault"
-          >
-            Resume
-          </button>
-        </div>
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle>Inspect a vault</CardTitle>
+          <CardDescription>
+            Load any vault&apos;s on-chain state and run the defense-in-depth verification checks.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex max-w-xl flex-wrap gap-2">
+            <input
+              type="text"
+              value={findInput}
+              onChange={(e) => setFindInput(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleFind()}
+              placeholder="vault.alice.near"
+              className="min-w-0 flex-1 rounded-md border border-border-strong px-3 py-2 text-sm outline-none focus:border-accent focus:ring-1 focus:ring-accent"
+            />
+            <Button variant="outline" onClick={handleFind} disabled={!!busy}>
+              Load
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => findInput.trim() && handleResume(findInput.trim())}
+              disabled={!isConnected || !!busy || !findInput.trim()}
+              title="Re-run sign-verification against an already-deployed vault"
+            >
+              Resume
+            </Button>
+          </div>
 
-        {report && activeVaultId && (
-          <VaultDetailPanel
-            report={report}
-            onRefresh={() => refreshReport(activeVaultId)}
-          />
-        )}
-      </section>
+          {report && activeVaultId && (
+            <div className="mt-4">
+              <VaultDetailPanel report={report} onRefresh={() => refreshReport(activeVaultId)} />
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
-      <WalletConnectionModal
-        isOpen={showWalletModal}
-        onClose={() => setShowWalletModal(false)}
-      />
+      {/* Informational plate — one per page, last */}
+      <div className="max-w-3xl rounded-lg border border-border bg-card-muted p-4">
+        <h2 className="text-sm font-semibold">About vaults</h2>
+        <p className="mt-2 text-sm text-muted-foreground">
+          A vault is a CKD-issuer contract bound to your NEAR account. OutLayer&apos;s keystore TEE
+          derives your per-customer master <em>inside the enclave</em> via NEAR&apos;s MPC network;
+          from that master it generates keys for your agents&apos; wallets, encrypted secrets, and
+          payment checks on demand — without anyone seeing the raw master.
+        </p>
+        <p className="mt-2 text-sm text-muted-foreground">
+          You either let OutLayer&apos;s TEE manage the vault, or later take it over yourself (run
+          it from your own TEE / runtime, or use the master manually). It&apos;s a one-way switch:
+          once you take over, OutLayer stops serving the vault — but you keep every derived key,
+          because the same MPC path reproduces the same master.
+        </p>
+        <details className="mt-3 text-sm text-muted-foreground">
+          <summary className="cursor-pointer font-medium text-foreground">What is CKD?</summary>
+          <div className="mt-2 space-y-2">
+            <p>
+              <strong className="text-foreground">Conditional Key Derivation</strong> is a NEAR MPC
+              primitive. The MPC network&apos;s threshold-key holders jointly derive a private key
+              for a given <em>app id</em> — deterministically, without any single node ever
+              assembling the secret. The key is unique to the predecessor account that requested
+              it.
+            </p>
+            <p>
+              Here, the predecessor is your vault contract and the app id is an HMAC of{' '}
+              <code>vault-master:{'<your_vault_id>'}</code>. The keystore TEE asks NEAR MPC for
+              the 32 bytes; same inputs &rArr; same master, every time. From that master, all your
+              wallet keys and secret-encryption keys are HKDF-derived inside the enclave.
+              Detaching from OutLayer = you query the same MPC path from the vault account and get
+              the same master back.{' '}
+              <a className="text-accent-text hover:underline" href="/docs/vaults">
+                Full explanation
+              </a>
+              .
+            </p>
+          </div>
+        </details>
+      </div>
     </div>
   );
 }
@@ -514,34 +500,33 @@ function IssuedVaultPanel({
   data: { vault: string };
 }) {
   return (
- <div className="bg-success/10 border-2 border-green-600 rounded p-4 mb-6">
- <h3 className="font-bold text-success-text mb-2">
-         Custody contract deployed and verified
+    <div className="mb-6 max-w-3xl rounded-md border border-success/30 bg-success/10 p-4">
+      <h3 className="text-sm font-semibold text-success-text">
+        Custody contract deployed and verified
       </h3>
- <div className="text-sm text-foreground space-y-2">
+      <div className="mt-2 space-y-2 text-sm text-foreground">
         <div>
- <code className="block bg-card px-2 py-1 rounded text-xs break-all">{data.vault}</code>
+          <HashChip value={data.vault} trim={0} />
         </div>
- <div className="text-xs text-foreground">
-          On-chain CKD issuer. Binds your per-customer master inside the
-          keystore TEE (via MPC CKD) so OutLayer can derive keys for your
-          agents, secrets, and payment checks on demand. No funds live on
-          this contract — it's a governance/recovery root.
-        </div>
- <div className="text-xs text-foreground">
-          If OutLayer stops serving, the parent account regains control via <code>initiate_unilateral_recovery</code> → <code>finalize_recovery</code>, and the per-customer master is
- recoverable via the <code>customer-recovery</code> script.
-        </div>
- <div className="text-xs text-foreground bg-card-muted border border-border rounded px-2 py-1.5">
- <strong>Heads up:</strong> deriving the vault&rsquo;s master key
- calls <code>vault.request_master</code> on-chain, and NEAR makes
- this account <em>prepay</em> the gas (~0.3 NEAR reserved, most
-          refunded). If the vault runs out of NEAR the derive fails and
-          sub-agent wallets can&rsquo;t be minted or read. This re-runs
-          whenever the OutLayer keystore is updated, so keep a standing
-          balance. The vault was funded with          {(Number(VAULT_INITIAL_YOCTO) / 1e24).toFixed(2)} NEAR at deploy —
- top it up (send NEAR to <code>{data.vault}</code>) before it drops
-          low; the dashboard shows a prompt below          {(Number(VAULT_LOW_BALANCE_YOCTO) / 1e24).toFixed(2)} NEAR.
+        <p className="text-xs text-muted-foreground">
+          On-chain CKD issuer. Binds your per-customer master inside the keystore TEE (via MPC
+          CKD) so OutLayer can derive keys for your agents, secrets, and payment checks on demand.
+          No funds live on this contract — it&apos;s a governance/recovery root.
+        </p>
+        <p className="text-xs text-muted-foreground">
+          If OutLayer stops serving, the parent account regains control via{' '}
+          <code>initiate_unilateral_recovery</code> → <code>finalize_recovery</code>, and the
+          per-customer master is recoverable via the <code>customer-recovery</code> script.
+        </p>
+        <div className="rounded-md border border-border bg-card-muted px-3 py-2 text-xs text-muted-foreground">
+          <strong className="text-foreground">Keep it funded:</strong> deriving the vault&rsquo;s
+          master key calls <code>vault.request_master</code> on-chain, and NEAR makes this account{' '}
+          <em>prepay</em> the gas (~0.3 NEAR reserved, most refunded). If the vault runs out of
+          NEAR the derive fails and sub-agent wallets can&rsquo;t be minted or read. This re-runs
+          whenever the OutLayer keystore is updated, so keep a standing balance. The vault was
+          funded with {(Number(VAULT_INITIAL_YOCTO) / 1e24).toFixed(2)} NEAR at deploy — top it up
+          (send NEAR to <code>{data.vault}</code>) before it drops low; the dashboard shows a
+          prompt below {(Number(VAULT_LOW_BALANCE_YOCTO) / 1e24).toFixed(2)} NEAR.
         </div>
       </div>
     </div>
@@ -558,30 +543,29 @@ function VaultDetailPanel(props: {
 
   if (!report.exists) {
     return (
- <div className="bg-card-muted rounded p-3 text-sm">
- Account <code>{report.vaultId}</code> does not exist on chain.
-      </div>
+      <EmptyState
+        className="max-w-3xl"
+        title="Vault not found"
+        description={`Account ${report.vaultId} does not exist on chain.`}
+      />
     );
   }
   const s = report.state;
 
   return (
- <div className="border border-border rounded p-3 text-sm">
- <div className="flex justify-between items-center mb-2">
- <h3 className="font-semibold">{report.vaultId}</h3>
-        <button
-          onClick={props.onRefresh}
- className="text-xs px-2 py-1 bg-card-muted rounded"
-        >
+    <div className="max-w-3xl rounded-lg border border-border bg-card p-4 text-sm">
+      <div className="flex items-center justify-between gap-2">
+        <h3 className="font-semibold">{report.vaultId}</h3>
+        <Button variant="outline" size="sm" onClick={props.onRefresh}>
           Refresh
-        </button>
+        </Button>
       </div>
 
       <div
- className={`px-2 py-1 rounded mb-3 font-medium text-sm ${
+        className={`mt-3 rounded-md border p-3 text-sm font-medium ${
           report.safe
-            ? 'bg-success/10 text-success-text'
-            : 'bg-destructive/10 text-destructive-text'
+            ? 'border-success/30 bg-success/10 text-success-text'
+            : 'border-destructive/30 bg-destructive/10 text-destructive-text'
         }`}
       >
         {report.safe
@@ -592,106 +576,113 @@ function VaultDetailPanel(props: {
       </div>
 
       {report.warnings.length > 0 && (
- <ul className="text-xs text-muted-foreground mb-2 list-disc list-inside">
+        <ul className="mt-2 list-inside list-disc text-xs text-muted-foreground">
           {report.warnings.map((w, i) => (
- <li key={i}>{w}</li>
+            <li key={i}>{w}</li>
           ))}
         </ul>
       )}
 
       {s && (
- <table className="text-xs w-full mb-3">
+        <table className="mt-3 w-full text-xs">
           <tbody>
-            <tr>
- <td className="text-muted-foreground pr-3">Parent</td>
- <td><code>{s.parent}</code></td>
+            <tr className="border-b border-border">
+              <td className="w-44 py-1.5 pr-3 align-top text-muted-foreground">Parent</td>
+              <td className="py-1.5"><HashChip value={s.parent} trim={0} /></td>
             </tr>
-            <tr>
- <td className="text-muted-foreground pr-3">keystore-DAO</td>
- <td><code>{s.keystore_dao}</code></td>
+            <tr className="border-b border-border">
+              <td className="py-1.5 pr-3 align-top text-muted-foreground">keystore-DAO</td>
+              <td className="py-1.5"><HashChip value={s.keystore_dao} trim={0} /></td>
             </tr>
-            <tr>
- <td className="text-muted-foreground pr-3">MPC contract</td>
- <td><code>{s.mpc_contract}</code></td>
+            <tr className="border-b border-border">
+              <td className="py-1.5 pr-3 align-top text-muted-foreground">MPC contract</td>
+              <td className="py-1.5"><HashChip value={s.mpc_contract} trim={0} /></td>
             </tr>
-            <tr>
- <td className="text-muted-foreground pr-3">Status</td>
- <td>{s.unlocked ? 'UNLOCKED (recovered)' : 'locked (TEE-controlled)'}</td>
+            <tr className="border-b border-border">
+              <td className="py-1.5 pr-3 align-top text-muted-foreground">Status</td>
+              <td className="py-1.5">
+                {s.unlocked ? 'UNLOCKED (recovered)' : 'locked (TEE-controlled)'}
+              </td>
             </tr>
-            <tr>
- <td className="text-muted-foreground pr-3">Exit window</td>
- <td>{formatSeconds(s.unilateral_exit_window_secs)}</td>
+            <tr className="border-b border-border">
+              <td className="py-1.5 pr-3 align-top text-muted-foreground">Exit window</td>
+              <td className="py-1.5 tabular-nums">{formatSeconds(s.unilateral_exit_window_secs)}</td>
             </tr>
-            <tr>
+            <tr className="border-b border-border">
               <td
- className="text-muted-foreground pr-3"
+                className="py-1.5 pr-3 align-top text-muted-foreground"
                 title="Vault account balance. Outbound MPC-CKD calls (vault.request_master → mpc.request_app_private_key) burn gas from this balance. Top up if low."
               >
                 Balance
               </td>
-              <td>
+              <td className="py-1.5 tabular-nums">
                 {(Number(report.amountYocto) / 1e24).toFixed(4)} NEAR
                 {BigInt(report.amountYocto) < VAULT_LOW_BALANCE_YOCTO && (
- <span className="ml-2 text-muted-foreground font-medium">
-                     low — top up below
-                  </span>
+                  <span className="ml-2 font-medium text-warning">low — top up below</span>
                 )}
               </td>
             </tr>
-            <tr>
+            <tr className="border-b border-border">
               <td
- className="text-muted-foreground pr-3"
+                className="py-1.5 pr-3 align-top text-muted-foreground"
                 title="Custody wallets minted under this vault via POST /register {vault_id} and PUT /api-key (sub-agents). Each wallet has its own wk_ API key and a distinct derived address; all share the per-vault master inside the keystore TEE."
               >
                 Custody wallets
               </td>
-              <td>
+              <td className="py-1.5">
                 {report.walletCount === null ? (
- <span className="text-faint-foreground">unknown (coordinator lookup failed)</span>
+                  <span className="text-faint-foreground">unknown (coordinator lookup failed)</span>
                 ) : (
                   <>
- <strong>{report.walletCount}</strong>
+                    <strong className="tabular-nums">{report.walletCount}</strong>
                     {report.walletCount === 0 && (
- <span className="text-muted-foreground"> — none minted yet; <code>POST /register {`{"vault_id":"${report.vaultId}"}`}</code></span>
+                      <span className="text-muted-foreground">
+                        {' '}
+                        — none minted yet; <code>POST /register {`{"vault_id":"${report.vaultId}"}`}</code>
+                      </span>
                     )}
                   </>
                 )}
               </td>
             </tr>
-            <tr>
+            <tr className="border-b border-border">
               <td
- className="text-muted-foreground pr-3"
+                className="py-1.5 pr-3 align-top text-muted-foreground"
                 title="The initial TEE function-call key the customer installed via AddKey in the atomic deploy. finalize_recovery deletes this (plus all registered_tee_keys) atomically when the customer hands the vault to a sovereign key."
               >
                 Initial TEE key
               </td>
-              <td>
+              <td className="py-1.5">
                 {s.initial_tee_key ? (
- <code className="text-[10px] break-all">{s.initial_tee_key}</code>
+                  <HashChip value={s.initial_tee_key} trim={12} />
                 ) : (
- <span className="text-faint-foreground">(none — legacy vault)</span>
+                  <span className="text-faint-foreground">(none — legacy vault)</span>
                 )}
               </td>
             </tr>
-            <tr>
+            <tr className={s.recovery ? 'border-b border-border' : ''}>
               <td
- className="text-muted-foreground pr-3"
+                className="py-1.5 pr-3 align-top text-muted-foreground"
                 title="DAO-rotated TEE keys added via propose_tee_key. finalize_recovery deletes all of these atomically together with the initial TEE key."
               >
                 Registered TEE keys (DAO rotated)
               </td>
-              <td>
+              <td className="py-1.5">
                 {s.registered_tee_keys.length}
                 {s.registered_tee_keys.length === 0 && report.safe && (
- <span className="text-faint-foreground"> — none rotated; initial TEE key (above) is the active one</span>
+                  <span className="text-faint-foreground">
+                    {' '}
+                    — none rotated; initial TEE key (above) is the active one
+                  </span>
                 )}
               </td>
             </tr>
             {s.recovery && (
               <tr>
- <td className="text-muted-foreground pr-3">Recovery</td>
-                <td>
-                  {s.recovery.trigger} — finalize after                  {nsToDate(s.recovery.finalize_after).toLocaleString()}
+                <td className="py-1.5 pr-3 align-top text-muted-foreground">Recovery</td>
+                <td className="py-1.5">
+                  {s.recovery.trigger} — finalize after{' '}
+                  {nsToDate(s.recovery.finalize_after).toLocaleString()}
                 </td>
               </tr>
             )}
@@ -702,24 +693,24 @@ function VaultDetailPanel(props: {
       {/* Agent integration hint — only shown for safe vaults to avoid
           pointing customers at a vault they shouldn't yet use. */}
       {report.safe && (
- <div className="bg-info/10 border border-info/30 rounded p-3 mb-3 text-xs">
- <div className="font-medium text-info mb-1">Use this vault with an AI agent</div>
- <p className="text-foreground mb-2">
-            Drop the            <a
+        <div className="mt-3 rounded-md border border-border bg-card-muted p-3 text-xs">
+          <div className="font-medium text-foreground">Use this vault with an AI agent</div>
+          <p className="mt-1 text-muted-foreground">
+            Drop the{' '}
+            <a
               href="https://skills.outlayer.ai/agent-custody/SKILL.md"
               target="_blank"
               rel="noopener noreferrer"
- className="text-info underline hover:text-info"
+              className="text-accent-text hover:underline"
             >
               agent-custody skill
-            </a>            into your agent (Claude, Cursor, your own LLM tool). It teaches the
- agent how to mint a custody wallet under <code>{report.vaultId}</code>
- {' '}via <code>POST /register</code>, derive on-chain addresses,
-            sign messages, send transfers and cross-chain swaps, all
-            backed by your per-customer master inside the keystore TEE.
-            The agent will not be able to deploy or recover the vault
-            itself — those are user actions — but it can use any number
-            of derived custody wallets you authorise it to mint.
+            </a>{' '}
+            into your agent (Claude, Cursor, your own LLM tool). It teaches the agent how to mint
+            a custody wallet under <code>{report.vaultId}</code> via <code>POST /register</code>,
+            derive on-chain addresses, sign messages, send transfers and cross-chain swaps, all
+            backed by your per-customer master inside the keystore TEE. The agent will not be able
+            to deploy or recover the vault itself — those are user actions — but it can use any
+            number of derived custody wallets you authorise it to mint.
           </p>
         </div>
       )}
@@ -731,21 +722,39 @@ function VaultDetailPanel(props: {
           the parent (or anyone, NEAR transfers are permissionless)
           tops it up. */}
       {report.exists && BigInt(report.amountYocto) < VAULT_LOW_BALANCE_YOCTO && (
- <div className="bg-card-muted border border-border rounded p-3 mb-3 text-sm">
- <div className="font-medium text-foreground mb-1"> Vault balance is low</div>
- <p className="text-foreground mb-2">
- <code>{report.vaultId}</code> has <strong>{(Number(report.amountYocto) / 1e24).toFixed(4)} NEAR</strong>.
- Outbound MPC-CKD calls (<code>vault.request_master</code>) burn gas
-            from this account. Once the balance goes below storage stake the
-            keystore stops being able to refresh your master, and any
-            derived-key request that requires re-fetching it will stall.
+        <div className="mt-3 rounded-md border border-warning/40 bg-warning/10 p-3 text-sm">
+          <div className="flex items-center gap-1.5 font-medium text-foreground">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              className="h-4 w-4 shrink-0 text-warning"
+              aria-hidden="true"
+            >
+              <path d="M12 9v4m0 4h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z" />
+            </svg>
+            Vault balance is low
+          </div>
+          <p className="mt-1 text-xs text-muted-foreground">
+            <code>{report.vaultId}</code> has{' '}
+            <strong className="tabular-nums">
+              {(Number(report.amountYocto) / 1e24).toFixed(4)} NEAR
+            </strong>
+            . Outbound MPC-CKD calls (<code>vault.request_master</code>) burn gas from this
+            account. Once the balance goes below storage stake the keystore stops being able to
+            refresh your master, and any derived-key request that requires re-fetching it will
+            stall.
           </p>
- <p className="text-foreground mb-2">
- Top up by transferring NEAR to <code>{report.vaultId}</code> from
-            any account — it&rsquo;s a plain on-chain transfer, no contract
-            method. Suggested: <strong>{(Number(VAULT_TOPUP_SUGGESTED_YOCTO) / 1e24).toFixed(2)} NEAR</strong>            (~100 MPC calls of headroom).
+          <p className="mt-1 text-xs text-muted-foreground">
+            Top up by transferring NEAR to <code>{report.vaultId}</code> from any account —
+            it&rsquo;s a plain on-chain transfer, no contract method. Suggested:{' '}
+            <strong className="tabular-nums">
+              {(Number(VAULT_TOPUP_SUGGESTED_YOCTO) / 1e24).toFixed(2)} NEAR
+            </strong>{' '}
+            (~100 MPC calls of headroom).
           </p>
- <pre className="text-xs bg-card border border-border rounded p-2 mt-2 overflow-x-auto">
+          <pre className="mt-2 overflow-x-auto rounded-md border border-border bg-card p-2 text-xs">
 {`# CLI:
 near send <your_account> ${report.vaultId} ${(Number(VAULT_TOPUP_SUGGESTED_YOCTO) / 1e24).toFixed(2)}
 
@@ -766,33 +775,41 @@ near send <your_account> ${report.vaultId} ${(Number(VAULT_TOPUP_SUGGESTED_YOCTO
             * `scripts/customer-recovery/walkthrough.sh` — end-to-end
               keygen → initiate → wait → finalize → master-recovery. */}
       {(s?.recovery || s?.unlocked) && (
- <div className="border border-border bg-card-muted rounded p-2 mb-3 text-xs text-foreground">
+        <div className="mt-3 rounded-md border border-border bg-card-muted p-3 text-xs text-muted-foreground">
           {s.recovery ? (
             <>
- <strong>Recovery in progress.</strong>              Finalize with <code className="bg-card px-1 rounded">
+              <strong className="text-foreground">Recovery in progress.</strong> Finalize with{' '}
+              <code className="rounded bg-card px-1">
                 outlayer vault finalize-recovery {report.vaultId} &lt;your_new_pubkey&gt;
-              </code>              after the timer elapses. Generate the keypair locally via <code className="bg-card px-1 rounded">
-                customer-recovery generate-key
-              </code>.
+              </code>{' '}
+              after the timer elapses. Generate the keypair locally via{' '}
+              <code className="rounded bg-card px-1">customer-recovery generate-key</code>.
             </>
           ) : (
             <>
- <strong>Vault is unlocked.</strong>              Recover the per-vault master locally with <code className="bg-card px-1 rounded">
+              <strong className="text-foreground">Vault is unlocked.</strong> Recover the
+              per-vault master locally with{' '}
+              <code className="rounded bg-card px-1">
                 customer-recovery --vault-id {report.vaultId} --from-chain
-              </code>              if you haven&rsquo;t already.
+              </code>{' '}
+              if you haven&rsquo;t already.
             </>
           )}
         </div>
       )}
- <div className="text-xs text-muted-foreground mt-2">
-        Recovery, exit-window, and post-unlock key operations are CLI-only
-        — see <code className="bg-card-muted px-1 rounded">outlayer vault --help</code>        and        <a
- className="underline hover:text-foreground"
+      <p className="mt-3 text-xs text-faint-foreground">
+        Recovery, exit-window, and post-unlock key operations are CLI-only — see{' '}
+        <code className="rounded bg-card-muted px-1">outlayer vault --help</code> and{' '}
+        <a
+          className="underline hover:text-foreground"
           href="https://github.com/out-layer/near-offshore/tree/main/scripts/customer-recovery"
           target="_blank"
           rel="noopener noreferrer"
- >scripts/customer-recovery/</a>.
-      </div>
+        >
+          scripts/customer-recovery/
+        </a>
+        .
+      </p>
     </div>
   );
 }

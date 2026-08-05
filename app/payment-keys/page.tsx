@@ -3,7 +3,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { actionCreators } from '@near-js/transactions';
 import { useNearWallet } from '@/contexts/NearWalletContext';
-import WalletConnectionModal from '@/components/WalletConnectionModal';
+import { RequireWallet } from '@/components/ui/require-wallet';
+import { PageHeader } from '@/components/ui/page-header';
+import { Button } from '@/components/ui/button';
+import { EmptyState } from '@/components/ui/empty-state';
 import { getCoordinatorApiUrl } from '@/lib/api';
 import { PaymentKeyData, PaymentKeyBalance, CreationState } from './components/types';
 import { CreateKeyForm } from './components/CreateKeyForm';
@@ -29,8 +32,6 @@ export default function PaymentKeysPage() {
     viewMethod,
     network,
     stablecoin,
-    shouldReopenModal,
-    clearReopenModal,
   } = useNearWallet();
   const coordinatorUrl = getCoordinatorApiUrl(network);
 
@@ -38,7 +39,6 @@ export default function PaymentKeysPage() {
   const [paymentKeys, setPaymentKeys] = useState<PaymentKeyData[]>([]);
   const [balances, setBalances] = useState<Map<number, PaymentKeyBalance>>(new Map());
   const [loading, setLoading] = useState(false);
-  const [showWalletModal, setShowWalletModal] = useState(false);
 
   // UI state
   const [error, setError] = useState<string | null>(null);
@@ -123,14 +123,6 @@ export default function PaymentKeysPage() {
 
     setBalances(newBalances);
   }, [accountId, coordinatorUrl]);
-
-  // Auto-open modal if we switched networks
-  useEffect(() => {
-    if (shouldReopenModal && !isConnected) {
-      setShowWalletModal(true);
-      clearReopenModal();
-    }
-  }, [shouldReopenModal, isConnected, clearReopenModal]);
 
   // Load payment keys when connected
   useEffect(() => {
@@ -365,106 +357,90 @@ export default function PaymentKeysPage() {
   }, [contractId, signAndSendTransaction, loadPaymentKeys]);
 
   return (
- <div className="w-full">
-      {/* Header */}
- <div className="sm:flex sm:items-center sm:justify-between">
-        <div>
- <h1 className="text-xl font-bold tracking-tight">Payment Keys</h1>
- <p className="mt-1 text-sm text-muted-foreground">
-            Manage API keys for HTTPS calls to OutLayer projects
-          </p>
-        </div>
-        {isConnected && (
- <div className="mt-4 sm:mt-0">
-            <button
+    <div className="w-full">
+      <PageHeader
+        title="Payment keys"
+        description="Prepaid API keys for HTTPS calls to OutLayer projects."
+        action={
+          isConnected ? (
+            <Button
               onClick={() => {
                 setShowCreateForm(true);
                 setCreationState({ step: 'form' });
               }}
- className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-semibold rounded-lg text-on-accent bg-accent hover:bg-accent-hover shadow-sm"
             >
- <svg className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
-              New Key
-            </button>
-          </div>
-        )}
-      </div>
-
-      {/* Connect Wallet Button */}
-      {!isConnected && (
- <div className="mt-8">
-          <button
-            onClick={() => setShowWalletModal(true)}
- className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-on-accent bg-accent hover:bg-accent-hover shadow-sm hover:shadow-md transition-all"
-          >
-            Connect Wallet
-          </button>
-        </div>
-      )}
-
-      {/* Wallet Modal */}
-      <WalletConnectionModal
-        isOpen={showWalletModal}
-        onClose={() => setShowWalletModal(false)}
+              New key
+            </Button>
+          ) : undefined
+        }
       />
 
-      {/* Error Display */}
+      {/* Feedback banners */}
       {error && (
- <div className="mt-4 bg-destructive/10 border border-destructive/30 rounded-md p-3">
- <p className="text-sm text-destructive-text">{error}</p>
+        <div className="mb-4 rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive-text">
+          {error}
         </div>
       )}
-
-      {/* Success Display */}
       {success && (
- <div className="mt-4 bg-success/10 border border-success/30 rounded-md p-3">
- <p className="text-sm text-success-text">{success}</p>
+        <div className="mb-4 rounded-md border border-success/30 bg-success/10 p-3 text-sm text-success-text">
+          {success}
         </div>
       )}
 
-      {/* Show generated key after creation */}
+      {/* Generated key — shown once, right after creation */}
       {creationState.step === 'complete' && creationState.generatedKey && (
- <div className="mt-6 bg-warning/10 border border-warning/30 rounded-lg p-4">
- <h3 className="font-semibold text-warning mb-2">Your Payment Key (copy now!)</h3>
- <p className="text-sm text-warning mb-3">
+        <div className="mb-6 max-w-3xl rounded-md border border-warning/40 bg-warning/10 p-4">
+          <div className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              className="h-4 w-4 shrink-0 text-warning"
+              aria-hidden="true"
+            >
+              <path d="M12 9v4m0 4h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z" />
+            </svg>
+            Your payment key — copy it now
+          </div>
+          <p className="mt-1 text-xs text-muted-foreground">
             This key will NOT be shown again. Store it securely.
           </p>
- <div className="flex gap-2">
- <code className="flex-1 bg-card border border-warning/40 p-3 rounded font-mono text-sm break-all text-foreground">
+          <div className="mt-3 flex flex-wrap gap-2">
+            <code className="min-w-0 flex-1 break-all rounded-md border border-border bg-card p-3 font-mono text-sm text-foreground">
               {accountId}:{creationState.nonce}:{creationState.generatedKey}
             </code>
-            <button
+            <Button
               onClick={() => {
                 navigator.clipboard.writeText(
                   `${accountId}:${creationState.nonce}:${creationState.generatedKey}`
                 );
                 setSuccess('Copied to clipboard!');
               }}
- className="bg-accent hover:bg-accent-hover text-white px-4 py-2 rounded"
             >
               Copy
-            </button>
+            </Button>
           </div>
- <p className="text-xs text-warning mt-2">
-            Format: owner:nonce:key — Use this in X-Payment-Key header
+          <p className="mt-2 text-xs text-faint-foreground">
+            Format: owner:nonce:key — use it in the <code>X-Payment-Key</code> header.
           </p>
 
           {/* Continue TopUp button - shown when first transaction completed but TopUp pending */}
           {pendingTopUp && pendingTopUp.nonce === creationState.nonce && (
- <div className="mt-4 pt-4 border-t border-warning/40">
- <p className="text-sm text-warning mb-2">
-                Step 2: Add initial balance of ${pendingTopUp.depositAmount} {stablecoin.symbol}
+            <div className="mt-4 border-t border-warning/40 pt-4">
+              <p className="mb-2 text-sm text-foreground">
+                Step 2: add the initial balance of ${pendingTopUp.depositAmount}{' '}
+                {stablecoin.symbol}.
               </p>
-              <button
-                onClick={handleContinueTopUp}
- className="w-full bg-accent hover:bg-accent-hover text-white px-4 py-2 rounded font-medium"
-              >
-                Continue: Add Balance
-              </button>
+              <Button onClick={handleContinueTopUp}>Continue: add balance</Button>
             </div>
           )}
+        </div>
+      )}
+
+      {!isConnected && (
+        <div className="mb-6">
+          <RequireWallet subject="your payment keys" />
         </div>
       )}
 
@@ -512,39 +488,48 @@ export default function PaymentKeysPage() {
 
       {/* Payment keys list */}
       {isConnected && (
- <div className="mt-8">
+        <div className="mb-6">
           {loading ? (
- <div className="flex items-center justify-center py-12">
- <svg className="animate-spin h-8 w-8 text-accent-text" fill="none" viewBox="0 0 24 24">
- <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
- <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-              </svg>
- <span className="ml-3 text-muted-foreground">Loading payment keys...</span>
+            <div className="flex items-center gap-3 py-8">
+              <span
+                className="h-8 w-8 shrink-0 animate-spin rounded-full border-b-2 border-accent"
+                aria-hidden="true"
+              />
+              <span className="text-sm text-muted-foreground">Loading payment keys…</span>
             </div>
           ) : paymentKeys.length === 0 ? (
- <div className="py-8">
- <svg className="h-10 w-10 text-faint-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
-              </svg>
- <h3 className="mt-2 text-sm font-medium text-foreground">No payment keys</h3>
- <p className="mt-1 text-sm text-muted-foreground">Get started by creating a new payment key.</p>
- <div className="mt-6">
-                <button
+            <EmptyState
+              icon={
+                <svg
+                  className="h-8 w-8"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  aria-hidden="true"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"
+                  />
+                </svg>
+              }
+              title="No payment keys"
+              description="Create a prepaid key to call OutLayer projects over HTTPS — no NEAR transactions per call."
+              action={
+                <Button
                   onClick={() => {
                     setShowCreateForm(true);
                     setCreationState({ step: 'form' });
                   }}
- className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-semibold rounded-lg text-on-accent bg-accent hover:bg-accent-hover"
                 >
- <svg className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                  </svg>
-                  Create Key
-                </button>
-              </div>
-            </div>
+                  Create key
+                </Button>
+              }
+            />
           ) : (
- <div className="max-w-3xl space-y-4">
+            <div className="max-w-3xl space-y-4">
               {paymentKeys.map((key) => (
                 <PaymentKeyCard
                   key={key.nonce}
@@ -564,44 +549,53 @@ export default function PaymentKeysPage() {
 
           {/* Refresh Button */}
           {paymentKeys.length > 0 && (
- <div className="mt-4">
-              <button
-                onClick={loadPaymentKeys}
- className="text-sm text-muted-foreground hover:text-accent-text flex items-center"
-              >
- <svg className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            <div className="mt-4">
+              <Button variant="ghost" size="sm" onClick={loadPaymentKeys}>
+                <svg
+                  className="h-4 w-4"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  aria-hidden="true"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                  />
                 </svg>
                 Refresh
-              </button>
+              </Button>
             </div>
           )}
         </div>
       )}
 
-      {/* Info Section */}
- <div className="mt-8 max-w-3xl bg-card-muted border border-border rounded-lg p-6">
- <h3 className="text-sm font-semibold text-foreground mb-3">
-          About Payment Keys
-        </h3>
- <ul className="text-sm text-muted-foreground space-y-2 list-disc list-inside">
+      {/* Informational plate — one per page, last */}
+      <div className="max-w-3xl rounded-lg border border-border bg-card-muted p-4">
+        <h2 className="text-sm font-semibold">About payment keys</h2>
+        <ul className="mt-2 list-inside list-disc space-y-1.5 text-sm text-muted-foreground">
           <li>
- <strong>HTTPS API Access</strong>: Call OutLayer projects without NEAR transactions
+            <strong className="text-foreground">HTTPS API access</strong>: call OutLayer projects
+            without NEAR transactions
           </li>
           <li>
- <strong>Prepaid Balance</strong>: Top up with {stablecoin.symbol}, pay per compute
+            <strong className="text-foreground">Prepaid balance</strong>: top up with{' '}
+            {stablecoin.symbol}, pay per compute
           </li>
           <li>
- <strong>Project Restrictions</strong>: Optionally limit key to specific projects
+            <strong className="text-foreground">Project restrictions</strong>: optionally limit a
+            key to specific projects
           </li>
           <li>
- <strong>Secure Storage</strong>: Keys are stored encrypted on-chain
+            <strong className="text-foreground">Secure storage</strong>: keys are stored encrypted
+            on-chain
           </li>
         </ul>
-
- <div className="mt-4 p-3 bg-card rounded border border-info/30">
- <h4 className="text-xs font-semibold text-foreground mb-2">Header Format</h4>
- <code className="text-xs text-accent-text font-mono">
+        <div className="mt-3 rounded-md border border-border bg-card px-3 py-2">
+          <div className="text-xs font-semibold text-foreground">Header format</div>
+          <code className="mt-1 block font-mono text-xs text-accent-text">
             X-Payment-Key: {accountId || 'yourname.near'}:1:your-secret-key
           </code>
         </div>

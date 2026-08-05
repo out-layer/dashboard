@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { actionCreators } from '@near-js/transactions';
+import { Button } from '@/components/ui/button';
 import { eciesEncrypt } from '@/lib/ecies';
 import { StablecoinConfig } from '@/contexts/NearWalletContext';
 import { CreationState, parseUsdToMinimalUnits, PaymentKeySecret } from './types';
@@ -239,37 +240,35 @@ export function CreateKeyForm({
   const isSubmitting = creationState.step !== 'form' && creationState.step !== 'error';
 
   return (
- <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
- <div className="bg-card rounded-lg border border-border-xl p-6 max-w-lg w-full">
- <h2 className="text-xl font-bold text-foreground mb-4">Create Payment Key</h2>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+      <div className="w-full max-w-md rounded-xl border border-border-strong bg-card p-6 shadow-2xl">
+        <h2 className="mb-4 text-lg font-bold tracking-tight text-foreground">Create payment key</h2>
 
         {/* Progress indicator */}
         {isSubmitting && (
- <div className="mb-4 p-3 bg-card-muted border border-border rounded-lg">
- <div className="flex items-center gap-2">
- <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-accent"></div>
- <span className="text-info">
-                {creationState.step === 'generating' && 'Generating secure key...'}
-                {creationState.step === 'storing' && 'Transaction 1/2: Storing encrypted key...'}
-                {creationState.step === 'topping_up' && 'Transaction 2/2: Adding initial balance...'}
+          <div className="mb-4 rounded-md border border-border bg-card-muted p-3">
+            <div className="flex items-center gap-2 text-sm text-foreground">
+              <span className="h-4 w-4 shrink-0 animate-spin rounded-full border-b-2 border-accent" aria-hidden="true" />
+              <span>
+                {creationState.step === 'generating' && 'Generating secure key…'}
+                {creationState.step === 'storing' && 'Transaction 1/2: storing encrypted key…'}
+                {creationState.step === 'topping_up' && 'Transaction 2/2: adding initial balance…'}
               </span>
             </div>
           </div>
         )}
 
         {/* Info */}
- <div className="mb-4 p-3 bg-warning/10 border border-warning/30 rounded-lg">
- <p className="text-sm text-warning">
-            Creating a Payment Key requires 2 transactions:
-          </p>
- <ol className="text-sm text-warning mt-2 ml-4 list-decimal">
- <li>Store encrypted key on contract (NEAR storage deposit)</li>
- <li>Top up balance with {stablecoin.symbol} (initial deposit)</li>
+        <div className="mb-4 rounded-md border border-border bg-card-muted p-3 text-sm text-muted-foreground">
+          <p>Creating a payment key takes 2 transactions:</p>
+          <ol className="ml-4 mt-1 list-decimal">
+            <li>Store the encrypted key on the contract (NEAR storage deposit)</li>
+            <li>Top up the balance with {stablecoin.symbol} (initial deposit)</li>
           </ol>
         </div>
 
         {/* Form */}
- <div className="max-w-3xl space-y-4">
+        <div className="space-y-4">
           {/* Project restrictions */}
           <div>
  <label className="block text-sm font-medium text-foreground mb-1">
@@ -280,7 +279,7 @@ export function CreateKeyForm({
               value={projectIds}
               onChange={(e) => setProjectIds(e.target.value)}
               placeholder="owner.near/project1, owner.near/project2"
- className="w-full border border-border-strong rounded-lg px-3 py-2 text-foreground placeholder:text-faint-foreground focus:ring-2 focus:ring-accent"
+ className="w-full rounded-md border border-border-strong px-3 py-2 text-sm outline-none placeholder:text-faint-foreground focus:border-accent focus:ring-1 focus:ring-accent"
               disabled={isSubmitting}
             />
  <p className="text-xs text-muted-foreground mt-1">
@@ -298,7 +297,7 @@ export function CreateKeyForm({
               value={maxPerCall}
               onChange={(e) => setMaxPerCall(e.target.value)}
               placeholder="100.00"
- className="w-full border border-border-strong rounded-lg px-3 py-2 text-foreground placeholder:text-faint-foreground focus:ring-2 focus:ring-accent"
+ className="w-full rounded-md border border-border-strong px-3 py-2 text-sm outline-none placeholder:text-faint-foreground focus:border-accent focus:ring-1 focus:ring-accent"
               disabled={isSubmitting}
             />
  <p className="text-xs text-muted-foreground mt-1">
@@ -316,7 +315,7 @@ export function CreateKeyForm({
               value={initialDeposit}
               onChange={(e) => setInitialDeposit(e.target.value)}
               placeholder="2.00"
- className="w-full border border-border-strong rounded-lg px-3 py-2 text-foreground placeholder:text-faint-foreground focus:ring-2 focus:ring-accent"
+ className="w-full rounded-md border border-border-strong px-3 py-2 text-sm outline-none placeholder:text-faint-foreground focus:border-accent focus:ring-1 focus:ring-accent"
               disabled={isSubmitting}
             />
  <p className="text-xs text-muted-foreground mt-1">
@@ -339,26 +338,22 @@ export function CreateKeyForm({
         )}
 
         {/* Actions */}
- <div className="flex gap-3 mt-6">
-          <button
-            onClick={onCancel}
- className="flex-1 bg-card-muted hover:bg-card-muted text-foreground px-4 py-2 rounded-lg font-medium transition-colors"
-            disabled={isSubmitting}
-          >
+        <div className="mt-6 flex gap-3">
+          <Button variant="outline" className="flex-1" onClick={onCancel} disabled={isSubmitting}>
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button
+            className="flex-1"
             onClick={handleCreate}
- className="flex-1 bg-accent hover:bg-accent-hover text-white px-4 py-2 rounded-lg font-medium disabled:opacity-50 transition-colors"
             disabled={isSubmitting || !prefetchedPubkey}
           >
-            {isSubmitting ? 'Creating...' : !prefetchedPubkey ? 'Preparing...' : 'Create Key'}
-          </button>
+            {isSubmitting ? 'Creating…' : !prefetchedPubkey ? 'Preparing…' : 'Create key'}
+          </Button>
         </div>
 
         {/* Nonce info */}
- <p className="text-xs text-muted-foreground mt-4 text-center">
-          This will be key #{nextNonce} for your account
+        <p className="mt-4 text-xs text-faint-foreground">
+          This will be key #{nextNonce} for your account.
         </p>
       </div>
     </div>

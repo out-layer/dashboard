@@ -21,6 +21,10 @@ export interface AreaChartProps {
   kind?: 'area' | 'bar';
   /** Dot on every data point — for cumulative curves. */
   showPoints?: boolean;
+  /** 'zero' anchors the y-axis at 0; 'auto' zooms to the data range (cumulative
+   *  curves whose growth would otherwise flatten against a zero baseline).
+   *  Bars always use zero — a truncated bar axis lies. */
+  baseline?: 'zero' | 'auto';
   height?: number;
   className?: string;
 }
@@ -49,7 +53,7 @@ function fmtDate(iso: string): string {
   return isNaN(d.getTime()) ? iso : d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
-export function AreaChart({ data, unit = '', kind = 'area', showPoints = false, height = 215, className }: AreaChartProps) {
+export function AreaChart({ data, unit = '', kind = 'area', showPoints = false, baseline = 'zero', height = 215, className }: AreaChartProps) {
   const gradId = useId();
   const wrapRef = useRef<HTMLDivElement>(null);
   const [hover, setHover] = useState<number | null>(null);
@@ -63,9 +67,17 @@ export function AreaChart({ data, unit = '', kind = 'area', showPoints = false, 
   }
 
   const H = height;
-  const ymax = niceMax(Math.max(...data.map((p) => p.value), 1));
+  const maxV = Math.max(...data.map((p) => p.value), 1);
+  const minV = Math.min(...data.map((p) => p.value));
+  let ymin = 0;
+  let ymax = niceMax(maxV);
+  if (baseline === 'auto' && kind === 'area' && maxV > minV) {
+    const g = 10 ** Math.floor(Math.log10(maxV - minV));
+    ymin = Math.max(0, Math.floor((minV - (maxV - minV) * 0.15) / g) * g);
+    ymax = Math.ceil((maxV + (maxV - minV) * 0.1) / g) * g;
+  }
   const px = (i: number) => PADL + ((W - PADL - PADR) * i) / (data.length - 1);
-  const py = (v: number) => PADT + (H - PADT - PADB) * (1 - v / ymax);
+  const py = (v: number) => PADT + (H - PADT - PADB) * (1 - (v - ymin) / (ymax - ymin));
   const line = data.map((p, i) => `${i ? 'L' : 'M'}${px(i).toFixed(1)} ${py(p.value).toFixed(1)}`).join(' ');
 
   const xTicks = [0, Math.round((data.length - 1) / 4), Math.round((data.length - 1) / 2), Math.round(((data.length - 1) * 3) / 4), data.length - 1];
@@ -99,7 +111,7 @@ export function AreaChart({ data, unit = '', kind = 'area', showPoints = false, 
           </linearGradient>
         </defs>
         {[0, 1, 2, 3].map((g) => {
-          const v = (ymax * g) / 3;
+          const v = ymin + ((ymax - ymin) * g) / 3;
           const y = py(v);
           return (
             <g key={g}>
@@ -131,7 +143,7 @@ export function AreaChart({ data, unit = '', kind = 'area', showPoints = false, 
         ))}
         {kind === 'area' ? (
           <>
-            <path d={`${line} L${px(data.length - 1)} ${py(0)} L${px(0)} ${py(0)} Z`} fill={`url(#${gradId})`} />
+            <path d={`${line} L${px(data.length - 1)} ${py(ymin)} L${px(0)} ${py(ymin)} Z`} fill={`url(#${gradId})`} />
             <path d={line} fill="none" stroke="var(--chart)" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
             {showPoints &&
               data.map((p, i) => (

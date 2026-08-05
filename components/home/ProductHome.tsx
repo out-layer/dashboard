@@ -158,6 +158,7 @@ export default function ProductHome() {
                 }
                 unit={SERIES_META[series].unit}
                 showPoints
+                baseline="auto"
               />
             ) : walletStatsFailed ? (
               <div className="flex h-[215px] items-center">

@@ -1,6 +1,7 @@
 'use client';
 
 import { PageHeader } from '@/components/ui/page-header';
+import { InfoHint } from '@/components/ui/info-hint';
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useNearWallet } from '@/contexts/NearWalletContext';
@@ -314,12 +315,12 @@ function PlaygroundContent() {
 
   // Check for preset in URL params
   const presetFromUrl = searchParams.get('preset');
+  // Only a ?preset= link pre-fills the form; the default is the blank "Custom" state.
   const initialPreset = presetFromUrl
-    ? availablePresets.find(p => p.name === presetFromUrl) || availablePresets[0]
-    : availablePresets[0];
+    ? availablePresets.find(p => p.name === presetFromUrl)
+    : undefined;
 
-  // Initialize with preset from URL or first preset
-  const [selectedPreset, setSelectedPreset] = useState<string>(initialPreset?.name || '');
+  const [selectedPreset, setSelectedPreset] = useState<string>(initialPreset?.name || 'custom');
   const [codeSourceType, setCodeSourceType] = useState<'github' | 'wasmurl' | 'project'>(initialPreset?.type === 'direct' ? (initialPreset.codeSourceType || 'github') : 'github');
   const [repo, setRepo] = useState(initialPreset?.type === 'direct' ? initialPreset.repo : '');
   const [commit, setCommit] = useState(initialPreset?.type === 'direct' ? initialPreset.commit : '');
@@ -428,6 +429,9 @@ function PlaygroundContent() {
       return;
     }
 
+    // The blank Custom state survives a network switch untouched.
+    if (selectedPreset === 'custom') return;
+
     const firstPreset = availablePresets[0];
     if (firstPreset) {
       setSelectedPreset(firstPreset.name);
@@ -469,6 +473,27 @@ function PlaygroundContent() {
 
   // Apply preset configuration
   const applyPreset = (presetName: string) => {
+    if (presetName === 'custom') {
+      // Blank slate: user brings their own repo/args.
+      setSelectedPreset('custom');
+      setArgs('');
+      setCodeSourceType('github');
+      setRepo('');
+      setCommit('');
+      setWasmUrl('');
+      setWasmHash('');
+      setProjectId('');
+      setVersionKey('');
+      setBuildTarget('wasm32-wasip1');
+      setResponseFormat('Json');
+      setSecretsProfile('');
+      setSecretsOwner('');
+      setCompileOnly(false);
+      setForceRebuild(false);
+      setStoreOnFastfs(false);
+      setProxyMethod('');
+      return;
+    }
     const preset = PRESETS.find(p => p.name === presetName);
     if (preset) {
       setSelectedPreset(preset.name);
@@ -530,7 +555,7 @@ function PlaygroundContent() {
       const currentPreset = PRESETS.find(p => p.name === selectedPreset);
 
       // Check if we're using WasmUrl for direct preset
-      if (currentPreset?.type === 'direct' && codeSourceType === 'wasmurl') {
+      if ((selectedPreset === 'custom' || currentPreset?.type === 'direct') && codeSourceType === 'wasmurl') {
         // WasmUrl - check by hash
         if (!wasmHash) {
           setError('Please enter or calculate WASM hash first');
@@ -545,8 +570,8 @@ function PlaygroundContent() {
       let checkCommit: string;
       let checkBuildTarget: string;
 
-      if (currentPreset?.type === 'direct') {
-        // Direct preset with GitHub - use form values
+      if (selectedPreset === 'custom' || currentPreset?.type === 'direct') {
+        // Direct preset (or blank Custom) with GitHub - use form values
         if (!repo || !commit) {
           setError('Repository and commit are required for GitHub source');
           return;
@@ -842,31 +867,45 @@ function PlaygroundContent() {
         description="Test off-chain execution with your GitHub repository."
       />
 
- <div className="mt-6 bg-card border border-border rounded-lg">
- <div className="px-4 py-5 sm:p-6">
-          {/* Current Network & Contract Info */}
- <div className="mb-6 p-3 bg-card-muted rounded-md">
- <div className="text-sm text-muted-foreground">
- <span className="font-medium">Network:</span> {network === 'testnet' ? 'Testnet' : 'Mainnet'}
-              {' '} |  <span className="font-medium">Contract:</span> <span className="font-mono">{contractId}</span>
-            </div>
+ <div className="mt-6 grid items-start gap-6 xl:grid-cols-[320px_minmax(0,1fr)]">
+        {/* Presets rail */}
+        <div className="rounded-lg border border-border bg-card p-4 xl:sticky xl:top-6">
+          <p className="text-sm font-semibold text-foreground">Examples</p>
+          <div className="mt-2 flex flex-col gap-1.5">
+            {availablePresets
+              .filter(p => p.type === 'direct')
+              .map((preset) => (
+                <button
+                  key={preset.name}
+                  type="button"
+                  onClick={() => applyPreset(preset.name)}
+                  className={`w-full rounded-md border px-3 py-1.5 text-left text-sm font-medium transition-colors ${
+                    selectedPreset === preset.name
+                      ? 'border-accent bg-accent/10 text-accent-text'
+                      : 'border-border text-muted-foreground hover:border-border-strong hover:text-foreground'
+                  }`}
+                >
+                  {preset.name}
+                </button>
+              ))}
           </div>
-
-          {/* Preset Selector */}
-          {availablePresets.length > 0 && (
- <div className="mb-6">
- <label className="block text-sm font-medium text-foreground mb-2">
-                Example Presets
-              </label>
-              <div className="flex flex-wrap gap-2">
+          {availablePresets.filter(p => p.type === 'proxy').length > 0 && (
+            <>
+              <p className="mb-1.5 mt-4 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-faint-foreground">
+                Via proxy contracts
+                <InfoHint
+                  text="These examples go through an intermediary NEAR contract (a game, VRF consumer, swap). Your transaction calls that contract; it forwards the verifiable computation request to OutLayer and consumes the result on-chain — the integration pattern to copy for your own contract."
+                />
+              </p>
+              <div className="flex flex-col gap-1.5">
                 {availablePresets
-                  .filter(p => p.type === 'direct')
+                  .filter(p => p.type === 'proxy')
                   .map((preset) => (
                     <button
                       key={preset.name}
                       type="button"
                       onClick={() => applyPreset(preset.name)}
-                      className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors cursor-pointer ${
+                      className={`w-full rounded-md border px-3 py-1.5 text-left text-sm font-medium transition-colors ${
                         selectedPreset === preset.name
                           ? 'border-accent bg-accent/10 text-accent-text'
                           : 'border-border text-muted-foreground hover:border-border-strong hover:text-foreground'
@@ -876,87 +915,103 @@ function PlaygroundContent() {
                     </button>
                   ))}
               </div>
-              {availablePresets.filter(p => p.type === 'proxy').length > 0 && (
-                <>
-                  <p className="mt-3 mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-faint-foreground">
-                    Via proxy contracts
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    {availablePresets
-                      .filter(p => p.type === 'proxy')
-                      .map((preset) => (
-                        <button
-                          key={preset.name}
-                          type="button"
-                          onClick={() => applyPreset(preset.name)}
-                          className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors cursor-pointer ${
-                            selectedPreset === preset.name
-                              ? 'border-accent bg-accent/10 text-accent-text'
-                              : 'border-border text-muted-foreground hover:border-border-strong hover:text-foreground'
-                          }`}
-                        >
-                          {preset.name}
-                        </button>
-                      ))}
-                  </div>
-                </>
-              )}
-
-              {/* Show description for selected preset */}
-              {(() => {
-                const preset = availablePresets.find(p => p.name === selectedPreset);
-                if (!preset?.description) return null;
-
-                // Convert URLs to clickable links
-                const formatDescription = (text: string) => {
-                  // Split by URLs
-                  const urlRegex = /(https?:\/\/[^\s]+)/g;
-                  const parts = text.split(urlRegex);
-
-                  return parts.map((part, index) => {
-                    if (part.match(urlRegex)) {
-                      return (
-                        <a
-                          key={index}
-                          href={part}
-                          target="_blank"
-                          rel="noopener noreferrer"
- className="text-accent-text underline"
-                        >
-                          {part}
-                        </a>
-                      );
-                    }
-                    return part;
-                  });
-                };
-
-                return (
- <div className="mt-3 p-3 bg-card-muted border border-border rounded-md">
- <div className="text-sm text-muted-foreground whitespace-pre-line">
-                      {formatDescription(preset.description)}
-                    </div>
-                    {preset.docsLink && (
- <div className="mt-3">
-                        <a
-                          href={preset.docsLink}
-                          target="_blank"
-                          rel="noopener noreferrer"
- className="inline-flex items-center gap-2 text-sm font-medium text-accent-text hover:underline"
-                        >
-                           View detailed documentation
- <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                          </svg>
-                        </a>
-                      </div>
-                    )}
-                  </div>
-                );
-              })()}
-            </div>
+            </>
           )}
+          <div className="mt-3 border-t border-border pt-3">
+            <button
+              type="button"
+              onClick={() => applyPreset('custom')}
+              className={`w-full rounded-md border px-3 py-1.5 text-left text-sm font-medium transition-colors ${
+                selectedPreset === 'custom'
+                  ? 'border-accent bg-accent/10 text-accent-text'
+                  : 'border-border text-muted-foreground hover:border-border-strong hover:text-foreground'
+              }`}
+            >
+              Custom
+            </button>
+          </div>
 
+          {/* Selected example description */}
+          {(() => {
+            if (selectedPreset === 'custom') {
+              return (
+                <p className="mt-3 text-xs text-muted-foreground">
+                  Bring your own code: fill in the form on the right.
+                </p>
+              );
+            }
+            const preset = availablePresets.find(p => p.name === selectedPreset);
+            if (!preset?.description) return null;
+
+            // Convert URLs to clickable links
+            const formatDescription = (text: string) => {
+              const urlRegex = /(https?:\/\/[^\s]+)/g;
+              const parts = text.split(urlRegex);
+              return parts.map((part, index) => {
+                if (part.match(urlRegex)) {
+                  return (
+                    <a
+                      key={index}
+                      href={part}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-accent-text underline"
+                    >
+                      {part}
+                    </a>
+                  );
+                }
+                return part;
+              });
+            };
+
+            return (
+              <div className="mt-3 rounded-md border border-border bg-card-muted p-3">
+                <div className="whitespace-pre-line text-xs text-muted-foreground">
+                  {formatDescription(preset.description)}
+                </div>
+                <div className="mt-2 flex flex-wrap items-center gap-3">
+                  {preset.type === 'direct' && preset.repo && (
+                    <a
+                      href={preset.repo}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 rounded-md border border-border-strong px-2.5 py-1 text-xs font-medium text-foreground hover:border-accent hover:text-accent-text"
+                    >
+                      <svg className="h-3.5 w-3.5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <path fillRule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clipRule="evenodd"/>
+                      </svg>
+                      Fork it
+                    </a>
+                  )}
+                  {preset.docsLink && (
+                    <a
+                      href={preset.docsLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-xs font-medium text-accent-text hover:underline"
+                    >
+                      View docs
+                      <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                      </svg>
+                    </a>
+                  )}
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* Current network & contract — bottom of the rail */}
+          <div className="mt-4 rounded-md bg-card-muted p-2.5 text-xs text-muted-foreground">
+            <span className="font-medium">Network:</span> {network === 'testnet' ? 'Testnet' : 'Mainnet'} ·{' '}
+            <span className="font-medium">Contract:</span> <span className="font-mono">{contractId}</span>
+          </div>
+        </div>
+
+        {/* Form + results */}
+        <div className="bg-card border border-border rounded-lg">
+          <div className="px-4 py-5 sm:p-6">
           {/* Show proxy contract info for proxy presets */}
           {(() => {
             const currentPreset = PRESETS.find(p => p.name === selectedPreset);
@@ -995,7 +1050,7 @@ function PlaygroundContent() {
           {/* Show these fields only for direct execution presets */}
           {(() => {
             const currentPreset = PRESETS.find(p => p.name === selectedPreset);
-            return currentPreset?.type === 'direct' ? (
+            return selectedPreset === 'custom' || currentPreset?.type === 'direct' ? (
               <>
                 {/* Code Source Type Selector */}
  <div className="mb-6">
@@ -1106,24 +1161,9 @@ function PlaygroundContent() {
                   <>
                     {/* GitHub Repository */}
  <div className="mb-6">
- <div className="flex items-center justify-between mb-1">
- <label htmlFor="repo" className="block text-sm font-medium text-foreground">
-                          GitHub Repository
-                        </label>
-                        {repo && (
-                          <a
-                            href={`${repo}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
- className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium text-foreground bg-card border border-border-strong rounded-md hover:bg-card-muted transition-colors"
-                          >
- <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
-                              <path fillRule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clipRule="evenodd"/>
-                            </svg>
-                            Fork It!
-                          </a>
-                        )}
-                      </div>
+ <label htmlFor="repo" className="mb-1 block text-sm font-medium text-foreground">
+                        GitHub Repository
+                      </label>
                       <input
                         type="text"
                         id="repo"
@@ -1376,7 +1416,7 @@ function PlaygroundContent() {
           {/* Secrets Reference - only for direct execution */}
           {(() => {
             const currentPreset = PRESETS.find(p => p.name === selectedPreset);
-            return currentPreset?.type === 'direct' ? (
+            return selectedPreset === 'custom' || currentPreset?.type === 'direct' ? (
  <div className="mb-6">
  <div className="flex items-center justify-between mb-2">
  <label className="block text-sm font-medium text-foreground">
@@ -1432,7 +1472,7 @@ function PlaygroundContent() {
             {/* Deposit info for direct execution */}
             {(() => {
               const currentPreset = PRESETS.find(p => p.name === selectedPreset);
-              return currentPreset?.type === 'direct' ? (
+              return selectedPreset === 'custom' || currentPreset?.type === 'direct' ? (
  <p className="mb-3 text-xs text-muted-foreground">
                    The attached deposit covers possible costs for execution and compilation. Unused resources will be refunded at the end of the transaction.
                 </p>
@@ -1483,7 +1523,7 @@ function PlaygroundContent() {
             {/* Check WASM Cache - for direct execution and proxy with wasmRepo */}
             {(() => {
               const currentPreset = PRESETS.find(p => p.name === selectedPreset);
-              const shouldShowButton = currentPreset?.type === 'direct' ||
+              const shouldShowButton = selectedPreset === 'custom' || currentPreset?.type === 'direct' ||
                                        (currentPreset?.type === 'proxy' && currentPreset.wasmRepo);
               return shouldShowButton ? (
  <div className="mt-3 flex items-center justify-between">
@@ -1579,34 +1619,35 @@ function PlaygroundContent() {
               })()}
 
               {/* Transaction Details */}
- <div className="bg-info/10 border border-info/30 rounded-md p-4">
+ <div className="bg-card-muted border border-border rounded-md p-4">
  <h3 className="text-sm font-medium text-foreground mb-2">Transaction Details</h3>
                 {result.transactionHash && (
- <p className="text-xs text-info mb-2">
+ <p className="text-xs text-muted-foreground mb-2">
                     Hash: <a
                       href={getTransactionUrl(result.transactionHash, network)}
                       target="_blank"
                       rel="noopener noreferrer"
- className="bg-info/15 px-1 py-0.5 rounded hover:bg-blue-200 underline font-mono"
+ className="font-mono text-accent-text hover:underline"
                     >
                       {result.transactionHash}
                     </a>
                   </p>
                 )}
  <details className="text-xs">
- <summary className="cursor-pointer text-info hover:text-info">
+ <summary className="cursor-pointer text-muted-foreground hover:text-foreground">
                     View full transaction data
                   </summary>
- <pre className="mt-2 text-info overflow-auto bg-card p-2 rounded border border-info/40">
+ <pre className="mt-2 text-muted-foreground overflow-auto bg-card p-2 rounded border border-border">
                     {JSON.stringify(result.transaction, null, 2)}
                   </pre>
                 </details>
- <p className="mt-3 text-sm text-info">
- Check execution status in the <a href="/executions" className="underline font-medium">Executions</a> page
+ <p className="mt-3 text-sm text-muted-foreground">
+ Check execution status in the <a href="/executions" className="font-medium text-accent-text hover:underline">Executions</a> page
                 </p>
               </div>
             </div>
           )}
+          </div>
         </div>
       </div>
     </div>

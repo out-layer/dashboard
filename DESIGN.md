@@ -136,6 +136,11 @@ categories use `outline`; the attestation chip is ALWAYS `<AttestationBadge>`.
 **Code**: only `<CodeBlock>` (new UI) or the `components/ui/syntax` shim (docs).
 Ids/accounts/hashes: `<HashChip>` — never a raw truncated string.
 
+**Help popover**: `<InfoHint text="…" />` — the small (i) button next to a
+label/heading, click-toggled popover for explaining a term ("Via proxy
+contracts"). Supplementary only: information the user MUST read never goes
+behind it.
+
 ## Shell footer
 
 Left-aligned, never centered: `© 2026 OutLayer · tagline` on the left, a

@@ -129,6 +129,9 @@ export default function CommandPalette({ open, onOpenChange }: CommandPalettePro
 
   const q = query.trim().toLowerCase();
   const matches = (label: string) => !q || label.toLowerCase().includes(q);
+  // Docs navigations carry the query so the target page highlights the matches
+  // (SearchHighlighter) — heading picks included, not just full-text hits.
+  const qParam = query.trim().length >= 3 ? `?q=${encodeURIComponent(query.trim())}` : '';
 
   const navGroups = [...APP_NAV, { group: 'General', items: FOOTER_NAV }]
     .map((group) => ({
@@ -192,7 +195,7 @@ export default function CommandPalette({ open, onOpenChange }: CommandPalettePro
                   <Command.Item
                     key={page.href}
                     value={`docs:${page.href}`}
-                    onSelect={() => go(page.href)}
+                    onSelect={() => go(`${page.href}${qParam}`)}
                     className={ITEM_CLS}
                   >
                     {page.label}
@@ -203,7 +206,7 @@ export default function CommandPalette({ open, onOpenChange }: CommandPalettePro
                   <Command.Item
                     key={`${page.href}#${section.id}`}
                     value={`docs:${page.href}#${section.id}`}
-                    onSelect={() => go(`${page.href}#${section.id}`)}
+                    onSelect={() => go(`${page.href}${qParam}#${section.id}`)}
                     className={ITEM_CLS}
                   >
                     <span className="text-faint-foreground">{page.label}&nbsp;›&nbsp;</span>

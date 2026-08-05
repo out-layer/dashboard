@@ -11,6 +11,7 @@ import PendingApprovalsBadge from '@/components/PendingApprovalsBadge';
 import DepositUsdcModal from '@/components/home/DepositUsdcModal';
 import LiveActivity from '@/components/home/LiveActivity';
 import { SkillUrlBox } from '@/components/ui/skill-url-box';
+import { ExampleIcon } from '@/components/ui/example-icon';
 
 interface UserSecret {
   accessor: Record<string, unknown>;
@@ -257,26 +258,34 @@ export default function Overview() {
           </CardHeader>
           <CardContent>
             <div className="flex flex-col gap-1.5">
-              {[
-                {
-                  preset: 'AI Completions',
-                  desc: 'Call an LLM from inside the enclave — an attested AI answer.',
-                },
-                {
-                  preset: 'Weather Data Oracle',
-                  desc: 'Read real-world weather that any NEAR contract can consume.',
-                },
-                {
-                  preset: 'Ethereum State Proof',
-                  desc: 'Verify an Ethereum Merkle state proof in verifiable compute.',
-                },
-              ].map((ex) => (
+              {(
+                [
+                  {
+                    preset: 'AI Completions',
+                    desc: 'Call an LLM from inside the enclave — an attested AI answer.',
+                    icon: 'ai',
+                  },
+                  {
+                    preset: 'Weather Data Oracle',
+                    desc: 'Read real-world weather that any NEAR contract can consume.',
+                    icon: 'weather',
+                  },
+                  {
+                    preset: 'Ethereum State Proof',
+                    desc: 'Verify an Ethereum Merkle state proof in verifiable compute.',
+                    icon: 'eth',
+                  },
+                ] as const
+              ).map((ex) => (
                 <Link
                   key={ex.preset}
                   href={`/playground?preset=${encodeURIComponent(ex.preset)}`}
                   className="group rounded-md border border-border px-3 py-2 transition-colors hover:border-accent"
                 >
-                  <span className="text-sm font-medium text-foreground group-hover:text-accent-text">
+                  <span className="flex items-center gap-2 text-sm font-medium text-foreground group-hover:text-accent-text">
+                    <span className="text-faint-foreground group-hover:text-accent-text">
+                      <ExampleIcon name={ex.icon} />
+                    </span>
                     {ex.preset}
                   </span>
                   <span className="mt-0.5 block text-xs text-muted-foreground">{ex.desc}</span>
@@ -374,7 +383,10 @@ export default function Overview() {
         <Link href="/docs/examples" className="group">
           <Card className="h-full transition-colors hover:border-border-strong">
             <CardContent className="p-5">
-              <p className="text-sm font-semibold group-hover:text-accent-text">Example agents</p>
+              <p className="flex items-center gap-2 text-sm font-semibold group-hover:text-accent-text">
+                <span className="text-faint-foreground group-hover:text-accent-text"><ExampleIcon name="dice" /></span>
+                Example agents
+              </p>
               <p className="mt-1 text-xs text-muted-foreground">
                 Oracles, VRF, AI inference, Intents swaps — runnable code to fork.
               </p>
@@ -384,7 +396,10 @@ export default function Overview() {
         <Link href="/docs/agent-custody" className="group">
           <Card className="h-full transition-colors hover:border-border-strong">
             <CardContent className="p-5">
-              <p className="text-sm font-semibold group-hover:text-accent-text">Agent custody</p>
+              <p className="flex items-center gap-2 text-sm font-semibold group-hover:text-accent-text">
+                <span className="text-faint-foreground group-hover:text-accent-text"><ExampleIcon name="key" /></span>
+                Agent custody
+              </p>
               <p className="mt-1 text-xs text-muted-foreground">
                 Wallets your agents can use but never leak, with policies and multisig.
               </p>
@@ -394,7 +409,10 @@ export default function Overview() {
         <Link href="/docs/trust-verification" className="group">
           <Card className="h-full transition-colors hover:border-border-strong">
             <CardContent className="p-5">
-              <p className="text-sm font-semibold group-hover:text-accent-text">Verify everything</p>
+              <p className="flex items-center gap-2 text-sm font-semibold group-hover:text-accent-text">
+                <span className="text-faint-foreground group-hover:text-accent-text"><ExampleIcon name="shield" /></span>
+                Verify everything
+              </p>
               <p className="mt-1 text-xs text-muted-foreground">
                 How TDX quotes, measurements and on-chain approvals fit together.
               </p>

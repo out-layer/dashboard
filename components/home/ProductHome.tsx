@@ -24,7 +24,7 @@ const EXAMPLES: Array<{ label: string; href: string; desc: string; icon: Example
   { label: 'Price oracle', href: '/docs/examples#oracle-ark', desc: 'multi-source median', icon: 'chart' },
   { label: 'NEAR Email', href: '/docs/examples#near-email', desc: 'mail ↔ chain bridge', icon: 'mail' },
   { label: 'Private DAO voting', href: '/docs/examples#private-dao-ark', desc: 'tally without exposure', icon: 'vote' },
-  { label: '2FA verification', href: '/docs/examples#captcha-ark', desc: 'human checks for agents', icon: 'shield' },
+  { label: '2FA verification', href: '/docs/examples#captcha-ark', desc: 'verify who signs the transaction', icon: 'shield' },
 ];
 
 type ExampleIconName =

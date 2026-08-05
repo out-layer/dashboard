@@ -9,6 +9,7 @@
     "dev": "cross-env-shell \"PORT=${PORT:-3000}\" next dev --turbopack",
     "prebuild": "npm run llms",
     "build": "next build --turbopack",
+    "postbuild": "node scripts/build-search-index.mjs",
     "start": "cross-env-shell \"PORT=${PORT:-3000}\" next start",
     "lint": "eslint"
   },

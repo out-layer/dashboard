@@ -8,7 +8,6 @@ import { fetchWorkers, fetchJobs, getCoordinatorApiUrl } from '@/lib/api';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { AttestationBadge } from '@/components/ui/attestation-badge';
 import { HashChip } from '@/components/ui/hash-chip';
-import { CodeBlock } from '@/components/ui/code-block';
 import PendingApprovalsBadge from '@/components/PendingApprovalsBadge';
 import DepositUsdcModal from '@/components/home/DepositUsdcModal';
 
@@ -26,11 +25,6 @@ function formatUsd(minimalUnits: string, decimals: number = 6): string {
   const fractionStr = fraction.toString().padStart(decimals, '0').slice(0, 2);
   return `$${whole}.${fractionStr}`;
 }
-
-const FIRST_CALL_SNIPPET = `curl -X POST https://api.outlayer.ai/call/{owner}/{project} \\
-  -H 'X-Payment-Key: {owner}:{nonce}:{secret}' \\
-  -d '{"input": "..."}'
-# executes in an Intel TDX enclave, returns an attested result`;
 
 function MetricCard({
   label,
@@ -300,13 +294,40 @@ export default function Overview() {
       <div className="mt-4 grid gap-4 lg:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>Make your first call</CardTitle>
+            <CardTitle>Try a live example</CardTitle>
             <CardDescription>
-              Any HTTP client works — the result comes back signed by the enclave.
+              Verifiable compute in one click: code runs in an Intel TDX enclave and the result
+              comes back signed. Pick an example — no project or payment key needed.
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <CodeBlock code={FIRST_CALL_SNIPPET} language="bash" filename="curl" />
+            <div className="flex flex-col gap-1.5">
+              {[
+                {
+                  preset: 'AI Completions',
+                  desc: 'Call an LLM from inside the enclave — an attested AI answer.',
+                },
+                {
+                  preset: 'Weather Data Oracle',
+                  desc: 'Read real-world weather that any NEAR contract can consume.',
+                },
+                {
+                  preset: 'Ethereum State Proof',
+                  desc: 'Verify an Ethereum Merkle state proof in verifiable compute.',
+                },
+              ].map((ex) => (
+                <Link
+                  key={ex.preset}
+                  href={`/playground?preset=${encodeURIComponent(ex.preset)}`}
+                  className="group rounded-md border border-border px-3 py-2 transition-colors hover:border-accent"
+                >
+                  <span className="text-sm font-medium text-foreground group-hover:text-accent-text">
+                    {ex.preset}
+                  </span>
+                  <span className="mt-0.5 block text-xs text-muted-foreground">{ex.desc}</span>
+                </Link>
+              ))}
+            </div>
             <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1">
               <Link href="/docs/https-api" className="text-sm font-semibold text-accent-text hover:underline">
                 HTTPS API reference →
@@ -350,6 +371,62 @@ export default function Overview() {
           </Card>
         </div>
       </div>
+
+      {/* Agent custody */}
+      <Card className="mt-4">
+        <CardHeader>
+          <CardTitle>Give your AI agent a wallet it cannot leak</CardTitle>
+          <CardDescription>
+            If you already run an agent (Claude, Cursor, your own loop), agent custody gives it
+            real funds without handing it keys: the private key lives inside the keystore TEE,
+            your policy caps what it may sign, and anything bigger waits for your approval.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ol className="max-w-3xl list-inside list-decimal space-y-1.5 text-sm text-muted-foreground">
+            <li>
+              Drop the{' '}
+              <a
+                href="https://skills.outlayer.ai/agent-custody/SKILL.md"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-medium text-accent-text hover:underline"
+              >
+                agent-custody skill
+              </a>{' '}
+              into your agent — it teaches it the whole API.
+            </li>
+            <li>
+              The agent mints its wallet with one call (<code>POST /register</code>) and gets a
+              NEAR, EVM and Solana address backed by the TEE.
+            </li>
+            <li>
+              You set the spending policy and approve large operations on the{' '}
+              <Link href="/wallet/approvals" className="font-medium text-accent-text hover:underline">
+                Approvals
+              </Link>{' '}
+              page; every signature lands in the{' '}
+              <Link href="/wallet/audit" className="font-medium text-accent-text hover:underline">
+                audit log
+              </Link>
+              .
+            </li>
+          </ol>
+          <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1">
+            <a
+              href="https://skills.outlayer.ai/agent-custody/SKILL.md"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-sm font-semibold text-accent-text hover:underline"
+            >
+              Get the skill →
+            </a>
+            <Link href="/docs/agent-custody" className="text-sm font-semibold text-accent-text hover:underline">
+              How custody works →
+            </Link>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Explore */}
       <div className="mt-4 grid gap-4 sm:grid-cols-3">

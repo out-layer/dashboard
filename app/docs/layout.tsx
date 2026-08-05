@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { DOCS_NAV } from '@/lib/docs-nav.mjs';
+import { PageHeader } from '@/components/ui/page-header';
 
 export default function DocsLayout({
   children,
@@ -43,28 +44,31 @@ export default function DocsLayout({
   };
 
   return (
- <div className="w-full">
- <h1 className="text-xl font-bold tracking-tight mb-6 text-foreground">Documentation</h1>
+    <div className="w-full">
+      <PageHeader
+        title="Documentation"
+        description="Guides and reference for OutLayer verifiable compute and agent custody."
+      />
 
- <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-        {/* Sidebar Navigation: collapsible drawer on mobile, fixed column on lg+ */}
- <details className="lg:hidden mb-2 rounded-lg border border-border bg-card group">
- <summary className="cursor-pointer list-none px-4 py-2.5 text-sm font-semibold flex items-center justify-between">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[240px_minmax(0,1fr)]">
+        {/* Sidebar Navigation: collapsible drawer on mobile, compact rail on lg+ */}
+        <details className="group mb-2 rounded-lg border border-border bg-card lg:hidden">
+          <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-2.5 text-sm font-semibold">
             Docs navigation
             <svg className="h-4 w-4 transition-transform group-open:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" d="M19 9l-7 7-7-7" /></svg>
           </summary>
- <div className="border-t border-border p-2">
+          <div className="border-t border-border p-2">
             <MobileDocsNav pathname={pathname} />
           </div>
         </details>
- <div className="lg:col-span-1 hidden lg:block">
- <div className="bg-card border border-border rounded-lg p-2">
- <nav className="space-y-0.5">
+        <div className="hidden lg:block">
+          <div className="rounded-lg border border-border bg-card p-3 lg:sticky lg:top-6 lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto">
+            <nav className="space-y-0.5">
               {DOCS_NAV.map((group) => (
                 <div key={group.group ?? 'root'}>
                   {group.group && (
- <div className="pt-3 pb-1">
- <span className="px-3 text-xs font-semibold text-faint-foreground uppercase tracking-wider">
+                    <div className="pb-1 pt-3">
+                      <span className="px-2.5 text-[11px] font-semibold uppercase tracking-wider text-faint-foreground">
                         {group.group}
                       </span>
                     </div>
@@ -73,10 +77,10 @@ export default function DocsLayout({
                     <div key={page.href}>
                       <Link
                         href={page.href}
- className={`flex items-center justify-between w-full text-left px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                        className={`flex w-full items-center justify-between rounded-md border px-2.5 py-1 text-left text-sm font-medium transition-colors ${
                           isActive(page.href)
-                            ? 'bg-accent/10 text-accent-text font-semibold'
-                            : 'text-foreground hover:bg-card-muted'
+                            ? 'border-accent bg-accent/10 text-accent-text'
+                            : 'border-transparent text-muted-foreground hover:text-foreground hover:bg-card-muted'
                         }`}
                         onClick={(e) => {
                           if (isActive(page.href)) {
@@ -85,10 +89,10 @@ export default function DocsLayout({
                           }
                         }}
                       >
- <span>{page.label}</span>
+                        <span>{page.label}</span>
                         {hasSections(page.href) && (
                           <svg
- className={`w-4 h-4 transition-transform ${expandedPages[page.href] ? 'rotate-90' : ''}`}
+                            className={`h-3.5 w-3.5 shrink-0 transition-transform ${expandedPages[page.href] ? 'rotate-90' : ''}`}
                             fill="none"
                             stroke="currentColor"
                             viewBox="0 0 24 24"
@@ -98,12 +102,12 @@ export default function DocsLayout({
                         )}
                       </Link>
                       {expandedPages[page.href] && page.sections.length > 0 && (
- <div className="ml-4 mt-1 space-y-0.5">
+                        <div className="ml-3 mt-1 space-y-0.5 border-l border-border pl-2">
                           {page.sections.map((section) => (
                             <button
                               key={section.id}
                               onClick={() => scrollToSection(section.id)}
- className="block w-full text-left px-3 py-1 text-xs text-muted-foreground hover:text-accent-text hover:bg-card-muted rounded transition-colors cursor-pointer"
+                              className="block w-full rounded px-2 py-1 text-left text-xs text-muted-foreground transition-colors hover:bg-card-muted hover:text-accent-text"
                             >
                               {section.title}
                             </button>
@@ -119,8 +123,8 @@ export default function DocsLayout({
         </div>
 
         {/* Main Content */}
- <div className="lg:col-span-3">
- <div className="bg-card border border-border rounded-lg p-4 sm:p-8">{children}</div>
+        <div className="min-w-0">
+          <div className="rounded-lg border border-border bg-card p-4 sm:p-8">{children}</div>
         </div>
       </div>
     </div>
@@ -133,8 +137,8 @@ function MobileDocsNav({ pathname }: { pathname: string }) {
       {DOCS_NAV.map((group) => (
         <div key={group.group ?? 'root'}>
           {group.group && (
-            <div className="pt-3 pb-1">
-              <span className="px-3 text-xs font-semibold text-faint-foreground uppercase tracking-wider">
+            <div className="pb-1 pt-3">
+              <span className="px-3 text-[11px] font-semibold uppercase tracking-wider text-faint-foreground">
                 {group.group}
               </span>
             </div>
@@ -143,10 +147,10 @@ function MobileDocsNav({ pathname }: { pathname: string }) {
             <Link
               key={page.href}
               href={page.href}
-              className={`block px-3 py-1.5 rounded-md text-sm font-medium ${
+              className={`block rounded-md px-3 py-1.5 text-sm font-medium ${
                 pathname === page.href
-                  ? 'bg-accent/10 text-accent-text font-semibold'
-                  : 'text-foreground hover:bg-card-muted'
+                  ? 'bg-accent/10 text-accent-text'
+                  : 'text-muted-foreground hover:bg-card-muted hover:text-foreground'
               }`}
             >
               {page.label}

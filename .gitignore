@@ -58,3 +58,4 @@ next-env.d.ts
 # regenerate them. Refresh with:
 #   LLMS_SOURCES_ROOT=~/projects/near-offshore npm run llms
 # Without LLMS_SOURCES_ROOT, dev/build leave the committed files untouched.
+/public/search-index.json

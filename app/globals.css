@@ -18,8 +18,8 @@
   --faint-foreground: #93939c;
 
   --accent: #cc6600;
-  --accent-hover: #da7a14;
-  --on-accent: #1a0d00;
+  --accent-hover: #b85c00;
+  --on-accent: #ffffff;
   --accent-text: #b45309;
   --chart: #b45309;
 
@@ -42,8 +42,8 @@
   --faint-foreground: #63636f;
 
   --accent: #cc6600;
-  --accent-hover: #e07a1a;
-  --on-accent: #190c00;
+  --accent-hover: #b85c00;
+  --on-accent: #ffffff;
   --accent-text: #e8963f;
   --chart: #e07a1a;
 

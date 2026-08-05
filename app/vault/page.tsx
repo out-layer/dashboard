@@ -311,8 +311,20 @@ deploy requires at least ${(Number(VAULT_PARENT_BUDGET_YOCTO) / 1e24).toFixed(2)
   // ── Render ────────────────────────────────────────────────────────────
   return (
     <div className="w-full">
-      {/* Header */}
-      <div className="mb-6">
+      {/* Header. The double stroke is the OutLayer "layer shift" mark: the
+          faint bar is the base layer, the amber one is the same stroke moved
+          out in front — same story as the » in the wordmark. It also makes
+          the h1 start on the same vertical line as card content (pl-5 =
+          CardHeader padding), so the page reads as one aligned column. */}
+      <div className="relative mb-6 pl-5">
+        <span
+          aria-hidden="true"
+          className="absolute bottom-0.5 left-0 top-[9px] w-[3px] rounded-full bg-border-strong"
+        />
+        <span
+          aria-hidden="true"
+          className="absolute bottom-[9px] left-[7px] top-0.5 w-[3px] rounded-full bg-gradient-to-b from-accent to-accent/40"
+        />
         <h1 className="text-xl font-bold tracking-tight">Vaults</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           Per-customer custody roots: on-chain CKD-issuer contracts bound to your NEAR account.

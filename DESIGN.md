@@ -76,11 +76,14 @@ or yellow.
 
 **Buttons** — use `components/ui/button.tsx` or its exact classes. One primary
 per view.
-- Primary: `bg-accent text-on-accent hover:bg-accent-hover` + `text-sm font-semibold rounded-lg px-4 py-2`
+- Primary: `bg-accent text-on-accent hover:bg-accent-hover` + `text-sm font-semibold rounded-lg px-4 py-2`.
+  `--on-accent` is WHITE (both themes) and `--accent-hover` is a DARKER amber —
+  hover deepens the button, never lightens it (white label stays crisp).
 - Secondary: `border border-border-strong text-foreground hover:border-accent hover:text-accent-text`
 - Danger: `border border-destructive/40 text-destructive-text hover:bg-destructive/10` (or solid `bg-destructive text-white` for the final action)
 - Semantic green solid only for un-dangerous state restore (Unfreeze).
-- Forbidden: blue buttons, gray buttons, gradients, `text-white` on accent.
+- Forbidden: blue buttons, gray buttons, gradients, raw `text-white`/hex on
+  accent instead of the `text-on-accent` token.
 
 **Cards**: `components/ui/card.tsx` (`rounded-lg border border-border bg-card`).
 Tables sit in `rounded-md` + `overflow-hidden` variants. No shadows on static

@@ -18,8 +18,10 @@ export default function ProductsPage() {
           <a key={p.name} href={p.url} target="_blank" rel="noopener noreferrer" className="group">
             <Card className="h-full transition-colors hover:border-accent">
               <CardContent className="p-5">
-                <div className="flex items-baseline justify-between gap-2">
-                  <h2 className="text-sm font-semibold text-foreground group-hover:text-accent-text">
+                <div className="flex items-center justify-between gap-2">
+                  <h2 className="flex items-center gap-2 text-sm font-semibold text-foreground group-hover:text-accent-text">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={p.icon} alt="" className="h-5 w-5 shrink-0 rounded-sm" />
                     {p.name}
                   </h2>
                   <span className="text-xs text-faint-foreground">

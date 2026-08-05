@@ -365,7 +365,7 @@ export default function TrustVerificationPage() {
 
       {/* Independent CLI verification */}
  <section className="mb-12">
- <AnchorHeading id="outlayer-verify"><code>outlayer-verify</code>: Proof That Does Not Depend on Us</AnchorHeading>
+ <AnchorHeading id="outlayer-verify">OutLayer Verify: Proof That Does Not Depend on Us</AnchorHeading>
 
  <p className="text-foreground mb-4">
           Everything above runs on a page we serve. For an internal review that is the wrong shape of

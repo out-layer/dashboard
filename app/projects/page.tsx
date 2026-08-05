@@ -1,11 +1,11 @@
 'use client';
 
 import { PageHeader } from '@/components/ui/page-header';
+import { RequireWallet } from '@/components/ui/require-wallet';
 import { Button } from '@/components/ui/button';
 import { useState, useEffect, useCallback } from 'react';
 import { useNearWallet } from '@/contexts/NearWalletContext';
 import { actionCreators } from '@near-js/transactions';
-import WalletConnectionModal from '@/components/WalletConnectionModal';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ProjectCard } from './components/ProjectCard';
 import { CreateProjectForm } from './components/CreateProjectForm';
@@ -14,7 +14,7 @@ import { ProjectView, VersionView, CreateProjectFormData, AddVersionFormData, no
 import { getCoordinatorApiUrl } from '@/lib/api';
 
 export default function ProjectsPage() {
-  const { accountId, isConnected, signAndSendTransaction, contractId, viewMethod, shouldReopenModal, clearReopenModal, network } = useNearWallet();
+  const { accountId, isConnected, signAndSendTransaction, contractId, viewMethod, network } = useNearWallet();
   const coordinatorUrl = getCoordinatorApiUrl(network);
 
   // Projects list
@@ -26,7 +26,6 @@ export default function ProjectsPage() {
   const [loadingVersionsFor, setLoadingVersionsFor] = useState<string | null>(null);
 
   // UI state
-  const [showWalletModal, setShowWalletModal] = useState(false);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [addVersionForProject, setAddVersionForProject] = useState<string | null>(null);
   const [expandedProject, setExpandedProject] = useState<string | null>(null);
@@ -149,13 +148,6 @@ export default function ProjectsPage() {
     }
   }, [contractId, viewMethod]);
 
-  // Auto-open modal if we switched networks
-  useEffect(() => {
-    if (shouldReopenModal && !isConnected) {
-      setShowWalletModal(true);
-      clearReopenModal();
-    }
-  }, [shouldReopenModal, isConnected, clearReopenModal]);
 
   // Load projects when connected
   useEffect(() => {
@@ -365,23 +357,12 @@ export default function ProjectsPage() {
         }
       />
 
-      {/* Connect Wallet Button */}
       {!isConnected && (
- <div className="mt-8">
-          <button
-            onClick={() => setShowWalletModal(true)}
- className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-on-accent bg-accent hover:bg-accent-hover shadow-sm hover:shadow-md transition-all"
-          >
-            Connect Wallet
-          </button>
+        <div className="mb-6 mt-6">
+          <RequireWallet subject="your projects" />
         </div>
       )}
 
-      {/* Wallet Modal */}
-      <WalletConnectionModal
-        isOpen={showWalletModal}
-        onClose={() => setShowWalletModal(false)}
-      />
 
       {/* Error Display */}
       {error && (

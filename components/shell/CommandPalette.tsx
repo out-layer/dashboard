@@ -219,7 +219,12 @@ export default function CommandPalette({ open, onOpenChange }: CommandPalettePro
                   <Command.Item
                     key={`content:${hit.href}#${hit.id}`}
                     value={`content:${hit.href}#${hit.id}`}
-                    onSelect={() => go(hit.id ? `${hit.href}#${hit.id}` : hit.href)}
+                    onSelect={() =>
+                      // ?q= lets the docs page highlight the matches (SearchHighlighter).
+                      go(
+                        `${hit.href}?q=${encodeURIComponent(query.trim())}${hit.id ? `#${hit.id}` : ''}`,
+                      )
+                    }
                     className={`${ITEM_CLS} flex flex-col items-start gap-0.5`}
                   >
                     <span>

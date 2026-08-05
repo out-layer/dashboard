@@ -2,9 +2,10 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { DOCS_NAV } from '@/lib/docs-nav.mjs';
 import { PageHeader } from '@/components/ui/page-header';
+import { SearchHighlighter } from '@/components/docs/SearchHighlighter';
 
 export default function DocsLayout({
   children,
@@ -124,9 +125,15 @@ export default function DocsLayout({
 
         {/* Main Content */}
         <div className="min-w-0">
-          <div className="rounded-lg border border-border bg-card p-4 sm:p-8">{children}</div>
+          <div id="docs-content" className="rounded-lg border border-border bg-card p-4 sm:p-8">
+            {children}
+          </div>
         </div>
       </div>
+
+      <Suspense>
+        <SearchHighlighter containerId="docs-content" />
+      </Suspense>
     </div>
   );
 }

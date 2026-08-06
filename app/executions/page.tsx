@@ -70,6 +70,7 @@ export default function JobsPage() {
   const [attestationModal, setAttestationModal] = useState<{
     jobId: number;
     isHttpsCall: boolean;
+    job: JobHistoryEntry | null;
     attestation: AttestationResponse | null;
     loading: boolean;
     error: string | null
@@ -175,6 +176,7 @@ export default function JobsPage() {
     setAttestationModal({
       jobId: job.job_id,
       isHttpsCall: job.is_https_call,
+      job,
       attestation: null,
       loading: true,
       error: null
@@ -188,6 +190,7 @@ export default function JobsPage() {
         setAttestationModal({
           jobId: job.job_id,
           isHttpsCall: job.is_https_call,
+          job,
           attestation: null,
           loading: false,
           error: 'No attestation found for this job'
@@ -198,6 +201,7 @@ export default function JobsPage() {
       setAttestationModal({
         jobId: job.job_id,
         isHttpsCall: job.is_https_call,
+        job,
         attestation: data,
         loading: false,
         error: null
@@ -212,6 +216,7 @@ export default function JobsPage() {
       setAttestationModal({
         jobId: job.job_id,
         isHttpsCall: job.is_https_call,
+        job,
         attestation: null,
         loading: false,
         error: errorMessage
@@ -744,6 +749,7 @@ export default function JobsPage() {
               {attestationModal.attestation && (
                 <AttestationView
                   attestation={attestationModal.attestation}
+                  initialJob={attestationModal.job}
                   network={network}
                   showHelp={showAttestationHelp}
                   onToggleHelp={() => setShowAttestationHelp(!showAttestationHelp)}

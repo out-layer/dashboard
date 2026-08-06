@@ -21,6 +21,9 @@ import { attestationUrlFor } from '@/lib/worker-attestation';
 interface AttestationViewProps {
   attestation: AttestationResponse;
   network: NetworkType;
+  /** The job-history row when the opener already has it (the Executions table
+   *  does) — saves the fetch and works even against an older coordinator. */
+  initialJob?: JobHistoryEntry | null;
   showHelp?: boolean;
   onToggleHelp?: () => void;
   isModal?: boolean;
@@ -29,6 +32,7 @@ interface AttestationViewProps {
 export default function AttestationView({
   attestation,
   network,
+  initialJob = null,
   showHelp = false,
   onToggleHelp,
   isModal = false
@@ -49,16 +53,18 @@ export default function AttestationView({
   const [verification, setVerification] = useState<AttestationVerification | null>(null);
   const [verifying, setVerifying] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
-  const [job, setJob] = useState<JobHistoryEntry | null>(null);
+  const [job, setJob] = useState<JobHistoryEntry | null>(initialJob);
 
   useEffect(() => {
     let cancelled = false;
-    setJob(null);
+    setJob(initialJob);
+    if (initialJob) return;
     fetchJobById(attestation.task_id, network).then((j) => !cancelled && setJob(j));
     return () => {
       cancelled = true;
     };
-  }, [attestation.task_id, network]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [attestation.task_id, network, initialJob]);
 
   // Helper functions
   const formatRtmr3 = (rtmr3: string): string => {

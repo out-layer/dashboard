@@ -368,6 +368,26 @@ export interface AttestationResponse {
 }
 
 /**
+ * Fetch a single job-history row by job id (`/public/jobs?job_id=`). Guards
+ * against coordinators older than the filter: they ignore the param and return
+ * the latest page, so the result is checked to actually match.
+ */
+export async function fetchJobById(
+  jobId: number,
+  network?: NetworkType,
+): Promise<JobHistoryEntry | null> {
+  try {
+    const response = await axios.get(`${getCoordinatorApiUrl(network)}/public/jobs`, {
+      params: { job_id: jobId, limit: 1 },
+    });
+    const first: JobHistoryEntry | undefined = response.data?.[0];
+    return first && first.job_id === jobId ? first : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Fetch attestation for a specific task by job ID (public endpoint)
  * Returns null if attestation doesn't exist
  */

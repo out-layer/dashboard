@@ -11,6 +11,7 @@ import {
   tcbStatusIsCurrent,
   type AttestationVerification,
 } from '@/lib/attestation-verify';
+import ExecutionDetails from '@/components/ExecutionDetails';
 
 interface AttestationViewProps {
   attestation: AttestationResponse;
@@ -144,19 +145,19 @@ print(f"Signed commitment matches: {td['report_data'][:64] == final_hash}")`
  <div className="space-y-4">
       {/* Help Section */}
       {showHelp && (
- <div className="bg-info/10 border border-info/30 rounded-lg p-4">
- <h3 className="text-lg font-semibold text-info mb-3">Understanding TEE Attestations</h3>
- <div className="space-y-3 text-sm text-info">
+ <div className="bg-card-muted border border-border rounded-lg p-4">
+ <h3 className="text-sm font-semibold text-foreground mb-3">Understanding TEE Attestations</h3>
+ <div className="space-y-3 text-sm text-muted-foreground">
             <div>
  <p className="font-semibold mb-1"> What is a TEE Attestation?</p>
- <p className="text-info">
+ <p className="text-muted-foreground">
                 A TEE (Trusted Execution Environment) attestation is cryptographic proof that your code
                 was executed inside a secure Intel TDX hardware enclave.
               </p>
             </div>
             <div>
  <p className="font-semibold mb-1"> What Can You Verify?</p>
- <ul className="list-disc list-inside space-y-1 text-info ml-2">
+ <ul className="list-disc list-inside space-y-1 text-muted-foreground ml-2">
  <li><strong>Authenticity</strong> — Intel&apos;s signature over the quote, checked in your browser</li>
  <li><strong>Identity</strong> — the measurements are an on-chain approved worker build</li>
  <li><strong>Binding</strong> — the signed quote commits to this exact input, output and code</li>
@@ -169,15 +170,15 @@ print(f"Signed commitment matches: {td['report_data'][:64] == final_hash}")`
       )}
 
       {/* Verification summary — the three layers, checked in this browser. */}
- <div className="bg-info/10 border border-info/30 rounded-md p-4">
+ <div className="bg-card-muted border border-border rounded-md p-4">
  <div className="flex justify-between items-start gap-3">
  <div className="flex-1">
             {!verification && (
               <>
- <p className="text-info font-semibold">
+ <p className="text-foreground font-semibold">
                   Verification runs in your browser
                 </p>
- <p className="text-info text-sm mt-1">
+ <p className="text-muted-foreground text-sm mt-1">
                   Intel&apos;s signature, the on-chain approved build list and the commitment to this
                   execution are all checked locally — nothing is taken on trust from this page.
                 </p>
@@ -227,7 +228,7 @@ print(f"Signed commitment matches: {td['report_data'][:64] == final_hash}")`
                   }
                 />
                 {verification.collateral && !verification.collateral.coversExecutionTime && (
- <p className="text-xs text-info pt-1">
+ <p className="text-xs text-muted-foreground pt-1">
                     Intel publishes its reference data (TCB levels, revocation lists) in time-bounded
                     editions. No edition covering this execution&apos;s date is published on chain, so the
                     nearest one was used — valid to                    {new Date(verification.collateral.validUntil).toISOString().slice(0, 10)}. The signature
@@ -249,11 +250,22 @@ print(f"Signed commitment matches: {td['report_data'][:64] == final_hash}")`
             {onToggleHelp && (
               <button
                 onClick={onToggleHelp}
- className="px-3 py-1 bg-card hover:bg-info/15 text-info text-sm font-medium rounded border border-info/40"
+ className="px-3 py-1 bg-card border border-border-strong text-foreground hover:border-accent hover:text-accent-text text-sm font-medium rounded-md"
                 title="Show help about attestation fields"
               >
                  Help
               </button>
+            )}
+            {isModal && shareUrl && (
+              <a
+                href={shareUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-3 py-1 text-sm font-medium text-accent-text hover:underline"
+                title="Standalone page for this attestation — the link anyone can open"
+              >
+                Open full page ↗
+              </a>
             )}
           </div>
         </div>
@@ -333,9 +345,9 @@ print(f"Signed commitment matches: {td['report_data'][:64] == final_hash}")`
 
       {/* Input/Output Verification */}
       {attestation.transaction_hash && attestation.task_type === 'execute' && (
- <div className="border-2 border-info/30 rounded-lg p-4 bg-info/10">
+ <div className="border-2 border-border rounded-lg p-4 bg-card-muted">
  <div className="flex justify-between items-center mb-3">
- <h3 className="text-lg font-semibold text-info">Input/Output Verification</h3>
+ <h3 className="text-lg font-semibold text-foreground">Input/Output Verification</h3>
             {!ioValidation && (
               <button
                 onClick={async () => {
@@ -393,7 +405,7 @@ print(f"Signed commitment matches: {td['report_data'][:64] == final_hash}")`
                     });
                   }
                 }}
- className="px-4 py-2 bg-success hover:opacity-90 text-white text-sm font-medium rounded"
+ className="px-4 py-2 bg-accent hover:bg-accent-hover text-on-accent text-sm font-semibold rounded-lg"
               >
                  Load & Verify from Blockchain
               </button>
@@ -401,7 +413,7 @@ print(f"Signed commitment matches: {td['report_data'][:64] == final_hash}")`
             {ioValidation && (
               <button
                 onClick={() => setIoValidation(null)}
- className="px-3 py-1 bg-card-muted hover:bg-card-muted0 text-white text-sm font-medium rounded"
+ className="px-3 py-1 border border-border-strong text-foreground hover:border-accent hover:text-accent-text text-sm font-medium rounded-md"
               >
                 Close
               </button>
@@ -529,7 +541,7 @@ print(f"Signed commitment matches: {td['report_data'][:64] == final_hash}")`
                     error: null
                   });
                 }}
- className="px-4 py-2 bg-card-muted hover:bg-card-muted text-white text-sm font-medium rounded"
+ className="px-4 py-2 bg-accent hover:bg-accent-hover text-on-accent text-sm font-semibold rounded-lg"
               >
                 Enter Data to Verify
               </button>
@@ -537,7 +549,7 @@ print(f"Signed commitment matches: {td['report_data'][:64] == final_hash}")`
             {ioValidation && (
               <button
                 onClick={() => setIoValidation(null)}
- className="px-3 py-1 bg-card-muted hover:bg-card-muted0 text-white text-sm font-medium rounded"
+ className="px-3 py-1 border border-border-strong text-foreground hover:border-accent hover:text-accent-text text-sm font-medium rounded-md"
               >
                 Close
               </button>
@@ -649,7 +661,7 @@ print(f"Signed commitment matches: {td['report_data'][:64] == final_hash}")`
             <button
               onClick={runVerification}
               disabled={verifying}
- className="px-4 py-2 bg-card-muted hover:bg-card-muted disabled:opacity-60 text-white text-sm font-medium rounded"
+ className="px-4 py-2 bg-accent hover:bg-accent-hover disabled:opacity-60 text-on-accent text-sm font-semibold rounded-lg"
             >
               {verifying ? 'Verifying…' : ' Verify Quote'}
             </button>
@@ -657,7 +669,7 @@ print(f"Signed commitment matches: {td['report_data'][:64] == final_hash}")`
           {quoteValidation && (
             <button
               onClick={() => setVerification(null)}
- className="px-3 py-1 bg-card-muted hover:bg-card-muted0 text-white text-sm font-medium rounded"
+ className="px-3 py-1 border border-border-strong text-foreground hover:border-accent hover:text-accent-text text-sm font-medium rounded-md"
             >
               Close
             </button>
@@ -1081,7 +1093,7 @@ print(f"Extracted:  ${quoteValidation.extractedTaskHash}")
 print(f"Match: {final_hash == '${quoteValidation.extractedTaskHash}'}")${pythonVerifySuffix}`;
                         navigator.clipboard.writeText(code);
                       }}
- className="absolute top-2 right-2 px-2 py-1 bg-success hover:opacity-90 text-white text-xs rounded"
+ className="absolute top-2 right-2 px-2 py-1 bg-accent hover:bg-accent-hover text-on-accent text-xs font-semibold rounded-md"
                     >
                         Copy
                       </button>
@@ -1141,7 +1153,7 @@ print(f"Match: {final_hash == '${quoteValidation.extractedTaskHash}'}")${pythonV
                                 href={getTransactionUrl(verification.collateral.txHash, network)}
                                 target="_blank"
                                 rel="noopener noreferrer"
- className="text-info hover:underline"
+ className="text-accent-text hover:underline"
                               >
                                 {verification.collateral.txHash}
                               </a>
@@ -1175,6 +1187,9 @@ print(f"Match: {final_hash == '${quoteValidation.extractedTaskHash}'}")${pythonV
           </div>
         )}
       </div>
+
+      {/* Full execution record */}
+      <ExecutionDetails attestation={attestation} network={network} />
     </div>
   );
 }

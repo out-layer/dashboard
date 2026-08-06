@@ -159,11 +159,19 @@ export default function JobsPage() {
     });
   };
 
+  // While the attestation modal is open the address bar shows the standalone
+  // page's URL — same content, so a copy/paste or F5 lands on the full page.
+  const closeAttestationModal = () => {
+    setAttestationModal(null);
+    window.history.replaceState(null, '', '/executions');
+  };
+
   const loadAttestation = async (job: JobHistoryEntry) => {
     if (!job.job_id || job.job_type === 'compile') {
       return; // No job_id, or a compile job — compilation runs outside the TEE
     }
 
+    window.history.replaceState(null, '', `/attestation/${job.job_id}?network=${network}`);
     setAttestationModal({
       jobId: job.job_id,
       isHttpsCall: job.is_https_call,
@@ -684,7 +692,7 @@ export default function JobsPage() {
         <div
  className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
           onClick={() => {
-            setAttestationModal(null);
+            closeAttestationModal();
             setShowAttestationHelp(false);
           }}
         >
@@ -720,7 +728,7 @@ export default function JobsPage() {
                 </div>
                 <button
                   onClick={() => {
-                    setAttestationModal(null);
+                    closeAttestationModal();
                     setShowAttestationHelp(false);
                   }}
  className="text-faint-foreground hover:text-foreground"

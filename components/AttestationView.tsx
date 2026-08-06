@@ -43,6 +43,7 @@ export default function AttestationView({
   // Full three-layer verification, run in the browser on demand.
   const [verification, setVerification] = useState<AttestationVerification | null>(null);
   const [verifying, setVerifying] = useState(false);
+  const [linkCopied, setLinkCopied] = useState(false);
 
   // Helper functions
   const formatRtmr3 = (rtmr3: string): string => {
@@ -256,16 +257,35 @@ print(f"Signed commitment matches: {td['report_data'][:64] == final_hash}")`
                  Help
               </button>
             )}
-            {isModal && shareUrl && (
-              <a
-                href={shareUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="px-3 py-1 text-sm font-medium text-accent-text hover:underline"
-                title="Standalone page for this attestation — the link anyone can open"
-              >
-                Open full page ↗
-              </a>
+            {shareUrl && (
+              <>
+                <button
+                  onClick={async () => {
+                    try {
+                      await navigator.clipboard.writeText(shareUrl);
+                      setLinkCopied(true);
+                      setTimeout(() => setLinkCopied(false), 1500);
+                    } catch {
+                      /* clipboard unavailable */
+                    }
+                  }}
+                  className="px-3 py-1 border border-border-strong text-foreground hover:border-accent hover:text-accent-text text-sm font-medium rounded-md"
+                  title="Copy the shareable link to this attestation"
+                >
+                  {linkCopied ? 'Copied!' : 'Copy link'}
+                </button>
+                <a
+                  href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(
+                    `Verifiable TEE execution — job #${attestation.task_id} on @out_layer. Hardware-attested, checkable by anyone:`,
+                  )}&url=${encodeURIComponent(shareUrl)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-3 py-1 text-sm font-medium text-accent-text hover:underline"
+                  title="Share this attestation on X"
+                >
+                  Post on X ↗
+                </a>
+              </>
             )}
           </div>
         </div>

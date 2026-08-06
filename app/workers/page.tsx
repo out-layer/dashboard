@@ -8,34 +8,8 @@ import { Badge } from '@/components/ui/badge';
 import { AttestationBadge } from '@/components/ui/attestation-badge';
 import { HashChip } from '@/components/ui/hash-chip';
 import { EmptyState } from '@/components/ui/empty-state';
+import { attestationUrlFor as sharedAttestationUrlFor } from '@/lib/worker-attestation';
 
-/**
- * Where a worker's TEE attestation can be independently verified.
- * Routing convention: Phala-hosted workers carry "phala" in their name/id and
- * verify on that host's explorer; self-hosted TDX workers verify on our own
- * attestation portal (workers.outlayer.ai/app/<app_id>).
- */
-function attestationUrlFor(worker: WorkerInfo): string | null {
-  const parts = worker.worker_id.split('-');
-  const network = parts[0];
-  const workerType = parts[1];
-  const appId = parts.length >= 3 ? parts.slice(2).join('-') : null;
-  const hasAppId = appId && /^[a-f0-9]{40}$/i.test(appId);
-  const isPhala = /phala/i.test(worker.worker_id) || /phala/i.test(worker.worker_name);
-
-  if (hasAppId) {
-    return isPhala
-      ? `https://trust.phala.com/app/${appId}?selected=app-code`
-      : `https://workers.outlayer.ai/app/${appId}`;
-  }
-  if (workerType === 'keystore' && (network === 'testnet' || network === 'mainnet')) {
-    // Keystore rows are synthesized by the coordinator without an app_id suffix
-    // (one keystore per network). The portal resolves the current keystore for
-    // the network and redirects to its attestation page.
-    return `https://workers.outlayer.ai/${network}-keystore`;
-  }
-  return null;
-}
 
 /**
  * Stable presentation order: alive first, then by worker id, then by instance.
@@ -85,7 +59,7 @@ function WorkersTable({ workers }: { workers: WorkerInfo[] }) {
         </thead>
         <tbody>
           {workers.map((worker) => {
-            const attestationUrl = attestationUrlFor(worker);
+            const attestationUrl = sharedAttestationUrlFor(worker.worker_id, worker.worker_name);
             const alive = worker.status === 'online' || worker.status === 'busy';
             return (
               // Several instances share a worker_id (it encodes the version, not

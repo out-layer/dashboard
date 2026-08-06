@@ -147,26 +147,6 @@ export default function AttestationPage() {
         />
       </div>
 
-      {/* Share Section */}
- <div className="mt-6 bg-card-muted rounded-lg p-4">
- <p className="text-sm text-muted-foreground mb-3">Share this verifiable attestation:</p>
- <div className="flex justify-center gap-3">
-          <button
-            onClick={() => {
-              // Include network parameter in the URL
-              const baseUrl = window.location.origin + window.location.pathname;
-              const shareUrl = urlNetwork
-                ? baseUrl + `?network=${urlNetwork}`
-                : baseUrl + `?network=${network}`;
-              navigator.clipboard.writeText(shareUrl);
-              alert('Link copied to clipboard!');
-            }}
- className="px-4 py-2 bg-accent hover:bg-accent-hover text-on-accent font-medium rounded"
-          >
-             Copy Link
-          </button>
-        </div>
-      </div>
     </div>
   );
 }

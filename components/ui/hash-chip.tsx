@@ -13,12 +13,15 @@ export interface HashChipProps extends React.HTMLAttributes<HTMLButtonElement> {
   value: string;
   /** Characters kept on each side of the ellipsis. 0 disables truncation. */
   trim?: number;
+  /** Override the rendered text (the copy button still copies `value`). */
+  display?: string;
 }
 
-export function HashChip({ value, trim = 6, className, ...props }: HashChipProps) {
+export function HashChip({ value, trim = 6, display, className, ...props }: HashChipProps) {
   const [copied, setCopied] = useState(false);
+  const base = display ?? value;
   const shown =
-    trim > 0 && value.length > trim * 2 + 1 ? `${value.slice(0, trim)}…${value.slice(-4)}` : value;
+    trim > 0 && base.length > trim * 2 + 1 ? `${base.slice(0, trim)}…${base.slice(-4)}` : base;
 
   return (
     <button

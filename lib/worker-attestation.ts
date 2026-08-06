@@ -25,3 +25,13 @@ export function attestationUrlFor(workerId: string, workerName = ''): string | n
   }
   return null;
 }
+
+/**
+ * Display form of a worker id: drops the `{network}-{type}-` prefix so
+ * `mainnet-executor-cbd8fd…` renders as just the version hash. Copying still
+ * uses the full id.
+ */
+export function shortWorkerId(workerId: string): string {
+  const parts = workerId.split('-');
+  return parts.length >= 3 ? parts.slice(2).join('-') : workerId;
+}

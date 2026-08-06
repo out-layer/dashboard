@@ -7,7 +7,7 @@ import {
   NetworkType,
 } from '@/lib/api';
 import { HashChip } from '@/components/ui/hash-chip';
-import { attestationUrlFor } from '@/lib/worker-attestation';
+import { attestationUrlFor, shortWorkerId } from '@/lib/worker-attestation';
 
 /**
  * Everything we know about one execution, grouped by meaning: request, code,
@@ -177,7 +177,7 @@ export default function ExecutionDetails({
       'Worker',
       job?.worker_id ? (
         <span className="inline-flex flex-wrap items-center gap-1.5">
-          <HashChip value={job.worker_id} trim={0} className="break-all" />
+          <HashChip value={job.worker_id} display={shortWorkerId(job.worker_id)} trim={0} className="break-all" />
           {workerVerifyUrl && (
             <a
               href={workerVerifyUrl}

@@ -16,7 +16,7 @@ import {
 import ExecutionDetails from '@/components/ExecutionDetails';
 import { HashChip } from '@/components/ui/hash-chip';
 import { fetchJobById, type JobHistoryEntry } from '@/lib/api';
-import { attestationUrlFor } from '@/lib/worker-attestation';
+import { attestationUrlFor, shortWorkerId } from '@/lib/worker-attestation';
 
 interface AttestationViewProps {
   attestation: AttestationResponse;
@@ -344,12 +344,12 @@ print(f"Signed commitment matches: {td['report_data'][:64] == final_hash}")`
         />
         {job?.worker_id && (
           <FactTile
-            className="sm:col-span-3"
+            className="sm:col-span-2"
             label="Worker"
             icon={<path d="M5 5h6v6H5zM8 1.5V5M8 11v3.5M1.5 8H5M11 8h3.5M3 3l2 2M13 3l-2 2M3 13l2-2M13 13l-2-2" />}
             value={
               <span className="inline-flex flex-wrap items-center gap-1.5">
-                <HashChip value={job.worker_id} trim={0} className="break-all" />
+                <HashChip value={job.worker_id} display={shortWorkerId(job.worker_id)} trim={0} className="break-all" />
                 {attestationUrlFor(job.worker_id) && (
                   <a
                     href={attestationUrlFor(job.worker_id)!}
@@ -366,7 +366,7 @@ print(f"Signed commitment matches: {td['report_data'][:64] == final_hash}")`
         )}
         {attestation.wasm_hash && (
           <FactTile
-            className={attestation.repo_url ? '' : 'sm:col-span-3'}
+            className={job?.worker_id ? '' : attestation.repo_url ? '' : 'sm:col-span-3'}
             label="WASM hash"
             icon={<path d="M8 1.5l5.5 3v7l-5.5 3-5.5-3v-7l5.5-3zM8 8l5.5-3M8 8L2.5 5M8 8v6.5" />}
             value={<HashChip value={attestation.wasm_hash} trim={10} />}
@@ -374,7 +374,7 @@ print(f"Signed commitment matches: {td['report_data'][:64] == final_hash}")`
         )}
         {attestation.repo_url && (
           <FactTile
-            className="sm:col-span-2"
+            className="sm:col-span-3"
             label="Source"
             icon={<path d="M8 1.6a6.4 6.4 0 00-2 12.5c.3 0 .4-.1.4-.3v-1.2c-1.8.4-2.2-.8-2.2-.8-.3-.7-.7-.9-.7-.9-.6-.4 0-.4 0-.4.6 0 1 .7 1 .7.6 1 1.5.7 1.9.5 0-.4.2-.7.4-.9-1.4-.2-2.9-.7-2.9-3.2 0-.7.2-1.3.7-1.7-.1-.2-.3-.8 0-1.7 0 0 .5-.2 1.8.7a6 6 0 013.2 0c1.2-.9 1.8-.7 1.8-.7.3.9.1 1.5 0 1.7.4.4.7 1 .7 1.7 0 2.5-1.5 3-2.9 3.2.2.2.4.6.4 1.1v1.7c0 .2.1.3.4.3A6.4 6.4 0 008 1.6z" />}
             value={

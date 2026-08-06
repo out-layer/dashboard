@@ -36,7 +36,7 @@ const DEFAULT_SETTINGS: TableSettings = {
     id: true,
     type: true,
     status: true,
-    worker: false,
+    worker: true,
     source: true,
     user: true,
     time: true,
@@ -690,14 +690,14 @@ export default function JobsPage() {
       {/* Attestation Modal */}
       {attestationModal && (
         <div
- className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+ className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-50 p-4"
           onClick={() => {
             closeAttestationModal();
             setShowAttestationHelp(false);
           }}
         >
           <div
- className="bg-card border border-border rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto"
+ className="bg-card border border-border rounded-lg shadow-2xl max-w-6xl w-full max-h-[90vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
  <div className="p-6">
@@ -715,16 +715,6 @@ export default function JobsPage() {
                   >
                     {attestationModal.isHttpsCall ? 'HTTPS' : 'NEAR'}
                   </span>
-                  {!attestationModal.isHttpsCall && (
-                    <Link
-                      href={`/attestation/${attestationModal.jobId}?network=${network}`}
-                      target="_blank"
- className="px-3 py-1 bg-accent/10 hover:bg-accent/20 text-accent-text text-sm font-medium rounded"
-                      title="Open in new tab"
-                    >
-                      Direct Link
-                    </Link>
-                  )}
                 </div>
                 <button
                   onClick={() => {

@@ -313,11 +313,11 @@ export function PaymentKeyCard({
       {/* Attestation Modal */}
       {attestationModal && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-sm p-4"
           onClick={() => setAttestationModal(null)}
         >
           <div
-            className="max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-xl border border-border-strong bg-card shadow-2xl"
+            className="max-h-[90vh] w-full max-w-6xl overflow-y-auto rounded-lg border border-border-strong bg-card shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
  <div className="p-6">

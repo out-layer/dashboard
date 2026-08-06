@@ -1,6 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import * as React from 'react';
+
+import { useEffect, useState } from 'react';
 import { AttestationResponse } from '@/lib/api';
 import { getTransactionUrl } from '@/lib/explorer';
 import { NetworkType } from '@/contexts/NearWalletContext';
@@ -12,6 +14,9 @@ import {
   type AttestationVerification,
 } from '@/lib/attestation-verify';
 import ExecutionDetails from '@/components/ExecutionDetails';
+import { HashChip } from '@/components/ui/hash-chip';
+import { fetchJobById, type JobHistoryEntry } from '@/lib/api';
+import { attestationUrlFor } from '@/lib/worker-attestation';
 
 interface AttestationViewProps {
   attestation: AttestationResponse;
@@ -44,6 +49,16 @@ export default function AttestationView({
   const [verification, setVerification] = useState<AttestationVerification | null>(null);
   const [verifying, setVerifying] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
+  const [job, setJob] = useState<JobHistoryEntry | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    setJob(null);
+    fetchJobById(attestation.task_id, network).then((j) => !cancelled && setJob(j));
+    return () => {
+      cancelled = true;
+    };
+  }, [attestation.task_id, network]);
 
   // Helper functions
   const formatRtmr3 = (rtmr3: string): string => {
@@ -176,14 +191,40 @@ print(f"Signed commitment matches: {td['report_data'][:64] == final_hash}")`
  <div className="flex-1">
             {!verification && (
               <>
- <p className="text-foreground font-semibold">
+ <p className="text-foreground font-semibold inline-flex items-center gap-1.5">
                   Verification runs in your browser
+                  {onToggleHelp && (
+                    <button
+                      type="button"
+                      onClick={onToggleHelp}
+                      aria-label="What can be verified?"
+                      className="inline-flex h-4 w-4 items-center justify-center rounded-full border border-border-strong font-serif text-[10px] font-semibold italic leading-none text-muted-foreground hover:border-accent hover:text-accent-text"
+                    >
+                      ?
+                    </button>
+                  )}
                 </p>
  <p className="text-muted-foreground text-sm mt-1">
                   Intel&apos;s signature, the on-chain approved build list and the commitment to this
                   execution are all checked locally — nothing is taken on trust from this page.
                 </p>
+                <button
+                  onClick={runVerification}
+                  disabled={verifying}
+                  className="mt-3 px-4 py-1.5 bg-accent hover:bg-accent-hover disabled:opacity-60 text-on-accent text-sm font-semibold rounded-lg"
+                >
+                  {verifying ? 'Verifying…' : 'Verify'}
+                </button>
               </>
+            )}
+            {verification && (
+              <button
+                onClick={runVerification}
+                disabled={verifying}
+                className="mb-2 px-3 py-1 border border-border-strong text-foreground hover:border-accent hover:text-accent-text disabled:opacity-60 text-sm font-medium rounded-md"
+              >
+                {verifying ? 'Verifying…' : '↻ Re-verify'}
+              </button>
             )}
 
             {verification && (
@@ -240,23 +281,7 @@ print(f"Signed commitment matches: {td['report_data'][:64] == final_hash}")`
             )}
           </div>
 
- <div className="flex flex-col gap-2 shrink-0">
-            <button
-              onClick={runVerification}
-              disabled={verifying}
- className="px-3 py-1 bg-accent hover:bg-accent-hover disabled:opacity-60 text-on-accent text-sm font-medium rounded"
-            >
-              {verifying ? 'Verifying…' : verification ? '↻ Re-verify' : ' Verify'}
-            </button>
-            {onToggleHelp && (
-              <button
-                onClick={onToggleHelp}
- className="px-3 py-1 bg-card border border-border-strong text-foreground hover:border-accent hover:text-accent-text text-sm font-medium rounded-md"
-                title="Show help about attestation fields"
-              >
-                 Help
-              </button>
-            )}
+ <div className="flex shrink-0 items-center gap-2">
             {shareUrl && (
               <>
                 <button
@@ -280,10 +305,13 @@ print(f"Signed commitment matches: {td['report_data'][:64] == final_hash}")`
                   )}&url=${encodeURIComponent(shareUrl)}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="px-3 py-1 text-sm font-medium text-accent-text hover:underline"
+                  className="inline-flex h-[30px] w-[30px] items-center justify-center rounded-md border border-border-strong text-foreground hover:border-accent hover:text-accent-text"
                   title="Share this attestation on X"
+                  aria-label="Share on X"
                 >
-                  Post on X ↗
+                  <svg viewBox="0 0 24 24" fill="currentColor" className="h-3.5 w-3.5" aria-hidden="true">
+                    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+                  </svg>
                 </a>
               </>
             )}
@@ -291,76 +319,71 @@ print(f"Signed commitment matches: {td['report_data'][:64] == final_hash}")`
         </div>
       </div>
 
-      {/* Basic Info */}
- <div className="grid grid-cols-2 gap-4">
-        <div>
- <label className="block text-sm font-semibold text-foreground mb-1">Task ID</label>
- <div className="bg-card-muted p-2 rounded border font-mono text-sm">
-            {attestation.task_id}
-          </div>
-        </div>
-        <div>
- <label className="block text-sm font-semibold text-foreground mb-1">Task Type</label>
- <div className="bg-card-muted p-2 rounded border font-mono text-sm">
-            {attestation.task_type}
-          </div>
-        </div>
-      </div>
-
-      {/* Worker Measurement */}
-      <div>
- <label className="block text-sm font-semibold text-foreground mb-1">
-          Worker Measurement (RTMR3)
-        </label>
- <div className="bg-card-muted p-2 rounded border font-mono text-xs break-all">
-          {formatRtmr3(attestation.worker_measurement)}
-        </div>
-      </div>
-
-      {/* Source Code */}
-      {attestation.repo_url && (
-        <div>
- <label className="block text-sm font-semibold text-foreground mb-1">Source Code</label>
- <div className="bg-card-muted p-2 rounded border text-sm">
-            <a
-              href={`${attestation.repo_url}/tree/${attestation.commit_hash}`}
-              target="_blank"
-              rel="noopener noreferrer"
- className="text-accent-text hover:underline"
-            >
-              {attestation.repo_url} @ {attestation.commit_hash}
-            </a>
-          </div>
-        </div>
-      )}
-
-      {/* Hashes */}
- <div className="grid grid-cols-2 gap-4">
+      {/* Compact facts strip */}
+      <div className="grid gap-2 sm:grid-cols-3">
+        <FactTile
+          label="Job"
+          icon={<path d="M4 3.5h8a1 1 0 011 1v7a1 1 0 01-1 1H4a1 1 0 01-1-1v-7a1 1 0 011-1zM5.5 6.5h5M5.5 9h3" />}
+          value={<span className="tabular-nums">#{attestation.task_id}</span>}
+        />
+        <FactTile
+          label="Type"
+          icon={<path d="M8.7 1.8L3.2 9h3.6l-1.5 5.2L10.8 7H7.2l1.5-5.2z" />}
+          value={attestation.task_type === 'compile' ? 'Compilation' : 'Execution'}
+        />
+        <FactTile
+          label="Channel"
+          icon={<path d="M13.5 8a5.5 5.5 0 11-11 0 5.5 5.5 0 0111 0zM2.5 8h11M8 2.5c1.9 2.4 1.9 8.6 0 11M8 2.5c-1.9 2.4-1.9 8.6 0 11" />}
+          value={attestation.call_id ? 'HTTPS API' : 'NEAR (on-chain)'}
+        />
+        {job?.worker_id && (
+          <FactTile
+            className="sm:col-span-3"
+            label="Worker"
+            icon={<path d="M5 5h6v6H5zM8 1.5V5M8 11v3.5M1.5 8H5M11 8h3.5M3 3l2 2M13 3l-2 2M3 13l2-2M13 13l-2-2" />}
+            value={
+              <span className="inline-flex flex-wrap items-center gap-1.5">
+                <HashChip value={job.worker_id} trim={0} className="break-all" />
+                {attestationUrlFor(job.worker_id) && (
+                  <a
+                    href={attestationUrlFor(job.worker_id)!}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="whitespace-nowrap text-accent-text hover:underline"
+                  >
+                    Verify this worker ↗
+                  </a>
+                )}
+              </span>
+            }
+          />
+        )}
         {attestation.wasm_hash && (
-          <div>
- <label className="block text-sm font-semibold text-foreground mb-1">WASM Hash</label>
- <div className="bg-card-muted p-2 rounded border font-mono text-xs break-all">
-              {attestation.wasm_hash}
-            </div>
-          </div>
+          <FactTile
+            className={attestation.repo_url ? '' : 'sm:col-span-3'}
+            label="WASM hash"
+            icon={<path d="M8 1.5l5.5 3v7l-5.5 3-5.5-3v-7l5.5-3zM8 8l5.5-3M8 8L2.5 5M8 8v6.5" />}
+            value={<HashChip value={attestation.wasm_hash} trim={10} />}
+          />
         )}
-        {attestation.input_hash && (
-          <div>
- <label className="block text-sm font-semibold text-foreground mb-1">Input Hash</label>
- <div className="bg-card-muted p-2 rounded border font-mono text-xs break-all">
-              {attestation.input_hash}
-            </div>
-          </div>
+        {attestation.repo_url && (
+          <FactTile
+            className="sm:col-span-2"
+            label="Source"
+            icon={<path d="M8 1.6a6.4 6.4 0 00-2 12.5c.3 0 .4-.1.4-.3v-1.2c-1.8.4-2.2-.8-2.2-.8-.3-.7-.7-.9-.7-.9-.6-.4 0-.4 0-.4.6 0 1 .7 1 .7.6 1 1.5.7 1.9.5 0-.4.2-.7.4-.9-1.4-.2-2.9-.7-2.9-3.2 0-.7.2-1.3.7-1.7-.1-.2-.3-.8 0-1.7 0 0 .5-.2 1.8.7a6 6 0 013.2 0c1.2-.9 1.8-.7 1.8-.7.3.9.1 1.5 0 1.7.4.4.7 1 .7 1.7 0 2.5-1.5 3-2.9 3.2.2.2.4.6.4 1.1v1.7c0 .2.1.3.4.3A6.4 6.4 0 008 1.6z" />}
+            value={
+              <a
+                href={attestation.commit_hash ? `${attestation.repo_url}/tree/${attestation.commit_hash}` : attestation.repo_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="break-all text-accent-text hover:underline"
+              >
+                {attestation.repo_url.replace('https://github.com/', '')}
+                {attestation.commit_hash ? ` @ ${attestation.commit_hash.slice(0, 8)}` : ''}
+              </a>
+            }
+          />
         )}
-      </div>
-
-      <div>
- <label className="block text-sm font-semibold text-foreground mb-1">
-          {attestation.task_type === 'compile' ? 'Compiled WASM Hash (Output)' : 'Output Hash'}
-        </label>
- <div className="bg-card-muted p-2 rounded border font-mono text-xs break-all">
-          {attestation.output_hash}
-        </div>
       </div>
 
       {/* Input/Output Verification */}
@@ -532,16 +555,6 @@ print(f"Signed commitment matches: {td['report_data'][:64] == final_hash}")`
         </div>
       )}
 
-      {/* HTTPS Call Context */}
-      {attestation.call_id && (
-        <div>
- <label className="block text-sm font-semibold text-foreground mb-1">HTTPS Call ID</label>
- <div className="bg-card-muted p-2 rounded border border-border font-mono text-sm">
-            {attestation.call_id}
-          </div>
-        </div>
-      )}
-
       {/* Manual I/O Verification for HTTPS Calls */}
       {attestation.call_id && attestation.task_type === 'execute' && (
  <div className="border-2 border-border rounded-lg p-4 bg-card-muted">
@@ -653,23 +666,6 @@ print(f"Signed commitment matches: {td['report_data'][:64] == final_hash}")`
               For HTTPS calls, paste the input you sent and output you received to verify they match the attestation hashes.
             </p>
           )}
-        </div>
-      )}
-
-      {/* NEAR Transaction Link */}
-      {attestation.transaction_hash && (
-        <div>
- <label className="block text-sm font-semibold text-foreground mb-1">NEAR Transaction</label>
- <div className="bg-card-muted p-2 rounded border">
-            <a
-              href={getTransactionUrl(attestation.transaction_hash, network)}
-              target="_blank"
-              rel="noopener noreferrer"
- className="text-accent-text hover:underline font-mono text-sm"
-            >
-              {attestation.transaction_hash}
-            </a>
-          </div>
         </div>
       )}
 
@@ -1209,7 +1205,41 @@ print(f"Match: {final_hash == '${quoteValidation.extractedTaskHash}'}")${pythonV
       </div>
 
       {/* Full execution record */}
-      <ExecutionDetails attestation={attestation} network={network} />
+      <ExecutionDetails attestation={attestation} network={network} job={job} />
+    </div>
+  );
+}
+
+/** One compact fact in the header strip: icon + tiny label + value. */
+function FactTile({
+  label,
+  value,
+  icon,
+  className = '',
+}: {
+  label: string;
+  value: React.ReactNode;
+  icon: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <div className={`flex items-center gap-2.5 rounded-md border border-border bg-card px-3 py-2 ${className}`}>
+      <svg
+        viewBox="0 0 16 16"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.3"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className="h-4 w-4 shrink-0 text-faint-foreground"
+        aria-hidden="true"
+      >
+        {icon}
+      </svg>
+      <div className="min-w-0">
+        <p className="text-[10px] font-semibold uppercase tracking-wider text-faint-foreground">{label}</p>
+        <div className="text-sm text-foreground">{value}</div>
+      </div>
     </div>
   );
 }

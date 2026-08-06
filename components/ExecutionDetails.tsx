@@ -1,11 +1,9 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import {
   AttestationResponse,
   JobHistoryEntry,
-  fetchJobById,
   NetworkType,
 } from '@/lib/api';
 import { HashChip } from '@/components/ui/hash-chip';
@@ -51,20 +49,12 @@ interface Row {
 export default function ExecutionDetails({
   attestation,
   network,
+  job,
 }: {
   attestation: AttestationResponse;
   network: NetworkType;
+  job: JobHistoryEntry | null;
 }) {
-  const [job, setJob] = useState<JobHistoryEntry | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    setJob(null);
-    fetchJobById(attestation.task_id, network).then((j) => !cancelled && setJob(j));
-    return () => {
-      cancelled = true;
-    };
-  }, [attestation.task_id, network]);
 
   const explorer =
     network === 'testnet' ? 'https://testnet.nearblocks.io' : 'https://nearblocks.io';
@@ -205,7 +195,10 @@ export default function ExecutionDetails({
     [
       'Enclave measurement',
       attestation.worker_measurement ? (
-        <ResponsiveHash value={attestation.worker_measurement} />
+        <>
+          <HashChip value={attestation.worker_measurement} trim={56} className="hidden sm:inline-flex" />
+          <HashChip value={attestation.worker_measurement} className="sm:hidden" />
+        </>
       ) : null,
       'TDX measurement of the worker build, approved on-chain',
     ],

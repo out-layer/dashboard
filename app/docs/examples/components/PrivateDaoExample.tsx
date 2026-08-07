@@ -144,7 +144,7 @@ async function verifyProof(voteHash, proofPath, merkleRoot) {
 openssl rand -hex 32 > dao_master_secret.txt
 
 # 2. Store master secret via Dashboard (encrypted in keystore)
-# Open https://outlayer.fastnear.com/secrets:
+# Open https://app.outlayer.ai/secrets:
 # - Repo: github.com/YOUR_USERNAME/private-dao-example
 # - Profile: production
 # - Secrets JSON: {"DAO_MASTER_SECRET":"<paste hex from file>"}

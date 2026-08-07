@@ -2,7 +2,7 @@
 
 Web dashboard for [OutLayer](https://outlayer.ai) — verifiable off-chain compute and agent custody for NEAR, running in Intel TDX enclaves.
 
-Live at [outlayer.fastnear.com](https://outlayer.fastnear.com) (moving to `app.outlayer.ai`).
+Live at [app.outlayer.ai](https://app.outlayer.ai) (moving to `app.outlayer.ai`).
 
 Extracted 2026-08-04 from the [near-outlayer](https://github.com/fastnear/near-outlayer) monorepo (`dashboard/`) with full history.
 

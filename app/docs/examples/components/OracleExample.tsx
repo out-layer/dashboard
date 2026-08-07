@@ -81,7 +81,7 @@ export function OracleExample() {
 # - CoinGecko: Free tier (no key needed) or Pro
 
 # 2. Store API keys as encrypted secrets via Dashboard
-# Open https://outlayer.fastnear.com/secrets:
+# Open https://app.outlayer.ai/secrets:
 # - Secrets JSON: {"CMC_API_KEY":"...", "TWELVE_DATA_KEY":"..."}
 
 # 3. Clone and build

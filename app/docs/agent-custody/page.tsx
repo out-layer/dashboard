@@ -537,7 +537,7 @@ Approver 2: Signs approval via NEAR wallet (dashboard)
 # {
 #   "api_key": "wk_15807dbda492...",
 #   "near_account_id": "36842e2f73d0...",
-#   "handoff_url": "https://outlayer.fastnear.com/wallet?key=wk_..."
+#   "handoff_url": "https://app.outlayer.ai/wallet?key=wk_..."
 # }`}
         </SyntaxHighlighter>
  <p className="text-sm text-muted-foreground mt-1 mb-4">The <code className="bg-card-muted px-1 rounded">api_key</code> is shown only once. Store it securely.</p>
@@ -704,7 +704,7 @@ curl -s -X POST -H "Content-Type: application/json" \\
  <h3 className="text-lg font-semibold mt-4 mb-2">10. Configure policy (optional)</h3>
  <p className="text-foreground mb-2">Share the handoff URL with the wallet owner so they can set spending limits, whitelists, and multisig rules from the dashboard:</p>
         <SyntaxHighlighter language="text" style={vscDarkPlus} customStyle={{ borderRadius: '0.5rem', fontSize: '0.875rem' }}>
-{`https://outlayer.fastnear.com/wallet?key=wk_...`}
+{`https://app.outlayer.ai/wallet?key=wk_...`}
         </SyntaxHighlighter>
       </section>
 

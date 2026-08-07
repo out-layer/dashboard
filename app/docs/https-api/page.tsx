@@ -294,7 +294,7 @@ curl -X POST https://api.outlayer.ai/call/alice.near/my-assistant \\
   "output": "Here's the weather forecast for...",
   "compute_cost": "45000",
   "job_id": 12345,
-  "attestation_url": "https://outlayer.fastnear.com/attestations/12345"
+  "attestation_url": "https://app.outlayer.ai/attestations/12345"
 }
 
 // Failure

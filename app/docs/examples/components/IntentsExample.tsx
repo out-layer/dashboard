@@ -47,7 +47,7 @@ export function IntentsExample() {
 near create-account operator.near --useFaucet
 
 # 2. Store operator private key as encrypted secret
-# Open https://outlayer.fastnear.com/secrets:
+# Open https://app.outlayer.ai/secrets:
 # - Secrets JSON: {"OPERATOR_PRIVATE_KEY":"ed25519:..."}
 
 # 3. Clone and deploy swap contract

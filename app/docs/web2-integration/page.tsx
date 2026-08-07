@@ -182,7 +182,7 @@ const result = await fetch('https://api.outlayer.ai/call/alice.near/my-api', {
 const { job_id, output } = await result.json();
 
 // Users can verify attestation at:
-// https://outlayer.fastnear.com/attestation/{job_id}
+// https://app.outlayer.ai/attestation/{job_id}
 // Or via API: GET /attestation/{job_id}`}
         </SyntaxHighlighter>
       </section>

@@ -115,6 +115,9 @@ export function SecretsForm({
   const [vaultId, setVaultId] = useState<string | null>(null);
   const [userProjects, setUserProjects] = useState<{ project_id: string; name: string }[]>([]);
   const [loadingProjects, setLoadingProjects] = useState(false);
+  // Starts true so the "not yours" warning cannot flash for the user's own project during the
+  // first render, before list_user_projects has answered.
+  const [projectsNotLoadedYet, setProjectsNotLoadedYet] = useState(true);
   const [profile, setProfile] = useState('default');
   const [plaintextSecrets, setPlaintextSecrets] = useState('{\n  "API_KEY": "your-api-key"\n}');
   const [accessCondition, setAccessCondition] = useState<AccessCondition>({ type: 'AllowAll' });
@@ -153,6 +156,11 @@ export function SecretsForm({
     if (!prefill || prefillApplied.current) return;
     prefillApplied.current = true;
     setSourceType('project');
+    // Binding to a project you do not own is a supported flow (near.email, the EAS attestor UI
+    // link users here with THEIR project pre-filled), so the link fills the field for anyone.
+    // What keeps this honest is that the field stays visible and editable, and a project the
+    // account does not own always renders the "not yours" warning right under it.
+    if (prefill.projectId) setProjectId(prefill.projectId);
     if (prefill.profile) setProfile(prefill.profile);
 
     const generationType = GENERATION_TYPES.some((t) => t.value === prefill.generationType)
@@ -173,17 +181,20 @@ export function SecretsForm({
     }
   }, [prefill]);
 
-  // The project id is applied separately, once the account's own projects are known: the selector
-  // only offers projects you own, and a link must not be able to reach past that. A project you do
-  // not own is left unselected on purpose, and the form says so rather than failing silently.
+  // The main prefill effect fills the field for anyone (binding to a foreign project is the
+  // supported flow these links exist for — near.email and the EAS attestor send users here with
+  // THEIR project id). Here we only classify the link's project against the account's own list,
+  // so the form can say out loud that a link — not the user — chose a foreign project. The field
+  // itself is never written from here: that would clobber whatever the user typed since.
   const prefillProjectId = prefill?.projectId;
   const [prefillProjectMissing, setPrefillProjectMissing] = useState(false);
   useEffect(() => {
-    if (!prefillProjectId || userProjects.length === 0) return;
+    // Wait for list_user_projects to answer; an empty answer is a real "owns nothing" —
+    // the common case for someone sent here by a service to bind a key to ITS project.
+    if (!prefillProjectId || projectsNotLoadedYet) return;
     const owned = userProjects.some((p) => p.project_id === prefillProjectId);
-    if (owned) setProjectId(prefillProjectId);
     setPrefillProjectMissing(!owned);
-  }, [prefillProjectId, userProjects]);
+  }, [prefillProjectId, userProjects, projectsNotLoadedYet]);
 
   // Load update mode data
   useEffect(() => {
@@ -215,6 +226,14 @@ export function SecretsForm({
 
   // Get viewMethod and contractId from wallet context for loading projects
   const { viewMethod, contractId } = useNearWallet();
+
+  // A `zavodil.testnet/...` project cannot exist on mainnet and vice versa. Links carry no
+  // network, so this mismatch is the common way a prefilled link "does nothing" — say so
+  // instead of letting the encrypt call fail later with a project-not-found.
+  const projectOwnerAccount = projectId.split('/')[0] ?? '';
+  const projectNetworkMismatch =
+    (network === 'mainnet' && projectOwnerAccount.endsWith('.testnet')) ||
+    (network === 'testnet' && projectOwnerAccount.endsWith('.near'));
 
   // Phase 7 audit H3: when update-mode is entered without an
   // explicit vault binding, fetch the existing on-chain binding so
@@ -278,6 +297,7 @@ export function SecretsForm({
       setUserProjects([]);
     } finally {
       setLoadingProjects(false);
+      setProjectsNotLoadedYet(false);
     }
   }, [accountId, sourceType, viewMethod, contractId]);
 
@@ -1050,8 +1070,32 @@ export function SecretsForm({
                   ? ' Your own projects are suggested as you type.'
                   : ''}
             </p>
+            {projectId && projectNetworkMismatch && (
+              <div className="mt-2 flex max-w-xl items-start gap-1.5 rounded-md border border-warning/40 bg-warning/10 p-2.5 text-xs text-muted-foreground">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  className="mt-0.5 h-3.5 w-3.5 shrink-0 text-warning"
+                  aria-hidden="true"
+                >
+                  <path d="M12 9v4m0 4h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z" />
+                </svg>
+                <span>
+                  <span className="font-semibold text-foreground">
+                    {projectOwnerAccount} is a {network === 'mainnet' ? 'testnet' : 'mainnet'}{' '}
+                    account
+                  </span>{' '}
+                  — this project cannot exist on {network}, which you are on now. Switch the
+                  network in Settings and come back to this page.
+                </span>
+              </div>
+            )}
             {projectId &&
               !loadingProjects &&
+              !projectsNotLoadedYet &&
+              !projectNetworkMismatch &&
               !userProjects.some((p) => p.project_id === projectId) && (
                 <div className="mt-2 flex max-w-xl items-start gap-1.5 rounded-md border border-warning/40 bg-warning/10 p-2.5 text-xs text-muted-foreground">
                   <svg
@@ -1077,12 +1121,10 @@ export function SecretsForm({
  <p className="mt-1 text-xs text-muted-foreground">
               Secrets will be available to all versions of this project
             </p>
-            {prefillProjectMissing && (
+            {prefillProjectMissing && projectId === prefillProjectId && (
               <p className="mt-2 max-w-xl text-xs text-muted-foreground">
-                The link asked for <span className="font-mono">{prefillProjectId}</span>, which this
-                account does not own, so it was NOT pre-selected — a link must not be able to point
-                your secret at someone else&apos;s project by itself. If you trust that service,
-                type the project id above yourself.
+                This project id was filled in by the link you followed. Check it is the service you
+                meant to trust before storing anything.
               </p>
             )}
           </div>

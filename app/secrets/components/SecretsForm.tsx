@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { eciesEncrypt } from '@/lib/ecies';
 import { AccessConditionBuilder } from './AccessConditionBuilder';
 import { AccessCondition, FormData, SecretSourceType } from './types';
@@ -23,6 +23,20 @@ interface SecretsFormProps {
     branch: string;
     wasmHash?: string;
     profile: string;
+  };
+  /**
+   * Values proposed by an incoming link (see app/secrets/page.tsx). Only ever describes WHICH
+   * secret to create — a value or an access condition arriving from a URL would be a way to
+   * talk someone into storing something they never read.
+   *
+   * `projectId` is applied only if the connected account actually owns that project: the
+   * selector is deliberately limited to your own projects, and a link must not widen it.
+   */
+  prefill?: {
+    projectId?: string;
+    profile?: string;
+    secretName?: string;
+    generationType?: string;
   };
   // For update mode (preserve PROTECTED_ secrets via signMessage)
   updateMode?: {
@@ -80,6 +94,7 @@ export function SecretsForm({
   onSubmit,
   coordinatorUrl,
   initialData,
+  prefill,
   updateMode,
   onUpdateComplete,
   onCancelUpdate,
@@ -129,6 +144,40 @@ export function SecretsForm({
       setPlaintextSecrets('{\n  "API_KEY": "your-new-api-key"\n}');
     }
   }, [initialData]);
+
+  // Apply what an incoming link proposed, ONCE. The parent builds this object inline, so it is a
+  // new reference on every render; without the guard the effect would re-run and overwrite whatever
+  // the user had since typed.
+  const prefillApplied = useRef(false);
+  useEffect(() => {
+    if (!prefill || prefillApplied.current) return;
+    prefillApplied.current = true;
+    setSourceType('project');
+    if (prefill.profile) setProfile(prefill.profile);
+    if (prefill.secretName) {
+      setSecretsToGenerate([
+        {
+          id: '1',
+          name: prefill.secretName,
+          generationType: GENERATION_TYPES.some((t) => t.value === prefill.generationType)
+            ? (prefill.generationType as string)
+            : 'hex32',
+        },
+      ]);
+    }
+  }, [prefill]);
+
+  // The project id is applied separately, once the account's own projects are known: the selector
+  // only offers projects you own, and a link must not be able to reach past that. A project you do
+  // not own is left unselected on purpose, and the form says so rather than failing silently.
+  const prefillProjectId = prefill?.projectId;
+  const [prefillProjectMissing, setPrefillProjectMissing] = useState(false);
+  useEffect(() => {
+    if (!prefillProjectId || userProjects.length === 0) return;
+    const owned = userProjects.some((p) => p.project_id === prefillProjectId);
+    if (owned) setProjectId(prefillProjectId);
+    setPrefillProjectMissing(!owned);
+  }, [prefillProjectId, userProjects]);
 
   // Load update mode data
   useEffect(() => {
@@ -1002,6 +1051,13 @@ export function SecretsForm({
  <p className="mt-1 text-xs text-muted-foreground">
               Secrets will be available to all versions of this project
             </p>
+            {prefillProjectMissing && (
+              <p className="mt-2 text-xs text-destructive-text">
+                The link asked for <span className="font-mono">{prefillProjectId}</span>, which this
+                account does not own, so nothing was selected. You can only store secrets for your
+                own projects — pick one above if you meant to.
+              </p>
+            )}
           </div>
         )}
 

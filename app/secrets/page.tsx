@@ -2,7 +2,8 @@
 
 import { PageHeader } from '@/components/ui/page-header';
 import { RequireWallet } from '@/components/ui/require-wallet';
-import { useState, useEffect, useCallback } from 'react';
+import { Suspense, useState, useEffect, useCallback } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useNearWallet } from '@/contexts/NearWalletContext';
 import { actionCreators } from '@near-js/transactions';
 import { SecretsForm } from './components/SecretsForm';
@@ -10,8 +11,27 @@ import { SecretsList } from './components/SecretsList';
 import { UserSecret, FormData, isRepoAccessor, isWasmHashAccessor, isProjectAccessor } from './components/types';
 import { getCoordinatorApiUrl } from '@/lib/api';
 
+// useSearchParams needs a Suspense boundary, otherwise the whole route opts out of static
+// rendering and the build fails.
 export default function SecretsPage() {
+  return (
+    <Suspense fallback={null}>
+      <SecretsPageContent />
+    </Suspense>
+  );
+}
+
+function SecretsPageContent() {
   const { accountId, isConnected, signAndSendTransaction, contractId, viewMethod, network } = useNearWallet();
+
+  // A link can propose WHICH secret to create — never its value, and never the access condition.
+  // Anything sensitive would end up in browser history, referrers and proxy logs.
+  const searchParams = useSearchParams();
+  const linkProject = searchParams.get('project')?.trim() || '';
+  const linkProfile = searchParams.get('profile')?.trim() || '';
+  const linkName = searchParams.get('name')?.trim() || '';
+  const linkGenerate = searchParams.get('generate')?.trim() || '';
+  const fromLink = Boolean(linkProject || linkProfile || linkName || linkGenerate);
   const coordinatorUrl = getCoordinatorApiUrl(network);
 
   // User's secrets list
@@ -27,6 +47,22 @@ export default function SecretsPage() {
 
   // Update mode (preserves PROTECTED_ secrets)
   const [updatingSecret, setUpdatingSecret] = useState<UserSecret | null>(null);
+
+  // Saving replaces whatever is already stored for the same project+profile, and a replaced
+  // generated key cannot be recovered — the private half only ever existed inside the enclave.
+  // The transaction gives no hint either: the old deposit is credited back, so the wallet shows
+  // roughly zero. Detect the collision from the list we already loaded and say so up front.
+  const linkOverwrites =
+    fromLink &&
+    Boolean(linkProject) &&
+    Boolean(linkProfile) &&
+    userSecrets.some(
+      (s) =>
+        s.accessor &&
+        isProjectAccessor(s.accessor) &&
+        s.accessor.Project.project_id === linkProject &&
+        s.profile === linkProfile
+    );
 
   const loadUserSecrets = useCallback(async () => {
     if (!accountId) return;
@@ -283,6 +319,49 @@ export default function SecretsPage() {
         </div>
       )}
 
+      {/* Someone else's link filled this form in. Say what signing would actually do. */}
+      {fromLink && (
+        <div className="mt-4 bg-destructive/10 border border-destructive/40 rounded-md p-4">
+          <p className="text-sm font-semibold text-destructive-text">
+            This form was filled in from a link, not by you.
+          </p>
+          <p className="mt-2 text-sm text-destructive-text">
+            Saving stores a secret that any code published under the named project can read in plain
+            text — and whoever owns that project can change that code at any time after you sign.
+            Only continue if you would hand its owner this credential directly.
+          </p>
+          <dl className="mt-3 text-sm text-destructive-text space-y-1">
+            {linkProject && (
+              <div className="flex gap-2">
+                <dt className="opacity-70 w-20 shrink-0">Project</dt>
+                <dd className="font-mono break-all">{linkProject}</dd>
+              </div>
+            )}
+            {linkProfile && (
+              <div className="flex gap-2">
+                <dt className="opacity-70 w-20 shrink-0">Profile</dt>
+                <dd className="font-mono break-all">{linkProfile}</dd>
+              </div>
+            )}
+            {linkName && (
+              <div className="flex gap-2">
+                <dt className="opacity-70 w-20 shrink-0">Secret</dt>
+                <dd className="font-mono break-all">{linkName}</dd>
+              </div>
+            )}
+          </dl>
+          {linkOverwrites && (
+            <p className="mt-3 text-sm font-semibold text-destructive-text">
+              You already have a secret saved for this project and profile. Saving REPLACES it. A
+              generated key cannot be recovered once replaced, so anything it holds — funds at its
+              address, access it was granted — becomes permanently unreachable. The transaction will
+              not warn you: the old storage deposit is credited back, so the amount looks like
+              nothing.
+            </p>
+          )}
+        </div>
+      )}
+
       {/* Error Display */}
       {error && (
  <div className="mt-4 bg-destructive/10 border border-destructive/30 rounded-md p-3">
@@ -305,6 +384,16 @@ export default function SecretsPage() {
           accountId={accountId}
           onSubmit={handleSubmitSecrets}
           coordinatorUrl={coordinatorUrl}
+          prefill={
+            fromLink && !editingSecret && !updatingSecret
+              ? {
+                  projectId: linkProject,
+                  profile: linkProfile,
+                  secretName: linkName,
+                  generationType: linkGenerate,
+                }
+              : undefined
+          }
           initialData={
             editingSecret && editingSecret.accessor
               ? isRepoAccessor(editingSecret.accessor)

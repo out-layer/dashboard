@@ -323,12 +323,8 @@ function SecretsPageContent() {
       {fromLink && (
         <div className="mt-4 bg-destructive/10 border border-destructive/40 rounded-md p-4">
           <p className="text-sm font-semibold text-destructive-text">
-            This form was filled in from a link, not by you.
-          </p>
-          <p className="mt-2 text-sm text-destructive-text">
-            Saving stores a secret that any code published under the named project can read in plain
-            text — and whoever owns that project can change that code at any time after you sign.
-            Only continue if you would hand its owner this credential directly.
+            This form was pre-filled in from a link. Only continue if you would hand its owner this
+            credential directly.
           </p>
           <dl className="mt-3 text-sm text-destructive-text space-y-1">
             {linkProject && (

@@ -101,7 +101,7 @@ export function AddVersionForm({ projectName, onSubmit, onCancel, isSubmitting }
                 value={formData.repo}
                 onChange={(e) => setFormData({ ...formData, repo: e.target.value })}
                 placeholder="https://github.com/owner/repo"
- className="mt-1 block w-full border-border-strong rounded-md shadow-sm focus:ring-accent focus:border-accent sm:text-sm"
+ className="mt-1 block w-full rounded-md border border-border-strong px-3 py-2 text-sm outline-none focus:border-accent focus:ring-1 focus:ring-accent"
                 required={formData.sourceType === 'github'}
               />
             </div>
@@ -116,7 +116,7 @@ export function AddVersionForm({ projectName, onSubmit, onCancel, isSubmitting }
                   value={formData.commit}
                   onChange={(e) => setFormData({ ...formData, commit: e.target.value })}
                   placeholder="main"
- className="mt-1 block w-full border-border-strong rounded-md shadow-sm focus:ring-accent focus:border-accent sm:text-sm"
+ className="mt-1 block w-full rounded-md border border-border-strong px-3 py-2 text-sm outline-none focus:border-accent focus:ring-1 focus:ring-accent"
                   required={formData.sourceType === 'github'}
                 />
               </div>
@@ -128,7 +128,7 @@ export function AddVersionForm({ projectName, onSubmit, onCancel, isSubmitting }
                   id="buildTarget"
                   value={formData.buildTarget}
                   onChange={(e) => setFormData({ ...formData, buildTarget: e.target.value })}
- className="mt-1 block w-full border-border-strong rounded-md shadow-sm focus:ring-accent focus:border-accent sm:text-sm"
+ className="mt-1 block w-full rounded-md border border-border-strong px-3 py-2 text-sm outline-none focus:border-accent focus:ring-1 focus:ring-accent"
                 >
  <option value="wasm32-wasip2">wasm32-wasip2</option>
  {/* <option value="wasm32-wasip1">wasm32-wasip1 (not supported for projects)</option> */}
@@ -151,7 +151,7 @@ export function AddVersionForm({ projectName, onSubmit, onCancel, isSubmitting }
                 value={formData.wasmUrl}
                 onChange={(e) => setFormData({ ...formData, wasmUrl: e.target.value })}
                 placeholder="https://example.com/my-app.wasm"
- className="mt-1 block w-full border-border-strong rounded-md shadow-sm focus:ring-accent focus:border-accent sm:text-sm"
+ className="mt-1 block w-full rounded-md border border-border-strong px-3 py-2 text-sm outline-none focus:border-accent focus:ring-1 focus:ring-accent"
                 required={formData.sourceType === 'wasm_url'}
               />
             </div>
@@ -166,7 +166,7 @@ export function AddVersionForm({ projectName, onSubmit, onCancel, isSubmitting }
                   value={formData.wasmHash}
                   onChange={(e) => setFormData({ ...formData, wasmHash: e.target.value })}
                   placeholder="e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
- className="block w-full font-mono text-xs border-border-strong rounded-md shadow-sm focus:ring-accent focus:border-accent"
+ className="block w-full font-mono text-xs rounded-md border border-border-strong px-3 py-2 outline-none focus:border-accent focus:ring-1 focus:ring-accent"
                   required={formData.sourceType === 'wasm_url'}
                 />
                 <button
@@ -203,7 +203,7 @@ export function AddVersionForm({ projectName, onSubmit, onCancel, isSubmitting }
                 id="wasmBuildTarget"
                 value={formData.buildTarget}
                 onChange={(e) => setFormData({ ...formData, buildTarget: e.target.value })}
- className="mt-1 block w-full border-border-strong rounded-md shadow-sm focus:ring-accent focus:border-accent sm:text-sm"
+ className="mt-1 block w-full rounded-md border border-border-strong px-3 py-2 text-sm outline-none focus:border-accent focus:ring-1 focus:ring-accent"
               >
  <option value="wasm32-wasip2">wasm32-wasip2</option>
  {/* <option value="wasm32-wasip1">wasm32-wasip1 (not supported for projects)</option> */}

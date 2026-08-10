@@ -124,7 +124,7 @@ export function SecretCard({ secret, onEdit, onUpdate, onDelete }: SecretCardPro
  className="inline-flex items-center px-3 py-1.5 border border-destructive/40 text-xs font-medium rounded text-destructive-text bg-destructive/10 hover:bg-destructive/15 transition-colors"
             title="Delete secrets and refund storage deposit"
           >
-            
+            Delete
           </button>
         </div>
       </div>

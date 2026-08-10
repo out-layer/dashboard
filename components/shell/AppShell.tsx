@@ -6,7 +6,6 @@ import { usePathname } from 'next/navigation';
 import { APP_NAV, FOOTER_NAV, isNavActive, type NavItem } from '@/lib/nav';
 import PendingApprovalsBadge from '@/components/PendingApprovalsBadge';
 import TestnetDisabledNotice from '@/components/TestnetDisabledNotice';
-import NetworkSwitcher from '@/components/NetworkSwitcher';
 import ThemeToggle from '@/components/shell/ThemeToggle';
 import AccountChip from '@/components/shell/AccountChip';
 import CommandPalette from '@/components/shell/CommandPalette';
@@ -135,8 +134,6 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           </button>
 
  <div className="flex-1" />
-
-          <NetworkSwitcher />
 
           <Link
             href="/wallet/approvals"

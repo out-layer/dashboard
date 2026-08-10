@@ -71,7 +71,7 @@ export function CreateProjectForm({ onSubmit, onCancel, isSubmitting }: CreatePr
             value={formData.name}
             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
             placeholder="my-awesome-app"
- className="mt-1 block w-full border-border-strong rounded-md shadow-sm focus:ring-accent focus:border-accent sm:text-sm"
+ className="mt-1 block w-full rounded-md border border-border-strong px-3 py-2 text-sm outline-none focus:border-accent focus:ring-1 focus:ring-accent"
             pattern="[a-zA-Z0-9_-]+"
             required
           />
@@ -124,7 +124,7 @@ export function CreateProjectForm({ onSubmit, onCancel, isSubmitting }: CreatePr
                 value={formData.repo}
                 onChange={(e) => setFormData({ ...formData, repo: e.target.value })}
                 placeholder="https://github.com/owner/repo"
- className="mt-1 block w-full border-border-strong rounded-md shadow-sm focus:ring-accent focus:border-accent sm:text-sm"
+ className="mt-1 block w-full rounded-md border border-border-strong px-3 py-2 text-sm outline-none focus:border-accent focus:ring-1 focus:ring-accent"
                 required={formData.sourceType === 'github'}
               />
             </div>
@@ -139,7 +139,7 @@ export function CreateProjectForm({ onSubmit, onCancel, isSubmitting }: CreatePr
                   value={formData.commit}
                   onChange={(e) => setFormData({ ...formData, commit: e.target.value })}
                   placeholder="main"
- className="mt-1 block w-full border-border-strong rounded-md shadow-sm focus:ring-accent focus:border-accent sm:text-sm"
+ className="mt-1 block w-full rounded-md border border-border-strong px-3 py-2 text-sm outline-none focus:border-accent focus:ring-1 focus:ring-accent"
                   required={formData.sourceType === 'github'}
                 />
               </div>
@@ -151,7 +151,7 @@ export function CreateProjectForm({ onSubmit, onCancel, isSubmitting }: CreatePr
                   id="buildTarget"
                   value={formData.buildTarget}
                   onChange={(e) => setFormData({ ...formData, buildTarget: e.target.value })}
- className="mt-1 block w-full border-border-strong rounded-md shadow-sm focus:ring-accent focus:border-accent sm:text-sm"
+ className="mt-1 block w-full rounded-md border border-border-strong px-3 py-2 text-sm outline-none focus:border-accent focus:ring-1 focus:ring-accent"
                 >
  <option value="wasm32-wasip2">wasm32-wasip2</option>
  {/* <option value="wasm32-wasip1">wasm32-wasip1 (not supported for projects)</option> */}
@@ -174,7 +174,7 @@ export function CreateProjectForm({ onSubmit, onCancel, isSubmitting }: CreatePr
                 value={formData.wasmUrl}
                 onChange={(e) => setFormData({ ...formData, wasmUrl: e.target.value })}
                 placeholder="https://example.com/my-app.wasm"
- className="mt-1 block w-full border-border-strong rounded-md shadow-sm focus:ring-accent focus:border-accent sm:text-sm"
+ className="mt-1 block w-full rounded-md border border-border-strong px-3 py-2 text-sm outline-none focus:border-accent focus:ring-1 focus:ring-accent"
                 required={formData.sourceType === 'wasm_url'}
               />
             </div>
@@ -190,7 +190,7 @@ export function CreateProjectForm({ onSubmit, onCancel, isSubmitting }: CreatePr
                     value={formData.wasmHash}
                     onChange={(e) => setFormData({ ...formData, wasmHash: e.target.value })}
                     placeholder="abc123..."
- className="block w-full font-mono text-xs border-border-strong rounded-l-md shadow-sm focus:ring-accent focus:border-accent"
+ className="block w-full font-mono text-xs rounded-l-md border border-border-strong px-3 py-2 outline-none focus:border-accent focus:ring-1 focus:ring-accent"
                     required={formData.sourceType === 'wasm_url'}
                   />
                   <button
@@ -220,7 +220,7 @@ export function CreateProjectForm({ onSubmit, onCancel, isSubmitting }: CreatePr
                   id="wasmBuildTarget"
                   value={formData.buildTarget}
                   onChange={(e) => setFormData({ ...formData, buildTarget: e.target.value })}
- className="mt-1 block w-full border-border-strong rounded-md shadow-sm focus:ring-accent focus:border-accent sm:text-sm"
+ className="mt-1 block w-full rounded-md border border-border-strong px-3 py-2 text-sm outline-none focus:border-accent focus:ring-1 focus:ring-accent"
                 >
  <option value="wasm32-wasip2">wasm32-wasip2</option>
  {/* <option value="wasm32-wasip1">wasm32-wasip1 (not supported for projects)</option> */}

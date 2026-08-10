@@ -1025,43 +1025,64 @@ export function SecretsForm({
  <label className="block text-sm font-medium text-foreground mb-2">
               Project *
             </label>
-            {loadingProjects ? (
- <div className="flex items-center py-2">
- <svg className="animate-spin h-4 w-4 text-faint-foreground mr-2" fill="none" viewBox="0 0 24 24">
- <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
- <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                </svg>
- <span className="text-sm text-muted-foreground">Loading your projects...</span>
-              </div>
-            ) : userProjects.length === 0 ? (
- <div className="p-3 max-w-xl bg-card-muted border border-border rounded-md">
- <p className="text-sm text-muted-foreground">
- You don&apos;t have any projects yet. <a href="/projects" className="text-accent-text hover:underline">Create a project first</a>.
-                </p>
-              </div>
-            ) : (
-              <select
-                value={projectId}
-                onChange={(e) => setProjectId(e.target.value)}
- className="w-full max-w-xl px-3 py-2 border border-border-strong rounded-md shadow-sm focus:outline-none focus:ring-accent focus:border-accent"
-                disabled={encrypting}
-              >
- <option value="">Select a project...</option>
-                {userProjects.map((p) => (
-                  <option key={p.project_id} value={p.project_id}>
-                    {p.name} ({p.project_id})
-                  </option>
-                ))}
-              </select>
-            )}
+            <input
+              type="text"
+              value={projectId}
+              onChange={(e) => setProjectId(e.target.value.trim())}
+              placeholder="owner.near/project-name"
+              list="own-projects"
+              className="w-full max-w-xl rounded-md border border-border-strong px-3 py-2 text-sm outline-none focus:border-accent focus:ring-1 focus:ring-accent"
+              disabled={encrypting}
+            />
+            {/* Own projects appear as native suggestions; any EXISTING project id is
+                accepted — binding your secret to someone else's project is a supported
+                flow (e.g. near.email asks users to store a key under its project). */}
+            <datalist id="own-projects">
+              {userProjects.map((p) => (
+                <option key={p.project_id} value={p.project_id} />
+              ))}
+            </datalist>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Any existing project works — it does not have to be yours.
+              {loadingProjects
+                ? ' Loading your projects…'
+                : userProjects.length > 0
+                  ? ' Your own projects are suggested as you type.'
+                  : ''}
+            </p>
+            {projectId &&
+              !loadingProjects &&
+              !userProjects.some((p) => p.project_id === projectId) && (
+                <div className="mt-2 flex max-w-xl items-start gap-1.5 rounded-md border border-warning/40 bg-warning/10 p-2.5 text-xs text-muted-foreground">
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    className="mt-0.5 h-3.5 w-3.5 shrink-0 text-warning"
+                    aria-hidden="true"
+                  >
+                    <path d="M12 9v4m0 4h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z" />
+                  </svg>
+                  <span>
+                    <span className="font-semibold text-foreground">
+                      This project is not yours.
+                    </span>{' '}
+                    Your secret will be decrypted for whatever code its owner deploys under it —
+                    bind only if you trust that service (this is how e.g. NEAR Email receives user
+                    keys).
+                  </span>
+                </div>
+              )}
  <p className="mt-1 text-xs text-muted-foreground">
               Secrets will be available to all versions of this project
             </p>
             {prefillProjectMissing && (
-              <p className="mt-2 text-xs text-destructive-text">
+              <p className="mt-2 max-w-xl text-xs text-muted-foreground">
                 The link asked for <span className="font-mono">{prefillProjectId}</span>, which this
-                account does not own, so nothing was selected. You can only store secrets for your
-                own projects — pick one above if you meant to.
+                account does not own, so it was NOT pre-selected — a link must not be able to point
+                your secret at someone else&apos;s project by itself. If you trust that service,
+                type the project id above yourself.
               </p>
             )}
           </div>
@@ -1095,7 +1116,7 @@ export function SecretsForm({
             onChange={(e) => setPlaintextSecrets(e.target.value)}
             rows={8}
  className="w-full max-w-xl px-3 py-2 border border-border-strong rounded-md shadow-sm font-mono text-sm focus:outline-none focus:ring-accent focus:border-accent"
-            placeholder='{\n  "OPENAI_KEY": "sk-...",\n  "DATABASE_URL": "postgres://..."\n}'
+            placeholder={'{\n  "OPENAI_KEY": "sk-...",\n  "DATABASE_URL": "postgres://..."\n}'}
             disabled={encrypting}
           />
  <p className="mt-1 text-xs text-muted-foreground">

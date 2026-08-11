@@ -23,5 +23,6 @@ export { IntentsExample } from './IntentsExample';
 export { PrivateDaoExample } from './PrivateDaoExample';
 export { CaptchaExample } from './CaptchaExample';
 export { NearEmailExample } from './NearEmailExample';
+export { EasAttestorExample } from './EasAttestorExample';
 export { VrfExample } from './VrfExample';
 export { EthProofExample } from './EthProofExample';

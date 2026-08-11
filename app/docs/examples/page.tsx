@@ -14,7 +14,8 @@ import {
   IntentsExample,
   PrivateDaoExample,
   CaptchaExample,
-  NearEmailExample
+  NearEmailExample,
+  EasAttestorExample
 } from './components';
 
 export default function ExamplesPage() {
@@ -41,6 +42,7 @@ export default function ExamplesPage() {
         <PrivateDaoExample />
         <CaptchaExample />
         <NearEmailExample />
+        <EasAttestorExample />
       </div>
     </div>
   );

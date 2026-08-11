@@ -36,7 +36,14 @@ export default function AttestationByCallPage() {
       });
       try {
         const hit = await Promise.any(probes);
-        if (!cancelled) router.replace(`/attestation/${hit.taskId}?network=${hit.net}`);
+        if (!cancelled) {
+          // Carry the caller's params (e.g. base64url input/output for the I/O check) through
+          // the redirect; the network we resolved wins over anything the link claimed.
+          const extra = new URLSearchParams(window.location.search);
+          extra.delete('network');
+          const tail = extra.toString();
+          router.replace(`/attestation/${hit.taskId}?network=${hit.net}${tail ? `&${tail}` : ''}`);
+        }
       } catch {
         if (!cancelled) setFailed(true);
       }

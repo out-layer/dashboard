@@ -43,7 +43,13 @@ export default function AttestationByRequestPage() {
 
       if (cancelled) return;
       if (found.length === 1) {
-        router.replace(`/attestation/${found[0].taskId}?network=${found[0].net}`);
+        // Same param passthrough as the by-call resolver — the resolved network wins.
+        const extra = new URLSearchParams(window.location.search);
+        extra.delete('network');
+        const tail = extra.toString();
+        router.replace(
+          `/attestation/${found[0].taskId}?network=${found[0].net}${tail ? `&${tail}` : ''}`
+        );
       } else {
         setHits(found);
       }

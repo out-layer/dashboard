@@ -66,6 +66,49 @@ export default function AttestationView({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [attestation.task_id, network, initialJob]);
 
+  // A link may carry the run's input/output as base64url (?input=…&output=…): the platform
+  // publishes only their hashes, so only the caller holds the bytes — this lets a service (e.g.
+  // the EAS attestor page) hand a one-click link where the I/O check completes on arrival.
+  // window.location, not useSearchParams: the modal swaps URLs via history.replaceState, which
+  // the hook does not track, and reading once on mount is exactly the semantics a link needs.
+  useEffect(() => {
+    let cancelled = false;
+    const q = new URLSearchParams(window.location.search);
+    const decode = (v: string | null) => {
+      if (!v) return '';
+      try {
+        const b64 = v.replace(/-/g, '+').replace(/_/g, '/');
+        const padded = b64 + '='.repeat((4 - (b64.length % 4)) % 4);
+        return new TextDecoder().decode(Uint8Array.from(atob(padded), (c) => c.charCodeAt(0)));
+      } catch {
+        return '';
+      }
+    };
+    const inputData = decode(q.get('input'));
+    const outputData = decode(q.get('output'));
+    if (!inputData && !outputData) return;
+    (async () => {
+      const { sha256 } = await import('@/lib/near-rpc');
+      const inputHash = inputData ? await sha256(inputData) : '';
+      const outputHash = outputData ? await sha256(outputData) : '';
+      if (cancelled) return;
+      setIoValidation({
+        inputData,
+        outputData,
+        inputHash,
+        outputHash,
+        inputMatch: inputData ? inputHash === (attestation.input_hash || '') : null,
+        outputMatch: outputData ? outputHash === attestation.output_hash : null,
+        loading: false,
+        error: null,
+      });
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [attestation.task_id]);
+
   // Helper functions
   const formatRtmr3 = (rtmr3: string): string => {
     return rtmr3.replace(/0+$/, '') || rtmr3;

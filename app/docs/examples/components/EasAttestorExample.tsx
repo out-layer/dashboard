@@ -169,19 +169,27 @@ export function EasAttestorExample() {
 {`# every call above returns { "call_id": "..." } immediately; poll it:
 curl -s https://api.outlayer.ai/calls/CALL_ID \\
   -H 'X-Payment-Key: YOUR_PAYMENT_KEY'
-# → status, the job's full output, and attestation_url — the TEE quote for this exact run`}
+# → status, the job's full output, and attestation_url — the TEE quote for this exact run
+# the key is required here on purpose: the OUTPUT is private to whoever paid for the run.
+# the public record is the attestation (hashes only) — no key needed:
+curl -s https://api.outlayer.ai/attestations/by-call/CALL_ID`}
           </pre>
         </details>
 
         <details className="rounded-lg border border-border">
           <summary className="cursor-pointer px-4 py-2 text-sm font-semibold text-foreground">
-            Run the engine locally (wasmtime, dry run)
+            Run the engine locally (wasmtime) &mdash; for development, not attestations
           </summary>
           <pre className="mx-4 mb-3 overflow-x-auto rounded-lg bg-card-muted p-4 text-sm">
-{`git clone https://github.com/out-layer/eas-attestor && cd eas-attestor
+{`# No TEE and no key here, so nothing gets signed or attested. What this IS for:
+#  - iterate on your schema and collectors for free, before paying for enclave runs
+#  - audit the engine: it is the exact binary the enclave compiles from this repo,
+#    so you can see what it does with your input — quorum reads, ABI encoding, calldata
+#  - develop your own fork (new collector types, other contracts) with a fast loop
+git clone https://github.com/out-layer/eas-attestor && cd eas-attestor
 ./build.sh
 cat example-job.json | wasmtime -S http target/wasm32-wasip2/release/eas-attestor.wasm
-# same binary the enclave runs — dry_run works anywhere, signing needs the enclave-held key`}
+# when the dry_run output looks right, send the SAME job JSON through the API above`}
           </pre>
         </details>
       </div>

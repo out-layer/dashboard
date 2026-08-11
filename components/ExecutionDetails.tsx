@@ -5,6 +5,7 @@ import {
   AttestationResponse,
   JobHistoryEntry,
   NetworkType,
+  getCoordinatorApiUrl,
 } from '@/lib/api';
 import { HashChip } from '@/components/ui/hash-chip';
 import { attestationUrlFor, shortWorkerId } from '@/lib/worker-attestation';
@@ -295,12 +296,23 @@ export default function ExecutionDetails({
         <code className="mt-2 block w-fit max-w-full overflow-x-auto rounded-md border border-border bg-card px-2.5 py-1.5 font-mono text-xs text-foreground">
           outlayer-verify job {attestation.task_id} --network {network}
         </code>
-        <Link
-          href="/docs/trust-verification#outlayer-verify"
-          className="mt-2 inline-block text-xs font-semibold text-accent-text hover:underline"
-        >
-          OutLayer Verify docs →
-        </Link>
+        <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1">
+          <Link
+            href="/docs/trust-verification#outlayer-verify"
+            className="text-xs font-semibold text-accent-text hover:underline"
+          >
+            OutLayer Verify docs →
+          </Link>
+          <a
+            href={`${getCoordinatorApiUrl(network)}/attestations/${attestation.task_id}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs font-semibold text-accent-text hover:underline"
+            title="The signed record this page renders — quote, hashes and metadata as served by the API"
+          >
+            Raw attestation JSON ↗
+          </a>
+        </div>
       </div>
     </div>
   );

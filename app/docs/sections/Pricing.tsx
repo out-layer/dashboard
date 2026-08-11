@@ -7,7 +7,7 @@ export default function PricingSection() {
 
   return (
  <div className="prose max-w-none">
- <h2 className="text-3xl font-bold mb-6 text-[var(--primary-orange)]">Pricing & Limits</h2>
+ <h2 className="text-3xl font-bold mb-6 text-accent-text">Pricing & Limits</h2>
 
  <div className="space-y-6">
         <section id="dynamic-pricing">
@@ -39,7 +39,7 @@ export default function PricingSection() {
           </ul>
  <p className="text-sm text-muted-foreground mt-3">
             These limits are configured in the smart contract and may change without documentation updates.
- See current values at <a href="/stats" className="text-[var(--primary-orange)] underline">Stats</a>.
+ See current values at <a href="/stats" className="text-accent-text underline">Stats</a>.
           </p>
         </section>
 

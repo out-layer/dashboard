@@ -11,7 +11,7 @@ export function AnchorHeading({ id, children, badges }: { id: string; children: 
 
   return (
  <h3 className="text-2xl font-semibold group relative">
- <a href={`#${id}`} onClick={handleClick} className="hover:text-[var(--primary-orange)] transition-colors">
+ <a href={`#${id}`} onClick={handleClick} className="hover:text-accent-text transition-colors">
         {children}
         {badges}
  <span className="absolute -left-6 opacity-0 group-hover:opacity-100 transition-opacity text-faint-foreground">#</span>

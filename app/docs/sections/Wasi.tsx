@@ -8,7 +8,7 @@ export default function WasiSection() {
 
   return (
  <div className="prose max-w-none">
- <h2 className="text-3xl font-bold mb-6 text-[var(--primary-orange)]">Building OutLayer App</h2>
+ <h2 className="text-3xl font-bold mb-6 text-accent-text">Building OutLayer App</h2>
 
  <div className="space-y-6">
         <section id="what-is-wasi">
@@ -71,7 +71,7 @@ export default function WasiSection() {
  <li><strong>Environment variables:</strong> Access encrypted secrets via <code className="bg-card-muted px-2 py-1 rounded">std::env::var()</code></li>
  <li><strong>Random numbers:</strong> Cryptographically secure random generation (WASI P1 & P2)</li>
  <li><strong>HTTP requests:</strong> Make external API calls (WASI P2 only, via <code className="bg-card-muted px-2 py-1 rounded">wasi-http-client</code>)</li>
- <li><strong>Persistent storage:</strong> Encrypted key-value storage (WASI P2 only, via <code className="bg-card-muted px-2 py-1 rounded">outlayer</code> SDK from <a href="https://crates.io/crates/outlayer" target="_blank" rel="noopener noreferrer" className="text-[var(--primary-orange)] hover:underline">crates.io</a>)</li>
+ <li><strong>Persistent storage:</strong> Encrypted key-value storage (WASI P2 only, via <code className="bg-card-muted px-2 py-1 rounded">outlayer</code> SDK from <a href="https://crates.io/crates/outlayer" target="_blank" rel="noopener noreferrer" className="text-accent-text hover:underline">crates.io</a>)</li>
  <li><strong>File I/O (limited):</strong> Basic file operations in sandboxed environment</li>
  <li><strong>NEAR context:</strong> Access execution metadata via env vars (<code className="bg-card-muted px-2 py-1 rounded">NEAR_SENDER_ID</code>, <code className="bg-card-muted px-2 py-1 rounded">NEAR_BLOCK_HEIGHT</code>, etc.)</li>
           </ul>
@@ -140,7 +140,7 @@ export default function WasiSection() {
  <div className="bg-card-muted border-l-4 border-border p-4 mb-4">
  <h4 className="font-semibold text-foreground mb-2">Example: botfather-example</h4>
  <p className="text-sm text-foreground mb-2">
- The <Link href="/docs/examples#botfather-ark" className="text-[var(--primary-orange)] hover:underline font-semibold">botfather-example</Link> example demonstrates host functions in action:
+ The <Link href="/docs/examples#botfather-ark" className="text-accent-text hover:underline font-semibold">botfather-example</Link> example demonstrates host functions in action:
             </p>
  <ul className="list-disc list-inside text-sm text-foreground ml-4 space-y-1">
  <li>Creates multiple NEAR accounts programmatically using <code className="bg-card-muted px-1 rounded">call()</code></li>
@@ -233,7 +233,7 @@ world rpc-host {
  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
  <div className="border border-border rounded-lg p-4 hover:shadow-md transition-shadow">
  <h4 className="font-semibold mb-1">
- <Link href="/docs/examples#random-ark" className="text-[var(--primary-orange)] hover:underline">
+ <Link href="/docs/examples#random-ark" className="text-accent-text hover:underline">
                   random-example
                 </Link>
  <a href="https://github.com/out-layer/random-example" target="_blank" rel="noopener noreferrer" className="ml-2 text-muted-foreground hover:text-foreground" title="View source on GitHub">
@@ -248,7 +248,7 @@ world rpc-host {
 
  <div className="border border-border rounded-lg p-4 hover:shadow-md transition-shadow">
  <h4 className="font-semibold mb-1">
- <Link href="/docs/examples#echo-ark" className="text-[var(--primary-orange)] hover:underline">
+ <Link href="/docs/examples#echo-ark" className="text-accent-text hover:underline">
                   echo-example
                 </Link>
  <a href="https://github.com/out-layer/echo-example" target="_blank" rel="noopener noreferrer" className="ml-2 text-muted-foreground hover:text-foreground" title="View source on GitHub">
@@ -263,7 +263,7 @@ world rpc-host {
 
  <div className="border border-border rounded-lg p-4 hover:shadow-md transition-shadow">
  <h4 className="font-semibold mb-1">
- <Link href="/docs/examples#ai-ark" className="text-[var(--primary-orange)] hover:underline">
+ <Link href="/docs/examples#ai-ark" className="text-accent-text hover:underline">
                   ai-example
                 </Link>
  <a href="https://github.com/out-layer/ai-example" target="_blank" rel="noopener noreferrer" className="ml-2 text-muted-foreground hover:text-foreground" title="View source on GitHub">
@@ -278,7 +278,7 @@ world rpc-host {
 
  <div className="border border-border rounded-lg p-4 hover:shadow-md transition-shadow">
  <h4 className="font-semibold mb-1">
- <Link href="/docs/examples#weather-ark" className="text-[var(--primary-orange)] hover:underline">
+ <Link href="/docs/examples#weather-ark" className="text-accent-text hover:underline">
                   weather-example
                 </Link>
  <a href="https://github.com/out-layer/weather-example" target="_blank" rel="noopener noreferrer" className="ml-2 text-muted-foreground hover:text-foreground" title="View source on GitHub">
@@ -293,7 +293,7 @@ world rpc-host {
 
  <div className="border border-border rounded-lg p-4 hover:shadow-md transition-shadow">
  <h4 className="font-semibold mb-1">
- <Link href="/docs/examples#oracle-ark" className="text-[var(--primary-orange)] hover:underline">
+ <Link href="/docs/examples#oracle-ark" className="text-accent-text hover:underline">
                   oracle-example
                 </Link>
  <a href="https://github.com/out-layer/oracle-example" target="_blank" rel="noopener noreferrer" className="ml-2 text-muted-foreground hover:text-foreground" title="View source on GitHub">
@@ -308,7 +308,7 @@ world rpc-host {
 
  <div className="border border-border rounded-lg p-4 hover:shadow-md transition-shadow">
  <h4 className="font-semibold mb-1">
- <Link href="/docs/examples#ethereum-api" className="text-[var(--primary-orange)] hover:underline">
+ <Link href="/docs/examples#ethereum-api" className="text-accent-text hover:underline">
                   ethereum-api
                 </Link>
  <a href="https://github.com/out-layer/oracle-example" target="_blank" rel="noopener noreferrer" className="ml-2 text-muted-foreground hover:text-foreground" title="View source on GitHub">
@@ -323,7 +323,7 @@ world rpc-host {
 
  <div className="border border-border rounded-lg p-4 hover:shadow-md transition-shadow">
  <h4 className="font-semibold mb-1">
- <Link href="/docs/examples#botfather-ark" className="text-[var(--primary-orange)] hover:underline">
+ <Link href="/docs/examples#botfather-ark" className="text-accent-text hover:underline">
                   botfather-example
                 </Link>
  <a href="https://github.com/out-layer/botfather-example" target="_blank" rel="noopener noreferrer" className="ml-2 text-muted-foreground hover:text-foreground" title="View source on GitHub">
@@ -339,7 +339,7 @@ world rpc-host {
 
  <div className="border border-border rounded-lg p-4 hover:shadow-md transition-shadow">
  <h4 className="font-semibold mb-1">
- <Link href="/docs/examples#intents-ark" className="text-[var(--primary-orange)] hover:underline">
+ <Link href="/docs/examples#intents-ark" className="text-accent-text hover:underline">
                   intents-example
                 </Link>
  <a href="https://github.com/out-layer/intents-example" target="_blank" rel="noopener noreferrer" className="ml-2 text-muted-foreground hover:text-foreground" title="View source on GitHub">
@@ -354,7 +354,7 @@ world rpc-host {
 
  <div className="border border-border rounded-lg p-4 hover:shadow-md transition-shadow">
  <h4 className="font-semibold mb-1">
- <Link href="/docs/examples#private-dao-ark" className="text-[var(--primary-orange)] hover:underline">
+ <Link href="/docs/examples#private-dao-ark" className="text-accent-text hover:underline">
                   private-dao-example
                 </Link>
  <a href="https://github.com/out-layer/private-dao-example" target="_blank" rel="noopener noreferrer" className="ml-2 text-muted-foreground hover:text-foreground" title="View source on GitHub">
@@ -370,7 +370,7 @@ world rpc-host {
 
  <div className="border border-border rounded-lg p-4 hover:shadow-md transition-shadow">
  <h4 className="font-semibold mb-1">
- <Link href="/docs/examples#captcha-ark" className="text-[var(--primary-orange)] hover:underline">
+ <Link href="/docs/examples#captcha-ark" className="text-accent-text hover:underline">
                   captcha-example
                 </Link>
  <a href="https://github.com/out-layer/captcha-example" target="_blank" rel="noopener noreferrer" className="ml-2 text-muted-foreground hover:text-foreground" title="View source on GitHub">
@@ -392,7 +392,7 @@ world rpc-host {
  <p className="text-foreground mb-3">
               Each example includes complete source code, input/output examples, build instructions, and deployment guides.
             </p>
- <Link href="/docs/examples" className="inline-block px-4 py-2 bg-[var(--primary-orange)] text-white font-semibold rounded-lg hover:opacity-90 transition-opacity">
+ <Link href="/docs/examples" className="inline-block px-4 py-2 bg-accent text-white font-semibold rounded-lg hover:opacity-90 transition-opacity">
               View All Examples →
             </Link>
           </div>
@@ -559,8 +559,8 @@ echo '{"message":"test"}' | wasmtime --env SECRET=my-key your-app.wasm`}
         <section id="next-steps">
  <AnchorHeading id="next-steps">Next Steps</AnchorHeading>
  <ul className="list-disc list-inside space-y-2 text-foreground">
- <li>Explore <Link href="/docs/examples" className="text-[var(--primary-orange)] hover:underline font-semibold">working examples</Link> with complete source code and deployment guides</li>
- <li>Read the <a href="https://github.com/fastnear/near-outlayer/blob/main/wasi-examples/WASI_TUTORIAL.md" target="_blank" rel="noopener noreferrer" className="text-[var(--primary-orange)] hover:underline">complete WASI tutorial</a></li>
+ <li>Explore <Link href="/docs/examples" className="text-accent-text hover:underline font-semibold">working examples</Link> with complete source code and deployment guides</li>
+ <li>Read the <a href="https://github.com/fastnear/near-outlayer/blob/main/wasi-examples/WASI_TUTORIAL.md" target="_blank" rel="noopener noreferrer" className="text-accent-text hover:underline">complete WASI tutorial</a></li>
  <li>Clone examples: <code className="bg-card-muted px-2 py-1 rounded">git clone https://github.com/fastnear/near-outlayer.git</code></li>
  <li>Test your WASM locally with wasmtime before deploying</li>
  <li>Start with <strong>random-example</strong> or <strong>echo-example</strong> for simple use cases</li>

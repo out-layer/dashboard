@@ -7,7 +7,7 @@ export default function ContractIntegrationSection() {
 
   return (
  <div className="prose max-w-none">
- <h2 className="text-3xl font-bold mb-6 text-[var(--primary-orange)]">Contract Integration</h2>
+ <h2 className="text-3xl font-bold mb-6 text-accent-text">Contract Integration</h2>
 
  <p className="text-foreground mb-6">
         Call OutLayer from your smart contract to execute off-chain WASM code and receive the result via callback. You stay in full control - no need to grant special access or delegate permissions to workers.

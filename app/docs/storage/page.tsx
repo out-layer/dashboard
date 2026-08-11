@@ -8,7 +8,7 @@ function AnchorHeading({ id, children, level = 2 }: { id: string; children: Reac
   const sizeClass = level === 2 ? 'text-2xl' : level === 3 ? 'text-xl' : 'text-lg';
  const className = `${sizeClass} font-bold text-foreground mb-4 scroll-mt-4 group`;
   const anchor = (
- <a href={`#${id}`} className="ml-2 text-faint-foreground hover:text-[var(--primary-orange)] opacity-0 group-hover:opacity-100 transition-opacity">
+ <a href={`#${id}`} className="ml-2 text-faint-foreground hover:text-accent-text opacity-0 group-hover:opacity-100 transition-opacity">
       #
     </a>
   );
@@ -36,7 +36,7 @@ export default function StoragePage() {
 
  <div className="bg-card-muted border-l-4 border-border p-4 mb-8">
  <p className="text-sm text-foreground">
- <strong>Requires Projects:</strong> Storage is only available for code deployed as a <Link href="/docs/projects" className="text-[var(--primary-orange)] hover:underline font-medium">Project</Link>.
+ <strong>Requires Projects:</strong> Storage is only available for code deployed as a <Link href="/docs/projects" className="text-accent-text hover:underline font-medium">Project</Link>.
  You must use <strong>WASI Preview 2</strong> (wasm32-wasip2) build target.
         </p>
       </div>
@@ -492,19 +492,19 @@ curl "https://api.outlayer.ai/public/storage/get?project_uuid=p0000000000000001&
  <h3 className="text-lg font-semibold text-foreground mb-4">Related Documentation</h3>
  <ul className="space-y-2">
           <li>
- <Link href="/docs/projects" className="text-[var(--primary-orange)] hover:underline">
+ <Link href="/docs/projects" className="text-accent-text hover:underline">
               Projects & Versions
             </Link>
             {' '}- Create and manage projects for storage access
           </li>
           <li>
- <Link href="/docs/wasi" className="text-[var(--primary-orange)] hover:underline">
+ <Link href="/docs/wasi" className="text-accent-text hover:underline">
               Building OutLayer App
             </Link>
             {' '}- WASI P1 vs P2, building WASM modules
           </li>
           <li>
- <Link href="/docs/examples" className="text-[var(--primary-orange)] hover:underline">
+ <Link href="/docs/examples" className="text-accent-text hover:underline">
               Examples
             </Link>
             {' '}- See private-token-ark for storage usage

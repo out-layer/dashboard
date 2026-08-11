@@ -7,7 +7,7 @@ function AnchorHeading({ id, children, level = 2 }: { id: string; children: Reac
   const sizeClass = level === 2 ? 'text-2xl' : level === 3 ? 'text-xl' : 'text-lg';
  const className = `${sizeClass} font-bold text-foreground mb-4 scroll-mt-4 group`;
   const anchor = (
- <a href={`#${id}`} className="ml-2 text-faint-foreground hover:text-[var(--primary-orange)] opacity-0 group-hover:opacity-100 transition-opacity">
+ <a href={`#${id}`} className="ml-2 text-faint-foreground hover:text-accent-text opacity-0 group-hover:opacity-100 transition-opacity">
       #
     </a>
   );
@@ -77,7 +77,7 @@ export default function TrustVerificationPage() {
  <div className="border border-border rounded-lg p-4 bg-card-muted">
  <h4 className="font-semibold text-foreground mb-2">Self-hosted TDX</h4>
  <p className="text-sm text-foreground mb-2">
-              A self-hosted bare-metal dstack node. Human-verifiable attestation is rendered at <a href="https://workers.outlayer.ai" target="_blank" rel="noopener noreferrer" className="text-[var(--primary-orange)] hover:underline">
+              A self-hosted bare-metal dstack node. Human-verifiable attestation is rendered at <a href="https://workers.outlayer.ai" target="_blank" rel="noopener noreferrer" className="text-accent-text hover:underline">
                 workers.outlayer.ai
               </a>
               .
@@ -86,10 +86,10 @@ export default function TrustVerificationPage() {
  <div className="border border-border rounded-lg p-4 bg-card-muted">
  <h4 className="font-semibold text-foreground mb-2">Phala Cloud</h4>
  <p className="text-sm text-foreground mb-2">
-              Managed dstack hosted by <a href="https://phala.network" target="_blank" rel="noopener noreferrer" className="text-[var(--primary-orange)] hover:underline">
+              Managed dstack hosted by <a href="https://phala.network" target="_blank" rel="noopener noreferrer" className="text-accent-text hover:underline">
                 Phala Cloud
               </a>
-              . Human-verifiable attestation is rendered at <a href="https://trust.phala.com" target="_blank" rel="noopener noreferrer" className="text-[var(--primary-orange)] hover:underline">
+              . Human-verifiable attestation is rendered at <a href="https://trust.phala.com" target="_blank" rel="noopener noreferrer" className="text-accent-text hover:underline">
                 trust.phala.com
               </a>
               .
@@ -202,12 +202,12 @@ export default function TrustVerificationPage() {
               <tr>
  <td className="px-4 py-3 text-sm font-semibold text-foreground">Attestation portal</td>
  <td className="px-4 py-3 text-sm text-foreground font-medium">
- <a href="https://workers.outlayer.ai" target="_blank" rel="noopener noreferrer" className="text-[var(--primary-orange)] hover:underline">
+ <a href="https://workers.outlayer.ai" target="_blank" rel="noopener noreferrer" className="text-accent-text hover:underline">
                     workers.outlayer.ai
                   </a>
                 </td>
  <td className="px-4 py-3 text-sm text-foreground font-medium">
- <a href="https://trust.phala.com" target="_blank" rel="noopener noreferrer" className="text-[var(--primary-orange)] hover:underline">
+ <a href="https://trust.phala.com" target="_blank" rel="noopener noreferrer" className="text-accent-text hover:underline">
                     trust.phala.com
                   </a>
                 </td>
@@ -251,7 +251,7 @@ export default function TrustVerificationPage() {
               <div>
  <p className="font-semibold text-foreground">Open Executions</p>
  <p className="text-foreground text-sm">
- Go to <Link href="/executions" className="text-[var(--primary-orange)] hover:underline">Executions</Link>
+ Go to <Link href="/executions" className="text-accent-text hover:underline">Executions</Link>
  {' '}(the page is titled <strong>Job History</strong>).
                 </p>
               </div>
@@ -475,7 +475,7 @@ outlayer-verify run owner.near/agent --input '{"city":"Paris"}' --payment-key "$
               href="https://github.com/out-layer/outlayer-verify"
               target="_blank"
               rel="noopener noreferrer"
- className="text-[var(--primary-orange)] hover:underline"
+ className="text-accent-text hover:underline"
             >
               github.com/out-layer/outlayer-verify
             </a>            — Apache-2.0, with the attestation format&apos;s test vectors taken from real production
@@ -567,7 +567,7 @@ near view worker.outlayer.near is_measurements_approved '{
  <AnchorHeading id="sigstore">GitHub Releases & Sigstore</AnchorHeading>
 
  <p className="text-foreground mb-4">
-          OutLayer publishes releases on GitHub with <a href="https://www.sigstore.dev/" target="_blank" rel="noopener noreferrer" className="text-[var(--primary-orange)] hover:underline">
+          OutLayer publishes releases on GitHub with <a href="https://www.sigstore.dev/" target="_blank" rel="noopener noreferrer" className="text-accent-text hover:underline">
             Sigstore
           </a>
           {' '}certification. Sigstore provides cryptographic proof that a binary was built from specific source code.
@@ -585,7 +585,7 @@ near view worker.outlayer.near is_measurements_approved '{
 
  <ol className="list-decimal list-inside text-foreground space-y-2 mb-6">
           <li>
-            Go to <a href="https://github.com/fastnear/near-outlayer/releases" target="_blank" rel="noopener noreferrer" className="text-[var(--primary-orange)] hover:underline">
+            Go to <a href="https://github.com/fastnear/near-outlayer/releases" target="_blank" rel="noopener noreferrer" className="text-accent-text hover:underline">
               github.com/fastnear/near-outlayer/releases
             </a>
           </li>
@@ -789,15 +789,15 @@ near view worker.outlayer.near is_measurements_approved '{
  <h3 className="text-lg font-semibold text-foreground mb-4">Related Documentation</h3>
  <ul className="space-y-2 text-sm">
           <li>
- <Link href="/docs/tee-attestation" className="text-[var(--primary-orange)] hover:underline">TEE Attestation</Link>
+ <Link href="/docs/tee-attestation" className="text-accent-text hover:underline">TEE Attestation</Link>
             {' '}- Technical details of execution attestation
           </li>
           <li>
- <Link href="/docs/secrets" className="text-[var(--primary-orange)] hover:underline">Secrets</Link>
+ <Link href="/docs/secrets" className="text-accent-text hover:underline">Secrets</Link>
             {' '}- How secrets are encrypted and decrypted in TEE
           </li>
           <li>
- <a href="https://github.com/fastnear/near-outlayer/releases" target="_blank" rel="noopener noreferrer" className="text-[var(--primary-orange)] hover:underline">
+ <a href="https://github.com/fastnear/near-outlayer/releases" target="_blank" rel="noopener noreferrer" className="text-accent-text hover:underline">
               GitHub Releases
             </a>
             {' '}- Release binaries with Sigstore certification

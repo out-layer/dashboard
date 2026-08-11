@@ -94,27 +94,27 @@ near call wrap.near ft_transfer_call '{
       <LearnMoreSection>
  <ul className="text-sm text-foreground space-y-1">
           <li>
- <Link href="/docs/wasi#wasi-preview-2" className="text-[var(--primary-orange)] hover:underline">
+ <Link href="/docs/wasi#wasi-preview-2" className="text-accent-text hover:underline">
               WASI Preview 2 Documentation
             </Link>
           </li>
           <li>
- <Link href="/docs/secrets" className="text-[var(--primary-orange)] hover:underline">
+ <Link href="/docs/secrets" className="text-accent-text hover:underline">
               Secrets Management Guide
             </Link>
           </li>
           <li>
- <Link href="/playground#near-intents-swap" className="text-[var(--primary-orange)] hover:underline">
+ <Link href="/playground#near-intents-swap" className="text-accent-text hover:underline">
               Try in Playground (Mainnet only)
             </Link>
           </li>
           <li>
- <a href="https://github.com/out-layer/intents-example" target="_blank" rel="noopener noreferrer" className="text-[var(--primary-orange)] hover:underline">
+ <a href="https://github.com/out-layer/intents-example" target="_blank" rel="noopener noreferrer" className="text-accent-text hover:underline">
               View Source Code
             </a>
           </li>
           <li>
- <a href="https://intents.near.org" target="_blank" rel="noopener noreferrer" className="text-[var(--primary-orange)] hover:underline">
+ <a href="https://intents.near.org" target="_blank" rel="noopener noreferrer" className="text-accent-text hover:underline">
               NEAR Intents Protocol
             </a>
           </li>

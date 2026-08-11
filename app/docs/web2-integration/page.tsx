@@ -7,7 +7,7 @@ function AnchorHeading({ id, children, level = 2 }: { id: string; children: Reac
   const sizeClass = level === 2 ? 'text-2xl' : level === 3 ? 'text-xl' : 'text-lg';
  const className = `${sizeClass} font-bold text-foreground mb-4 scroll-mt-4 group`;
   const anchor = (
- <a href={`#${id}`} className="ml-2 text-faint-foreground hover:text-[var(--primary-orange)] opacity-0 group-hover:opacity-100 transition-opacity">
+ <a href={`#${id}`} className="ml-2 text-faint-foreground hover:text-accent-text opacity-0 group-hover:opacity-100 transition-opacity">
       #
     </a>
   );
@@ -93,35 +93,35 @@ export default function Web2IntegrationPage() {
 
  <div className="space-y-4 mb-6">
  <div className="flex items-start space-x-4 p-4 border rounded-lg">
- <div className="flex-shrink-0 w-8 h-8 bg-[var(--primary-orange)] text-white rounded-full flex items-center justify-center font-bold">1</div>
+ <div className="flex-shrink-0 w-8 h-8 bg-accent text-white rounded-full flex items-center justify-center font-bold">1</div>
             <div>
  <h4 className="font-semibold text-foreground">Create Project</h4>
  <p className="text-sm text-muted-foreground mt-1">
- Go to <Link href="/projects" className="text-[var(--primary-orange)] hover:underline">/projects</Link> →
+ Go to <Link href="/projects" className="text-accent-text hover:underline">/projects</Link> →
                 &quot;New Project&quot; → Enter GitHub URL or WASM file.
               </p>
- <Link href="/docs/projects#creating-project" className="text-[var(--primary-orange)] text-xs hover:underline">
+ <Link href="/docs/projects#creating-project" className="text-accent-text text-xs hover:underline">
                 Detailed guide →
               </Link>
             </div>
           </div>
 
  <div className="flex items-start space-x-4 p-4 border rounded-lg">
- <div className="flex-shrink-0 w-8 h-8 bg-[var(--primary-orange)] text-white rounded-full flex items-center justify-center font-bold">2</div>
+ <div className="flex-shrink-0 w-8 h-8 bg-accent text-white rounded-full flex items-center justify-center font-bold">2</div>
             <div>
  <h4 className="font-semibold text-foreground">Create Payment Key</h4>
  <p className="text-sm text-muted-foreground mt-1">
- Go to <Link href="/payment-keys" className="text-[var(--primary-orange)] hover:underline">/payment-keys</Link> →
+ Go to <Link href="/payment-keys" className="text-accent-text hover:underline">/payment-keys</Link> →
                 Create key with USD balance (e.g., $10).
               </p>
- <Link href="/docs/payment-keys" className="text-[var(--primary-orange)] text-xs hover:underline">
+ <Link href="/docs/payment-keys" className="text-accent-text text-xs hover:underline">
                 Payment Keys documentation →
               </Link>
             </div>
           </div>
 
  <div className="flex items-start space-x-4 p-4 border rounded-lg">
- <div className="flex-shrink-0 w-8 h-8 bg-[var(--primary-orange)] text-white rounded-full flex items-center justify-center font-bold">3</div>
+ <div className="flex-shrink-0 w-8 h-8 bg-accent text-white rounded-full flex items-center justify-center font-bold">3</div>
             <div>
  <h4 className="font-semibold text-foreground">Call Your Project</h4>
  <p className="text-sm text-muted-foreground mt-1">
@@ -208,7 +208,7 @@ const { job_id, output } = await result.json();
  <li><strong>1.</strong> Users pay you via <code className="bg-card-muted px-1 rounded">X-Attached-Deposit</code> header</li>
  <li><strong>2.</strong> Your WASM reads <code className="bg-card-muted px-1 rounded">USD_PAYMENT</code> env var</li>
  <li><strong>3.</strong> Earnings accumulate in your account</li>
- <li><strong>4.</strong> Withdraw anytime at <Link href="/earnings" className="text-[var(--primary-orange)] hover:underline">/earnings</Link></li>
+ <li><strong>4.</strong> Withdraw anytime at <Link href="/earnings" className="text-accent-text hover:underline">/earnings</Link></li>
             </ul>
           </div>
         </div>
@@ -267,7 +267,7 @@ if payment < 100_000 {  // Require $0.10 minimum
         </div>
 
  <p className="text-foreground">
- Full list: <Link href="/docs/https-api#env-vars" className="text-[var(--primary-orange)] hover:underline">HTTPS API environment variables</Link>
+ Full list: <Link href="/docs/https-api#env-vars" className="text-accent-text hover:underline">HTTPS API environment variables</Link>
         </p>
       </section>
 
@@ -305,7 +305,7 @@ if payment < 100_000 {  // Require $0.10 minimum
         </div>
 
  <p className="text-foreground">
- Full API documentation: <Link href="/docs/https-api" className="text-[var(--primary-orange)] hover:underline">HTTPS API Reference →</Link>
+ Full API documentation: <Link href="/docs/https-api" className="text-accent-text hover:underline">HTTPS API Reference →</Link>
         </p>
       </section>
 
@@ -383,28 +383,28 @@ print(weather["output"])`}
  <AnchorHeading id="capabilities">Project Capabilities</AnchorHeading>
 
  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
- <Link href="/docs/projects" className="block border rounded-lg p-4 hover:border-[var(--primary-orange)] transition-colors">
+ <Link href="/docs/projects" className="block border rounded-lg p-4 hover:border-accent transition-colors">
  <h4 className="font-semibold text-foreground mb-2">Projects & Storage</h4>
  <p className="text-sm text-muted-foreground">
               Version management, persistent encrypted storage, project IDs
             </p>
           </Link>
 
- <Link href="/docs/secrets" className="block border rounded-lg p-4 hover:border-[var(--primary-orange)] transition-colors">
+ <Link href="/docs/secrets" className="block border rounded-lg p-4 hover:border-accent transition-colors">
  <h4 className="font-semibold text-foreground mb-2">Secrets</h4>
  <p className="text-sm text-muted-foreground">
               Encrypted API keys and credentials for your WASM code
             </p>
           </Link>
 
- <Link href="/docs/payment-keys" className="block border rounded-lg p-4 hover:border-[var(--primary-orange)] transition-colors">
+ <Link href="/docs/payment-keys" className="block border rounded-lg p-4 hover:border-accent transition-colors">
  <h4 className="font-semibold text-foreground mb-2">Payment Keys</h4>
  <p className="text-sm text-muted-foreground">
               Prepaid USD keys for HTTPS API access, restrictions
             </p>
           </Link>
 
- <Link href="/docs/earnings" className="block border rounded-lg p-4 hover:border-[var(--primary-orange)] transition-colors">
+ <Link href="/docs/earnings" className="block border rounded-lg p-4 hover:border-accent transition-colors">
  <h4 className="font-semibold text-foreground mb-2">Earnings</h4>
  <p className="text-sm text-muted-foreground">
               Monetize your project, receive USD payments from users
@@ -421,34 +421,34 @@ print(weather["output"])`}
           <div>
  <h4 className="font-semibold text-foreground mb-2">API & Payments</h4>
  <ul className="space-y-1 text-sm">
- <li><Link href="/docs/https-api" className="text-[var(--primary-orange)] hover:underline">HTTPS API Reference</Link> — Full endpoint docs</li>
- <li><Link href="/docs/payment-keys" className="text-[var(--primary-orange)] hover:underline">Payment Keys</Link> — Create and manage keys</li>
- <li><Link href="/docs/earnings" className="text-[var(--primary-orange)] hover:underline">Earnings</Link> — Monetize your API</li>
+ <li><Link href="/docs/https-api" className="text-accent-text hover:underline">HTTPS API Reference</Link> — Full endpoint docs</li>
+ <li><Link href="/docs/payment-keys" className="text-accent-text hover:underline">Payment Keys</Link> — Create and manage keys</li>
+ <li><Link href="/docs/earnings" className="text-accent-text hover:underline">Earnings</Link> — Monetize your API</li>
             </ul>
           </div>
 
           <div>
  <h4 className="font-semibold text-foreground mb-2">Building Projects</h4>
  <ul className="space-y-1 text-sm">
- <li><Link href="/docs/wasi" className="text-[var(--primary-orange)] hover:underline">Building OutLayer App</Link> — Build your WASM</li>
- <li><Link href="/docs/projects" className="text-[var(--primary-orange)] hover:underline">Projects</Link> — Version management</li>
- <li><Link href="/docs/storage" className="text-[var(--primary-orange)] hover:underline">Storage</Link> — Persistent data</li>
- <li><Link href="/docs/secrets" className="text-[var(--primary-orange)] hover:underline">Secrets</Link> — API keys in WASM</li>
+ <li><Link href="/docs/wasi" className="text-accent-text hover:underline">Building OutLayer App</Link> — Build your WASM</li>
+ <li><Link href="/docs/projects" className="text-accent-text hover:underline">Projects</Link> — Version management</li>
+ <li><Link href="/docs/storage" className="text-accent-text hover:underline">Storage</Link> — Persistent data</li>
+ <li><Link href="/docs/secrets" className="text-accent-text hover:underline">Secrets</Link> — API keys in WASM</li>
             </ul>
           </div>
 
           <div>
  <h4 className="font-semibold text-foreground mb-2">Verification</h4>
  <ul className="space-y-1 text-sm">
- <li><Link href="/docs/tee-attestation" className="text-[var(--primary-orange)] hover:underline">TEE Attestation</Link> — How verification works</li>
+ <li><Link href="/docs/tee-attestation" className="text-accent-text hover:underline">TEE Attestation</Link> — How verification works</li>
             </ul>
           </div>
 
           <div>
  <h4 className="font-semibold text-foreground mb-2">Examples</h4>
  <ul className="space-y-1 text-sm">
- <li><Link href="/docs/examples" className="text-[var(--primary-orange)] hover:underline">Example Projects</Link> — Working code</li>
- <li><Link href="/playground" className="text-[var(--primary-orange)] hover:underline">Playground</Link> — Test execution</li>
+ <li><Link href="/docs/examples" className="text-accent-text hover:underline">Example Projects</Link> — Working code</li>
+ <li><Link href="/playground" className="text-accent-text hover:underline">Playground</Link> — Test execution</li>
             </ul>
           </div>
         </div>

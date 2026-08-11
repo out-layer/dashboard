@@ -7,7 +7,7 @@ function AnchorHeading({ id, children, level = 2 }: { id: string; children: Reac
   const sizeClass = level === 2 ? 'text-2xl' : level === 3 ? 'text-xl' : 'text-lg';
  const className = `${sizeClass} font-bold text-foreground mb-4 scroll-mt-4 group`;
   const anchor = (
- <a href={`#${id}`} className="ml-2 text-faint-foreground hover:text-[var(--primary-orange)] opacity-0 group-hover:opacity-100 transition-opacity">
+ <a href={`#${id}`} className="ml-2 text-faint-foreground hover:text-accent-text opacity-0 group-hover:opacity-100 transition-opacity">
       #
     </a>
   );
@@ -23,7 +23,7 @@ export default function EarningsPage() {
  <h1 className="text-3xl font-bold text-foreground mb-6">Developer Earnings</h1>
 
  <p className="text-foreground mb-8 text-lg">
-        Earn USD stablecoins when users call your OutLayer projects via <Link href="/docs/https-api" className="text-[var(--primary-orange)] hover:underline">HTTPS API</Link>.
+        Earn USD stablecoins when users call your OutLayer projects via <Link href="/docs/https-api" className="text-accent-text hover:underline">HTTPS API</Link>.
  Users pay you directly through the <code>X-Attached-Deposit</code> header.
       </p>
 
@@ -174,7 +174,7 @@ if !payment_sufficient {
  <AnchorHeading id="via-dashboard" level={3}>Via Dashboard</AnchorHeading>
 
  <ol className="list-decimal list-inside text-foreground space-y-2 mb-6">
- <li>Go to <Link href="/earnings" className="text-[var(--primary-orange)] hover:underline">/earnings</Link></li>
+ <li>Go to <Link href="/earnings" className="text-accent-text hover:underline">/earnings</Link></li>
  <li>Connect your NEAR wallet</li>
  <li>View your accumulated balance and total earned</li>
  <li>See detailed history of all payments received</li>
@@ -229,7 +229,7 @@ if !payment_sufficient {
         </p>
 
  <ol className="list-decimal list-inside text-foreground space-y-2 mb-6">
- <li>Go to <Link href="/earnings" className="text-[var(--primary-orange)] hover:underline">/earnings</Link></li>
+ <li>Go to <Link href="/earnings" className="text-accent-text hover:underline">/earnings</Link></li>
  <li>Click <strong>&quot;Withdraw&quot;</strong></li>
  <li>Enter amount (or withdraw full balance)</li>
  <li>Sign the transaction</li>
@@ -462,19 +462,19 @@ if usd_payment < required_payment {
 
  <ul className="space-y-2 text-sm">
           <li>
- <Link href="/docs/https-api" className="text-[var(--primary-orange)] hover:underline">HTTPS API</Link>
+ <Link href="/docs/https-api" className="text-accent-text hover:underline">HTTPS API</Link>
             {' '}- Full API reference with X-Attached-Deposit
           </li>
           <li>
- <Link href="/docs/payment-keys" className="text-[var(--primary-orange)] hover:underline">Payment Keys</Link>
+ <Link href="/docs/payment-keys" className="text-accent-text hover:underline">Payment Keys</Link>
             {' '}- How users fund their API access
           </li>
           <li>
- <Link href="/docs/web2-integration" className="text-[var(--primary-orange)] hover:underline">Web2 Integration</Link>
+ <Link href="/docs/web2-integration" className="text-accent-text hover:underline">Web2 Integration</Link>
             {' '}- Complete project monetization setup
           </li>
           <li>
- <Link href="/docs/wasi" className="text-[var(--primary-orange)] hover:underline">Building OutLayer App</Link>
+ <Link href="/docs/wasi" className="text-accent-text hover:underline">Building OutLayer App</Link>
             {' '}- Environment variables and payment checking
           </li>
         </ul>

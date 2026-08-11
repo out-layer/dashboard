@@ -16,7 +16,7 @@ export function AiExample() {
       title="ai-example"
       badges={badges}
       githubUrl="https://github.com/out-layer/ai-example"
-      playgroundId="ai"
+      playgroundId="ai-completions"
     >
  <p className="text-foreground mb-4">
         Integrate OpenAI GPT models into your NEAR smart contracts. Send prompts from on-chain and receive AI-generated responses securely.
@@ -79,7 +79,7 @@ export function AiExample() {
  <h4 className="font-semibold text-foreground mb-2">Setting Up Secrets</h4>
  <ol className="list-decimal list-inside text-sm text-foreground space-y-1">
           <li>
- Navigate to <Link href="/secrets" className="text-[var(--primary-orange)] hover:underline">Secrets Management</Link>
+ Navigate to <Link href="/secrets" className="text-accent-text hover:underline">Secrets Management</Link>
           </li>
  <li>Create new secret with key <code>OPENAI_API_KEY</code> and your OpenAI API key as value</li>
           <li>
@@ -100,22 +100,22 @@ export function AiExample() {
       <LearnMoreSection>
  <ul className="text-sm text-foreground space-y-1">
           <li>
- <Link href="/docs/wasi#wasi-preview-2" className="text-[var(--primary-orange)] hover:underline">
+ <Link href="/docs/wasi#wasi-preview-2" className="text-accent-text hover:underline">
               WASI Preview 2 Documentation
             </Link>
           </li>
           <li>
- <Link href="/docs/secrets" className="text-[var(--primary-orange)] hover:underline">
+ <Link href="/docs/secrets" className="text-accent-text hover:underline">
               Secrets Management Guide
             </Link>
           </li>
           <li>
- <Link href="/playground#ai" className="text-[var(--primary-orange)] hover:underline">
+ <Link href="/playground#ai-completions" className="text-accent-text hover:underline">
               Try in Playground
             </Link>
           </li>
           <li>
- <a href="https://github.com/out-layer/ai-example" target="_blank" rel="noopener noreferrer" className="text-[var(--primary-orange)] hover:underline">
+ <a href="https://github.com/out-layer/ai-example" target="_blank" rel="noopener noreferrer" className="text-accent-text hover:underline">
               View Source Code
             </a>
           </li>

@@ -15,7 +15,7 @@ export function EchoExample() {
       title="echo-example"
       badges={badges}
       githubUrl="https://github.com/out-layer/echo-example"
-      playgroundId="echo"
+      playgroundId="echo-generator"
     >
  <p className="text-foreground mb-4">
         Simple echo service that accepts JSON input and returns it with a timestamp. Demonstrates basic WASI I/O and data processing.
@@ -79,17 +79,17 @@ export function EchoExample() {
       <LearnMoreSection>
  <ul className="text-sm text-foreground space-y-1">
           <li>
- <Link href="/docs/wasi#wasi-preview-1" className="text-[var(--primary-orange)] hover:underline">
+ <Link href="/docs/wasi#wasi-preview-1" className="text-accent-text hover:underline">
               WASI Preview 1 Documentation
             </Link>
           </li>
           <li>
- <Link href="/playground#echo" className="text-[var(--primary-orange)] hover:underline">
+ <Link href="/playground#echo-generator" className="text-accent-text hover:underline">
               Try in Playground
             </Link>
           </li>
           <li>
- <a href="https://github.com/out-layer/echo-example" target="_blank" rel="noopener noreferrer" className="text-[var(--primary-orange)] hover:underline">
+ <a href="https://github.com/out-layer/echo-example" target="_blank" rel="noopener noreferrer" className="text-accent-text hover:underline">
               View Source Code
             </a>
           </li>

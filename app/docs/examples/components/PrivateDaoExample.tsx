@@ -241,17 +241,17 @@ npm run build
       <LearnMoreSection>
  <ul className="text-sm text-foreground space-y-1">
           <li>
- <Link href="/docs/wasi#wasi-preview-1" className="text-[var(--primary-orange)] hover:underline">
+ <Link href="/docs/wasi#wasi-preview-1" className="text-accent-text hover:underline">
               WASI Preview 1 Documentation
             </Link>
           </li>
           <li>
- <Link href="/docs/secrets" className="text-[var(--primary-orange)] hover:underline">
+ <Link href="/docs/secrets" className="text-accent-text hover:underline">
               Secrets Management Guide
             </Link>
           </li>
           <li>
- <a href="https://github.com/out-layer/private-dao-example" target="_blank" rel="noopener noreferrer" className="text-[var(--primary-orange)] hover:underline">
+ <a href="https://github.com/out-layer/private-dao-example" target="_blank" rel="noopener noreferrer" className="text-accent-text hover:underline">
               View Source Code
             </a>
           </li>

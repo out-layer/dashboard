@@ -6,7 +6,7 @@ function AnchorHeading({ id, children, level = 2 }: { id: string; children: Reac
   const sizeClass = level === 2 ? 'text-2xl' : level === 3 ? 'text-xl' : 'text-lg';
  const className = `${sizeClass} font-bold text-foreground mb-4 scroll-mt-4 group`;
   const anchor = (
- <a href={`#${id}`} className="ml-2 text-faint-foreground hover:text-[var(--primary-orange)] opacity-0 group-hover:opacity-100 transition-opacity">
+ <a href={`#${id}`} className="ml-2 text-faint-foreground hover:text-accent-text opacity-0 group-hover:opacity-100 transition-opacity">
       #
     </a>
   );
@@ -43,7 +43,7 @@ serde_json = "1.0"`}
         </SyntaxHighlighter>
 
  <p className="text-foreground mb-4">
-          Published at <a href="https://crates.io/crates/outlayer" target="_blank" rel="noopener noreferrer" className="text-[var(--primary-orange)] hover:underline">
+          Published at <a href="https://crates.io/crates/outlayer" target="_blank" rel="noopener noreferrer" className="text-accent-text hover:underline">
             crates.io/crates/outlayer
           </a>.
  Build with the <code>wasm32-wasip2</code> target:

@@ -133,7 +133,7 @@ export function BotfatherExample() {
  This example is not available in Playground because it requires creating a secret with <code className="bg-card-muted px-1 rounded text-xs">NEAR_SENDER_PRIVATE_KEY</code> - your NEAR account&apos;s private key (with NEAR tokens) to pay for account creation and funding.
         </p>
  <p className="text-sm text-foreground mb-3">
- To use this example, create a secret in the <Link href="/secrets" className="text-[var(--primary-orange)] hover:underline font-semibold">Secrets page</Link> with the following configuration:
+ To use this example, create a secret in the <Link href="/secrets" className="text-accent-text hover:underline font-semibold">Secrets page</Link> with the following configuration:
         </p>
 
  <h5 className="font-semibold text-foreground mb-2 text-sm">Manual Secrets:</h5>

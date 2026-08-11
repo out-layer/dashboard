@@ -16,6 +16,7 @@ export function NearEmailExample() {
       title="near-email"
       badges={badges}
       githubUrl="https://github.com/out-layer/near-email"
+      liveUrl="https://near.email"
     >
  <p className="text-foreground mb-4">
         Blockchain-native email for NEAR accounts. Every NEAR account automatically has an email address: <code>alice.near</code> becomes <code>alice@near.email</code>. Emails are encrypted on receipt and
@@ -159,22 +160,22 @@ Private Key Derivation (OutLayer TEE, requires master secret):
       <LearnMoreSection>
  <ul className="text-sm text-foreground space-y-1">
           <li>
- <a href="https://near.email" target="_blank" rel="noopener noreferrer" className="text-[var(--primary-orange)] hover:underline">
+ <a href="https://near.email" target="_blank" rel="noopener noreferrer" className="text-accent-text hover:underline">
               Try near.email (live)
             </a>
           </li>
           <li>
- <a href="https://github.com/out-layer/near-email" target="_blank" rel="noopener noreferrer" className="text-[var(--primary-orange)] hover:underline">
+ <a href="https://github.com/out-layer/near-email" target="_blank" rel="noopener noreferrer" className="text-accent-text hover:underline">
               View Source Code
             </a>
           </li>
           <li>
- <Link href="/docs/secrets" className="text-[var(--primary-orange)] hover:underline">
+ <Link href="/docs/secrets" className="text-accent-text hover:underline">
               Secrets & Key Derivation Docs
             </Link>
           </li>
           <li>
- <Link href="/docs/tee-attestation" className="text-[var(--primary-orange)] hover:underline">
+ <Link href="/docs/tee-attestation" className="text-accent-text hover:underline">
               TEE Attestation Docs
             </Link>
           </li>

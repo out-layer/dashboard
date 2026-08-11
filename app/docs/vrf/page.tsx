@@ -229,7 +229,7 @@ assert!(valid, "VRF proof verification failed");`}
         </SyntaxHighlighter>
 
  <p className="text-sm text-muted-foreground mt-2">
- Full contract example: <a href="https://github.com/out-layer/vrf-example/tree/main/vrf-contract" target="_blank" rel="noopener noreferrer" className="text-[var(--primary-orange)] hover:underline">vrf-contract on GitHub</a>
+ Full contract example: <a href="https://github.com/out-layer/vrf-example/tree/main/vrf-contract" target="_blank" rel="noopener noreferrer" className="text-accent-text hover:underline">vrf-contract on GitHub</a>
         </p>
       </section>
 
@@ -395,17 +395,17 @@ console.log('Output:', output);`}
  <h3 className="text-lg font-semibold mt-4 mb-2">Related Resources</h3>
  <ul className="text-sm text-foreground space-y-1">
           <li>
- <Link href="/docs/examples#vrf-ark" className="text-[var(--primary-orange)] hover:underline">
+ <Link href="/docs/examples#vrf-ark" className="text-accent-text hover:underline">
               VRF Example Project (vrf-example)
             </Link>
           </li>
           <li>
- <Link href="/playground#vrf-coin-flip" className="text-[var(--primary-orange)] hover:underline">
+ <Link href="/playground#vrf-coin-flip" className="text-accent-text hover:underline">
               Try VRF in Playground
             </Link>
           </li>
           <li>
- <a href="https://github.com/out-layer/vrf-example" target="_blank" rel="noopener noreferrer" className="text-[var(--primary-orange)] hover:underline">
+ <a href="https://github.com/out-layer/vrf-example" target="_blank" rel="noopener noreferrer" className="text-accent-text hover:underline">
               Source Code on GitHub
             </a>
           </li>

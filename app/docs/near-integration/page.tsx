@@ -7,7 +7,7 @@ function AnchorHeading({ id, children, level = 2 }: { id: string; children: Reac
   const sizeClass = level === 2 ? 'text-2xl' : level === 3 ? 'text-xl' : 'text-lg';
  const className = `${sizeClass} font-bold text-foreground mb-4 scroll-mt-4 group`;
   const anchor = (
- <a href={`#${id}`} className="ml-2 text-faint-foreground hover:text-[var(--primary-orange)] opacity-0 group-hover:opacity-100 transition-opacity">
+ <a href={`#${id}`} className="ml-2 text-faint-foreground hover:text-accent-text opacity-0 group-hover:opacity-100 transition-opacity">
       #
     </a>
   );
@@ -273,8 +273,8 @@ impl Contract {
  <li><strong>Worker identity</strong> — Registered TEE worker with verified measurements</li>
           </ul>
  <p className="text-foreground mt-3">
- View attestations at <Link href="/executions" className="text-[var(--primary-orange)] hover:underline">/executions</Link> → &quot;View Attestation&quot;.
- Learn more: <Link href="/docs/tee-attestation" className="text-[var(--primary-orange)] hover:underline">TEE Attestation Documentation</Link>
+ View attestations at <Link href="/executions" className="text-accent-text hover:underline">/executions</Link> → &quot;View Attestation&quot;.
+ Learn more: <Link href="/docs/tee-attestation" className="text-accent-text hover:underline">TEE Attestation Documentation</Link>
           </p>
         </section>
 
@@ -282,19 +282,19 @@ impl Contract {
  <h3 className="text-lg font-semibold text-foreground mb-4">Related Documentation</h3>
  <ul className="space-y-2">
             <li>
- <Link href="/docs/projects" className="text-[var(--primary-orange)] hover:underline">Projects & Storage</Link>
+ <Link href="/docs/projects" className="text-accent-text hover:underline">Projects & Storage</Link>
               {' '}- Version management, persistent storage
             </li>
             <li>
- <Link href="/docs/secrets" className="text-[var(--primary-orange)] hover:underline">Secrets</Link>
+ <Link href="/docs/secrets" className="text-accent-text hover:underline">Secrets</Link>
               {' '}- Store API keys for your WASM code
             </li>
             <li>
- <Link href="/docs/pricing" className="text-[var(--primary-orange)] hover:underline">Pricing</Link>
+ <Link href="/docs/pricing" className="text-accent-text hover:underline">Pricing</Link>
               {' '}- Cost calculation and resource limits
             </li>
             <li>
- <Link href="/docs/examples" className="text-[var(--primary-orange)] hover:underline">Examples</Link>
+ <Link href="/docs/examples" className="text-accent-text hover:underline">Examples</Link>
               {' '}- Working code examples
             </li>
           </ul>

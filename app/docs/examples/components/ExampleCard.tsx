@@ -7,10 +7,12 @@ interface ExampleCardProps {
   badges: React.ReactNode;
   githubUrl: string;
   playgroundId?: string;
+  /** Deployed product URL — rendered as an "Open <host>" button next to GitHub. */
+  liveUrl?: string;
   children: React.ReactNode;
 }
 
-export function ExampleCard({ id, title, badges, githubUrl, playgroundId, children }: ExampleCardProps) {
+export function ExampleCard({ id, title, badges, githubUrl, playgroundId, liveUrl, children }: ExampleCardProps) {
   return (
  <div id={id} className="border border-border rounded-lg p-6 hover:shadow-lg transition-shadow scroll-mt-4">
       <AnchorHeading id={id} badges={badges}>
@@ -33,7 +35,7 @@ export function ExampleCard({ id, title, badges, githubUrl, playgroundId, childr
         {playgroundId && (
           <Link
             href={`/playground#${playgroundId}`}
- className="inline-flex items-center gap-2 px-4 py-2 bg-[var(--primary-orange)] text-white rounded-lg hover:bg-card-muted transition-colors font-medium"
+ className="inline-flex items-center gap-2 px-4 py-2 bg-accent text-on-accent rounded-lg hover:bg-accent-hover transition-colors font-medium"
           >
  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
@@ -41,6 +43,21 @@ export function ExampleCard({ id, title, badges, githubUrl, playgroundId, childr
             </svg>
  <span>Try in Playground</span>
           </Link>
+        )}
+
+        {liveUrl && (
+          <a
+            href={liveUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-accent text-on-accent rounded-lg hover:bg-accent-hover transition-colors font-medium"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.6 9h16.8M3.6 15h16.8M12 3a15 15 0 010 18" />
+            </svg>
+            <span>Open {liveUrl.replace(/^https?:\/\//, '').replace(/\/$/, '')}</span>
+          </a>
         )}
       </div>
 

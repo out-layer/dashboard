@@ -7,7 +7,7 @@ function AnchorHeading({ id, children, level = 2 }: { id: string; children: Reac
   const sizeClass = level === 2 ? 'text-2xl' : level === 3 ? 'text-xl' : 'text-lg';
  const className = `${sizeClass} font-bold text-foreground mb-4 scroll-mt-4 group`;
   const anchor = (
- <a href={`#${id}`} className="ml-2 text-faint-foreground hover:text-[var(--primary-orange)] opacity-0 group-hover:opacity-100 transition-opacity">
+ <a href={`#${id}`} className="ml-2 text-faint-foreground hover:text-accent-text opacity-0 group-hover:opacity-100 transition-opacity">
       #
     </a>
   );
@@ -33,7 +33,7 @@ export default function PaymentKeysPage() {
 
  <p className="text-foreground mb-4">
           A Payment Key is a secret token linked to your NEAR account with a prepaid USD balance.
-          It allows you to call OutLayer projects via <Link href="/docs/https-api" className="text-[var(--primary-orange)] hover:underline">HTTPS API</Link>
+          It allows you to call OutLayer projects via <Link href="/docs/https-api" className="text-accent-text hover:underline">HTTPS API</Link>
           {' '}without signing NEAR transactions.
         </p>
 
@@ -116,7 +116,7 @@ Example: X-Payment-Key: alice.near:1:K7xR2mN9pQs5vW3yZ8bF...`}
  <AnchorHeading id="via-dashboard" level={3}>Via Dashboard</AnchorHeading>
 
  <ol className="list-decimal list-inside text-foreground space-y-2 mb-6">
- <li>Go to <Link href="/payment-keys" className="text-[var(--primary-orange)] hover:underline">/payment-keys</Link></li>
+ <li>Go to <Link href="/payment-keys" className="text-accent-text hover:underline">/payment-keys</Link></li>
  <li>Click <strong>&quot;Create Payment Key&quot;</strong></li>
  <li>Configure restrictions (see below)</li>
  <li>Enter initial deposit amount (minimum $1)</li>
@@ -234,7 +234,7 @@ near call usdt.tether-token.near ft_transfer_call '{
  <AnchorHeading id="checking-balance" level={3}>Checking Balance</AnchorHeading>
 
  <p className="text-foreground mb-4">
-          View your key balance on the <Link href="/payment-keys" className="text-[var(--primary-orange)] hover:underline">Payment Keys</Link>
+          View your key balance on the <Link href="/payment-keys" className="text-accent-text hover:underline">Payment Keys</Link>
           {' '}dashboard page. The balance shows:
         </p>
 
@@ -251,7 +251,7 @@ near call usdt.tether-token.near ft_transfer_call '{
         </p>
 
  <ol className="list-decimal list-inside text-foreground space-y-2 mb-6">
- <li>Go to <Link href="/payment-keys" className="text-[var(--primary-orange)] hover:underline">/payment-keys</Link></li>
+ <li>Go to <Link href="/payment-keys" className="text-accent-text hover:underline">/payment-keys</Link></li>
  <li>Find your key and click <strong>&quot;Top Up&quot;</strong></li>
  <li>Enter amount (minimum $1)</li>
  <li>Sign the <code>ft_transfer_call</code> transaction</li>
@@ -422,7 +422,7 @@ X-RateLimit-Reset: 1704067260`}
  <div className="border-l-4 border-border pl-4">
  <h4 className="font-semibold text-foreground">5. Monitor usage</h4>
  <p className="text-sm text-muted-foreground">
- Regularly check the <Link href="/payment-keys" className="text-[var(--primary-orange)] hover:underline">Payment Keys</Link>
+ Regularly check the <Link href="/payment-keys" className="text-accent-text hover:underline">Payment Keys</Link>
               {' '}dashboard for unexpected spending patterns.
             </p>
           </div>
@@ -435,19 +435,19 @@ X-RateLimit-Reset: 1704067260`}
 
  <ul className="space-y-2 text-sm">
           <li>
- <Link href="/docs/https-api" className="text-[var(--primary-orange)] hover:underline">HTTPS API</Link>
+ <Link href="/docs/https-api" className="text-accent-text hover:underline">HTTPS API</Link>
             {' '}- Full API reference for using Payment Keys
           </li>
           <li>
- <Link href="/docs/earnings" className="text-[var(--primary-orange)] hover:underline">Earnings</Link>
+ <Link href="/docs/earnings" className="text-accent-text hover:underline">Earnings</Link>
             {' '}- How project authors earn from API calls
           </li>
           <li>
- <Link href="/docs/web2-integration" className="text-[var(--primary-orange)] hover:underline">Web2 Integration</Link>
+ <Link href="/docs/web2-integration" className="text-accent-text hover:underline">Web2 Integration</Link>
             {' '}- HTTPS API integration guide
           </li>
           <li>
- <Link href="/docs/pricing" className="text-[var(--primary-orange)] hover:underline">Pricing</Link>
+ <Link href="/docs/pricing" className="text-accent-text hover:underline">Pricing</Link>
             {' '}- Cost calculation for HTTPS calls
           </li>
         </ul>

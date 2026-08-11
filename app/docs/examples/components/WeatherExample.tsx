@@ -16,7 +16,7 @@ export function WeatherExample() {
       title="weather-example"
       badges={badges}
       githubUrl="https://github.com/out-layer/weather-example"
-      playgroundId="weather"
+      playgroundId="weather-data-oracle"
     >
  <p className="text-foreground mb-4">
         Fetch real-world weather data from OpenWeatherMap API and bring it on-chain. Perfect for parametric insurance, prediction markets, and climate-dependent DeFi.
@@ -89,10 +89,10 @@ export function WeatherExample() {
  <h4 className="font-semibold text-foreground mb-2">Setting Up Secrets</h4>
  <ol className="list-decimal list-inside text-sm text-foreground space-y-1">
           <li>
- Get free API key from <a href="https://openweathermap.org/api" target="_blank" rel="noopener noreferrer" className="text-[var(--primary-orange)] hover:underline">OpenWeatherMap</a>
+ Get free API key from <a href="https://openweathermap.org/api" target="_blank" rel="noopener noreferrer" className="text-accent-text hover:underline">OpenWeatherMap</a>
           </li>
           <li>
- Navigate to <Link href="/secrets" className="text-[var(--primary-orange)] hover:underline">Secrets Management</Link>
+ Navigate to <Link href="/secrets" className="text-accent-text hover:underline">Secrets Management</Link>
           </li>
  <li>Create secret: key = <code>OPENWEATHER_API_KEY</code>, value = your API key</li>
  <li>Set repo to your GitHub project</li>
@@ -110,22 +110,22 @@ export function WeatherExample() {
       <LearnMoreSection>
  <ul className="text-sm text-foreground space-y-1">
           <li>
- <Link href="/docs/wasi#wasi-preview-2" className="text-[var(--primary-orange)] hover:underline">
+ <Link href="/docs/wasi#wasi-preview-2" className="text-accent-text hover:underline">
               WASI Preview 2 Documentation
             </Link>
           </li>
           <li>
- <Link href="/docs/secrets" className="text-[var(--primary-orange)] hover:underline">
+ <Link href="/docs/secrets" className="text-accent-text hover:underline">
               Secrets Management Guide
             </Link>
           </li>
           <li>
- <Link href="/playground#weather" className="text-[var(--primary-orange)] hover:underline">
+ <Link href="/playground#weather-data-oracle" className="text-accent-text hover:underline">
               Try in Playground
             </Link>
           </li>
           <li>
- <a href="https://github.com/out-layer/weather-example" target="_blank" rel="noopener noreferrer" className="text-[var(--primary-orange)] hover:underline">
+ <a href="https://github.com/out-layer/weather-example" target="_blank" rel="noopener noreferrer" className="text-accent-text hover:underline">
               View Source Code
             </a>
           </li>

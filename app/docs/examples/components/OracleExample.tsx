@@ -126,22 +126,22 @@ near call outlayer.testnet request_execution '{
       <LearnMoreSection>
  <ul className="text-sm text-foreground space-y-1">
           <li>
- <Link href="/docs/wasi#wasi-preview-2" className="text-[var(--primary-orange)] hover:underline">
+ <Link href="/docs/wasi#wasi-preview-2" className="text-accent-text hover:underline">
               WASI Preview 2 Documentation
             </Link>
           </li>
           <li>
- <Link href="/docs/secrets" className="text-[var(--primary-orange)] hover:underline">
+ <Link href="/docs/secrets" className="text-accent-text hover:underline">
               Secrets Management Guide
             </Link>
           </li>
           <li>
- <Link href="/playground#multi-source-data-oracle" className="text-[var(--primary-orange)] hover:underline">
+ <Link href="/playground#multi-source-data-oracle" className="text-accent-text hover:underline">
               Try in Playground
             </Link>
           </li>
           <li>
- <a href="https://github.com/out-layer/oracle-example" target="_blank" rel="noopener noreferrer" className="text-[var(--primary-orange)] hover:underline">
+ <a href="https://github.com/out-layer/oracle-example" target="_blank" rel="noopener noreferrer" className="text-accent-text hover:underline">
               View Source Code
             </a>
           </li>

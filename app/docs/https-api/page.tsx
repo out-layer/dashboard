@@ -7,7 +7,7 @@ function AnchorHeading({ id, children, level = 2 }: { id: string; children: Reac
   const sizeClass = level === 2 ? 'text-2xl' : level === 3 ? 'text-xl' : 'text-lg';
  const className = `${sizeClass} font-bold text-foreground mb-4 scroll-mt-4 group`;
   const anchor = (
- <a href={`#${id}`} className="ml-2 text-faint-foreground hover:text-[var(--primary-orange)] opacity-0 group-hover:opacity-100 transition-opacity">
+ <a href={`#${id}`} className="ml-2 text-faint-foreground hover:text-accent-text opacity-0 group-hover:opacity-100 transition-opacity">
       #
     </a>
   );
@@ -24,7 +24,7 @@ export default function HttpsApiPage() {
 
  <p className="text-foreground mb-8 text-lg">
         Call OutLayer projects via simple HTTP requests without NEAR transactions.
-        Authentication uses <Link href="/docs/payment-keys" className="text-[var(--primary-orange)] hover:underline">Payment Keys</Link>
+        Authentication uses <Link href="/docs/payment-keys" className="text-accent-text hover:underline">Payment Keys</Link>
         {' '}with prepaid USD stablecoin balance.
       </p>
 
@@ -216,7 +216,7 @@ curl -X POST https://api.outlayer.ai/call/alice.near/my-assistant \\
  <td className="px-4 py-3 text-sm">object</td>
  <td className="px-4 py-3 text-sm text-muted-foreground">No</td>
  <td className="px-4 py-3 text-sm text-muted-foreground">
-                  Reference to <Link href="/docs/secrets" className="text-[var(--primary-orange)] hover:underline">keystore secrets</Link>.
+                  Reference to <Link href="/docs/secrets" className="text-accent-text hover:underline">keystore secrets</Link>.
  Contains <code>profile</code> (string) and <code>account_id</code> (string).
                   Decrypted secrets are injected as environment variables into WASM.
                 </td>
@@ -528,7 +528,7 @@ if usd_payment >= MIN_PREMIUM_USD {
  <AnchorHeading id="secrets">Using Secrets</AnchorHeading>
 
  <p className="text-foreground mb-4">
-          If your WASM code needs API keys or other sensitive data, use <Link href="/docs/secrets" className="text-[var(--primary-orange)] hover:underline">Keystore Secrets</Link>.
+          If your WASM code needs API keys or other sensitive data, use <Link href="/docs/secrets" className="text-accent-text hover:underline">Keystore Secrets</Link>.
           Secrets are encrypted and stored on-chain, then decrypted inside TEE at execution time
           and injected as environment variables.
         </p>
@@ -565,7 +565,7 @@ if usd_payment >= MIN_PREMIUM_USD {
  <td className="px-4 py-3 text-sm">string</td>
  <td className="px-4 py-3 text-sm text-muted-foreground">
                   Secret profile name (e.g., &quot;default&quot;, &quot;production&quot;).
-                  Configured in the <Link href="/docs/secrets" className="text-[var(--primary-orange)] hover:underline">Secrets</Link> page.
+                  Configured in the <Link href="/docs/secrets" className="text-accent-text hover:underline">Secrets</Link> page.
                 </td>
               </tr>
               <tr>
@@ -770,7 +770,7 @@ weather = call_outlayer("alice.near/weather-api", {"city": "Tokyo"})`}
         </div>
 
  <p className="text-foreground mb-4">
- See <Link href="/docs/pricing" className="text-[var(--primary-orange)] hover:underline">Pricing & Limits</Link>
+ See <Link href="/docs/pricing" className="text-accent-text hover:underline">Pricing & Limits</Link>
           {' '}for current rates. Key points:
         </p>
 
@@ -788,23 +788,23 @@ weather = call_outlayer("alice.near/weather-api", {"city": "Tokyo"})`}
 
  <ul className="space-y-2 text-sm">
           <li>
- <Link href="/docs/payment-keys" className="text-[var(--primary-orange)] hover:underline">Payment Keys</Link>
+ <Link href="/docs/payment-keys" className="text-accent-text hover:underline">Payment Keys</Link>
             {' '}- Creating and managing Payment Keys
           </li>
           <li>
- <Link href="/docs/earnings" className="text-[var(--primary-orange)] hover:underline">Earnings</Link>
+ <Link href="/docs/earnings" className="text-accent-text hover:underline">Earnings</Link>
             {' '}- How project authors earn from X-Attached-Deposit
           </li>
           <li>
- <Link href="/docs/secrets" className="text-[var(--primary-orange)] hover:underline">Secrets (Keystore)</Link>
+ <Link href="/docs/secrets" className="text-accent-text hover:underline">Secrets (Keystore)</Link>
             {' '}- Encrypting and managing secrets for WASM execution
           </li>
           <li>
- <Link href="/docs/web2-integration" className="text-[var(--primary-orange)] hover:underline">Web2 Integration</Link>
+ <Link href="/docs/web2-integration" className="text-accent-text hover:underline">Web2 Integration</Link>
             {' '}- Complete HTTPS integration guide
           </li>
           <li>
- <Link href="/docs/tee-attestation" className="text-[var(--primary-orange)] hover:underline">TEE Attestation</Link>
+ <Link href="/docs/tee-attestation" className="text-accent-text hover:underline">TEE Attestation</Link>
             {' '}- Verifying execution attestations
           </li>
         </ul>

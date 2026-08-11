@@ -15,7 +15,7 @@ export function RandomExample() {
       title="random-example"
       badges={badges}
       githubUrl="https://github.com/out-layer/random-example"
-      playgroundId="random"
+      playgroundId="random-number-generator"
     >
  <p className="text-foreground mb-4">
         Generate cryptographically secure random numbers inside TEE (Trusted Execution Environment) using WASI&apos;s random_get interface.
@@ -72,17 +72,17 @@ export function RandomExample() {
       <LearnMoreSection>
  <ul className="text-sm text-foreground space-y-1">
           <li>
- <Link href="/docs/wasi#wasi-preview-1" className="text-[var(--primary-orange)] hover:underline">
+ <Link href="/docs/wasi#wasi-preview-1" className="text-accent-text hover:underline">
               WASI Preview 1 Documentation
             </Link>
           </li>
           <li>
- <Link href="/playground#random" className="text-[var(--primary-orange)] hover:underline">
+ <Link href="/playground#random-number-generator" className="text-accent-text hover:underline">
               Try in Playground
             </Link>
           </li>
           <li>
- <a href="https://github.com/out-layer/random-example" target="_blank" rel="noopener noreferrer" className="text-[var(--primary-orange)] hover:underline">
+ <a href="https://github.com/out-layer/random-example" target="_blank" rel="noopener noreferrer" className="text-accent-text hover:underline">
               View Source Code
             </a>
           </li>

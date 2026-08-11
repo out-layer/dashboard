@@ -110,7 +110,7 @@ near deploy tokensale.testnet \\
 
  <div className="mt-4 p-3 bg-card-muted border-l-4 border-border">
  <p className="text-sm text-foreground mb-2">
- <strong>Production Setup:</strong> Requires SSL certificates for both frontend and backend domains. See <a href="https://github.com/out-layer/captcha-example/blob/main/CONFIGURATION.md" target="_blank" rel="noopener noreferrer" className="text-[var(--primary-orange)] hover:underline">CONFIGURATION.md</a> for complete deployment guide.
+ <strong>Production Setup:</strong> Requires SSL certificates for both frontend and backend domains. See <a href="https://github.com/out-layer/captcha-example/blob/main/CONFIGURATION.md" target="_blank" rel="noopener noreferrer" className="text-accent-text hover:underline">CONFIGURATION.md</a> for complete deployment guide.
         </p>
       </div>
 
@@ -135,22 +135,22 @@ near deploy tokensale.testnet \\
       <LearnMoreSection>
  <ul className="text-sm text-foreground space-y-1">
           <li>
- <Link href="/docs/wasi#wasi-preview-2" className="text-[var(--primary-orange)] hover:underline">
+ <Link href="/docs/wasi#wasi-preview-2" className="text-accent-text hover:underline">
               WASI Preview 2 Documentation
             </Link>
           </li>
           <li>
- <a href="https://github.com/out-layer/captcha-example" target="_blank" rel="noopener noreferrer" className="text-[var(--primary-orange)] hover:underline">
+ <a href="https://github.com/out-layer/captcha-example" target="_blank" rel="noopener noreferrer" className="text-accent-text hover:underline">
               View Source Code
             </a>
           </li>
           <li>
- <a href="https://github.com/out-layer/captcha-example/blob/main/CONFIGURATION.md" target="_blank" rel="noopener noreferrer" className="text-[var(--primary-orange)] hover:underline">
+ <a href="https://github.com/out-layer/captcha-example/blob/main/CONFIGURATION.md" target="_blank" rel="noopener noreferrer" className="text-accent-text hover:underline">
               Deployment Configuration Guide
             </a>
           </li>
           <li>
- <a href="https://hcaptcha.com" target="_blank" rel="noopener noreferrer" className="text-[var(--primary-orange)] hover:underline">
+ <a href="https://hcaptcha.com" target="_blank" rel="noopener noreferrer" className="text-accent-text hover:underline">
               hCaptcha (Free Tier Available)
             </a>
           </li>

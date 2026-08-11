@@ -8,7 +8,7 @@ function AnchorHeading({ id, children, level = 2 }: { id: string; children: Reac
   const sizeClass = level === 2 ? 'text-2xl' : level === 3 ? 'text-xl' : 'text-lg';
  const className = `${sizeClass} font-bold text-foreground mb-4 scroll-mt-4 group`;
   const anchor = (
- <a href={`#${id}`} className="ml-2 text-faint-foreground hover:text-[var(--primary-orange)] opacity-0 group-hover:opacity-100 transition-opacity">
+ <a href={`#${id}`} className="ml-2 text-faint-foreground hover:text-accent-text opacity-0 group-hover:opacity-100 transition-opacity">
       #
     </a>
   );
@@ -84,11 +84,11 @@ Examples:
  <AnchorHeading id="creating-project">Creating a Project</AnchorHeading>
 
  <p className="text-foreground mb-4">
- Create projects via the <Link href="/projects" className="text-[var(--primary-orange)] hover:underline">Projects Dashboard</Link>:
+ Create projects via the <Link href="/projects" className="text-accent-text hover:underline">Projects Dashboard</Link>:
         </p>
 
  <ol className="list-decimal list-inside text-foreground space-y-2 mb-6">
- <li>Go to <Link href="/projects" className="text-[var(--primary-orange)] hover:underline">/projects</Link></li>
+ <li>Go to <Link href="/projects" className="text-accent-text hover:underline">/projects</Link></li>
  <li>Click &quot;New Project&quot;</li>
  <li>Enter project name</li>
  <li>Select code source (GitHub repo or WASM URL)</li>
@@ -298,7 +298,7 @@ let name = std::env::var("OUTLAYER_PROJECT_NAME").ok();
  <AnchorHeading id="add-version" level={3}>Adding a Version</AnchorHeading>
 
  <p className="text-foreground mb-4">
- In the <Link href="/projects" className="text-[var(--primary-orange)] hover:underline">Projects dashboard</Link>,
+ In the <Link href="/projects" className="text-accent-text hover:underline">Projects dashboard</Link>,
           expand your project and click &quot;Add Version&quot;. You can choose to make it active immediately or keep
           the current active version.
         </p>
@@ -383,7 +383,7 @@ let name = std::env::var("OUTLAYER_PROJECT_NAME").ok();
           </p>
           <Link
             href="/docs/storage"
- className="inline-flex items-center px-4 py-2 bg-[var(--primary-orange)] text-white rounded-lg hover:bg-card-muted transition-colors"
+ className="inline-flex items-center px-4 py-2 bg-accent text-white rounded-lg hover:bg-card-muted transition-colors"
           >
             Storage Documentation →
           </Link>
@@ -396,7 +396,7 @@ let name = std::env::var("OUTLAYER_PROJECT_NAME").ok();
 
  <p className="text-foreground mb-4">
           Secrets can be bound to a project, making them accessible by all versions.
- See <Link href="/docs/secrets#project-binding" className="text-[var(--primary-orange)] hover:underline">Secrets Documentation</Link> for
+ See <Link href="/docs/secrets#project-binding" className="text-accent-text hover:underline">Secrets Documentation</Link> for
           details on creating and managing project secrets.
         </p>
 
@@ -481,25 +481,25 @@ let name = std::env::var("OUTLAYER_PROJECT_NAME").ok();
  <h3 className="text-lg font-semibold text-foreground mb-4">Related Documentation</h3>
  <ul className="space-y-2">
           <li>
- <Link href="/docs/storage" className="text-[var(--primary-orange)] hover:underline">
+ <Link href="/docs/storage" className="text-accent-text hover:underline">
               Persistent Storage
             </Link>
             {' '}- Storage API, methods, atomic operations
           </li>
           <li>
- <Link href="/docs/secrets#project-binding" className="text-[var(--primary-orange)] hover:underline">
+ <Link href="/docs/secrets#project-binding" className="text-accent-text hover:underline">
               Project Secrets
             </Link>
             {' '}- Binding secrets to projects
           </li>
           <li>
- <Link href="/docs/wasi" className="text-[var(--primary-orange)] hover:underline">
+ <Link href="/docs/wasi" className="text-accent-text hover:underline">
               Building OutLayer App
             </Link>
             {' '}- WASI P1 vs P2, building WASM modules
           </li>
           <li>
- <Link href="/docs/pricing" className="text-[var(--primary-orange)] hover:underline">
+ <Link href="/docs/pricing" className="text-accent-text hover:underline">
               Pricing & Limits
             </Link>
             {' '}- Understanding storage costs

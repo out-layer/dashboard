@@ -17,7 +17,7 @@ function AnchorHeading({ id, children }: { id: string; children: React.ReactNode
 
   return (
  <h3 id={id} className="text-xl font-semibold mb-3 group relative">
- <a href={`#${id}`} onClick={handleClick} className="hover:text-[var(--primary-orange)] transition-colors">
+ <a href={`#${id}`} onClick={handleClick} className="hover:text-accent-text transition-colors">
         {children}
  <span className="absolute -left-6 opacity-0 group-hover:opacity-100 transition-opacity text-faint-foreground">#</span>
       </a>
@@ -48,10 +48,10 @@ export default function DeveloperGuideSection() {
 
   return (
  <div className="prose max-w-none">
- <h2 className="text-3xl font-bold mb-6 text-[var(--primary-orange)]">Developer Guide: Random Numbers</h2>
+ <h2 className="text-3xl font-bold mb-6 text-accent-text">Developer Guide: Random Numbers</h2>
 
       {/* TL;DR */}
- <div className="bg-gradient-to-r from-card-muted to-yellow-50 border-l-4 border-[var(--primary-orange)] p-6 mb-8 rounded-r-lg">
+ <div className="bg-gradient-to-r from-card-muted to-yellow-50 border-l-4 border-accent p-6 mb-8 rounded-r-lg">
  <AnchorHeading id="tldr"> TL;DR</AnchorHeading>
  <ul className="space-y-2 text-sm text-foreground">
  <li>Write WebAssembly project using functions impossible in smart contracts</li>
@@ -161,7 +161,7 @@ path = "src/main.rs"`}
  <li><strong>Commit hash</strong> (e.g., <code className="bg-card-muted px-2 py-1 rounded">a1b2c3d</code>) - immutable, guarantees exact version</li>
           </ul>
  <p className="text-sm text-muted-foreground">
- Example repo: <a href="https://github.com/out-layer/random-example" target="_blank" rel="noopener" className="text-[var(--primary-orange)] hover:underline">github.com/out-layer/random-example</a>
+ Example repo: <a href="https://github.com/out-layer/random-example" target="_blank" rel="noopener" className="text-accent-text hover:underline">github.com/out-layer/random-example</a>
           </p>
  <p className="text-sm text-muted-foreground mt-2">
              Coming soon: GitLab, Bitbucket, and other git hosting platforms
@@ -234,7 +234,7 @@ near call outlayer.testnet request_execution '{
         <section id="step-4">
  <AnchorHeading id="step-4"> Step 4: Get Result</AnchorHeading>
  <p className="text-foreground mb-3">
- Check execution result on the <Link href="/executions" className="text-[var(--primary-orange)] hover:underline">Executions</Link> page.
+ Check execution result on the <Link href="/executions" className="text-accent-text hover:underline">Executions</Link> page.
  Since we specified <code className="bg-card-muted px-2 py-1 rounded">response_format: &quot;Json&quot;</code>, the result will be parsed as JSON:
           </p>
           <SyntaxHighlighter language="json" style={vscDarkPlus} customStyle={{ borderRadius: '0.5rem', fontSize: '0.875rem' }}>
@@ -360,7 +360,7 @@ impl CoinFlipContract {
             </p>
           </div>
  <p className="text-sm text-muted-foreground mt-3">
- Example transaction: <a href="https://testnet.nearblocks.io/txns/Gq3cN9ePX6s5pt5z4snfAtjszQ9mjzzWhwEUThmHfaDm?tab=execution" target="_blank" rel="noopener" className="text-[var(--primary-orange)] hover:underline">View on NEAR Explorer</a>
+ Example transaction: <a href="https://testnet.nearblocks.io/txns/Gq3cN9ePX6s5pt5z4snfAtjszQ9mjzzWhwEUThmHfaDm?tab=execution" target="_blank" rel="noopener" className="text-accent-text hover:underline">View on NEAR Explorer</a>
           </p>
         </section>
 
@@ -386,7 +386,7 @@ impl CoinFlipContract {
  <div className="bg-card-muted p-4 rounded-lg">
  <h4 className="font-semibold text-foreground mb-2"> Encrypted Secrets</h4>
  <p className="text-foreground text-sm">
- Store API keys and credentials with <Link href="/docs/secrets" className="text-[var(--primary-orange)] underline">sophisticated access control</Link>:
+ Store API keys and credentials with <Link href="/docs/secrets" className="text-accent-text underline">sophisticated access control</Link>:
                 whitelists, NEAR balance requirements, FT/NFT ownership, and complex logic conditions (AND/OR/NOT).
               </p>
             </div>
@@ -397,7 +397,7 @@ impl CoinFlipContract {
                 WASI containers can receive blockchain context as input parameters (block height, account ID, timestamp, etc.).
               </p>
  <p className="text-foreground text-sm">
- Example: <a href="https://github.com/out-layer/echo-example" target="_blank" rel="noopener" className="text-[var(--primary-orange)] underline">echo-example</a> -
+ Example: <a href="https://github.com/out-layer/echo-example" target="_blank" rel="noopener" className="text-accent-text underline">echo-example</a> -
                 demonstrates how to pass and process blockchain data in off-chain code.
               </p>
             </div>
@@ -432,20 +432,20 @@ impl CoinFlipContract {
  <AnchorHeading id="next-steps-guide"> Next Steps</AnchorHeading>
  <ul className="space-y-2">
  <li className="flex items-center space-x-2">
- <span className="text-[var(--primary-orange)]">→</span>
- <span>Fork <a href="https://github.com/out-layer/random-example" target="_blank" rel="noopener" className="text-[var(--primary-orange)] hover:underline">random-example</a> and customize it</span>
+ <span className="text-accent-text">→</span>
+ <span>Fork <a href="https://github.com/out-layer/random-example" target="_blank" rel="noopener" className="text-accent-text hover:underline">random-example</a> and customize it</span>
             </li>
  <li className="flex items-center space-x-2">
- <span className="text-[var(--primary-orange)]">→</span>
- <span>Explore <a href="https://github.com/out-layer/random-example/tree/main/random-contract" target="_blank" rel="noopener" className="text-[var(--primary-orange)] hover:underline">coin flip contract</a> source code</span>
+ <span className="text-accent-text">→</span>
+ <span>Explore <a href="https://github.com/out-layer/random-example/tree/main/random-contract" target="_blank" rel="noopener" className="text-accent-text hover:underline">coin flip contract</a> source code</span>
             </li>
  <li className="flex items-center space-x-2">
- <span className="text-[var(--primary-orange)]">→</span>
- <span>Learn about <Link href="/docs/secrets" className="text-[var(--primary-orange)] hover:underline">encrypted secrets</Link> for API keys</span>
+ <span className="text-accent-text">→</span>
+ <span>Learn about <Link href="/docs/secrets" className="text-accent-text hover:underline">encrypted secrets</Link> for API keys</span>
             </li>
  <li className="flex items-center space-x-2">
- <span className="text-[var(--primary-orange)]">→</span>
- <span>Read <Link href="/docs/wasi" className="text-[var(--primary-orange)] hover:underline">WASI documentation</Link> for HTTP requests and more</span>
+ <span className="text-accent-text">→</span>
+ <span>Read <Link href="/docs/wasi" className="text-accent-text hover:underline">WASI documentation</Link> for HTTP requests and more</span>
             </li>
           </ul>
         </section>

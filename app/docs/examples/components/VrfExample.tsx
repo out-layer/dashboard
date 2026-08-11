@@ -114,22 +114,22 @@ let side = (bytes as u64 * 2 / (u32::MAX as u64 + 1)) as u32; // 0 or 1`}
       <LearnMoreSection>
  <ul className="text-sm text-foreground space-y-1">
           <li>
- <Link href="/docs/vrf" className="text-[var(--primary-orange)] hover:underline">
+ <Link href="/docs/vrf" className="text-accent-text hover:underline">
               VRF Documentation &mdash; full technical guide
             </Link>
           </li>
           <li>
- <Link href="/playground#vrf-coin-flip" className="text-[var(--primary-orange)] hover:underline">
+ <Link href="/playground#vrf-coin-flip" className="text-accent-text hover:underline">
               Try VRF in Playground
             </Link>
           </li>
           <li>
- <a href="https://github.com/out-layer/vrf-example" target="_blank" rel="noopener noreferrer" className="text-[var(--primary-orange)] hover:underline">
+ <a href="https://github.com/out-layer/vrf-example" target="_blank" rel="noopener noreferrer" className="text-accent-text hover:underline">
               View Source Code
             </a>
           </li>
           <li>
- <a href="https://github.com/out-layer/vrf-example/tree/main/vrf-contract" target="_blank" rel="noopener noreferrer" className="text-[var(--primary-orange)] hover:underline">
+ <a href="https://github.com/out-layer/vrf-example/tree/main/vrf-contract" target="_blank" rel="noopener noreferrer" className="text-accent-text hover:underline">
               Coin Flip Contract Example
             </a>
           </li>

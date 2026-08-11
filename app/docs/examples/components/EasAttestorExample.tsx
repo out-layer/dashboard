@@ -27,6 +27,7 @@ export function EasAttestorExample() {
       title="eas-attestor"
       badges={badges}
       githubUrl="https://github.com/out-layer/eas-attestor"
+      liveUrl="https://eas.outlayer.ai"
     >
       <p className="text-foreground mb-4">
         One-click TEE attestations for the <a href="https://attest.org" target="_blank" rel="noopener noreferrer" className="underline hover:text-accent-text">Ethereum Attestation Service</a>.
@@ -70,6 +71,122 @@ export function EasAttestorExample() {
       ]} />
 
       <div className="mb-6">
+        <h4 className="font-semibold text-foreground mb-3">Run it from a terminal</h4>
+        <p className="text-foreground text-sm mb-3">
+          The web form is just one driver &mdash; the engine is three HTTPS calls, and the
+          form&apos;s <em>How to run it</em> box generates these exact commands prefilled with your
+          values. You need a <Link href="/payment-keys" className="underline hover:text-accent-text">payment key</Link>;
+          the signing key is created once on the <Link href="/secrets" className="underline hover:text-accent-text">secrets page</Link>{' '}
+          (the form links you there with everything prefilled).
+        </p>
+
+        <details className="mb-2 rounded-lg border border-border">
+          <summary className="cursor-pointer px-4 py-2 text-sm font-semibold text-foreground">
+            1. Dry run &mdash; no signing key, just a payment key
+          </summary>
+          <pre className="mx-4 mb-3 overflow-x-auto rounded-lg bg-card-muted p-4 text-sm">
+{`curl -s -X POST https://api.outlayer.ai/call/zavodil.near/eas-attestor \\
+  -H 'Content-Type: application/json' \\
+  -H 'X-Payment-Key: YOUR_PAYMENT_KEY' \\
+  -d '{
+    "async": true,
+    "input": {
+      "mode": "dry_run",
+      "chain": { "network": "base" },
+      "schema": { "definition": "uint256 totalSupply,uint64 blockNumber,string teeAttestation" },
+      "collect": [
+        { "type": "erc20_total_supply", "token": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913" },
+        { "type": "block_number" },
+        { "type": "tee_attestation", "returns": "url", "api_base": "https://app.outlayer.ai" }
+      ],
+      "min_agree": 2
+    }
+  }'`}
+          </pre>
+        </details>
+
+        <details className="mb-2 rounded-lg border border-border">
+          <summary className="cursor-pointer px-4 py-2 text-sm font-semibold text-foreground">
+            2. Register the schema &mdash; one-time, signed inside the enclave
+          </summary>
+          <pre className="mx-4 mb-3 overflow-x-auto rounded-lg bg-card-muted p-4 text-sm">
+{`curl -s -X POST https://api.outlayer.ai/call/zavodil.near/eas-attestor \\
+  -H 'Content-Type: application/json' \\
+  -H 'X-Payment-Key: YOUR_PAYMENT_KEY' \\
+  -d '{
+    "async": true,
+    "secrets_ref": { "profile": "eas", "account_id": "you.near" },
+    "input": {
+      "mode": "register_schema",
+      "chain": { "network": "base" },
+      "key_env": "PROTECTED_EAS_KEY",
+      "schema": {
+        "definition": "uint256 totalSupply,uint64 blockNumber,string teeAttestation",
+        "resolver": "0x0",
+        "revocable": true
+      }
+    }
+  }'
+# → returns predicted_schema_uid — use it as schema.uid below`}
+          </pre>
+        </details>
+
+        <details className="mb-2 rounded-lg border border-border">
+          <summary className="cursor-pointer px-4 py-2 text-sm font-semibold text-foreground">
+            3. Attest &mdash; publish on-chain
+          </summary>
+          <pre className="mx-4 mb-3 overflow-x-auto rounded-lg bg-card-muted p-4 text-sm">
+{`curl -s -X POST https://api.outlayer.ai/call/zavodil.near/eas-attestor \\
+  -H 'Content-Type: application/json' \\
+  -H 'X-Payment-Key: YOUR_PAYMENT_KEY' \\
+  -d '{
+    "async": true,
+    "secrets_ref": { "profile": "eas", "account_id": "you.near" },
+    "input": {
+      "mode": "attest",
+      "chain": { "network": "base" },
+      "key_env": "PROTECTED_EAS_KEY",
+      "schema": {
+        "uid": "0x<schema UID from step 2>",
+        "definition": "uint256 totalSupply,uint64 blockNumber,string teeAttestation"
+      },
+      "collect": [
+        { "type": "erc20_total_supply", "token": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913" },
+        { "type": "block_number" },
+        { "type": "tee_attestation", "returns": "url", "api_base": "https://app.outlayer.ai" }
+      ],
+      "min_agree": 2
+    }
+  }'`}
+          </pre>
+        </details>
+
+        <details className="mb-2 rounded-lg border border-border">
+          <summary className="cursor-pointer px-4 py-2 text-sm font-semibold text-foreground">
+            Poll for the result
+          </summary>
+          <pre className="mx-4 mb-3 overflow-x-auto rounded-lg bg-card-muted p-4 text-sm">
+{`# every call above returns { "call_id": "..." } immediately; poll it:
+curl -s https://api.outlayer.ai/calls/CALL_ID \\
+  -H 'X-Payment-Key: YOUR_PAYMENT_KEY'
+# → status, the job's full output, and attestation_url — the TEE quote for this exact run`}
+          </pre>
+        </details>
+
+        <details className="rounded-lg border border-border">
+          <summary className="cursor-pointer px-4 py-2 text-sm font-semibold text-foreground">
+            Run the engine locally (wasmtime, dry run)
+          </summary>
+          <pre className="mx-4 mb-3 overflow-x-auto rounded-lg bg-card-muted p-4 text-sm">
+{`git clone https://github.com/out-layer/eas-attestor && cd eas-attestor
+./build.sh
+cat example-job.json | wasmtime -S http target/wasm32-wasip2/release/eas-attestor.wasm
+# same binary the enclave runs — dry_run works anywhere, signing needs the enclave-held key`}
+          </pre>
+        </details>
+      </div>
+
+      <div className="mb-6">
         <h4 className="font-semibold text-foreground mb-3">Key custody &mdash; the design decision</h4>
         <p className="text-foreground text-sm mb-2">
           The attester key is a <Link href="/docs/secrets" className="underline hover:text-accent-text">generated secret</Link>{' '}
@@ -97,16 +214,16 @@ export function EasAttestorExample() {
         </p>
         <ul className="text-sm text-foreground space-y-1">
           <li>
-            1. <a href={DRY_RUN_URL} target="_blank" rel="noopener noreferrer" className="text-[var(--primary-orange)] hover:underline">Dry run</a> &mdash; collects the data and encodes the attestation without broadcasting
+            1. <a href={DRY_RUN_URL} target="_blank" rel="noopener noreferrer" className="text-accent-text hover:underline">Dry run</a> &mdash; collects the data and encodes the attestation without broadcasting
           </li>
           <li>
-            2. <a href={REGISTER_URL} target="_blank" rel="noopener noreferrer" className="text-[var(--primary-orange)] hover:underline">Schema registration</a> &mdash; registers the EAS schema, signed inside the enclave
+            2. <a href={REGISTER_URL} target="_blank" rel="noopener noreferrer" className="text-accent-text hover:underline">Schema registration</a> &mdash; registers the EAS schema, signed inside the enclave
           </li>
           <li>
-            3. <a href={ATTEST_URL} target="_blank" rel="noopener noreferrer" className="text-[var(--primary-orange)] hover:underline">Attestation</a> &mdash; USDC total supply on Base, published on-chain
+            3. <a href={ATTEST_URL} target="_blank" rel="noopener noreferrer" className="text-accent-text hover:underline">Attestation</a> &mdash; USDC total supply on Base, published on-chain
           </li>
           <li>
-            4. <a href={EASSCAN_RESULT} target="_blank" rel="noopener noreferrer" className="text-[var(--primary-orange)] hover:underline">The result on EAS</a> &mdash; note the <code>teeAttestation</code> field pointing back at its own proof
+            4. <a href={EASSCAN_RESULT} target="_blank" rel="noopener noreferrer" className="text-accent-text hover:underline">The result on EAS</a> &mdash; note the <code>teeAttestation</code> field pointing back at its own proof
           </li>
         </ul>
       </div>
@@ -149,22 +266,22 @@ export function EasAttestorExample() {
       <LearnMoreSection>
         <ul className="text-sm text-foreground space-y-1">
           <li>
-            <a href="https://eas.outlayer.ai" target="_blank" rel="noopener noreferrer" className="text-[var(--primary-orange)] hover:underline">
+            <a href="https://eas.outlayer.ai" target="_blank" rel="noopener noreferrer" className="text-accent-text hover:underline">
               Try eas.outlayer.ai (live)
             </a>
           </li>
           <li>
-            <a href="https://github.com/out-layer/eas-attestor" target="_blank" rel="noopener noreferrer" className="text-[var(--primary-orange)] hover:underline">
+            <a href="https://github.com/out-layer/eas-attestor" target="_blank" rel="noopener noreferrer" className="text-accent-text hover:underline">
               View Source Code
             </a>
           </li>
           <li>
-            <Link href="/docs/secrets" className="text-[var(--primary-orange)] hover:underline">
+            <Link href="/docs/secrets" className="text-accent-text hover:underline">
               Secrets & Generated Keys Docs
             </Link>
           </li>
           <li>
-            <Link href="/docs/trust-verification" className="text-[var(--primary-orange)] hover:underline">
+            <Link href="/docs/trust-verification" className="text-accent-text hover:underline">
               Trust & Verification (outlayer-verify)
             </Link>
           </li>

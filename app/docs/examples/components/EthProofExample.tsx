@@ -107,12 +107,12 @@ export function EthProofExample() {
       <LearnMoreSection>
  <ul className="text-sm text-foreground space-y-1 list-disc list-inside">
           <li>
- <a href="https://eips.ethereum.org/EIPS/eip-1186" target="_blank" rel="noopener noreferrer" className="text-[var(--primary-orange)] hover:underline">
+ <a href="https://eips.ethereum.org/EIPS/eip-1186" target="_blank" rel="noopener noreferrer" className="text-accent-text hover:underline">
               EIP-1186
  </a>{' '}&mdash; the <code>eth_getProof</code> specification
           </li>
           <li>
- <a href="https://docs.chain.link/data-feeds/price-feeds/addresses" target="_blank" rel="noopener noreferrer" className="text-[var(--primary-orange)] hover:underline">
+ <a href="https://docs.chain.link/data-feeds/price-feeds/addresses" target="_blank" rel="noopener noreferrer" className="text-accent-text hover:underline">
               Chainlink feed addresses
  </a>{' '}&mdash; the proxy address to pass as <code>proxy</code>
           </li>

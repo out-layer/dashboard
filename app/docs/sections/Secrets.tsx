@@ -8,7 +8,7 @@ export default function SecretsSection() {
 
   return (
  <div className="prose max-w-none">
- <h2 className="text-3xl font-bold mb-6 text-[var(--primary-orange)]">Secrets</h2>
+ <h2 className="text-3xl font-bold mb-6 text-accent-text">Secrets</h2>
 
  <div className="bg-card-muted p-4 rounded-lg mb-6">
  <p className="text-foreground font-semibold mb-2">Enterprise-Grade Security with CKD & MPC Network</p>
@@ -32,7 +32,7 @@ export default function SecretsSection() {
         <section id="creating-secrets">
  <AnchorHeading id="creating-secrets">Creating Secrets</AnchorHeading>
  <p className="text-foreground mb-3">
- Use the <Link href="/secrets" className="text-[var(--primary-orange)] hover:underline">Secrets</Link> page
+ Use the <Link href="/secrets" className="text-accent-text hover:underline">Secrets</Link> page
             to create encrypted secrets. Specify repository, branch (optional), and profile name. Secrets are encrypted
             client-side before being stored on-chain.
           </p>

@@ -16,7 +16,7 @@ function AnchorHeading({ id, children }: { id: string; children: React.ReactNode
 
   return (
  <h3 id={id} className="text-xl font-semibold mb-3 group relative">
- <a href={`#${id}`} onClick={handleClick} className="hover:text-[var(--primary-orange)] transition-colors">
+ <a href={`#${id}`} onClick={handleClick} className="hover:text-accent-text transition-colors">
         {children}
  <span className="absolute -left-6 opacity-0 group-hover:opacity-100 transition-opacity text-faint-foreground">#</span>
       </a>
@@ -47,7 +47,7 @@ export default function GettingStartedSection() {
 
   return (
  <div className="prose max-w-none">
- <h2 className="text-3xl font-bold mb-6 text-[var(--primary-orange)]">Getting Started</h2>
+ <h2 className="text-3xl font-bold mb-6 text-accent-text">Getting Started</h2>
 
  <div className="space-y-8">
         <section id="what-is-outlayer">
@@ -86,7 +86,7 @@ export default function GettingStartedSection() {
  <p className="text-sm text-foreground">
  <strong> Why this matters:</strong> Anyone can independently verify that your code ran correctly.
               No &quot;trust us&quot; - cryptographic proof signed by Intel hardware.
- <Link href="/docs/tee-attestation" className="ml-2 text-[var(--primary-orange)] hover:underline">Learn more →</Link>
+ <Link href="/docs/tee-attestation" className="ml-2 text-accent-text hover:underline">Learn more →</Link>
             </p>
           </div>
         </section>
@@ -520,7 +520,7 @@ export default function GettingStartedSection() {
                 Create a project that compiles to WebAssembly. Rust recommended, other languages supported.
               </p>
  <p className="text-xs text-muted-foreground">
- <Link href="/docs/dev-guide" className="text-[var(--primary-orange)] hover:underline">Tutorial</Link> • <Link href="/docs/examples" className="text-[var(--primary-orange)] hover:underline">Examples</Link> • <Link href="/docs/wasi" className="text-[var(--primary-orange)] hover:underline">Building Apps</Link>
+ <Link href="/docs/dev-guide" className="text-accent-text hover:underline">Tutorial</Link> • <Link href="/docs/examples" className="text-accent-text hover:underline">Examples</Link> • <Link href="/docs/wasi" className="text-accent-text hover:underline">Building Apps</Link>
               </p>
             </div>
 
@@ -548,7 +548,7 @@ export default function GettingStartedSection() {
   -d '{"param": 123}'`}
               </pre>
  <p className="text-xs text-muted-foreground mt-1 mb-3">
- <Link href="/docs/web2-integration" className="text-[var(--primary-orange)] hover:underline">HTTPS Guide</Link> • <Link href="/docs/https-api" className="text-[var(--primary-orange)] hover:underline">API Reference</Link>
+ <Link href="/docs/web2-integration" className="text-accent-text hover:underline">HTTPS Guide</Link> • <Link href="/docs/https-api" className="text-accent-text hover:underline">API Reference</Link>
               </p>
  <p className="text-sm text-foreground mb-2">
  <strong>Option B:</strong> NEAR transaction
@@ -563,7 +563,7 @@ export default function GettingStartedSection() {
  <strong>Option C:</strong> Smart contract integration
               </p>
  <p className="text-xs text-muted-foreground">
- <Link href="/docs/near-integration" className="text-[var(--primary-orange)] hover:underline">Contract Integration Guide</Link>
+ <Link href="/docs/near-integration" className="text-accent-text hover:underline">Contract Integration Guide</Link>
               </p>
             </div>
 
@@ -581,7 +581,7 @@ export default function GettingStartedSection() {
                 Every execution produces TEE attestation — cryptographic proof of what code ran with what inputs.
               </p>
  <p className="text-xs text-muted-foreground">
- <Link href="/docs/tee-attestation" className="text-[var(--primary-orange)] hover:underline">How Attestation Works</Link> • <Link href="/executions" className="text-[var(--primary-orange)] hover:underline">View Executions</Link>
+ <Link href="/docs/tee-attestation" className="text-accent-text hover:underline">How Attestation Works</Link> • <Link href="/executions" className="text-accent-text hover:underline">View Executions</Link>
               </p>
             </div>
           </div>

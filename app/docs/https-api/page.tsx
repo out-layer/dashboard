@@ -171,6 +171,7 @@ curl -X POST https://api.outlayer.ai/call/alice.near/my-assistant \\
  <SyntaxHighlighter language="json" style={vscDarkPlus} className="rounded-lg mb-4">
           {`{
   "input": {                    // Required - passed to WASM as stdin
+    "operation": "send_email",  // Required for a PRICED project: which operation this is
     "prompt": "Hello, AI!",
     "temperature": 0.7
   },
@@ -204,6 +205,20 @@ curl -X POST https://api.outlayer.ai/call/alice.near/my-assistant \\
  <td className="px-4 py-3 text-sm">object</td>
  <td className="px-4 py-3 text-sm text-foreground">Yes</td>
  <td className="px-4 py-3 text-sm text-muted-foreground">Passed to WASM code as JSON via stdin</td>
+              </tr>
+ <tr className="bg-card-muted">
+ <td className="px-4 py-3 text-sm font-mono">input.operation</td>
+ <td className="px-4 py-3 text-sm">string</td>
+ <td className="px-4 py-3 text-sm text-foreground">For priced projects</td>
+ <td className="px-4 py-3 text-sm text-muted-foreground">
+                  Which of the project&apos;s priced operations this call is. A project that
+                  publishes prices charges the exact operation named here, so a request without it
+                  is refused rather than run at some default price — see{' '}
+ <Link href="/docs/subscriptions" className="text-accent-text hover:underline">
+                    Connectors &amp; Subscriptions
+ </Link>
+                  . Projects with no published prices ignore the field.
+                </td>
               </tr>
               <tr>
  <td className="px-4 py-3 text-sm font-mono">resource_limits</td>

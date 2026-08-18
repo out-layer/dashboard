@@ -267,6 +267,9 @@ function WalletHandoffContent() {
         walletId: walletInfo.wallet_id,
         policyJsonText,
         contractId,
+        // The connected wallet sends the transaction, so it is the account the
+        // signature must name.
+        callerAccountId: accountId ?? '',
         viewMethod,
         signAndSendTransaction,
       });

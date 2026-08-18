@@ -7,9 +7,11 @@ import { useSearchParams } from 'next/navigation';
 import { useNearWallet } from '@/contexts/NearWalletContext';
 import { actionCreators } from '@near-js/transactions';
 import { SecretsForm } from './components/SecretsForm';
+import { AgentSecretForm } from './components/AgentSecretForm';
 import { SecretsList } from './components/SecretsList';
 import { UserSecret, FormData, isRepoAccessor, isWasmHashAccessor, isProjectAccessor } from './components/types';
 import { getCoordinatorApiUrl } from '@/lib/api';
+import { listAllUserSecrets } from '@/lib/user-secrets';
 
 // useSearchParams needs a Suspense boundary, otherwise the whole route opts out of static
 // rendering and the build fails.
@@ -70,11 +72,8 @@ function SecretsPageContent() {
     setLoadingSecrets(true);
 
     try {
-      const secrets = await viewMethod({
-        contractId,
-        method: 'list_user_secrets',
-        args: { account_id: accountId },
-      });
+      // Paged: the contract answers a window, not the whole list.
+      const secrets = await listAllUserSecrets<UserSecret>(viewMethod, contractId, accountId);
 
       // Filter out System accessor (Payment Keys) - those are managed on /payment-keys page
       const filteredSecrets: UserSecret[] = (Array.isArray(secrets) ? secrets : []).filter(
@@ -460,6 +459,20 @@ function SecretsPageContent() {
           }}
           onCancelUpdate={() => setUpdatingSecret(null)}
         />
+
+        {/* A secret that belongs to an AGENT rather than to this account. Same
+            page, because it is the same question — "which credential does this
+            code get" — asked for a wallet that cannot pay for its own storage. */}
+ <div className="mt-6">
+ <AgentSecretForm
+            coordinatorUrl={coordinatorUrl}
+            contractId={contractId}
+            accountId={accountId}
+            isConnected={isConnected}
+            viewMethod={viewMethod}
+            signAndSendTransaction={signAndSendTransaction}
+          />
+ </div>
       </div>
 
       {/* User's Secrets List */}

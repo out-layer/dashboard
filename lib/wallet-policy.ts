@@ -302,6 +302,16 @@ export interface SubmitPolicyParams {
   walletId: string;
   policyJsonText: string;
   contractId: string;
+  /**
+   * The NEAR account that will SEND `store_wallet_policy` — the connected
+   * wallet, since it is what signs the transaction below.
+   *
+   * It is part of the signed message, so the signature is good for that account
+   * and no other. Before that, a policy signature was made over the bare
+   * ciphertext hash: anyone who read one off the chain could file it again, and
+   * any other signature of the same wallet could be filed as a policy.
+   */
+  callerAccountId: string;
   viewMethod: (params: { contractId: string; method: string; args?: Record<string, unknown> }) => Promise<unknown>;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   signAndSendTransaction: (params: any) => Promise<any>;
@@ -312,7 +322,11 @@ export interface SubmitPolicyResult {
 }
 
 export async function submitPolicy(params: SubmitPolicyParams): Promise<SubmitPolicyResult> {
-  const { coordinatorUrl, apiKey, walletId, policyJsonText, contractId, viewMethod, signAndSendTransaction } = params;
+  const { coordinatorUrl, apiKey, walletId, policyJsonText, contractId, callerAccountId, viewMethod, signAndSendTransaction } = params;
+
+  if (!callerAccountId) {
+    throw new Error('Connect your NEAR wallet first — the policy signature names the account that submits it.');
+  }
 
   // Parse policy JSON
   let policyData: Record<string, unknown>;
@@ -336,11 +350,13 @@ export async function submitPolicy(params: SubmitPolicyParams): Promise<SubmitPo
 
   const encrypted = await encryptResp.json();
 
-  // Step 2: Sign encrypted policy with agent's ed25519 key
+  // Step 2: Sign encrypted policy with agent's ed25519 key. `caller` is signed
+  // alongside the blob, so what comes back can only be submitted by the account
+  // named here — which is the one that signs the transaction in step 3.
   const signResp = await fetch(`${coordinatorUrl}/wallet/v1/sign-policy`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
-    body: JSON.stringify({ encrypted_data: encrypted.encrypted_base64 }),
+    body: JSON.stringify({ encrypted_data: encrypted.encrypted_base64, caller: callerAccountId }),
   });
 
   if (!signResp.ok) {

@@ -151,6 +151,12 @@ export const SECTIONS = [
           'Creating payment keys, key format, restrictions, balance management, rate limits, security practices',
       },
       {
+        title: 'Connectors & Subscriptions',
+        path: '/docs/subscriptions',
+        summary:
+          'What a connector is and how its operations are priced on chain, the per-operation author share, subscriptions as a flat allowance for a payment key, what trial keys grant now versus before, and the per-wallet connector quota',
+      },
+      {
         title: 'Earnings',
         path: '/docs/earnings',
         summary:

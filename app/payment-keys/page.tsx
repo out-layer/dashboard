@@ -8,6 +8,7 @@ import { PageHeader } from '@/components/ui/page-header';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { getCoordinatorApiUrl } from '@/lib/api';
+import { listAllUserSecrets } from '@/lib/user-secrets';
 import { PaymentKeyData, PaymentKeyBalance, CreationState } from './components/types';
 import { CreateKeyForm } from './components/CreateKeyForm';
 import { PaymentKeyCard } from './components/PaymentKeyCard';
@@ -58,11 +59,9 @@ export default function PaymentKeysPage() {
 
     setLoading(true);
     try {
-      const secrets = await viewMethod({
-        contractId,
-        method: 'list_user_secrets',
-        args: { account_id: accountId },
-      }) as UserSecret[];
+      // Paged: the contract answers a window, not the whole list — and a
+      // payment key missing from this list reads as a key that does not exist.
+      const secrets = await listAllUserSecrets<UserSecret>(viewMethod, contractId, accountId);
 
       // Filter to only Payment Keys (System accessor)
       // Contract returns { System: 'PaymentKey' } - System is a string, not object

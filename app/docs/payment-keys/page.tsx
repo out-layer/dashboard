@@ -363,6 +363,28 @@ near call usdt.tether-token.near ft_transfer_call '{
  <td className="px-4 py-3 text-sm text-muted-foreground">Simultaneous executions</td>
               </tr>
               <tr>
+ <td className="px-4 py-3 text-sm">Calls paid by an ALLOWANCE</td>
+ <td className="px-4 py-3 text-sm font-mono">1 at a time</td>
+ <td className="px-4 py-3 text-sm text-muted-foreground">
+                  A subscription is a flat rate, so what bounds it is how much can be in flight.
+                  A key that also holds money answers the second call out of its balance instead of
+                  refusing it; a key with no balance gets{' '}
+ <code>call_already_in_flight</code> (429, non-terminal — waiting clears it).
+                </td>
+              </tr>
+              <tr>
+ <td className="px-4 py-3 text-sm">Connector calls per wallet, per day</td>
+ <td className="px-4 py-3 text-sm font-mono">10 → 50 → 500</td>
+ <td className="px-4 py-3 text-sm text-muted-foreground">
+                  By wallet age: first day, first week, then established. Independent of paying —
+                  see{' '}
+ <Link href="/docs/subscriptions" className="text-accent-text hover:underline">
+                    Connectors &amp; Subscriptions
+ </Link>
+                  .
+                </td>
+              </tr>
+              <tr>
  <td className="px-4 py-3 text-sm">Minimum compute limit</td>
  <td className="px-4 py-3 text-sm font-mono">$0.001</td>
  <td className="px-4 py-3 text-sm text-muted-foreground">Per request</td>

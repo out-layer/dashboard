@@ -240,12 +240,26 @@ function WalletManagePage() {
                   NEAR address: {apiKeyWallet.address}
                 </p>
               </div>
-              <Link
-                href={`/wallet?key=${searchParams.get('key')}`}
+ <div className="flex items-center gap-3">
+                {/* A wallet with no policy is invisible in the list below —
+                    that list comes from the on-chain policies. This card is the
+                    only place a NEW agent appears, so the subscription has to
+                    be reachable from here too, not only once a policy exists.
+                    The key from `?key=` is already saved to this browser above,
+                    which is what the subscription page reads. */}
+                <Link
+                  href={`/subscription?wallet=${encodeURIComponent(`ed25519:${apiKeyWallet.address}`)}`}
+ className="text-sm text-accent-text hover:underline"
+                >
+                  subscription
+                </Link>
+                <Link
+                  href={`/wallet?key=${searchParams.get('key')}`}
  className="px-3 py-1.5 text-sm bg-accent text-on-accent rounded hover:bg-accent-hover"
-              >
-                Set Policy
-              </Link>
+                >
+                  Set Policy
+                </Link>
+ </div>
             </div>
           </div>
         </div>
@@ -374,6 +388,17 @@ function WalletManagePage() {
                       >
                         remove
                       </button>
+                      {/* The subscription belongs to this agent's own key, and
+                          that key has no string to paste anywhere — the saved
+                          `wk_` is what identifies it. So the way in is here,
+                          beside the key, rather than on a page that would have
+                          to ask for something nobody can produce. */}
+                      <Link
+                        href={`/subscription?wallet=${encodeURIComponent(wallet.wallet_pubkey)}`}
+ className="text-xs text-accent-text hover:underline"
+                      >
+                        subscription
+                      </Link>
                     </div>
                   ) : showKeyInput === wallet.wallet_pubkey ? (
  <div className="flex items-center gap-2 mb-2">

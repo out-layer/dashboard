@@ -43,6 +43,7 @@ export const APP_NAV: NavGroup[] = [
     group: 'Payments',
     items: [
       { href: '/payment-keys', label: 'Payment keys' },
+      { href: '/subscription', label: 'Subscription' },
       { href: '/earnings', label: 'Earnings' },
     ],
   },

@@ -52,12 +52,12 @@ OutLayer lets smart contracts execute arbitrary code off-chain and receive verif
 
 ## Quick Links
 
-- **Dashboard & Docs**: [outlayer.fastnear.com](https://outlayer.fastnear.com/dashboard)
+- **Dashboard & Docs**: [app.outlayer.ai](https://app.outlayer.ai)
 - **HTTPS API (mainnet)**: `https://api.outlayer.ai` → `/call/{owner}/{project}`
 - **HTTPS API (testnet)**: `https://testnet-api.outlayer.ai` → `/call/{owner}/{project}`
 - **Contract**: `outlayer.near` (mainnet) / `outlayer.testnet` (testnet)
 - **API reference**: [API.md](https://github.com/fastnear/near-outlayer/blob/main/API.md) — endpoints, base URLs, and source-availability notes
-- **For AI coding assistants**: [llms.txt](https://outlayer.fastnear.com/llms.txt) — link index, or [llms-full.txt](https://outlayer.fastnear.com/llms-full.txt) for every doc in a single fetch
+- **For AI coding assistants**: [llms.txt](https://app.outlayer.ai/llms.txt) — link index, or [llms-full.txt](https://app.outlayer.ai/llms-full.txt) for every doc in a single fetch
 - **Production App**: [near.email](https://near.email) — blockchain-native email built on OutLayer
 
 ## How It Works
@@ -167,7 +167,7 @@ See [QUICK_START.md](https://github.com/fastnear/near-outlayer/blob/main/QUICK_S
 | [worker/README.md](https://github.com/fastnear/near-outlayer/blob/main/worker/README.md) | Worker configuration |
 | [wasi-examples/WASI_TUTORIAL.md](https://github.com/fastnear/near-outlayer/blob/main/wasi-examples/WASI_TUTORIAL.md) | WASI development tutorial |
 | [wasi-examples/BEST_PRACTICES_OUTLAYER_NEAR.md](https://github.com/fastnear/near-outlayer/blob/main/wasi-examples/BEST_PRACTICES_OUTLAYER_NEAR.md) | Best practices guide |
-| [dashboard/DOCS_INDEX.md](https://github.com/fastnear/near-outlayer/blob/main/dashboard/DOCS_INDEX.md) | Dashboard documentation index |
+| [dashboard/DOCS_INDEX.md](dashboard/DOCS_INDEX.md) | Dashboard documentation index |
 
 ### Using OutLayer with an AI coding assistant
 
@@ -175,12 +175,12 @@ Point the assistant at one of these instead of pasting files by hand:
 
 | File | Contents |
 |------|----------|
-| [`/llms.txt`](https://outlayer.fastnear.com/llms.txt) | Index of every documentation page, with a one-line summary each, in the [llms.txt](https://llmstxt.org) format |
-| [`/llms-full.txt`](https://outlayer.fastnear.com/llms-full.txt) | Full text of all developer docs inlined, ~310 KB, one fetch |
+| [`/llms.txt`](https://app.outlayer.ai/llms.txt) | Index of every documentation page, with a one-line summary each, in the [llms.txt](https://llmstxt.org) format |
+| [`/llms-full.txt`](https://app.outlayer.ai/llms-full.txt) | Full text of all developer docs inlined, ~310 KB, one fetch |
 | [OpenAPI spec](https://api.outlayer.ai/openapi.json) | Machine-readable HTTPS API schema |
 | [Agent Custody skill](https://skills.outlayer.ai/agent-custody/SKILL.md) | Drop-in skill file for agent frameworks |
 
-Both `llms` files are generated from [dashboard/scripts/llms-manifest.mjs](https://github.com/fastnear/near-outlayer/blob/main/dashboard/scripts/llms-manifest.mjs) by `npm run llms` in `dashboard/`, and regenerate automatically on `npm run build`.
+Both `llms` files are generated from [dashboard/scripts/llms-manifest.mjs](dashboard/scripts/llms-manifest.mjs) by `npm run llms` in `dashboard/`, and regenerate automatically on `npm run build`.
 
 ## Default Ports
 
@@ -4574,13 +4574,20 @@ near call outlayer.testnet delete_secrets '{
 ```
 
 #### `list_user_secrets`
-List all secrets stored by an account.
+One PAGE of the secrets stored by an account. It reads storage per entry, so an
+unbounded answer would eventually exceed the view's gas and fail for everyone —
+omitting the paging arguments gives the first 100, not the whole set. Ask for the
+next page until one comes back short.
 
 ```bash
 near view outlayer.testnet list_user_secrets '{
-  "account_id": "alice.testnet"
+  "account_id": "alice.testnet",
+  "from_index": 0,
+  "limit": 100
 }'
 ```
+
+`limit` is capped at 500. Both arguments may be omitted.
 
 ## Events
 
@@ -4694,7 +4701,7 @@ MIT
 
 # OutLayer SDK
 
-Rust SDK for building WASM applications on [OutLayer](https://outlayer.fastnear.com) - verifiable off-chain computation for NEAR.
+Rust SDK for building WASM applications on [OutLayer](https://app.outlayer.ai) - verifiable off-chain computation for NEAR.
 
 [![Crates.io](https://img.shields.io/crates/v/outlayer.svg)](https://crates.io/crates/outlayer)
 [![Documentation](https://docs.rs/outlayer/badge.svg)](https://docs.rs/outlayer)
@@ -4925,8 +4932,8 @@ include = ["src/**/*", "wit/**/*", "Cargo.toml", "README.md", "LICENSE*"]
 
 ## Documentation
 
-- [OutLayer Docs](https://outlayer.fastnear.com/docs) - Full documentation
-- [Storage Guide](https://outlayer.fastnear.com/docs/storage) - Persistent storage
+- [OutLayer Docs](https://app.outlayer.ai/docs) - Full documentation
+- [Storage Guide](https://app.outlayer.ai/docs/storage) - Persistent storage
 - [WASI Tutorial](https://github.com/fastnear/near-outlayer/blob/main/wasi-examples/WASI_TUTORIAL.md) - Building WASM apps
 - [Examples](https://github.com/fastnear/near-outlayer/tree/main/wasi-examples) - Working examples
 
@@ -5189,7 +5196,9 @@ pub struct WalletPolicyEntry {
 }
 ```
 
-**Ownership**: First `store_wallet_policy()` call sets `owner = caller`. Subsequent updates only from same owner. Wallet signature required (anti-spam + proof of key ownership).
+**Ownership**: First `store_wallet_policy()` call sets `owner = caller`. Subsequent updates only from same owner. Wallet signature required — over `store_wallet_policy:v1:{wallet_pubkey}:{len}:{encrypted_data}:{caller}`, so it proves key ownership AND is usable only by the account named in it.
+
+**Freezing survives an edit**: a policy update keeps whatever `frozen` the entry held; a new entry starts unfrozen. Thawing is `unfreeze_wallet()`, controller-only — the same authority, said out loud. A freeze is an answer to a compromised agent key, and the controller's next act is usually to tighten the policy; resetting the flag there would reopen the wallet while the key is still in someone else's hands.
 
 **On-chain signature verification**: Ed25519 → `env::ed25519_verify()` (~26 Tgas), secp256k1 → `env::ecrecover()` (~35 Tgas).
 
@@ -5224,18 +5233,18 @@ Available only when `WALLET_ID` env var is set (coordinator passes it when `X-Wa
 
 | Page | File | Description |
 |------|------|-------------|
-| Handoff/setup | [page.tsx](https://github.com/fastnear/near-outlayer/blob/main/dashboard/app/wallet/page.tsx) | Receive API key, connect NEAR wallet, set initial policy |
-| Policy management | [manage/page.tsx](https://github.com/fastnear/near-outlayer/blob/main/dashboard/app/wallet/manage/page.tsx) | Edit policy, manage approvers, freeze/unfreeze |
-| Approvals list | [approvals/page.tsx](https://github.com/fastnear/near-outlayer/blob/main/dashboard/app/wallet/approvals/page.tsx) | List pending multisig approvals |
-| Approval detail | [approvals/[id]/page.tsx](https://github.com/fastnear/near-outlayer/blob/main/dashboard/app/wallet/approvals/[id]/page.tsx) | View & sign specific approval |
-| Audit log | [audit/page.tsx](https://github.com/fastnear/near-outlayer/blob/main/dashboard/app/wallet/audit/page.tsx) | Full transaction and event history |
-| Fund request | [fund/page.tsx](https://github.com/fastnear/near-outlayer/blob/main/dashboard/app/wallet/fund/page.tsx) | User funds agent via link (?to, ?amount, ?token) |
+| Handoff/setup | [page.tsx](dashboard/app/wallet/page.tsx) | Receive API key, connect NEAR wallet, set initial policy |
+| Policy management | [manage/page.tsx](dashboard/app/wallet/manage/page.tsx) | Edit policy, manage approvers, freeze/unfreeze |
+| Approvals list | [approvals/page.tsx](dashboard/app/wallet/approvals/page.tsx) | List pending multisig approvals |
+| Approval detail | [approvals/[id]/page.tsx](dashboard/app/wallet/approvals/[id]/page.tsx) | View & sign specific approval |
+| Audit log | [audit/page.tsx](dashboard/app/wallet/audit/page.tsx) | Full transaction and event history |
+| Fund request | [fund/page.tsx](dashboard/app/wallet/fund/page.tsx) | User funds agent via link (?to, ?amount, ?token) |
 
 ### Documentation page
 
 | File | Description |
 |------|-------------|
-| [docs/agent-custody/page.tsx](https://github.com/fastnear/near-outlayer/blob/main/dashboard/app/docs/agent-custody/page.tsx) | User-facing docs page |
+| [docs/agent-custody/page.tsx](dashboard/app/docs/agent-custody/page.tsx) | User-facing docs page |
 
 ---
 
@@ -5334,9 +5343,13 @@ Dashboard → POST /wallet/v1/encrypt-policy { rules, approval, ... }
     Coordinator → Keystore: encrypt policy JSON
     Keystore → Return encrypted_base64
 
-Dashboard → POST /wallet/v1/sign-policy { encrypted_data }
-    Coordinator → Keystore: sign SHA256(encrypted_data) with wallet key
+Dashboard → POST /wallet/v1/sign-policy { encrypted_data, caller }
+    Coordinator → Keystore: sign the message the contract rebuilds,
+        store_wallet_policy:v1:{wallet_pubkey}:{len}:{encrypted_data}:{caller}
     Keystore → Return { signature, wallet_pubkey }
+
+    `caller` is the account that will send the transaction below, and it is
+    SIGNED — the signature is good for that account and no other.
 
 Dashboard → NEAR tx: store_wallet_policy(wallet_pubkey, encrypted_base64, signature)
     Contract: verify signature on-chain → store WalletPolicyEntry
@@ -5560,7 +5573,7 @@ Base: `https://api.outlayer.ai` (mainnet) · `https://testnet-api.outlayer.ai` (
 | POST | `/wallet/v1/auth-sign` | OutLayer NEAR-key auth signature (`{purpose: bearer\|register\|api-key, seed, vault_id?}` → `{auth_message, auth_timestamp, signature, public_key}`). Replaces the old `sign-message format:"raw"` |
 | GET | `/wallet/v1/policy` | View current policy (decrypted via keystore) |
 | POST | `/wallet/v1/encrypt-policy` | Encrypt policy for on-chain storage |
-| POST | `/wallet/v1/sign-policy` | Keystore signs encrypted policy SHA256 |
+| POST | `/wallet/v1/sign-policy` | Keystore signs the policy message (domain + blob + `caller`) for `store_wallet_policy` |
 | POST | `/wallet/v1/invalidate-cache` | Clear negative policy cache |
 | GET | `/wallet/v1/pending_approvals` | List pending multisig approvals |
 | POST | `/wallet/v1/approve/{id}` | Submit multisig approval signature |
@@ -6590,9 +6603,14 @@ policy_resp = wallet_request_by_seed(seed, "POST", "/wallet/v1/encrypt-policy", 
 })
 encrypted_policy = policy_resp.json()
 
-# 2b. Sign encrypted policy with wallet's key (coordinator asks keystore)
-wallet_request_by_seed(seed, "POST", "/wallet/v1/sign-policy", json=encrypted_policy)
-# Policy is now stored on-chain → enforced on every operation
+# 2b. Sign encrypted policy with wallet's key (coordinator asks keystore).
+# `caller` is the NEAR account that will send store_wallet_policy — it is part
+# of what gets signed, so the answer works for that account and no other.
+wallet_request_by_seed(seed, "POST", "/wallet/v1/sign-policy", json={
+    **encrypted_policy,
+    "caller": "you.near",
+})
+# Send store_wallet_policy from that account → enforced on every operation
 
 # 3. Hand wk_ key to sub-agent
 sub_agent = spawn_agent(task="Buy USDT", wallet_key=sub_key)
@@ -7470,8 +7488,8 @@ It targets two audiences:
 
 For the architectural rationale of MPC vaults (why they exist, what
 guarantees the design provides), see
-[`dashboard/app/docs/vaults/page.tsx`](https://github.com/fastnear/near-outlayer/blob/main/dashboard/app/docs/vaults/page.tsx)
-(rendered at https://outlayer.fastnear.com/docs/vaults).
+[`dashboard/app/docs/vaults/page.tsx`](../dashboard/app/docs/vaults/page.tsx)
+(rendered at https://app.outlayer.ai/docs/vaults).
 
 ---
 

@@ -153,10 +153,16 @@ export const SECTIONS = [
           'Creating payment keys, key format, restrictions, balance management, rate limits, security practices',
       },
       {
-        title: 'Agent Connect',
+        title: 'Personal Account Binding',
         path: '/docs/account-binding',
         summary:
-          'Letting an agent act under an account it does not own: binding a user own named account (the one transaction the holder signs, installed by hash as a global contract), leased partner accounts with their on-chain spend grant and stricter call shape, how an agent asks to run under the bound name on both the HTTPS and on-chain doors, and how the owner ends it',
+          'Letting an agent act as a named account its owner already has: the one transaction the holder signs (the wallet contract installed by hash as a global contract, NEP-591, and which wallets can sign that), which wallets are refused, how an agent asks to run under the bound name on both the HTTPS and on-chain doors, and how the owner ends it',
+      },
+      {
+        title: 'Agent Connect (leased accounts)',
+        path: '/docs/agent-connect',
+        summary:
+          'The House of Stake lease mode: an account a partner provisions and lends to an agent under an on-chain spend grant, how that grant is a second ceiling above the owner policy, the narrower request shape a lease accepts, and the refusal classes a lease can answer with',
       },
       {
         title: 'Building a Connector',

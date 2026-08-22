@@ -5,26 +5,26 @@ import { SyntaxHighlighter, vscDarkPlus } from '@/components/ui/syntax';
 import { AnchorHeading, useHashNavigation } from '../sections/utils';
 
 /**
- * Agent Connect — letting an agent act under an account it does not own.
+ * Personal Account Binding — letting an agent act as a named account its owner
+ * already has.
  *
  * Its own page rather than a section inside Agent Custody, because it is the
  * one part of custody a NON-developer has to carry out: the account holder
  * signs, and nobody can sign for them. Buried in a 1500-line developer page it
  * was the least findable thing we ask a person to do.
  *
- * Both modes live here. `personal_account` is a user binding their own named
- * account; `hos_lease` is a leased account provisioned by a partner. They are
- * not interchangeable and the differences are load-bearing, so they are stated
- * side by side rather than described one after the other.
+ * The leased mode (`hos_lease`) lives on /docs/agent-connect. Agent Connect is
+ * the partner's name for their programme, and readers arriving here for "bind
+ * my own account" were reading partner mechanics.
  */
 export default function AccountBindingPage() {
   useHashNavigation();
 
   return (
  <div className="max-w-5xl">
- <h1 className="text-4xl font-bold mb-3">Agent Connect</h1>
+ <h1 className="text-4xl font-bold mb-3">Personal Account Binding</h1>
  <p className="text-lg text-muted-foreground mb-8">
-        Let an agent act under an account it does not own — yours, or one leased to it.
+        Let an agent act as a named account you already own, while you keep the keys.
  </p>
 
  <section id="account-binding" className="mb-10 scroll-mt-4">
@@ -139,6 +139,14 @@ export default function AccountBindingPage() {
  against your rules before anything is signed.
         </p>
 
+ <div className="bg-destructive/10 border-l-4 border-red-500 p-4 my-4">
+ <p className="text-sm text-foreground">
+ <strong>Your policy is the only limit here.</strong> A leased account has an on-chain spend grant
+ behind it; your own account does not. A binding with no policy on it means the agent can move
+ everything in that account — set the policy before you sign, not after.
+          </p>
+        </div>
+
  <h3 className="text-lg font-semibold mt-4 mb-2">Turning it off</h3>
  <p className="text-foreground mb-4">
  Remove the executor from your account&apos;s extension set — one transaction, signed by you, no permission needed from us. The lane stops
@@ -147,92 +155,20 @@ export default function AccountBindingPage() {
         </p>
       </section>
 
- <section id="two-modes" className="mb-10 scroll-mt-4">
- <AnchorHeading id="two-modes">Two modes, and they are not interchangeable</AnchorHeading>
+ <section id="leased-accounts" className="mb-10 scroll-mt-4">
+ <AnchorHeading id="leased-accounts">The other mode: leased accounts</AnchorHeading>
  <p className="text-foreground mb-4">
-          Which one applies is decided by <strong>who owns the account</strong>, not by preference.
+          Everything above is <code className="bg-card-muted px-1 rounded">kind: "personal_account"</code>{' '}
+          — your account, your keys, your policy. There is a second mode,{' '}
+ <code className="bg-card-muted px-1 rounded">hos_lease</code>, where a partner provisions the
+          account and lends it to an agent under an on-chain spend grant. Nobody signs a setup
+          transaction there, the grant is a second ceiling above your policy, and the request shape it
+          accepts is narrower.
  </p>
- <div className="overflow-x-auto">
- <table className="min-w-full text-sm">
- <thead>
- <tr className="border-b border-border">
- <th className="px-3 py-2 text-left"></th>
- <th className="px-3 py-2 text-left"><code className="bg-card-muted px-1 rounded">personal_account</code></th>
- <th className="px-3 py-2 text-left"><code className="bg-card-muted px-1 rounded">hos_lease</code></th>
- </tr>
- </thead>
- <tbody className="text-foreground">
- <tr className="border-b border-border">
- <td className="px-3 py-2">Whose account</td>
- <td className="px-3 py-2">The user&apos;s own <code className="bg-card-muted px-1 rounded">alice.near</code></td>
- <td className="px-3 py-2">A leased, keyless agent account</td>
- </tr>
- <tr className="border-b border-border">
- <td className="px-3 py-2">Who installs the contract</td>
- <td className="px-3 py-2">The user, with one transaction the agent hands them</td>
- <td className="px-3 py-2">The provider, before the agent ever sees it</td>
- </tr>
- <tr className="border-b border-border">
- <td className="px-3 py-2"><code className="bg-card-muted px-1 rounded">impl_version</code> in <code className="bg-card-muted px-1 rounded">PUT</code></td>
- <td className="px-3 py-2"><strong>Rejected</strong> — versioned by the account&apos;s code hash</td>
- <td className="px-3 py-2"><strong>Required</strong></td>
- </tr>
- <tr className="border-b border-border">
- <td className="px-3 py-2"><code className="bg-card-muted px-1 rounded">owner_account_id</code> in <code className="bg-card-muted px-1 rounded">PUT</code></td>
- <td className="px-3 py-2">Optional; if sent, must equal the asset account</td>
- <td className="px-3 py-2">Required</td>
- </tr>
- <tr className="border-b border-border">
- <td className="px-3 py-2">Spending limits</td>
- <td className="px-3 py-2">The owner&apos;s policy <strong>only</strong></td>
- <td className="px-3 py-2">The owner&apos;s policy <strong>and</strong> an on-chain spend grant</td>
- </tr>
- <tr>
- <td className="px-3 py-2">Setup kit endpoint</td>
- <td className="px-3 py-2">Yes</td>
- <td className="px-3 py-2">No — answers <code className="bg-card-muted px-1 rounded">400</code></td>
- </tr>
- </tbody>
- </table>
- </div>
- <p className="text-foreground mt-4">
-          The consequence worth reading twice: on a <code className="bg-card-muted px-1 rounded">personal_account</code>{' '}
-          binding <strong>the policy is the only limit</strong>. There is no on-chain grant behind it
-          as there is for a lease, so a binding with no policy means the agent can move everything in
-          that account.
+ <p className="text-foreground">
+          It has its own page:{' '}
+ <Link href="/docs/agent-connect" className="text-accent-text underline">Agent Connect</Link>.
  </p>
- </section>
-
- <section id="hos-lease" className="mb-10 scroll-mt-4">
- <AnchorHeading id="hos-lease">Leased accounts (<code className="bg-card-muted px-1 rounded">hos_lease</code>)</AnchorHeading>
- <p className="text-foreground mb-4">
-          Here the account is not yours and never was: a partner provisions it, installs the contract
-          and issues a <strong>spend grant</strong> on chain before the agent is bound to it. There is
-          no setup transaction for anyone to sign, which is why the setup-kit endpoint answers{' '}
- <code className="bg-card-muted px-1 rounded">400</code> for this mode — asking for one means the
-          two modes have been confused.
- </p>
- <p className="text-foreground mb-4">
-          Two limits apply at once, and the stricter wins: the owner&apos;s policy, and the on-chain
-          grant. A call that the policy would allow is still refused if the grant does not cover it.
- </p>
- <p className="text-foreground mb-4">
-          The request shape is stricter too. Under a lease a call must stand alone in its promise,
-          carry exactly <strong>1 yoctoNEAR</strong>, set no{' '}
- <code className="bg-card-muted px-1 rounded">refund_to</code>, and name no{' '}
- <code className="bg-card-muted px-1 rounded">approval_id</code>. These are not style rules —
-          each one closes a way of smuggling a second effect into a call the grant was checked against.
- </p>
- <div className="bg-card-muted border-l-4 border-amber-500 p-4 mb-4">
- <p className="text-sm text-foreground">
- <strong>Refusals name which rule failed first.</strong> A collection that is not in the grant
-            answers <code className="bg-card-muted px-1 rounded">collection_not_granted</code>; one that
-            is, with a token outside the fence, answers{' '}
- <code className="bg-card-muted px-1 rounded">item_not_granted</code>. The distinction matters:
-            telling an owner to add a token id when the whole collection is missing is advice that
-            cannot work.
- </p>
- </div>
  </section>
 
  <section id="acting-as" className="mb-10 scroll-mt-4">

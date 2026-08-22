@@ -976,7 +976,8 @@ curl -s -H "Authorization: Bearer $API_KEY" \\
  <AnchorHeading id="account-binding">Bind Your Own Account</AnchorHeading>
  <p className="text-foreground mb-4">
  Letting an agent act as an account it does not own — yours, or one leased to it — now has a page
- of its own: <Link href="/docs/account-binding" className="text-accent-text underline">Agent Connect</Link>.
+ of its own: <Link href="/docs/account-binding" className="text-accent-text underline">Personal Account Binding</Link>,
+ with the partner lease programme on <Link href="/docs/agent-connect" className="text-accent-text underline">Agent Connect</Link>.
  It covers both modes, the transaction the account holder signs, and how an agent asks to run under
  the bound name.
  </p>

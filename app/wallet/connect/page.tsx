@@ -12,7 +12,7 @@ import { bs58Decode } from '@/lib/vault';
 /**
  * Let an agent act under YOUR account — the one step only you can take.
  *
- * Agent Connect binds a custody wallet to an account you own, so the agent's
+ * Personal account binding ties a custody wallet to an account you own, so the agent's
  * calls can run under your name (a connector like near-email then sends from
  * your mailbox rather than from an anonymous wallet). The agent asks for the
  * binding; it stays `pending` and does nothing until you sign one transaction

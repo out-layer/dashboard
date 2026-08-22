@@ -65,7 +65,7 @@ export default function AccountBindingPage() {
 
  <h3 className="text-lg font-semibold mt-4 mb-2">Step 2 — get the transaction to sign</h3>
  <p className="text-foreground mb-2">
- OutLayer assembles the payload; you sign it with any wallet. One transaction, three actions: reference the contract by hash,
+ OutLayer assembles the payload; you sign it yourself. One transaction, three actions: reference the contract by hash,
  initialise it, and add the executor.
         </p>
         <SyntaxHighlighter language="bash" style={vscDarkPlus} customStyle={{ borderRadius: '0.5rem', fontSize: '0.875rem' }}>
@@ -82,6 +82,18 @@ export default function AccountBindingPage() {
  anything is signed, refuses to proceed if the connected wallet is not the account being
  bound, and links straight to the policy editor once it is active. No CLI, no copied
  payloads.
+          </p>
+        </div>
+
+ <div className="bg-card-muted border-l-4 border-accent p-4 my-4">
+ <p className="text-sm text-foreground">
+ <strong>Not every wallet can sign it.</strong> Referencing the contract by hash is the{' '}
+ <code className="bg-card px-1 rounded">UseGlobalContract</code> action (NEP-591), and most
+ NEAR wallets still have no branch for it &mdash; they refuse with something opaque, or, in
+ MyNearWallet&apos;s case, open a sign page that never resolves. <strong>Intear Wallet</strong>{' '}
+ signs it on both networks and is what the browser page recommends; the{' '}
+ <code className="bg-card px-1 rounded">near-cli</code> connector works too. Signing the
+ payload yourself with a NEAR key sidesteps the question entirely.
           </p>
         </div>
 

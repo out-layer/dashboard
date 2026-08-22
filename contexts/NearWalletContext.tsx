@@ -225,16 +225,11 @@ export function NearWalletProvider({ children }: { children: ReactNode }) {
       connector = new NearConnector({
         network: network,
         autoConnect: false,
-        // We previously excluded `meteor-wallet` and `trezu-wallet`
-        // because their bundled @near-js predates the
-        // UseGlobalContract action and the vault deploy tx would
-        // fail with "Invalid action type". Re-enabling them now —
-        // most wallet operations (login, signMessage, regular
-        // signAndSendTransaction) work fine, and the explicit
-        // pre-flight check in `signAndSendTransaction` below catches
-        // UseGlobalContract attempts with a clear error pointing the
-        // user at MyNearWallet / HOT / Intear instead of the cryptic
-        // wallet-side failure.
+        // Every wallet in the manifest stays in the picker. Most wallet
+        // operations (login, signMessage, ordinary transactions) work
+        // everywhere; only the UseGlobalContract action is unevenly
+        // supported, and `signAndSendTransaction` below is where that is
+        // caught, per wallet, with an error the user can act on.
         ...(manifestObj ? { manifest: manifestObj } : {}),
       });
 
@@ -318,38 +313,78 @@ export function NearWalletProvider({ children }: { children: ReactNode }) {
     if (!connector) throw new Error('Wallet not initialized');
     const wallet = await connector.wallet();
 
-    // Several wallets ship an @near-js old enough to predate the
-    // UseGlobalContract action (NEP-591). Failure modes observed:
-    //   - Meteor / Trezu throw a cryptic "Invalid action type" from
-    //     their selector-action converter.
-    //   - MyNearWallet ships near-api-js@0.45.1 (years pre-NEP-591),
-    //     deserialises the action discriminant inside a Promise its
-    //     UI doesn't surface — the sign page just hangs.
-    // Pre-empt with an explicit message rather than letting the user
-    // wait at a frozen wallet UI. Recommendation depends on network:
-    // HOT's sandbox doesn't surface in the testnet picker today, so
-    // there we point only at Intear.
+    // A binding, like a vault deploy, installs the contract by hash — the
+    // UseGlobalContract action (NEP-591). near-connect hands the wallet
+    // `{type: "UseGlobalContract", params: {contractIdentifier}}` and each
+    // wallet's executor converts that into its own action type. An executor
+    // with no branch for it throws something opaque ("Invalid action type"),
+    // and MyNearWallet does not even throw — it redirects to a sign page that
+    // then hangs. Refuse up front wherever the answer is already known.
+    //
+    // Verified 2026-08-22 by reading the executor each wallet publishes in
+    // the near-connect manifest, and the wallet source behind it:
+    //   meteor-wallet  `convertSelectorActionToNearAction` has ten cases and
+    //                  no UseGlobalContract, so it hits its own
+    //                  `throw new Error("Invalid action type")`. The @near-js
+    //                  it bundles DOES carry the action — which is why the
+    //                  npm dependency is a misleading signal here.
+    //   mynearwallet   the executor borsh-serialises the transaction with a
+    //                  modern schema into
+    //                  `app.mynearwallet.com/sign?transactions=`, and that app
+    //                  still pins near-api-js@0.45.1, which cannot read the
+    //                  action back.
+    //   nightly-wallet, okx-wallet, wallet-connect, unity-wallet, hana-wallet
+    //                  each converts through a switch on the action type with
+    //                  no UseGlobalContract branch.
+    //   ledger         no branch, and the device app has nothing to display.
+    //   trezu-wallet   observed failing; its executor forwards blind, so the
+    //                  refusal comes from behind it.
+    // Known to work: intear-wallet, whose sign page renders the action
+    // (INTEARnear/wallet, web/src/pages/send_transactions.rs) and whose
+    // executor is a pass-through, and the near-cli connector. HOT is
+    // unverified: hot-dao wrote UseGlobalContract support into
+    // near-connector-executor in April, but the hotwallet.js the manifest
+    // still points at was built in February and predates it.
     const usesGlobalContract = Array.isArray(params?.actions)
       && params.actions.some((a: any) => a?.useGlobalContract != null);
-    if (usesGlobalContract) {
-      const walletId = wallet?.manifest?.id ?? '';
-      const INCOMPATIBLE = new Set(['meteor-wallet', 'trezu-wallet', 'mynearwallet']);
-      if (INCOMPATIBLE.has(walletId)) {
-        const recommend =
-          network === 'testnet'
-            ? 'Reconnect with Intear and retry.'
-            : 'Reconnect with HOT or Intear and retry.';
-        throw new Error(
-          `${wallet.manifest.name} cannot sign vault deploys yet — its bundled `
-          + `@near-js predates the UseGlobalContract action (NEP-591). `
-          + recommend,
-        );
-      }
+    const walletId = wallet?.manifest?.id ?? '';
+    const CANNOT_SIGN_GLOBAL_CONTRACT = new Set([
+      'meteor-wallet',
+      'mynearwallet',
+      'nightly-wallet',
+      'okx-wallet',
+      'wallet-connect',
+      'unity-wallet',
+      'hana-wallet',
+      'ledger',
+      'trezu-wallet',
+    ]);
+    // "this transaction", not "vault deploys": the same gate now covers
+    // account binding, which is what most people hit it with.
+    const cannotSign = (name: string) =>
+      `${name} cannot sign this transaction — it installs a contract by hash `
+      + `(the UseGlobalContract action, NEP-591), which this wallet cannot `
+      + `build yet. Reconnect with Intear Wallet and retry.`;
+
+    if (usesGlobalContract && CANNOT_SIGN_GLOBAL_CONTRACT.has(walletId)) {
+      throw new Error(cannotSign(wallet.manifest.name));
     }
 
     try {
       return await wallet.signAndSendTransaction(params);
     } catch (err) {
+      // A wallet not on the list above still gets to try. If it comes back
+      // with the phrase its own converter throws on an action it has no
+      // branch for, translate that — the raw message names nothing the user
+      // can act on. Matching the message, not the wallet, means a wallet
+      // added to the manifest later is covered without an edit here.
+      const rawError = err instanceof Error ? err.message : String(err);
+      if (
+        usesGlobalContract
+        && /invalid action|unsupported action|unrecognized action|unknown action/i.test(rawError)
+      ) {
+        throw new Error(`${cannotSign(wallet.manifest.name)} (the wallet said: ${rawError})`);
+      }
       // The wallet may report a false failure when its bundled near-api-js
       // broadcasts the tx, the RPC times out, and the fallback tx-status
       // poll hits a load-balanced node that hasn't synced the tx yet:
@@ -363,7 +398,7 @@ export function NearWalletProvider({ children }: { children: ReactNode }) {
       }
       throw err;
     }
-  }, [accountId, network, config.rpcUrl]);
+  }, [accountId, config.rpcUrl]);
 
   const signMessage = useCallback(async (params: SignMessageParams): Promise<SignedMessage | null> => {
     const connector = connectorRef.current;

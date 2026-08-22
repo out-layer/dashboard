@@ -73,7 +73,7 @@ interface Kit {
 
 function Inner() {
   const searchParams = useSearchParams();
-  const { accountId, isConnected, connect, signAndSendTransaction } = useNearWallet();
+  const { accountId, isConnected, connect, signAndSendTransaction, network } = useNearWallet();
 
   // The agent's wallet credential, handed over in the link it gave you. Same
   // convention the rest of the dashboard uses (`/wallet?key=`): it names which
@@ -86,9 +86,23 @@ function Inner() {
   const [error, setError] = useState<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
 
+  // Read the key, then STRIP IT FROM THE URL.
+  //
+  // A `wk_` in a link is a credential in browser history, in the referrer of
+  // anything this page loads, and in any proxy log along the way. The secrets
+  // page refuses to accept a key by URL at all for exactly that reason. Here
+  // the link is the point — it is what an agent can hand over — so the
+  // compromise is to accept it once and replace the history entry immediately,
+  // and to let the owner paste it by hand instead.
   useEffect(() => {
     const k = searchParams.get('key');
-    if (k) setApiKey(k);
+    if (!k) return;
+    setApiKey(k);
+    try {
+      window.history.replaceState(null, '', window.location.pathname);
+    } catch {
+      // Non-fatal: the key still works, it just stays in the address bar.
+    }
   }, [searchParams]);
 
   const coordinator = getCoordinatorApiUrl();
@@ -111,14 +125,27 @@ function Inner() {
       setBinding(body as Binding);
       return body as Binding;
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      // `fetch` throws a bare TypeError ("Failed to fetch") for DNS, CORS and
+      // connection errors alike, and the commonest cause here is the wrong
+      // network: a key minted on testnet says nothing to the mainnet API, and
+      // the raw message tells the owner nothing about that.
+      const raw = e instanceof Error ? e.message : String(e);
+      setError(
+        `Could not reach the ${network} API (${raw}). A wk_ belongs to the network it was ` +
+          `created on — if this key came from a testnet agent, switch the network above ` +
+          `and open the link again.`,
+      );
     }
     return null;
-  }, [apiKey, coordinator]);
+  }, [apiKey, coordinator, network]);
 
   useEffect(() => {
     void load();
   }, [load]);
+
+  const assetAccount = binding?.asset_account_id ?? '';
+  const wrongAccount = Boolean(isConnected && assetAccount && accountId !== assetAccount);
+  const active = binding?.binding_status === 'active';
 
   const loadKit = useCallback(async () => {
     if (!apiKey.startsWith('wk_')) return;
@@ -129,6 +156,18 @@ function Inner() {
         { headers: { Authorization: `Bearer ${apiKey}` } },
       );
       const body = await r.json().catch(() => ({}));
+      if (r.status === 409) {
+        // Deliberate refusal, not a glitch: deploying over an existing
+        // contract does NOT clear its state, and the usual occupant of a
+        // named account is a 2FA or multisig wallet. Nobody should help
+        // somebody sign over that.
+        setError(
+          `${assetAccount} already runs a contract, so it cannot be bound. Installing over ` +
+            `one does not clear its state — the usual occupant is a 2FA or multisig wallet, ` +
+            `and wrecking it is not recoverable. Ask the agent to bind a different account.`,
+        );
+        return;
+      }
       if (!r.ok) {
         setError(body?.message || body?.error || `Could not read the setup (HTTP ${r.status}).`);
         return;
@@ -137,11 +176,7 @@ function Inner() {
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     }
-  }, [apiKey, coordinator]);
-
-  const assetAccount = binding?.asset_account_id ?? '';
-  const wrongAccount = Boolean(isConnected && assetAccount && accountId !== assetAccount);
-  const active = binding?.binding_status === 'active';
+  }, [apiKey, coordinator, assetAccount]);
 
   /**
    * Sign the kit VERBATIM.
@@ -228,8 +263,15 @@ function Inner() {
             <dd className="font-mono">{binding.asset_account_id || '—'}</dd>
             <dt className="text-muted">Agent&apos;s executor</dt>
             <dd className="break-all font-mono">{binding.executor_account_id || '—'}</dd>
+            <dt className="text-muted">Network</dt>
+            <dd>{network}</dd>
             <dt className="text-muted">Status</dt>
-            <dd>{binding.binding_status || '—'}</dd>
+            <dd>
+              {binding.binding_status || '—'}
+              {binding.binding_status === 'pending' && (
+                <span className="text-muted"> — recorded, and doing nothing until you sign below</span>
+              )}
+            </dd>
           </dl>
         </div>
       )}

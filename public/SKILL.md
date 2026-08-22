@@ -16,4 +16,4 @@ sovereign vaults, error handling). Point your agent framework there
 directly.
 
 For a high-level overview of Agent Custody, see
-https://outlayer.fastnear.com/docs/agent-custody.
+https://app.outlayer.ai/docs/agent-custody.

@@ -19,7 +19,7 @@ export const DOCS_NAV_PATHS = new Set(DOCS_NAV.flatMap((g) => g.pages.map((p) =>
 
 export const SITE = {
   name: 'NEAR OutLayer',
-  baseUrl: 'https://outlayer.fastnear.com',
+  baseUrl: 'https://app.outlayer.ai',
   repoUrl: 'https://github.com/fastnear/near-outlayer',
   rawBaseUrl: 'https://raw.githubusercontent.com/fastnear/near-outlayer/main',
 
@@ -34,10 +34,10 @@ export const SITE = {
 
   details: [
     'Two integration modes. **On-chain:** a NEAR contract calls `request_execution` and receives the result in a callback. **Web2:** a backend calls `POST https://api.outlayer.ai/call/{project_owner}/{project_name}` over HTTPS.',
-    '**API base URL is `https://api.outlayer.ai`** — the `api.` subdomain. `https://outlayer.fastnear.com` is the dashboard and docs site and serves no API. Testnet API base is `https://testnet-api.outlayer.ai`.',
+    '**API base URL is `https://api.outlayer.ai`** — the `api.` subdomain. `https://app.outlayer.ai` is the dashboard and docs site and serves no API. Testnet API base is `https://testnet-api.outlayer.ai`.',
     'HTTPS authentication is either a payment key (`X-Payment-Key: {owner}:{nonce}:{secret}`) or a trial worker key (`Authorization: Bearer wk_...`). There is no `X-API-Key` header.',
     'Mainnet contract: `outlayer.near`. Testnet contract: `outlayer.testnet`. NEAR RPC: `https://rpc.mainnet.fastnear.com` / `https://rpc.testnet.fastnear.com`.',
-    'Full text of every document below is available in one fetch at ' + 'https://outlayer.fastnear.com/llms-full.txt.',
+    'Full text of every document below is available in one fetch at ' + 'https://app.outlayer.ai/llms-full.txt.',
   ],
 }
 
@@ -216,7 +216,7 @@ export const SECTIONS = [
       },
       {
         title: 'Full documentation text',
-        url: 'https://outlayer.fastnear.com/llms-full.txt',
+        url: 'https://app.outlayer.ai/llms-full.txt',
         summary: 'Every document listed here, inlined in a single file',
       },
     ],
@@ -236,12 +236,12 @@ export const SECTIONS = [
       },
       {
         title: 'Playground',
-        url: 'https://outlayer.fastnear.com/playground',
+        url: 'https://app.outlayer.ai/playground',
         summary: 'Run an agent from the browser without writing an integration',
       },
       {
         title: 'Dashboard',
-        url: 'https://outlayer.fastnear.com/workspace',
+        url: 'https://app.outlayer.ai/workspace',
         summary: 'Projects, secrets, payment keys, executions and earnings',
       },
     ],

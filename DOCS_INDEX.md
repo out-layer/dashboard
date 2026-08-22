@@ -8,7 +8,7 @@ This file describes the dashboard documentation structure and source → rendere
 > 2. Update navigation in `/dashboard/app/docs/layout.tsx`
 > 3. Then update this index to reflect the changes
 >
-> Users read documentation at https://outlayer.fastnear.com/docs, not this file!
+> Users read documentation at https://app.outlayer.ai/docs, not this file!
 
 ## Core Value Proposition
 
@@ -29,7 +29,7 @@ Both modes provide the same cryptographic proof via Intel TDX attestation.
 - **API Base URLs**: mainnet `https://api.outlayer.ai` · testnet `https://testnet-api.outlayer.ai` (same paths on both; documented on `/docs/https-api#base-urls` and in [`API.md`](../API.md))
 - **API Spec (OpenAPI 3.1)**: [out-layer/api-spec](https://github.com/out-layer/api-spec) — single source of truth for the HTTP API; rendered at https://api.outlayer.ai/docs (Scalar UI)
 - **TypeScript SDK**: [`@outlayer/sdk`](https://www.npmjs.com/package/@outlayer/sdk) — source at [out-layer/sdk-js](https://github.com/out-layer/sdk-js); covers all wallet, policy, approval, and audit endpoints
-- **Live Site**: https://outlayer.fastnear.com/docs
+- **Live Site**: https://app.outlayer.ai/docs
 
 ## Documentation Structure
 

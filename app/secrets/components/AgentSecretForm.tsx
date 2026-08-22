@@ -240,7 +240,7 @@ export function AgentSecretForm({
       return;
     }
     if (!hasKey) {
-      setError('Choose an agent key, or paste one (it starts with wk_).');
+      setError("Choose the agent's wallet key, or paste one (it starts with wk_).");
       return;
     }
     if (!scope) {
@@ -337,7 +337,7 @@ export function AgentSecretForm({
       return;
     }
     if (!hasKey || !scope) {
-      setError('Choose an agent key and name the project or WASM hash whose secret should go.');
+      setError("Choose the agent's wallet key and name the project or WASM hash whose secret should go.");
       return;
     }
     if (!confirm(`Delete the secret left for this agent on ${scopeLabel(scope)}?\n\nThis cannot be undone — the plaintext exists nowhere else.`)) {
@@ -419,7 +419,7 @@ export function AgentSecretForm({
 
       {walletOptions.length === 0 && !pastedKey && (
  <p className="mt-4 text-sm text-muted-foreground">
-          No agent key is saved in this browser. Create one on the{' '}
+          No agent wallet key is saved in this browser. Create one on the{' '}
  <a className="text-accent-text underline" href="/wallet/manage">
             wallets page
  </a>

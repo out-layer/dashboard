@@ -26,6 +26,11 @@ export default function SubscriptionsDocsPage() {
             connector is that its prices live on chain and that we vouch for it.
  </p>
  <p className="text-foreground mt-3">
+            Writing one? See{' '}
+ <a href="/docs/connectors" className="text-accent-text underline">Building a Connector</a>{' '}
+            — the manifest, the network allowlist, the answer format and what can refuse a call to you.
+ </p>
+ <p className="text-foreground mt-3">
             A request to one names the operation at the top of <code className="bg-card-muted px-1 rounded">input</code>:
  </p>
  <pre className="bg-card-muted p-3 rounded text-sm overflow-x-auto">

@@ -44,6 +44,15 @@ export interface PolicyForm {
   /** evm_sign.raw_tx: additionally permit signing arbitrary raw EVM transactions. Default-OFF —
    *  a separate kill-switch (does NOT contain typed-data drains). */
   evm_sign_raw_tx: boolean;
+  /** solana_sign: allow Solana signing (raw message bytes). Same model as `evm_sign` —
+   *  DEFAULT-DENY at the engine level, so this form writes it explicitly. Without it there
+   *  was no way at all to turn Solana signing on for a wallet that has a policy. */
+  solana_sign_enabled: boolean;
+  /** solana_sign.raw_tx: additionally permit signing serialized transaction messages.
+   *  Default-OFF. The base flag covers MESSAGES only, and the keystore refuses a "message"
+   *  whose bytes parse as a transaction — so this sub-flag cannot be walked around through
+   *  the message endpoint. */
+  solana_sign_raw_tx: boolean;
 }
 
 export const DEFAULT_POLICY: PolicyForm = {
@@ -76,6 +85,8 @@ export const DEFAULT_POLICY: PolicyForm = {
   // then writes `evm_sign.allowed=false` until the owner deliberately enables it.
   evm_sign_enabled: false,
   evm_sign_raw_tx: false,
+  solana_sign_enabled: false,
+  solana_sign_raw_tx: false,
 };
 
 // ============================================================================
@@ -118,7 +129,12 @@ export function buildPolicyRules(
   if (form.monthly_limit) limits.monthly = { native: nearToYocto(form.monthly_limit) };
   if (Object.keys(limits).length > 0) rules.limits = limits;
 
-  if (form.address_mode !== 'none' && form.addresses.trim()) {
+  // The MODE is the switch; the list is data. These used to be one condition
+  // (`mode !== 'none' && addresses.trim()`), which made an empty box mean "off"
+  // — so a whitelist with an empty list, the strictest possible address rule,
+  // was dropped on save and the wallet came back with no address filter at all.
+  // Fail-open on a round trip through a form nobody thought they were editing.
+  if (form.address_mode !== 'none') {
     rules.addresses = {
       mode: form.address_mode,
       list: form.addresses.split(',').map((a) => a.trim()).filter(Boolean),
@@ -186,6 +202,13 @@ export function buildPolicyRules(
     if (form.evm_sign_enabled && form.evm_sign_raw_tx) evm.raw_tx = true;
     capabilities.evm_sign = evm;
   }
+  // solana_sign: same shape and the same reason — DEFAULT-DENY, so written out
+  // either way rather than omitted when off.
+  {
+    const sol: Record<string, unknown> = { allowed: form.solana_sign_enabled };
+    if (form.solana_sign_enabled && form.solana_sign_raw_tx) sol.raw_tx = true;
+    capabilities.solana_sign = sol;
+  }
 
   const policy: Record<string, unknown> = {};
   if (Object.keys(rules).length > 0) policy.rules = rules;
@@ -241,7 +264,24 @@ export function parsePolicyResponse(
     daily_limit: yoctoToNear(limits.daily?.native || limits.daily?.['*'] || ''),
     hourly_limit: yoctoToNear(limits.hourly?.native || limits.hourly?.['*'] || ''),
     monthly_limit: yoctoToNear(limits.monthly?.native || limits.monthly?.['*'] || ''),
-    address_mode: addr.mode || 'none',
+    // THREE states, and collapsing any two of them changes a wallet on save:
+    //
+    //   no `addresses` section     → no filtering. The engine's
+    //     `if let Some(addresses)` never runs. This is the commonest policy
+    //     shape there is — limits only, which is what this form writes by
+    //     default.
+    //   section, no `mode`         → whitelist. `Addresses::mode` in
+    //     shared-tee-helpers documents it and both evaluation paths do
+    //     `unwrap_or("whitelist")`.
+    //   section with a `mode`      → that mode.
+    //
+    // Reading the second as `none` showed "No restriction", HID the address
+    // input, and dropped an enforced whitelist on save. Reading the FIRST as
+    // `whitelist` is the same fault mirrored: a limits-only policy comes back
+    // as an empty whitelist and saves as deny-all against every destination,
+    // which nobody chose. Both are "opened the page, saved something
+    // unrelated, changed what the wallet may do".
+    address_mode: rules.addresses ? (addr.mode || 'whitelist') : 'none',
     addresses: (addr.list || []).join(', '),
     transaction_types: (rules.transaction_types || []).join(','),
     allowed_tokens: (rules.allowed_tokens || []).join(',') || '*',
@@ -265,6 +305,8 @@ export function parsePolicyResponse(
     // explicitly set allowed:true.
     evm_sign_enabled: caps.evm_sign?.allowed === true,
     evm_sign_raw_tx: caps.evm_sign?.raw_tx === true,
+    solana_sign_enabled: caps.solana_sign?.allowed === true,
+    solana_sign_raw_tx: caps.solana_sign?.raw_tx === true,
   };
 
   let approval: ParsedPolicy['approval'] = null;

@@ -25,7 +25,7 @@ import { getCoordinatorApiUrl, type NetworkType } from './api';
 const BASE58_ALPHABET =
   '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
 
-function bs58Decode(s: string): Uint8Array {
+export function bs58Decode(s: string): Uint8Array {
   const map = new Map<string, number>();
   for (let i = 0; i < BASE58_ALPHABET.length; i++) map.set(BASE58_ALPHABET[i], i);
   let zeros = 0;

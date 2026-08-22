@@ -971,6 +971,23 @@ curl -s -H "Authorization: Bearer $API_KEY" \\
         </p>
       </section>
 
+      {/* Bind Your Own Account */}
+ <section id="account-binding" className="mb-10 scroll-mt-4">
+ <AnchorHeading id="account-binding">Bind Your Own Account</AnchorHeading>
+ <p className="text-foreground mb-4">
+ Letting an agent act as an account it does not own — yours, or one leased to it — now has a page
+ of its own: <Link href="/docs/account-binding" className="text-accent-text underline">Agent Connect</Link>.
+ It covers both modes, the transaction the account holder signs, and how an agent asks to run under
+ the bound name.
+ </p>
+ <p className="text-foreground mb-4">
+ It moved because it is the one part of custody a non-developer has to carry out, and it was the
+ least findable thing on this page.
+ </p>
+ </section>
+
+      {/* Sign Message (NEP-413) */}
+
       {/* Sign Message (NEP-413) */}
  <section id="sign-message" className="mb-10 scroll-mt-4">
  <AnchorHeading id="sign-message">Sign Message (NEP-413)</AnchorHeading>

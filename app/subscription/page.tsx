@@ -13,20 +13,21 @@ import { getAllWalletKeys } from '@/lib/wallet-keys';
 /**
  * Buy a subscription, and see when it starts and how long it lasts.
  *
- * **Only an agent's key can be subscribed here, and that is deliberate.**
+ * A subscription is a PRICE, not a kind of key. Any payment key can carry one,
+ * and the same key reaches the same endpoints with or without it — what changes
+ * is what a call costs: retail out of the key's own money, or wholesale out of
+ * an allowance bought up front.
  *
- * A subscription is not a special kind of key — the contract and the
- * coordinator will happily put one on any payment key, and the HTTPS purchase
- * endpoint accepts one. What that buys, though, is a second budget on a second
- * key: nothing merges them, nothing warns, and a person with two subscribed
- * keys pays twice for one agent's worth of work. So this page offers the one
- * shape that cannot be got wrong — the wallet's `wk_`, which names exactly one
- * key, because a wallet has exactly one agent key.
+ * It is bought ON CHAIN by naming owner and nonce in an `ft_transfer_call`, so
+ * nothing secret is pasted here. Anyone can pay for somebody else's key.
  *
- * An agent's key has no string at all: it is named after the wallet and the
- * coordinator resolves it from the `wk_`. Which is why the purchase happens ON
- * CHAIN, by naming owner and nonce in an `ft_transfer_call` — there is nothing
- * to paste, copy or keep safe.
+ * One caution worth repeating to the user: two subscribed keys are two budgets.
+ * Nothing merges them and nothing warns, so a person who subscribes a second
+ * key pays twice for one agent's worth of work.
+ *
+ * (Keyless "agent keys" were removed on 2026-08-21. Every key is a string its
+ * holder presents; this page's `wk_` picker is a convenience for finding the
+ * key, not a second kind of it.)
  */
 
 interface Plan {
@@ -39,7 +40,6 @@ interface Plan {
 interface SubscriptionStatus {
   owner: string;
   nonce: number;
-  is_agent: boolean;
   has_subscription: boolean;
   expires_at: string | null;
   accepting_calls_until: string | null;
@@ -172,7 +172,8 @@ function SubscriptionPageContent() {
    * An agent's subscription is bought ON CHAIN.
    *
    * `buy_subscription` names the key by owner and nonce, so no key string is
-   * involved anywhere — which is the whole reason an agent key has none. The
+   * involved anywhere — which is why anyone can pay for somebody else's key
+   * without ever holding it. The
    * money is revenue on arrival rather than the key's balance, and the
    * coordinator grants the allowance against the event the contract emits, so
    * it appears a moment after the transaction rather than inside it.
@@ -279,7 +280,7 @@ function SubscriptionPageContent() {
  <div className="mt-4">
                 {walletOptions.length === 0 ? (
  <p className="text-sm text-muted-foreground">
-                    This browser knows no agent keys. Save one on the{' '}
+                    This browser knows no agent wallet keys. Save one on the{' '}
  <Link className="text-accent-text underline" href="/wallet/manage">
                       wallets
  </Link>{' '}
@@ -393,7 +394,6 @@ function SubscriptionPageContent() {
  <dt className="text-muted-foreground">Key</dt>
  <dd className="font-mono text-right break-all">
                     #{status.nonce}
-                    {status.is_agent ? ' (agent)' : ''}
  </dd>
  </div>
  <div className="flex justify-between gap-3">

@@ -93,13 +93,25 @@ export function PolicyFormFields({ policyForm, onChange, apiKeyHash, knownKeyHas
           ))}
         </div>
         {policyForm.address_mode !== 'none' && (
-          <input
-            type="text"
-            value={policyForm.addresses}
-            onChange={(e) => update({ addresses: e.target.value })}
-            placeholder="bob.near, alice.near (comma-separated)"
+          <>
+            <input
+              type="text"
+              value={policyForm.addresses}
+              onChange={(e) => update({ addresses: e.target.value })}
+              placeholder="bob.near, alice.near (comma-separated)"
  className="w-full border border-border-strong rounded px-3 py-2 text-sm"
-          />
+            />
+            {/* An empty whitelist is the strictest rule there is, not the absence
+                of one — and it used to be invisible: the list was dropped on save
+                and the wallet came back unfiltered. It is now saved as written, so
+                the state has to be legible. */}
+            {policyForm.address_mode === 'whitelist' && !policyForm.addresses.trim() && (
+ <p className="text-xs text-destructive-text mt-1">
+                 An empty whitelist blocks EVERY destination. Choose
+                &quot;No restriction&quot; if that is not what you mean.
+              </p>
+            )}
+          </>
         )}
       </div>
 
@@ -373,6 +385,42 @@ export function PolicyFormFields({ policyForm, onChange, apiKeyHash, knownKeyHas
               />
               Also allow raw EVM transactions (evm_sign.raw_tx) — arbitrary contract calls /
               native value; default OFF
+            </label>
+          )}
+        </div>
+
+        {/* solana_sign (default-DENY at the engine; this form opts in explicitly) */}
+ <div className="mt-3 pt-3 border-t border-border">
+ <label className="flex items-center gap-1.5 text-sm cursor-pointer">
+            <input
+              type="checkbox"
+              checked={policyForm.solana_sign_enabled}
+              onChange={(e) => update({ solana_sign_enabled: e.target.checked })}
+ className="rounded border-border-strong"
+            />
+ <span className="font-medium">solana_sign — sign on Solana (message bytes)</span>
+          </label>
+ <p className="text-xs text-muted-foreground mt-0.5 ml-5">
+ Checked = allow Solana signing (written as <code>solana_sign.allowed=true</code>).
+            A policy that omits it denies Solana signing, so leaving this off is the same as
+            never having had it.
+          </p>
+ <p className="text-xs text-destructive-text mt-0.5 ml-5">
+             Signing bytes on a chain is authority over whatever that address holds. The base
+            flag covers MESSAGES only — the keystore refuses a &quot;message&quot; whose bytes
+            parse as a transaction, so the sub-flag below cannot be walked around through the
+            message endpoint. Keep the on-chain float small.
+          </p>
+          {policyForm.solana_sign_enabled && (
+ <label className="flex items-center gap-1.5 text-xs cursor-pointer ml-5 mt-1">
+              <input
+                type="checkbox"
+                checked={policyForm.solana_sign_raw_tx}
+                onChange={(e) => update({ solana_sign_raw_tx: e.target.checked })}
+ className="rounded border-border-strong"
+              />
+              Also allow serialized Solana transactions (solana_sign.raw_tx) — blind-signing
+              arbitrary instructions; default OFF
             </label>
           )}
         </div>

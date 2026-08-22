@@ -24,11 +24,13 @@ export const SITE = {
   rawBaseUrl: 'https://raw.githubusercontent.com/fastnear/near-outlayer/main',
 
   summary:
-    'Verifiable off-chain computation for NEAR. You publish a WASI program to GitHub; ' +
-    'OutLayer compiles it, runs it inside an Intel TDX enclave, and returns the result ' +
-    'signed by the enclave — callable from a NEAR smart contract or over HTTPS. Agents get ' +
-    'encrypted secrets, persistent storage, and TEE-held wallets that can sign for NEAR, EVM ' +
-    'and Solana without a key ever leaving the enclave.',
+    'Verifiable compute and custody for AI agents, on NEAR. An agent gets a TEE-held wallet ' +
+    'that signs for NEAR, EVM and Solana without a key ever leaving the enclave, spends it ' +
+    'under a policy its owner sets, and calls priced connectors — named operations that run ' +
+    'inside that same enclave. The compute layer is also callable directly: you publish a WASI ' +
+    'program to GitHub, OutLayer compiles it, runs it inside an Intel TDX enclave, and returns ' +
+    'the result signed by the enclave — from a NEAR smart contract or over HTTPS. Agents also ' +
+    'get encrypted secrets and persistent storage.',
 
   details: [
     'Two integration modes. **On-chain:** a NEAR contract calls `request_execution` and receives the result in a callback. **Web2:** a backend calls `POST https://api.outlayer.ai/call/{project_owner}/{project_name}` over HTTPS.',
@@ -149,6 +151,18 @@ export const SECTIONS = [
         path: '/docs/payment-keys',
         summary:
           'Creating payment keys, key format, restrictions, balance management, rate limits, security practices',
+      },
+      {
+        title: 'Agent Connect',
+        path: '/docs/account-binding',
+        summary:
+          'Letting an agent act under an account it does not own: binding a user own named account (the one transaction the holder signs, installed by hash as a global contract), leased partner accounts with their on-chain spend grant and stricter call shape, how an agent asks to run under the bound name on both the HTTPS and on-chain doors, and how the owner ends it',
+      },
+      {
+        title: 'Building a Connector',
+        path: '/docs/connectors',
+        summary:
+          'The author side of a connector: the curated namespace and connector_id manifest that make one, the required top-level operation and its fail-closed pricing, the network allowlist declared in the wasm and enforced by the worker, the two different secrets (the author own credential versus one left for the calling agent), and the four mechanisms that can refuse a call',
       },
       {
         title: 'Connectors & Subscriptions',

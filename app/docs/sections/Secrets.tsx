@@ -156,6 +156,48 @@ export default function SecretsSection() {
           </ul>
         </section>
 
+        <section id="agent-secrets">
+ <AnchorHeading id="agent-secrets">Secrets left FOR an agent</AnchorHeading>
+ <p className="text-foreground">
+            Everything above is a secret <em>you</em> own. This is the other direction: a credential
+            stored under an <strong>agent&apos;s</strong> account, so a connector it calls can use your
+            API token without the agent ever holding it.
+          </p>
+ <p className="text-foreground mt-2">
+            The agent cannot store it itself. Its custody wallet has no NEAR to pay for the write, and
+            the key that authorises one never leaves the TEE — so the coordinator prepares the call and
+            a <strong>person sends and pays for it</strong>. The value is encrypted in the browser before
+            it goes anywhere: neither the page nor the coordinator sees it.
+          </p>
+ <p className="text-foreground mt-2">
+            Store one on the <Link href="/secrets" className="text-accent-text underline">Secrets page</Link>,
+            in the &ldquo;for an agent&rdquo; form. A link may propose <em>which</em> secret to create and
+            deliberately cannot carry its value or the agent&apos;s key — both would end up in browser
+            history, referrers and proxy logs:
+          </p>
+ <pre className="bg-card-muted p-3 rounded text-sm overflow-x-auto mt-2"><code>{`https://app.outlayer.ai/secrets?project=connectors.outlayer.near/near-email&name=SENDGRID_KEY`}</code></pre>
+ <p className="text-foreground mt-2">
+            It is filed against a <strong>scope</strong> — a project id or a WASM hash — and read only by
+            code running under it. Cost is ~0.1 NEAR, the excess refunded.
+          </p>
+
+ <h3 className="text-lg font-semibold mt-4 mb-2">Asking for it at call time</h3>
+ <p className="text-foreground">
+            Nothing is fetched unless the call asks. Most calls need no secret, and a lookup that always
+            ran would add a keystore round trip to every one of them:
+          </p>
+ <pre className="bg-card-muted p-3 rounded text-sm overflow-x-auto mt-2"><code>{`curl -s -X POST -H "Content-Type: application/json" \\
+  -H "X-Payment-Key: $PAYMENT_KEY" \\
+  -H "x-use-owner-secret: true" \\
+  -d '{"input":{"operation":"send"}}' \\
+  "https://api.outlayer.ai/call/connectors.outlayer.near/near-email"`}</code></pre>
+ <p className="text-foreground mt-2">
+            The address it is read from is the agent&apos;s own account — the primary key of its payment
+            key&apos;s row, not anything the caller can choose. That is what makes it unforgeable: only the
+            agent&apos;s <code className="bg-card-muted px-1 rounded">wk_</code> can make that wallet sign.
+          </p>
+        </section>
+
         <section id="using-secrets">
  <AnchorHeading id="using-secrets">Using Secrets in Code</AnchorHeading>
  <p className="text-foreground">

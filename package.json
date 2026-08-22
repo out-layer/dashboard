@@ -4,6 +4,7 @@
   "private": true,
   "license": "Apache-2.0",
   "scripts": {
+    "test": "node --experimental-strip-types --test \"test/**/*.test.mjs\"",
     "llms": "node scripts/build-llms.mjs",
     "predev": "npm run llms",
     "dev": "cross-env-shell \"PORT=${PORT:-3000}\" next dev --turbopack",

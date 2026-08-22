@@ -1,6 +1,6 @@
 # NEAR OutLayer — Full Documentation
 
-> Verifiable off-chain computation for NEAR. You publish a WASI program to GitHub; OutLayer compiles it, runs it inside an Intel TDX enclave, and returns the result signed by the enclave — callable from a NEAR smart contract or over HTTPS. Agents get encrypted secrets, persistent storage, and TEE-held wallets that can sign for NEAR, EVM and Solana without a key ever leaving the enclave.
+> Verifiable compute and custody for AI agents, on NEAR. An agent gets a TEE-held wallet that signs for NEAR, EVM and Solana without a key ever leaving the enclave, spends it under a policy its owner sets, and calls priced connectors — named operations that run inside that same enclave. The compute layer is also callable directly: you publish a WASI program to GitHub, OutLayer compiles it, runs it inside an Intel TDX enclave, and returns the result signed by the enclave — from a NEAR smart contract or over HTTPS. Agents also get encrypted secrets and persistent storage.
 
 Two integration modes. **On-chain:** a NEAR contract calls `request_execution` and receives the result in a callback. **Web2:** a backend calls `POST https://api.outlayer.ai/call/{project_owner}/{project_name}` over HTTPS.
 
@@ -46,9 +46,11 @@ For a link index instead, fetch https://outlayer.fastnear.com/llms.txt.
 
 # NEAR OutLayer
 
-**Verifiable off-chain computation for NEAR smart contracts using Intel TDX**
+**Verifiable compute and custody for AI agents, on NEAR**
 
-OutLayer lets smart contracts execute arbitrary code off-chain and receive verified results on-chain. Computation runs inside Intel TDX Trusted Execution Environments (TEEs) on Phala Cloud, ensuring that neither the operator nor any third party can tamper with execution or access secrets.
+An agent gets a multi-chain wallet whose keys never leave an Intel TDX enclave, spends it under a policy its owner sets, and calls priced **connectors** — named operations like `send_email` or `pay_invoice` — that run inside that same enclave. Keys and the code that uses them never end up in different trust zones.
+
+The same compute layer is callable directly: a NEAR smart contract can request an execution and resume on the verified result, and a web2 backend can call it over HTTPS. Neither the operator nor any third party can tamper with what runs or read the secrets it uses, and every execution returns an enclave-signed attestation that chains to Intel's root certificate.
 
 ## Quick Links
 
@@ -383,9 +385,9 @@ Network switcher available on **Playground** page.
 # OutLayer API
 
 The OutLayer HTTP API is served by the **coordinator** — the task queue and
-gateway that fronts the TEE workers, contracts, and keystore. It exposes
-verifiable off-chain computation (execute WASI modules) and the Agent Custody
-wallet over plain HTTPS.
+gateway that fronts the TEE workers, contracts, and keystore. It exposes the
+Agent Custody wallet and the verifiable compute layer — connectors and arbitrary
+WASI modules — over plain HTTPS.
 
 ## Base URLs (Networks)
 
@@ -2217,6 +2219,81 @@ fn main() {
 }
 ```
 
+### 3a. Wallet calls: the error is half the answer
+
+Every `wallet::*` host function returns `(result, error)`. The call reaches the
+network, a policy engine and a chain — it fails for reasons that have nothing
+to do with your code, and an ignored error leaves you parsing an empty string
+as if it were an answer.
+
+The error string leads with a **machine code**, then a message, then any field
+that changes what to do next:
+
+```
+"<code>: <message>[ key=value]..."
+```
+
+Match on the code, never on the wording:
+
+```rust
+// ✅ CORRECT: route on the code, and treat an empty result as no answer
+let (result, error) = wallet::transfer("near", &to, &amount, "");
+if !error.is_empty() {
+    let code = error.split(':').next().unwrap_or("");
+    match code {
+        // Something else holds the wallet right now — it clears by itself.
+        // `in_flight_request_id=<id>` names the operation to poll.
+        "wallet_busy" => return Ok(json!({ "retry": true, "reason": error })),
+        // The owner has to act. Retrying is noise.
+        "policy_denied" | "wallet_frozen" => {
+            return Ok(json!({ "needs_owner": true, "reason": error }))
+        }
+        // Agent Connect refused before signing, so no gas was spent.
+        // `terminal=true` means the same request will never work.
+        "agent_connect_denied" if error.contains("terminal=true") => {
+            return Ok(json!({ "needs_owner": true, "reason": error }))
+        }
+        _ => return Err(error.into()),
+    }
+}
+let moved: serde_json::Value = serde_json::from_str(&result)?;
+
+// ❌ WRONG: the error is dropped and `result` is "" on every failure path
+let (result, _) = wallet::transfer("near", &to, &amount, "");
+let moved: serde_json::Value = serde_json::from_str(&result)?; // fails obscurely
+```
+
+Codes worth knowing: `wallet_busy`, `policy_denied`, `wallet_frozen`,
+`agent_connect_denied`, `insufficient_balance`. A failure that is not one of
+ours arrives verbatim rather than dressed in an invented code.
+
+**A wallet runs one money operation at a time.** Two of your own calls in
+flight together — two WASI runs paid by the same key, or one run doing two
+things at once — will meet `wallet_busy`, and it waits a couple of seconds
+before it says so. That is deliberate: spending limits are counted per wallet,
+and counting them correctly means one decision at a time.
+
+**Importing the wallet makes it required.** The worker decides whether to
+provide these host functions by looking at what your component imports, and a
+component that imports `outlayer:wallet/api` is refused outright when the
+request carries no wallet:
+
+```
+WASM imports outlayer:wallet/api but wallet is not available.
+Wallet requires: X-Wallet-Id header in the execution request.
+```
+
+That happens before `main` runs, so it fails every call — including the ones
+that were never going to touch the wallet. A module that imports the wallet can
+only ever be called **with** one: `Authorization: Bearer wk_...` plus an
+explicit `X-Wallet-Id`. An absent header, or one with an empty value, means no
+wallet at all rather than "my own".
+
+So keep wallet-using code in its own module rather than adding it to one that
+also serves payment-key or on-chain calls. `wasi-examples/wallet-probe` is the
+smallest working example of that shape, and its README covers the calling
+conventions.
+
 ### 4. Output Size
 
 ```rust
@@ -3106,6 +3183,15 @@ fn main() {
 | `NEAR_MAX_INSTRUCTIONS` | Yes | Yes | No |
 | `NEAR_MAX_MEMORY_MB` | Yes | Yes | No |
 | `NEAR_MAX_EXECUTION_SECONDS` | Yes | Yes | No |
+| `WALLET_ID` | If wallet | If wallet | No |
+| `NEAR_RPC_PROXY_AVAILABLE` | If proxy | If proxy | No |
+
+Every name in this table is **reserved**: `store_secrets` refuses it as a secret
+key, and the worker strips it from your secrets before writing its own value. So
+what you read here always came from the worker — never from whoever called you.
+
+`WALLET_ID` is informational. The authoritative answer is the `wallet::get_id`
+host function, which cannot be influenced by the environment at all.
 
 ## See Also
 
@@ -4701,7 +4787,7 @@ MIT
 
 # OutLayer SDK
 
-Rust SDK for building WASM applications on [OutLayer](https://app.outlayer.ai) - verifiable off-chain computation for NEAR.
+Rust SDK for building WASM applications on [OutLayer](https://app.outlayer.ai) - verifiable compute and custody for AI agents, on NEAR.
 
 [![Crates.io](https://img.shields.io/crates/v/outlayer.svg)](https://crates.io/crates/outlayer)
 [![Documentation](https://docs.rs/outlayer/badge.svg)](https://docs.rs/outlayer)
@@ -7061,7 +7147,7 @@ tools for different risk models.
 
 ### Compute and custody in one environment
 
-Outlayer's core is verifiable off-chain computation. An agent's logic and its
+Outlayer pairs custody with verifiable compute. An agent's logic and its
 signing run in the same TEE, so it can compute privately and sign the result in
 one attested environment rather than splitting where it thinks from where it
 signs. The TLA model is a custody-and-ownership layer; it has no co-located

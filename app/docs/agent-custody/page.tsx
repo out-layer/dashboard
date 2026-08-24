@@ -414,6 +414,31 @@ export default function AgentCustodyPage() {
           </p>
         </div>
 
+ <h4 className="text-base font-semibold mt-6 mb-2">What the counters are fed</h4>
+ <p className="text-foreground mb-3">
+ Two rules decide what a call costs you against the cumulative caps, and neither is
+          guessable from the outside.
+        </p>
+ <p className="text-foreground mb-3">
+ <strong>The attached deposit is the spend.</strong> A call that attaches 0.1 NEAR and costs
+ 0.0025 spends <strong>0.1</strong> against your daily and hourly caps. Most contracts refund
+          the unused part, and the refund is <em>not</em> credited back &mdash; attach what you mean
+          to spend. The same holds for a call that fails: the protocol returns the deposit, the
+          counter keeps it. This is deliberate, and it errs the safe way: a limit that under-counts
+          stops being a limit.
+        </p>
+ <p className="text-foreground mb-3">
+ <strong>A 1-yoctoNEAR marker is not a spend.</strong> The single yocto a payable method
+          requires is protocol overhead, and it is deducted before anything is counted &mdash; so a
+          token transfer through a bound account moves the token and nothing native. That also
+          decides what <code className="bg-card-muted px-1 rounded">rate_limit.max_per_hour</code>{' '}
+          counts: it counts <strong>money movements</strong>, not requests. A token transfer is one.
+          A request moving NEAR <em>and</em> a token is two. A request the chain refused is still
+          one &mdash; the cap is on what reached the chain, not on what succeeded, or a caller
+          could walk past it by failing on purpose. A request refused <em>before</em> it was sent
+          &mdash; by this policy, or by a pre-flight check &mdash; costs nothing at all.
+        </p>
+
  <h3 className="text-lg font-semibold mt-6 mb-2">Example Policy</h3>
         <SyntaxHighlighter language="json" style={vscDarkPlus} customStyle={{ borderRadius: '0.5rem', fontSize: '0.875rem' }}>
 {`{

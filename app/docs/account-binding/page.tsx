@@ -143,8 +143,8 @@ export default function AccountBindingPage() {
  <p className="text-sm text-foreground">
  <strong>Three rules your policy must carry, or the lane is dead.</strong> After the inside of a request is
  checked, the call <em>itself</em> faces your ordinary rules — and on this lane that call is a{' '}
- <code className="bg-card px-1 rounded">call</code>, goes to your <strong>bound account</strong>, and carries a
- 1&nbsp;yoctoNEAR marker. So <code className="bg-card px-1 rounded">transaction_types</code> must list{' '}
+ <code className="bg-card px-1 rounded">call</code>, goes to your <strong>bound account</strong>, and is
+ denominated in NEAR whatever token moves inside it. So <code className="bg-card px-1 rounded">transaction_types</code> must list{' '}
  <code className="bg-card px-1 rounded">call</code> — a policy of{' '}
  <code className="bg-card px-1 rounded">[&quot;transfer&quot;]</code> describes exactly what you want and refuses the
  only route that does it. An address whitelist must list your own bound account alongside the payees, or every
@@ -154,7 +154,9 @@ export default function AccountBindingPage() {
  <code className="bg-card px-1 rounded">native</code> (or <code className="bg-card px-1 rounded">&quot;*&quot;</code>),
  or native transfers stop even when what moves inside is a token you did allow. Use{' '}
  <code className="bg-card px-1 rounded">mode: &quot;none&quot;</code> if you do not want an address filter at all.
- Each of those three refusals names which one it is.
+ Each of those three refusals names which one it is. And whatever NEAR that outer call attaches is measured
+ against your native limits like any other spend — only the 1&nbsp;yoctoNEAR marker a payable method demands
+ is left out, because it proves a key rather than paying anyone.
           </p>
         </div>
 

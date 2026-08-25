@@ -151,7 +151,7 @@ export default function AgentConnectPage() {
           policy governing this lane must permit <code className="bg-card-muted px-1 rounded">call</code>,
           list the bound account in its address rules, and allow{' '}
           <code className="bg-card-muted px-1 rounded">native</code> — because the lane IS a call, it
-          goes through that account, and it carries a 1&nbsp;yoctoNEAR marker. It is written out under{' '}
+          goes through that account, and a call is denominated in NEAR whatever token moves inside it. It is written out under{' '}
           <Link href="/docs/account-binding#account-binding" className="text-accent-text underline">
             Bind Your Own Account
           </Link>{' '}

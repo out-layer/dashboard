@@ -147,10 +147,11 @@ export default function AgentConnectPage() {
           </li>
         </ul>
         <p className="text-foreground mb-4">
-          The <em>policy</em> half has a shape requirement of its own that the grant does not:
-          a policy governing this lane must list the bound account in its address rules and allow{' '}
-          <code className="bg-card-muted px-1 rounded">native</code>, because the outer call goes
-          through that account and carries a 1&nbsp;yoctoNEAR marker. It is written out under{' '}
+          The <em>policy</em> half has a shape requirement of its own that the grant does not: a
+          policy governing this lane must permit <code className="bg-card-muted px-1 rounded">call</code>,
+          list the bound account in its address rules, and allow{' '}
+          <code className="bg-card-muted px-1 rounded">native</code> — because the lane IS a call, it
+          goes through that account, and it carries a 1&nbsp;yoctoNEAR marker. It is written out under{' '}
           <Link href="/docs/account-binding#account-binding" className="text-accent-text underline">
             Bind Your Own Account
           </Link>{' '}

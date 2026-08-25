@@ -141,15 +141,20 @@ export default function AccountBindingPage() {
 
  <div className="bg-card-muted border-l-4 border-amber-500 p-4 my-4">
  <p className="text-sm text-foreground">
- <strong>Two rules your policy must carry, or the lane is dead.</strong> After the inside of a request is
- checked, the call <em>itself</em> faces your ordinary rules — and on this lane the call goes to your
- <strong> bound account</strong> and carries a 1&nbsp;yoctoNEAR marker. So an address whitelist must list your
- own bound account alongside the payees, or every call is refused with{' '}
+ <strong>Three rules your policy must carry, or the lane is dead.</strong> After the inside of a request is
+ checked, the call <em>itself</em> faces your ordinary rules — and on this lane that call is a{' '}
+ <code className="bg-card px-1 rounded">call</code>, goes to your <strong>bound account</strong>, and carries a
+ 1&nbsp;yoctoNEAR marker. So <code className="bg-card px-1 rounded">transaction_types</code> must list{' '}
+ <code className="bg-card px-1 rounded">call</code> — a policy of{' '}
+ <code className="bg-card px-1 rounded">[&quot;transfer&quot;]</code> describes exactly what you want and refuses the
+ only route that does it. An address whitelist must list your own bound account alongside the payees, or every
+ call is refused with{' '}
  <code className="bg-card px-1 rounded">Address &apos;alice.near&apos; is not in whitelist</code> — the account you
  never listed as a destination. And <code className="bg-card px-1 rounded">allowed_tokens</code> must include{' '}
  <code className="bg-card px-1 rounded">native</code> (or <code className="bg-card px-1 rounded">&quot;*&quot;</code>),
  or native transfers stop even when what moves inside is a token you did allow. Use{' '}
  <code className="bg-card px-1 rounded">mode: &quot;none&quot;</code> if you do not want an address filter at all.
+ Each of those three refusals names which one it is.
           </p>
         </div>
 

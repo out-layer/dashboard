@@ -146,6 +146,16 @@ export default function AgentConnectPage() {
             rather than silently following the new owner.
           </li>
         </ul>
+        <p className="text-foreground mb-4">
+          The <em>policy</em> half has a shape requirement of its own that the grant does not:
+          a policy governing this lane must list the bound account in its address rules and allow{' '}
+          <code className="bg-card-muted px-1 rounded">native</code>, because the outer call goes
+          through that account and carries a 1&nbsp;yoctoNEAR marker. It is written out under{' '}
+          <Link href="/docs/account-binding#account-binding" className="text-accent-text underline">
+            Bind Your Own Account
+          </Link>{' '}
+          and applies identically here.
+        </p>
         <p className="text-foreground">
           Methods are default-deny by name: only{' '}
           <code className="bg-card-muted px-1 rounded">transfer</code>,{' '}
@@ -220,7 +230,9 @@ export default function AgentConnectPage() {
         </p>
         <p className="text-foreground">
           Ending it is the partner&apos;s side: revoking the grant or letting the lease expire stops the
-          lane. <code className="bg-card-muted px-1 rounded">DELETE /wallet/v1/binding</code> ends
+          lane within <strong>five seconds</strong> — an allow we checked a moment ago is cached for
+          that long and a denial is never cached, so five seconds is the bound rather than the usual
+          case. A lifecycle webhook from the partner collapses it to the next call. <code className="bg-card-muted px-1 rounded">DELETE /wallet/v1/binding</code> ends
           OutLayer&apos;s side and cancels approvals still waiting on that account.
         </p>
       </section>

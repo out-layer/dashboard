@@ -139,6 +139,20 @@ export default function AccountBindingPage() {
  against your rules before anything is signed.
         </p>
 
+ <div className="bg-card-muted border-l-4 border-amber-500 p-4 my-4">
+ <p className="text-sm text-foreground">
+ <strong>Two rules your policy must carry, or the lane is dead.</strong> After the inside of a request is
+ checked, the call <em>itself</em> faces your ordinary rules — and on this lane the call goes to your
+ <strong> bound account</strong> and carries a 1&nbsp;yoctoNEAR marker. So an address whitelist must list your
+ own bound account alongside the payees, or every call is refused with{' '}
+ <code className="bg-card px-1 rounded">Address &apos;alice.near&apos; is not in whitelist</code> — the account you
+ never listed as a destination. And <code className="bg-card px-1 rounded">allowed_tokens</code> must include{' '}
+ <code className="bg-card px-1 rounded">native</code> (or <code className="bg-card px-1 rounded">&quot;*&quot;</code>),
+ or native transfers stop even when what moves inside is a token you did allow. Use{' '}
+ <code className="bg-card px-1 rounded">mode: &quot;none&quot;</code> if you do not want an address filter at all.
+          </p>
+        </div>
+
  <div className="bg-destructive/10 border-l-4 border-red-500 p-4 my-4">
  <p className="text-sm text-foreground">
  <strong>Your policy is the only limit here.</strong> A leased account has an on-chain spend grant
@@ -150,7 +164,7 @@ export default function AccountBindingPage() {
  <h3 className="text-lg font-semibold mt-4 mb-2">Turning it off</h3>
  <p className="text-foreground mb-4">
  Remove the executor from your account&apos;s extension set — one transaction, signed by you, no permission needed from us. The lane stops
- at the next call. <code className="bg-card-muted px-1 rounded">DELETE /wallet/v1/binding</code> ends OutLayer&apos;s side of it and cancels
+ within five seconds — a permission we checked a moment ago is cached for that long, and nothing else outlives the fact. <code className="bg-card-muted px-1 rounded">DELETE /wallet/v1/binding</code> ends OutLayer&apos;s side of it and cancels
  any approvals still waiting on that account. Redeploying or removing the contract works too.
         </p>
       </section>
@@ -207,7 +221,8 @@ export default function AccountBindingPage() {
  <AnchorHeading id="turning-it-off">Ending it</AnchorHeading>
  <p className="text-foreground mb-4">
           Remove the executor from the account&apos;s extension set — one transaction, signed by the
-          owner, no permission needed from us. The lane stops at the next call.{' '}
+          owner, no permission needed from us. The lane stops within five seconds — an allow we
+          checked a moment ago is cached for that long, and a denial is never cached at all.{' '}
  <code className="bg-card-muted px-1 rounded">DELETE /wallet/v1/binding</code> ends OutLayer&apos;s
           side of it and cancels approvals still waiting on that account.
  </p>

@@ -46,7 +46,10 @@ interface Binding {
   wallet_id?: string;
   kind?: string;
   asset_account_id?: string;
-  owner_account_id?: string;
+  // No owner: the binding response deliberately carries none. What the caller
+  // sends at PUT is a provisioning receipt, checked for shape and compared
+  // against nothing, so returning it would present an unverified claim as a
+  // fact. The chain's answer is `nft_item_info.owner_id`.
   executor_account_id?: string;
   binding_status?: string;
   gas_balance?: string | null;

@@ -23,8 +23,16 @@ export default function AccountBindingPage() {
   return (
  <div className="max-w-5xl">
  <h1 className="text-4xl font-bold mb-3">Personal Account Binding</h1>
- <p className="text-lg text-muted-foreground mb-8">
+ <p className="text-lg text-muted-foreground mb-6">
         Let an agent act as a named account you already own, while you keep the keys.
+ </p>
+
+ <p className="text-sm text-muted-foreground mb-8">
+        For the calls themselves — every endpoint, its arguments, and how to read a refusal — see the{' '}
+ <Link href="/docs/binding-api" className="text-accent-text underline">
+          Binding API reference
+ </Link>
+        .
  </p>
 
  <section id="account-binding" className="mb-10 scroll-mt-4">

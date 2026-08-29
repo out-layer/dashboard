@@ -165,6 +165,12 @@ export const SECTIONS = [
           'The House of Stake lease mode: an account a partner provisions and lends to an agent under an on-chain spend grant, how that grant is a second ceiling above the owner policy, the narrower request shape a lease accepts, and the refusal classes a lease can answer with',
       },
       {
+        title: 'Binding API reference',
+        path: '/docs/binding-api',
+        summary:
+          'The calls a bound-account integration makes: which of the two account identities each endpoint is about (everything under /binding/ is the asset account, everything else is the wallet own account), the arguments of every binding endpoint and how they differ between the leased and personal modes, running a job under the bound name on both doors, the single per-wallet velocity purse both doors share, the agent_connect_denied refusal classes with which are terminal, and which HTTP failures are worth retrying (Retry-After, not the status code, is the signal)',
+      },
+      {
         title: 'Building a Connector',
         path: '/docs/connectors',
         summary:

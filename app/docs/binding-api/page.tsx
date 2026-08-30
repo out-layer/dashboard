@@ -740,6 +740,23 @@ request_execution({ ..., use_bound_identity: true })`}
             your own calls fail would not be one.
           </li>
           <li>
+            <strong>An empty envelope is a real transaction.</strong>{' '}
+            <code className={code}>{'{"request":{}}'}</code>,{' '}
+            <code className={code}>{'{"request":[]}'}</code> and{' '}
+            <code className={code}>{'{"request":{"external":[]}}'}</code> all decode to a request
+            that does nothing, and all three are signed and sent rather than refused. Nothing moves
+            and no rule is bypassed — there is nothing to bypass — but the executor pays gas for the
+            call and it consumes one slot of the hourly transaction cap like any other call that
+            reached the chain.
+            <br />
+            We do not refuse them, and that is deliberate: the wallet contract runs{' '}
+            <code className={code}>nonces.check_cleanup()</code> before it looks at the request, so
+            an empty envelope is a supported way to trigger that maintenance without moving value.
+            Refusing it would take away an operation the contract offers, to save gas the wallet&apos;s
+            own owner is spending. If you are seeing them and did not mean to, the cause is upstream:
+            something built an envelope with no actions in it.
+          </li>
+          <li>
             <strong>The grant and your policy are two ceilings.</strong> Both apply, independently,
             and either can refuse. The grant lives on the account and we cannot change it; the policy
             is yours.

@@ -604,10 +604,26 @@ request_execution({ ..., use_bound_identity: true })`}
               <tr>
                 <td className={td}><code className={code}>unrecognized_wallet_code</code></td>
                 <td className={td}>
-                  A personal account whose code is not one we recognize — the account was redeployed
-                  under us.
+                  The account runs code we do not recognize — a personal account redeployed under
+                  us, or a leased account on an implementation we were not told about.
                 </td>
-                <td className={td}>Re-install the supported contract, then re-bind.</td>
+                <td className={td}>
+                  Reversible. Re-install the supported contract, or tell us the new
+                  implementation and we allowlist it; the binding resumes on its own.
+                </td>
+              </tr>
+              <tr>
+                <td className={td}><code className={code}>registry_disagrees</code></td>
+                <td className={td}>
+                  A leased account&apos;s own <code className={code}>nft_item_info</code> and its
+                  collection&apos;s <code className={code}>nft_token</code> do not agree — a
+                  different owner, a different token, or no such token. The collection has the
+                  last word on who owns the account.
+                </td>
+                <td className={td}>
+                  Reversible. The registry may trail the account by a block; if it stays, the
+                  account&apos;s owner has changed and a new binding is needed.
+                </td>
               </tr>
               <tr>
                 <td className={td}><code className={code}>chain_status_unreadable</code></td>

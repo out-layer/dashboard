@@ -615,14 +615,14 @@ request_execution({ ..., use_bound_identity: true })`}
               <tr>
                 <td className={td}><code className={code}>registry_disagrees</code></td>
                 <td className={td}>
-                  A leased account&apos;s own <code className={code}>nft_item_info</code> and its
-                  collection&apos;s <code className={code}>nft_token</code> do not agree — a
-                  different owner, a different token, or no such token. The collection has the
-                  last word on who owns the account.
+                  The collection a leased account says it belongs to has no record of the token
+                  the account names — <code className={code}>nft_token</code> answered null or
+                  refused. The collection vouches only that it minted the name; ownership lives
+                  on the account and is not compared.
                 </td>
                 <td className={td}>
-                  Reversible. The registry may trail the account by a block; if it stays, the
-                  account&apos;s owner has changed and a new binding is needed.
+                  Reversible. The registry may trail the account by a block; the binding resumes
+                  once the record is there.
                 </td>
               </tr>
               <tr>

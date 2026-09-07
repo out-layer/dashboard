@@ -54,7 +54,7 @@ logs/
 next-env.d.ts
 
 # public/llms.txt and public/llms-full.txt ARE tracked in this repo: their markdown
-# sources live in the near-outlayer monorepo, not here, so a standalone clone cannot
+# sources live in the out-layer/outlayer monorepo, not here, so a standalone clone cannot
 # regenerate them. Refresh with:
 #   LLMS_SOURCES_ROOT=~/projects/near-offshore npm run llms
 # Without LLMS_SOURCES_ROOT, dev/build leave the committed files untouched.

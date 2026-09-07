@@ -147,7 +147,10 @@ export default function AgentConnectPage() {
           <li>
             <strong>Ownership rotation ends the binding.</strong> The contract tracks a rotation
             sequence; when the account changes hands the grants are cleared and the binding terminates
-            rather than silently following the new owner.
+            rather than silently following the new owner. The sequence is numbered within an
+            implementation epoch: a migration that moves the epoch renumbers it, and under the same
+            owner the binding re-establishes its pin instead of ending. A different owner ends it in
+            any epoch — a name sold during an upgrade does not keep its binding.
           </li>
         </ul>
         <p className="text-foreground mb-4">

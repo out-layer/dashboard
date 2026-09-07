@@ -585,8 +585,8 @@ near view worker.outlayer.near is_measurements_approved '{
 
  <ol className="list-decimal list-inside text-foreground space-y-2 mb-6">
           <li>
-            Go to <a href="https://github.com/fastnear/near-outlayer/releases" target="_blank" rel="noopener noreferrer" className="text-accent-text hover:underline">
-              github.com/fastnear/near-outlayer/releases
+            Go to <a href="https://github.com/out-layer/outlayer/releases" target="_blank" rel="noopener noreferrer" className="text-accent-text hover:underline">
+              github.com/out-layer/outlayer/releases
             </a>
           </li>
  <li>Find the release matching the version running in the TEE</li>
@@ -797,7 +797,7 @@ near view worker.outlayer.near is_measurements_approved '{
             {' '}- How secrets are encrypted and decrypted in TEE
           </li>
           <li>
- <a href="https://github.com/fastnear/near-outlayer/releases" target="_blank" rel="noopener noreferrer" className="text-accent-text hover:underline">
+ <a href="https://github.com/out-layer/outlayer/releases" target="_blank" rel="noopener noreferrer" className="text-accent-text hover:underline">
               GitHub Releases
             </a>
             {' '}- Release binaries with Sigstore certification

@@ -20,8 +20,8 @@ export const DOCS_NAV_PATHS = new Set(DOCS_NAV.flatMap((g) => g.pages.map((p) =>
 export const SITE = {
   name: 'NEAR OutLayer',
   baseUrl: 'https://app.outlayer.ai',
-  repoUrl: 'https://github.com/fastnear/near-outlayer',
-  rawBaseUrl: 'https://raw.githubusercontent.com/fastnear/near-outlayer/main',
+  repoUrl: 'https://github.com/out-layer/outlayer',
+  rawBaseUrl: 'https://raw.githubusercontent.com/out-layer/outlayer/main',
 
   summary:
     'Verifiable compute and custody for AI agents, on NEAR. An agent gets a TEE-held wallet ' +
@@ -238,7 +238,7 @@ export const SECTIONS = [
     pages: [
       {
         title: 'Source repository',
-        url: 'https://github.com/fastnear/near-outlayer',
+        url: 'https://github.com/out-layer/outlayer',
         summary: 'Contract, worker, keystore, dashboard, SDK and WASI examples',
       },
       {

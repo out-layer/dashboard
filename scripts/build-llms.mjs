@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Generates public/llms.txt and public/llms-full.txt from scripts/llms-manifest.mjs.
 //
-// The inlined source markdown lives in the near-outlayer monorepo this repo was
+// The inlined source markdown lives in the out-layer/outlayer monorepo this repo was
 // extracted from. Set LLMS_SOURCES_ROOT to a local checkout of that monorepo to
 // regenerate; without it the committed public/llms*.txt are left untouched, so
 // dev/build keep working in a standalone clone.
@@ -233,12 +233,12 @@ async function main() {
     if (missingArtifacts.length > 0) {
       throw new Error(
         `llms: committed public/${missingArtifacts.join(', public/')} missing and ` +
-          'LLMS_SOURCES_ROOT is not set. Point it at a local near-outlayer checkout to generate.',
+          'LLMS_SOURCES_ROOT is not set. Point it at a local out-layer/outlayer checkout to generate.',
       )
     }
     console.log(
       'llms: keeping committed public/llms.txt and public/llms-full.txt ' +
-        '(set LLMS_SOURCES_ROOT to a near-outlayer checkout to regenerate)',
+        '(set LLMS_SOURCES_ROOT to an out-layer/outlayer checkout to regenerate)',
     )
     return
   }

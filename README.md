@@ -4,7 +4,7 @@ Web dashboard for [OutLayer](https://outlayer.ai) — verifiable off-chain compu
 
 Live at [app.outlayer.ai](https://app.outlayer.ai) (moving to `app.outlayer.ai`).
 
-Extracted 2026-08-04 from the [near-outlayer](https://github.com/fastnear/near-outlayer) monorepo (`dashboard/`) with full history.
+Extracted 2026-08-04 from the [outlayer](https://github.com/out-layer/outlayer) monorepo (`dashboard/`) with full history.
 
 ## Stack
 
@@ -23,7 +23,7 @@ npm run dev                  # http://localhost:3000
 ## llms.txt
 
 `public/llms.txt` and `public/llms-full.txt` are **tracked artifacts**. Their markdown
-sources (README, API.md, CUSTODY.md, wasi-examples, …) live in the near-outlayer
+sources (README, API.md, CUSTODY.md, wasi-examples, …) live in the out-layer/outlayer
 monorepo, so a standalone clone cannot rebuild them. To refresh after monorepo docs
 change:
 
@@ -42,7 +42,7 @@ same precedence as the app):
 
 ```bash
 # .env.local on the deploy host
-LLMS_SOURCES_ROOT=/path/to/near-outlayer
+LLMS_SOURCES_ROOT=/path/to/outlayer
 ```
 
 Then every deploy is one command (as `nextjs-user`):

@@ -306,6 +306,19 @@ export default function BindingApiPage() {
                 </td>
               </tr>
               <tr>
+                <td className={td}><code className={code}>status_reason</code></td>
+                <td className={td}>
+                  Why the binding is not <code className={code}>active</code> — the fault class
+                  the last observation reported, in the same vocabulary a refused spend uses
+                  (<code className={code}>executor_not_in_control_set</code>,{' '}
+                  <code className={code}>account_frozen</code>,{' '}
+                  <code className={code}>unsupported_wallet_implementation</code>, ...). Absent
+                  while active. A pending personal binding reads{' '}
+                  <code className={code}>executor_not_in_control_set</code> until the owner adds
+                  the executor.
+                </td>
+              </tr>
+              <tr>
                 <td className={td}><code className={code}>executor_account_id</code></td>
                 <td className={td}>The account that signs, and the one that needs gas.</td>
               </tr>

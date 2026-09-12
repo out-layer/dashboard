@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { AccessCondition, ComparisonOperator, LogicOperator } from './types';
+import { localInputToNs, nsToLocalInput } from './utils';
 
 interface AccessConditionBuilderProps {
   condition?: AccessCondition;
@@ -20,7 +21,7 @@ export function AccessConditionBuilder({ condition, onChange }: AccessConditionB
   }, [condition]);
 
   const ruleTypes = [
-    { value: 'AllowAll', label: 'Everyone can access', description: 'No restrictions - open for all users' },
+    { value: 'AllowAll', label: 'Everyone can access', description: "Anyone who names this secret can run the project with it. Right for an app's own credential named in its manifest; for a personal secret, use a whitelist." },
     { value: 'Logic', label: 'Multiple rules (AND/OR)', description: 'Combine several rules together' },
     { value: 'Not', label: 'Opposite rule (NOT)', description: 'Flip a rule to mean the opposite' },
     { value: 'NearBalance', label: 'NEAR Balance Check', description: 'Require minimum NEAR balance' },
@@ -29,6 +30,7 @@ export function AccessConditionBuilder({ condition, onChange }: AccessConditionB
     { value: 'DaoMember', label: 'DAO Membership', description: 'Require membership in DAO role' },
     { value: 'Whitelist', label: 'Whitelist', description: 'Only specific accounts allowed' },
     { value: 'AccountPattern', label: 'Account Pattern', description: 'Match account name with regex' },
+    { value: 'ValidUntil', label: 'Until a date', description: 'Admit only before a moment in time (UTC). Under "Multiple rules (AND)" with a whitelist it is a grant that lapses on its own.' },
   ];
 
   const operators = [
@@ -76,6 +78,10 @@ export function AccessConditionBuilder({ condition, onChange }: AccessConditionB
         break;
       case 'AccountPattern':
         newCondition = { type: 'AccountPattern', pattern: '' };
+        break;
+      case 'ValidUntil':
+        // Thirty days from now, as a starting point the user adjusts.
+        newCondition = { type: 'ValidUntil', until_ns: (BigInt(Date.now() + 30 * 86_400_000) * BigInt(1_000_000)).toString() };
         break;
       default:
         newCondition = { type: 'AllowAll' };
@@ -251,6 +257,30 @@ export function AccessConditionBuilder({ condition, onChange }: AccessConditionB
             placeholder="alice.near, bob.near"
  className="block w-full max-w-xl rounded-md border border-border-strong px-3 py-2 text-sm outline-none focus:border-accent focus:ring-1 focus:ring-accent"
           />
+        </div>
+      )}
+
+      {/* Valid until */}
+      {currentCondition.type === 'ValidUntil' && (
+ <div className="mb-4 p-4 bg-card-muted rounded-md">
+ <label className="block text-sm font-medium text-foreground mb-2">
+            Admit until (UTC)
+          </label>
+          <input
+            type="datetime-local"
+            step="1"
+            value={nsToLocalInput(currentCondition.until_ns)}
+            onChange={(e) => {
+              const ns = localInputToNs(e.target.value);
+              if (ns !== null) updateCondition({ until_ns: ns });
+            }}
+ className="block w-full max-w-xl rounded-md border border-border-strong px-3 py-2 text-sm outline-none focus:border-accent focus:ring-1 focus:ring-accent"
+          />
+ <p className="mt-2 text-xs text-muted-foreground">
+            Read as UTC. From this instant on, the condition denies. Combine it with a whitelist under
+            &ldquo;Multiple rules (AND)&rdquo; for a grant that lapses on its own; under
+            &ldquo;Opposite rule (NOT)&rdquo; it means &ldquo;valid after&rdquo;.
+          </p>
         </div>
       )}
 

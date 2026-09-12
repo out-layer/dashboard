@@ -9,7 +9,9 @@ import { actionCreators } from '@near-js/transactions';
 import { SecretsForm } from './components/SecretsForm';
 import { AgentSecretForm } from './components/AgentSecretForm';
 import { SecretsList } from './components/SecretsList';
-import { UserSecret, FormData, isRepoAccessor, isWasmHashAccessor, isProjectAccessor } from './components/types';
+import { AccessEditor, GranteeWallet } from './components/AccessEditor';
+import { UserSecret, FormData, isRepoAccessor, isWasmHashAccessor, isProjectAccessor, getAccessorLabel } from './components/types';
+import { grantsOf, withoutGrant, implicitAccountOf, nsToIsoUtc } from './components/utils';
 import { getCoordinatorApiUrl } from '@/lib/api';
 import { listAllUserSecrets } from '@/lib/user-secrets';
 
@@ -49,6 +51,39 @@ function SecretsPageContent() {
 
   // Update mode (preserves PROTECTED_ secrets)
   const [updatingSecret, setUpdatingSecret] = useState<UserSecret | null>(null);
+  // The secret whose readers are being changed (update_access; the value stays).
+  const [accessSecret, setAccessSecret] = useState<UserSecret | null>(null);
+  // The custody wallets this account owns, as grantees: a grant names the
+  // wallet's implicit account, which is what pays for its calls.
+  const [wallets, setWallets] = useState<GranteeWallet[]>([]);
+  useEffect(() => {
+    if (!isConnected || !accountId) {
+      setWallets([]);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const rows = (await viewMethod({
+          contractId,
+          method: 'get_wallet_policies_by_owner',
+          args: { owner: accountId },
+        })) as Array<{ wallet_pubkey?: string }> | null;
+        const found: GranteeWallet[] = [];
+        for (const row of rows ?? []) {
+          const pubkey = row.wallet_pubkey ?? '';
+          const account = implicitAccountOf(pubkey);
+          if (account) found.push({ account, label: pubkey.slice(0, 16) + '…' });
+        }
+        if (!cancelled) setWallets(found);
+      } catch {
+        if (!cancelled) setWallets([]);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [isConnected, accountId, contractId, viewMethod]);
 
   // Saving replaces whatever is already stored for the same project+profile, and a replaced
   // generated key cannot be recovered — the private half only ever existed inside the enclave.
@@ -253,6 +288,86 @@ function SecretsPageContent() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  // `update_access`: the condition moves, the ciphertext stays.
+  const sendAccess = async (secret: UserSecret, newAccess: unknown) => {
+    const action = actionCreators.functionCall(
+      'update_access',
+      { accessor: secret.accessor, profile: secret.profile, new_access: newAccess },
+      BigInt('30000000000000'), // 30 TGas
+      BigInt('0') // the row is re-keyed, not re-stored: no deposit
+    );
+    await signAndSendTransaction({ receiverId: contractId, actions: [action] });
+    setSuccess('Access updated. The secret itself was not touched.');
+    setTimeout(() => loadUserSecrets(), 2000);
+  };
+
+  const handleSaveAccess = async (newAccess: unknown) => {
+    if (!accessSecret) return;
+    await sendAccess(accessSecret, newAccess);
+    setAccessSecret(null);
+  };
+
+  // One-click revoke from the grants overview: the account leaves this secret's
+  // condition, nothing else about the condition changes.
+  const [revoking, setRevoking] = useState<string | null>(null);
+  const handleRevoke = async (secret: UserSecret, account: string) => {
+    const key = `${getAccessorLabel(secret.accessor)}/${secret.profile}:${account}`;
+    setRevoking(key);
+    setError(null);
+    try {
+      await sendAccess(secret, withoutGrant(secret.access, account, accountId));
+    } catch (e) {
+      setError(`Failed to revoke: ${(e as Error).message}`);
+    } finally {
+      setRevoking(null);
+    }
+  };
+
+  // Every account this owner's secrets name, grouped by account — so a grant
+  // that has outlived its agent is found here rather than remembered. A leased
+  // agent's executor is the partner's wallet; its lease is not readable from
+  // this page, so the expiry stored with the grant is what is shown.
+  // Project rows only. A repository- or hash-bound row's whitelist is the
+  // audience of an app's own credential, not a secret handed to somebody's
+  // agent, and listing it here under a Revoke button would invite cutting off
+  // that app's users.
+  const grantRows = userSecrets
+    .filter((s) => s.accessor && isProjectAccessor(s.accessor))
+    .flatMap((s) => grantsOf(s.access, accountId).map((g) => ({ secret: s, ...g })));
+  const grantsByAccount = new Map<string, typeof grantRows>();
+  for (const row of grantRows) {
+    const list = grantsByAccount.get(row.account) ?? [];
+    list.push(row);
+    grantsByAccount.set(row.account, list);
+  }
+  const ownWallet = new Map(wallets.map((w) => [w.account, w.label]));
+
+  // Personal secrets anyone can name. Existing rows are never changed by us;
+  // this is how the whitelist default reaches rows stored before it.
+  const openPersonal = userSecrets.filter(
+    (s: UserSecret) => s.accessor && isProjectAccessor(s.accessor) && s.access === 'AllowAll'
+  );
+  // An author whose apps legitimately hold AllowAll credentials sees the notice
+  // once and puts it away; it is a nudge, not a gate. Per browser, best effort:
+  // storage can be absent or blocked, and the page must render either way.
+  const NOTICE_KEY = 'secrets.allowall-notice.dismissed';
+  const [noticeDismissed, setNoticeDismissed] = useState(true);
+  useEffect(() => {
+    try {
+      setNoticeDismissed(window.localStorage.getItem(NOTICE_KEY) === '1');
+    } catch {
+      setNoticeDismissed(false);
+    }
+  }, []);
+  const dismissNotice = () => {
+    setNoticeDismissed(true);
+    try {
+      window.localStorage.setItem(NOTICE_KEY, '1');
+    } catch {
+      // nothing to remember it in; it comes back next visit
+    }
+  };
+
   const handleDeleteSecret = async (secret: UserSecret) => {
     // Validate accessor exists
     if (!secret.accessor) {
@@ -398,6 +513,7 @@ function SecretsPageContent() {
                     branch: editingSecret.accessor.Repo.branch || '',
                     wasmHash: '',
                     profile: editingSecret.profile,
+                    access: editingSecret.access,
                   }
                 : isWasmHashAccessor(editingSecret.accessor)
                 ? {
@@ -406,6 +522,7 @@ function SecretsPageContent() {
                     branch: '',
                     wasmHash: editingSecret.accessor.WasmHash.hash,
                     profile: editingSecret.profile,
+                    access: editingSecret.access,
                   }
                 : isProjectAccessor(editingSecret.accessor)
                 ? {
@@ -414,6 +531,7 @@ function SecretsPageContent() {
                     branch: '',
                     wasmHash: '',
                     profile: editingSecret.profile,
+                    access: editingSecret.access,
                   }
                 : undefined
               : undefined
@@ -443,6 +561,7 @@ function SecretsPageContent() {
                         branch: null,
                       },
                   profile: updatingSecret.profile,
+                  access: updatingSecret.access,
                   // Phase 7 audit H3: pass `undefined` so SecretsForm
                   // performs the `get_secret_vault` view-call itself
                   // and inherits the existing binding. Without this,
@@ -476,6 +595,76 @@ function SecretsPageContent() {
       </div>
 
       {/* User's Secrets List */}
+      {accessSecret && (
+        <AccessEditor
+          secret={accessSecret}
+          accountId={accountId}
+          wallets={wallets}
+          onSave={handleSaveAccess}
+          onCancel={() => setAccessSecret(null)}
+        />
+      )}
+      {grantsByAccount.size > 0 && (
+        <div className="mb-4 bg-card border border-border rounded-lg p-4">
+          <h3 className="text-sm font-semibold text-foreground">Secrets handed to other accounts</h3>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Each account below can read the secrets listed under it, on the project those secrets are
+            stored for. A grant outlives the agent&rsquo;s binding or lease unless it carries an expiry
+            &mdash; revoke here what no longer has an agent behind it.
+          </p>
+          <ul className="mt-3 space-y-3">
+            {Array.from(grantsByAccount.entries()).map(([account, rows]) => (
+              <li key={account}>
+                <div className="text-xs font-mono break-all text-foreground">
+                  {account}
+                  {ownWallet.has(account) && (
+                    <span className="ml-2 font-sans text-muted-foreground">your wallet {ownWallet.get(account)}</span>
+                  )}
+                  {!ownWallet.has(account) && /^[0-9a-f]{64}$/.test(account) && (
+                    <span className="ml-2 font-sans text-muted-foreground">a wallet you do not own</span>
+                  )}
+                </div>
+                <ul className="mt-1 ml-4 space-y-1">
+                  {rows.map((row) => {
+                    const key = `${getAccessorLabel(row.secret.accessor)}/${row.secret.profile}:${account}`;
+                    return (
+                      <li key={key} className="flex items-center justify-between gap-3 text-xs">
+                        <span className="min-w-0 break-all text-foreground">
+                          {getAccessorLabel(row.secret.accessor)} / {row.secret.profile}
+                          <span className="text-muted-foreground">
+                            {' '}&middot; {row.until_ns ? `until ${nsToIsoUtc(row.until_ns)}` : 'no expiry'}
+                          </span>
+                        </span>
+                        <button
+                          type="button"
+                          disabled={revoking !== null}
+                          onClick={() => handleRevoke(row.secret, account)}
+                          className="shrink-0 px-2 py-1 border border-destructive/40 rounded text-destructive-text bg-destructive/10 hover:bg-destructive/15 disabled:opacity-50"
+                          title="update_access without this account; the encrypted value is untouched"
+                        >
+                          {revoking === key ? 'Revoking…' : 'Revoke'}
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+      {openPersonal.length > 0 && !noticeDismissed && (
+        <div className="mb-4 bg-warning/10 border border-warning/40 rounded-md p-4 text-sm text-warning-text flex items-start justify-between gap-4">
+          <span>
+            {openPersonal.length} of your project secrets admit everyone: anyone who names such a secret can
+            run that project with it. Keep that for an app&rsquo;s own credential named in its manifest;
+            for a personal one, narrow it with &ldquo;Access&rdquo; to yourself and the agents you hand it to.
+          </span>
+          <button type="button" onClick={dismissNotice} className="shrink-0 text-xs underline" title="Hide this notice in this browser">
+            Dismiss
+          </button>
+        </div>
+      )}
       <SecretsList
         secrets={userSecrets}
         loading={loadingSecrets}
@@ -483,6 +672,7 @@ function SecretsPageContent() {
         onEdit={handleEditSecret}
         onUpdate={handleUpdateSecret}
         onDelete={handleDeleteSecret}
+        onAccess={(secret) => { setAccessSecret(secret); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
         onRefresh={loadUserSecrets}
       />
       </div>

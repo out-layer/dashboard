@@ -147,13 +147,23 @@ export default function SecretsSection() {
             Control who can decrypt your secrets using flexible access conditions:
           </p>
  <ul className="list-disc list-inside space-y-2 text-foreground mt-2">
- <li><strong>AllowAll:</strong> Anyone can use (suitable for public data)</li>
- <li><strong>Whitelist:</strong> Specific NEAR accounts only</li>
- <li><strong>NEAR Balance:</strong> Accounts with minimum NEAR balance</li>
- <li><strong>FT/NFT Balance:</strong> Token holders only</li>
- <li><strong>Account Pattern:</strong> Regex-based account filtering</li>
- <li><strong>Logic:</strong> Complex AND/OR/NOT conditions</li>
+ <li><strong>AllowAll:</strong> anyone who names the secret can run the project with it — right for an app&apos;s own credential named in its manifest, not for a personal one</li>
+ <li><strong>Whitelist:</strong> specific NEAR accounts only — the default for a new personal secret under a project is your own account</li>
+ <li><strong>NEAR Balance:</strong> accounts with a minimum NEAR balance</li>
+ <li><strong>FT/NFT Balance:</strong> token holders only</li>
+ <li><strong>Account Pattern:</strong> regex over the account id, anchored to the whole id</li>
+ <li><strong>Until a date:</strong> admits only before an instant (UTC); with a whitelist under AND it is a grant that lapses on its own</li>
+ <li><strong>Logic:</strong> AND / OR / NOT combinations of the above</li>
           </ul>
+ <p className="text-foreground mt-3">
+            <strong>Access</strong> on a secret card changes the condition without touching the value:
+            grant an agent by its wallet account (the 64-character account that pays for its calls &mdash;
+            your own custody wallets are offered by name), with an expiry for a leased agent, and revoke
+            by removing it. The secrets page also lists every account your secrets are handed to, with a
+            one-click revoke, so a grant that has outlived its agent is found rather than remembered. The
+            agent names the secret in its call with{' '}
+            <code className="bg-card-muted px-1 rounded">secrets_ref</code>.
+          </p>
         </section>
 
         <section id="agent-secrets">

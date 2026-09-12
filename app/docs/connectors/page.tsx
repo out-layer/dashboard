@@ -162,26 +162,40 @@ export default function ConnectorsDocsPage() {
         </section>
 
         <section id="two-secrets">
-          <AnchorHeading id="two-secrets">Two secrets, two owners</AnchorHeading>
+          <AnchorHeading id="two-secrets">Three secrets, three owners</AnchorHeading>
           <p className="text-foreground">
-            This is the part most connectors get wrong, because two entirely different credentials are
-            involved and they belong to different people.
+            A connector reads secrets exactly as any other project does. What trips connectors up is
+            that three credentials belonging to different people meet in one run.
           </p>
           <p className="text-foreground mt-3">
             <strong>Yours (the author&apos;s).</strong> Your SMTP password or upstream API key — the
             same for every caller. Store it under your own account with{' '}
-            <code className="bg-card-muted px-1 rounded">store_secrets</code> and point calls at it
-            with <code className="bg-card-muted px-1 rounded">secrets_ref</code>:
+            <code className="bg-card-muted px-1 rounded">store_secrets</code> for the project you
+            publish, and name the profile in the manifest embedded in the wasm; the worker decrypts it
+            into every run, and the call carries nothing:
+          </p>
+          <pre className="bg-card-muted p-3 rounded text-sm overflow-x-auto mt-2"><code>{`{ "connector_id": "<id>", "author_secrets": { "profile": "prod" } }`}</code></pre>
+          <p className="text-foreground mt-2">
+            Its access condition is judged against the real caller, so it is also who may run your
+            connector: <code className="bg-card-muted px-1 rounded">AllowAll</code> for everyone, a
+            whitelist or DAO role for a circle.
+          </p>
+          <p className="text-foreground mt-3">
+            <strong>The caller&apos;s.</strong> A row the call names with{' '}
+            <code className="bg-card-muted px-1 rounded">secrets_ref</code>, gated by the condition its
+            owner stored. An owner hands a credential to their agents by storing it once under their own
+            account and whitelisting the agents&apos; wallet accounts (optionally until a date); each
+            agent names it:
           </p>
           <pre className="bg-card-muted p-3 rounded text-sm overflow-x-auto mt-2"><code>{`{
   "input": { "operation": "send" },
-  "secrets_ref": { "account_id": "you.near", "profile": "prod" }
+  "secrets_ref": { "account_id": "owner.near", "profile": "gmail" }
 }`}</code></pre>
           <p className="text-foreground mt-3">
-            <strong>The caller&apos;s.</strong> A credential their agent was given, stored under the{' '}
-            <em>agent&apos;s</em> account and fetched only when the call asks for it with{' '}
-            <code className="bg-card-muted px-1 rounded">x-use-owner-secret: true</code>. You never
-            hold it and it is different for every caller — see{' '}
+            <strong>The agent&apos;s.</strong> A credential stored FOR a custody wallet under the{' '}
+            <em>wallet&apos;s</em> account and fetched only when the call asks for it with{' '}
+            <code className="bg-card-muted px-1 rounded">x-use-owner-secret: true</code> and names
+            nothing else. You never hold it — see{' '}
             <Link href="/docs/secrets#agent-secrets" className="text-accent-text underline">
               Secrets left FOR an agent
             </Link>

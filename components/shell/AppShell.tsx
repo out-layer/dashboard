@@ -164,6 +164,12 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               <Link href="/workers" className="hover:text-foreground">
                 Workers
               </Link>
+              <Link href="/privacy" className="hover:text-foreground">
+                Privacy
+              </Link>
+              <Link href="/terms" className="hover:text-foreground">
+                Terms
+              </Link>
               <a
                 href="https://github.com/out-layer"
                 target="_blank"

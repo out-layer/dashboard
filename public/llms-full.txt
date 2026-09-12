@@ -2294,6 +2294,93 @@ also serves payment-key or on-chain calls. `wasi-examples/wallet-probe` is the
 smallest working example of that shape, and its README covers the calling
 conventions.
 
+### 3b. EVM signing and sub-keys (connectors)
+
+`outlayer:wallet/api` signs on EVM chains too: `evm-sign-typed-data`,
+`evm-sign-message`, `evm-sign-transaction`, each taking a `label` as its last
+argument, and `get-sub-key-address(chain, label)`. A label names a **sub-key**
+— a distinct address of the same wallet, under the keystore path
+`connector.{connector_id}.{label}` that the worker builds from the connector's
+verified manifest. The empty label is the sub-key `default`; the wallet's own
+EVM key (what `get-address` returns) is never signable from inside a module.
+Only a connector published under the connectors namespace whose manifest
+`connector_id` equals its project name has sub-keys; elsewhere every label
+answers `sub_key_unavailable`. Labels are `[a-z0-9][a-z0-9_-]{0,31}`; anything
+else is `invalid_label`.
+
+```rust
+// The connector's trading address on Base — stable for this connector + label.
+let (addr, err) = wallet::get_sub_key_address("base", "trading");
+// Sign a CLOB order with the trading key; the keystore computes the digest.
+let (sig, err) = wallet::evm_sign_typed_data("base", &typed_data_json, "trading");
+```
+
+Signatures are gated by the wallet's `evm_sign` capability (`raw_tx` for
+`evm-sign-transaction`); a refusal comes back as `policy_denied`. The worker
+forwards everything as-is and hashes nothing — the digest is the keystore's.
+See `docs/CONNECTORS.md` §4.5 for what a sub-key is and is not.
+
+The way funds travel between a venue and the wallet: `deposit-intent(chain,
+token, amount)` returns a 1Click deposit address that brings funds from
+another chain INTO the wallet's intents balance, `get-intents-balance(token)`
+reads that balance per asset, and `withdraw`/`swap` draw from it. The same
+three exist for the wallet's CONFIDENTIAL balance
+(`confidential-deposit-intent`, `get-confidential-balance`,
+`confidential-withdraw`): same policy, but a movement out of it does not name
+the wallet's NEAR account on chain. A connector that funds a venue lets the
+caller choose the source (`intents` or `confidential`) and pays into the
+same address either way.
+
+### 3c. Secrets: the author's, yours, the agent's
+
+Three kinds of secret can reach a run, and every project — not only a
+connector — may use all three. All of them are rows stored on chain with
+`store_secrets` under an **accessor** (`Project`, `Repo` or `WasmHash`), a
+**profile** and an **owner**, encrypted to the keystore; the keystore decrypts
+them inside the TEE and the worker hands them to your module as environment
+variables.
+
+**The author's.** Your own credential — an upstream API key, an SMTP password
+— the same for every caller. Store it under your account with the accessor of
+the project you publish, and name the profile in a manifest embedded in the
+wasm (`outlayer.manifest` custom section, see `CONNECTOR_MANIFEST.md`):
+
+```jsonc
+{ "author_secrets": { "profile": "author" } }
+```
+
+The worker decrypts that profile into **every** run of the project; the call
+carries nothing. Its access condition is judged against the real caller, which
+makes it the project's admission gate: `AllowAll` for a public app, a
+`Whitelist` or `DaoMember` for a circle — a caller the condition refuses gets a
+refused run before anything executes. A declared profile nobody stored refuses
+the run too, with a message saying what to store. Two cautions: a manifest that
+carries `connector_id` turns the outbound allowlist mandatory (a connector's
+rule), so leave it out; and a run that has no project — a `Repo` source
+executed directly — has nowhere to hold an author secret, so build the
+manifest into the artefact you publish as a project only
+(`test-secrets-example` does this with a cargo feature).
+
+**The caller's.** A secret the caller names in the request — `secrets_ref:
+{account_id, profile}` in the HTTPS wrapper or in `request_execution` — gated
+by the condition its owner stored. The dashboard and the CLI default a new
+personal secret under a project to `Whitelist[you]`: anyone who names an
+`AllowAll` row can run the project with it. An owner hands a credential to
+their agents by storing it once and whitelisting the agents' wallet accounts
+(`outlayer secrets access --access whitelist:me.near,<agent>@2026-10-01` —
+the `@date` makes the grant lapse on its own); the agent names `{owner,
+profile}` in `secrets_ref`. Revoking is editing the whitelist; the ciphertext
+never moves.
+
+**The agent's.** A secret stored FOR a custody wallet under the wallet's own
+account (`outlayer secrets set-for-agent`), which a connector call fetches with
+`X-Use-Owner-Secret: 1` and nothing else can read.
+
+A key defined on both the author's and the caller's side refuses the run rather
+than picking a winner. Reserved names (`NEAR_SENDER_ID`, `PROTECTED_*`, …) are
+refused at storage time and stripped at run time, so whatever your module reads
+under a system name came from the worker.
+
 ### 4. Output Size
 
 ```rust
@@ -4659,6 +4746,42 @@ near call outlayer.testnet delete_secrets '{
 }' --accountId alice.testnet
 ```
 
+#### `update_access`
+Change who may read a stored secret. The condition moves; the ciphertext and
+the storage deposit stay, so no value is re-entered and a TEE-generated key is
+never lost. Keyed on `(accessor, profile, caller)`: only the owner of the row
+can change it, and a non-owner's call panics with `Secrets not found`. This is
+how an owner hands a secret to an agent and takes it back — the agent names
+`{account_id: owner, profile}` in `secrets_ref`.
+
+```bash
+near call outlayer.testnet update_access '{
+  "accessor": {"Project": {"project_id": "alice.testnet/app"}},
+  "profile": "default",
+  "new_access": {"Logic": {"operator": "Or", "conditions": [
+    {"Whitelist": {"accounts": ["alice.testnet"]}},
+    {"Logic": {"operator": "And", "conditions": [
+      {"Whitelist": {"accounts": ["<agent wallet account>"]}},
+      {"ValidUntil": {"until_ns": "1790812800000000000"}}
+    ]}}
+  ]}}
+}' --accountId alice.testnet --gas 30000000000000
+```
+
+#### Access conditions
+`access` (on `store_secrets` and `update_access`) is an `AccessCondition`, evaluated
+by the keystore inside the TEE against the account that pays for the run (the
+transaction's signer, or a payment key's owner) — never against a name the call
+claims. Variants: `"AllowAll"`; `{"Whitelist": {"accounts": [...]}}` (exact match);
+`{"AccountPattern": {"pattern": "..."}}` (a regex anchored to the whole id);
+`{"NearBalance": {"operator": "Gte", "value": "<yocto>"}}`; `{"FtBalance": {"contract",
+"operator", "value"}}`; `{"NftOwned": {"contract", "token_id"}}`; `{"DaoMember":
+{"dao_contract", "role"}}`; `{"ValidUntil": {"until_ns": "<nanoseconds since the
+epoch, as a string>"}}` (admits strictly before that instant); `{"Logic": {"operator":
+"And" | "Or", "conditions": [...]}}` and `{"Not": {"condition": ...}}` to combine
+them. The contract stores the condition without evaluating it; the Borsh layout of
+`SecretProfile.access` is the variant order, so new variants are only ever appended.
+
 #### `list_user_secrets`
 One PAGE of the secrets stored by an account. It reads storage per entry, so an
 unbounded answer would eventually exceed the view's gas and fail for everyone —
@@ -5302,18 +5425,27 @@ WASI containers can call wallet functions via WIT interface.
 
 ```wit
 get-id() → (string, string)
-get-address(chain) → (string, string)                         # currently: near only
+get-address(chain) → (string, string)                         # near, solana, any EVM chain
+get-sub-key-address(chain, label) → (string, string)          # a connector's EVM sub-key (empty label = `default`; never the wallet's own key)
+evm-sign-typed-data(chain, typed-data, label) → (string, string)   # EIP-712 v4; evm_sign capability
+evm-sign-message(chain, message, encoding, label) → (string, string) # EIP-191; encoding utf8|hex
+evm-sign-transaction(chain, unsigned-tx, label) → (string, string) # keccak of the serialized tx; evm_sign.raw_tx
 withdraw(chain, to, amount, token) → (string, string)         # cross-chain via Intents (whitelisted assets only)
 withdraw-dry-run(chain, to, amount, token) → (string, string)
 get-request-status(request-id) → (string, string)
 list-tokens() → (string, string)
 transfer(chain, to, amount) → (string, string)                # chain-specific (currently: near)
 get-balance(chain, token) → (string, string)                  # chain-specific (currently: near)
+get-intents-balance(token) → (string, string)                 # the wallet's balance INSIDE intents.near, per asset
+deposit-intent(chain, token, amount) → (string, string)       # 1Click deposit address to bring funds from another chain into intents
+get-confidential-balance(token) → (string, string)            # the wallet's CONFIDENTIAL (shielded) intents balance; empty token = all
+confidential-withdraw(chain, to, amount, token) → (string, string)   # shielded balance → an address on another chain; policy-gated like withdraw
+confidential-deposit-intent(chain, token, amount) → (string, string) # 1Click deposit address landing in the shielded balance
 intents-deposit(token, amount) → (string, string)             # deposit FT to intents.near
 swap(token-in, token-out, amount-in, min-amount-out) → (string, string)  # swap via Intents
 ```
 
-Available only when `WALLET_ID` env var is set (coordinator passes it when `X-Wallet-Id` header is valid). Rate limited to 50 calls per execution.
+Available only when `WALLET_ID` env var is set (coordinator passes it when `X-Wallet-Id` header is valid). Rate limited to 200 calls per execution. Sub-keys (`label`) exist only for a connector in the connectors namespace whose manifest `connector_id` equals its project name, and they are the only EVM keys a guest can sign with — the wallet's own EVM key is signable through the HTTPS API alone; see `docs/CONNECTORS.md` §4.5.
 
 ### Dashboard — `dashboard/app/wallet/`
 
@@ -5985,11 +6117,11 @@ Agent Custody allows AI agents to hold and manage funds via TEE-secured wallets 
 
 ## Current Status
 
-| Component | NEAR | EVM (eth/polygon/base/arbitrum/optimism/bsc/avalanche) | Solana |
+| Component | NEAR | EVM (eth/polygon/base/arbitrum/optimism/bsc/avalanche/hyperevm) | Solana |
 |-----------|------|---------------------|--------|
 | Key generation (keystore) | ed25519 | secp256k1 (one shared address across all EVM chains) | ed25519 (base58 address) |
 | Transaction signing (keystore) | ed25519 | ECDSA secp256k1 (keccak256 + sign; off-chain EIP-712 / EIP-191 / raw-tx hash) | ed25519 over the raw serialized message (no digest step) |
-| Derivation seed | `wallet:{id}:near` | `wallet:{id}:evm` (shared by every EVM chain) | `wallet:{id}:solana` (the `sol` alias canonicalizes to it) |
+| Derivation seed | `wallet:{id}:near` | `wallet:{id}:evm` (shared by every EVM chain); a sub-key is `subkey:{id}:evm:{sub_path}` | `wallet:{id}:solana` (the `sol` alias canonicalizes to it) |
 | Coordinator handlers | withdraw, call, transfer, swap, deposit | `evm/sign-typed-data`, `evm/sign-message`, `evm/sign-transaction` (signing only — no build/broadcast) | `solana/sign-message`, `solana/sign-transaction` (signing only — no build/broadcast) |
 | Dashboard UI | full support | address display | not implemented |
 | Policy evaluation (keystore) | all rules | `evm_sign` capability (default-DENY under a policy; set `allowed:true`) + `raw_tx` sub-flag (default-OFF); shared policy | `solana_sign` capability — same model as `evm_sign` (`allowed` + `raw_tx`); shared policy |
@@ -6006,7 +6138,28 @@ EVM signing is **live**. The model is deliberately narrow: **the client builds a
 
 ### Supported chains
 
-`ethereum`, `polygon`, `base`, `arbitrum`, `optimism`, `bsc`, `avalanche` — plus the 1Click-style aliases `eth`, `pol`, `matic`, `arb`, `op`, `avax`. **All EVM chains share ONE derived secp256k1 address** (a single EOA, seed `wallet:{id}:evm`). `GET /wallet/v1/address` serves any of these and returns that one `0x` address. Account delete stays NEAR-only.
+`ethereum`, `polygon`, `base`, `arbitrum`, `optimism`, `bsc`, `avalanche`, `hyperevm` — plus the 1Click-style aliases `eth`, `pol`, `matic`, `arb`, `op`, `avax`. **All EVM chains share ONE derived secp256k1 address** (a single EOA, seed `wallet:{id}:evm`). `GET /wallet/v1/address` serves any of these and returns that one `0x` address. `hyperevm` is Hyperliquid's EVM (chain id 999): signable like the rest, not a 1Click deposit or withdraw chain. Account delete stays NEAR-only.
+
+### Sub-keys
+
+`GET /wallet/v1/address` and the three `evm/*` endpoints take an optional
+`sub_path` (`[a-z0-9][a-z0-9._-]{0,63}`, EVM only). It names a distinct
+secp256k1 key of the same wallet — seed `subkey:{id}:evm:{sub_path}`, under its
+own root so that no key-exporting endpoint of the keystore can spell it. It is
+a separate **address** under the wallet's one authority, not a separate
+authority: whoever holds the wallet's API key can sign for any path, and the
+owner's policy governs every path alike. What a path buys is separation of
+balances — a connector's trading key and its bridge key are different
+addresses, and neither is the wallet's; which path an integration may use is
+decided by whoever forwards it. The empty path is the wallet's own key — from
+the HTTPS API; a WASI guest never reaches it, because the worker maps every
+label it is given, the empty one included, to a `connector.…` path. The
+coordinator and the keystore validate the path with one shared rule
+(`shared_tee_helpers::is_valid_sub_path`) and both refuse it on non-EVM
+chains; the coordinator echoes it in the response. Nothing about a sub-key is
+stored — its address is derived on request. The same `evm_sign` capability
+governs every sub-key: a sub-key is the same wallet's authority over a
+separate balance, not a separate authority.
 
 ### Endpoints
 

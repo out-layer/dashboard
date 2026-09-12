@@ -7,6 +7,10 @@ export default function sitemap(): MetadataRoute.Sitemap {
   const appPaths = [
     ...APP_NAV.flatMap((g) => g.items.map((i) => i.href)),
     ...FOOTER_NAV.map((i) => i.href),
+    // Linked from the page footer only, not from the navigation, so they are
+    // named here to be found at all.
+    '/privacy',
+    '/terms',
   ].filter((href) => href === '/' || !href.startsWith('/wallet') || href === '/wallet/manage');
 
   const docPaths = DOCS_NAV.flatMap((g) => g.pages.map((p) => p.href));

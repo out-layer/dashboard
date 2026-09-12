@@ -7,10 +7,11 @@ interface SecretCardProps {
   secret: UserSecret;
   onEdit: () => void;
   onUpdate?: () => void;
+  onAccess?: () => void;
   onDelete: () => void;
 }
 
-export function SecretCard({ secret, onEdit, onUpdate, onDelete }: SecretCardProps) {
+export function SecretCard({ secret, onEdit, onUpdate, onAccess, onDelete }: SecretCardProps) {
   // Validate accessor exists
   if (!secret.accessor) {
     return (
@@ -117,6 +118,15 @@ export function SecretCard({ secret, onEdit, onUpdate, onDelete }: SecretCardPro
               title="Update secrets (preserves PROTECTED_ keys)"
             >
                Update
+            </button>
+          )}
+          {onAccess && (
+            <button
+              onClick={onAccess}
+ className="inline-flex items-center px-3 py-1.5 border border-info/40 text-xs font-medium rounded text-info bg-info/10 hover:bg-info/15 transition-colors"
+              title="Change who may read this secret — grant or revoke; the ciphertext stays"
+            >
+              Access
             </button>
           )}
           <button

@@ -11,7 +11,9 @@ export type AccessCondition =
   | { type: 'NftOwned'; contract: string; token_id: string | null }
   | { type: 'DaoMember'; dao_contract: string; role: string }
   | { type: 'Logic'; operator: LogicOperator; conditions: AccessCondition[] }
-  | { type: 'Not'; condition: AccessCondition };
+  | { type: 'Not'; condition: AccessCondition }
+  // Admits only before this instant: nanoseconds since the epoch, as a string.
+  | { type: 'ValidUntil'; until_ns: string };
 
 // Secret accessor - defines what code can access/decrypt the secret
 export type SecretAccessor =

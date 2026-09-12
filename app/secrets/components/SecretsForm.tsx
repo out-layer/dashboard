@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { eciesEncrypt } from '@/lib/ecies';
 import { AccessConditionBuilder } from './AccessConditionBuilder';
 import { AccessCondition, FormData, SecretSourceType } from './types';
-import { convertAccessToContractFormat } from './utils';
+import { convertAccessFromContractFormat, convertAccessToContractFormat } from './utils';
 import { useNearWallet } from '@/contexts/NearWalletContext';
 import { VaultScopeToggle } from '@/components/VaultScopeToggle';
 
@@ -23,6 +23,8 @@ interface SecretsFormProps {
     branch: string;
     wasmHash?: string;
     profile: string;
+    /** The condition the row is stored under, so replacing its values keeps who may read them. */
+    access?: unknown;
   };
   /**
    * Values proposed by an incoming link (see app/secrets/page.tsx). Only ever describes WHICH
@@ -48,6 +50,8 @@ interface SecretsFormProps {
       project_id?: string;
     };
     profile: string;
+    /** The condition the row is stored under; an update changes values, never who may read them. */
+    access?: unknown;
     /**
      * Phase 7 audit H3: vault binding of the existing on-chain
      * secret. Threaded through so update mode preserves the binding
@@ -121,6 +125,37 @@ export function SecretsForm({
   const [profile, setProfile] = useState('default');
   const [plaintextSecrets, setPlaintextSecrets] = useState('{\n  "API_KEY": "your-api-key"\n}');
   const [accessCondition, setAccessCondition] = useState<AccessCondition>({ type: 'AllowAll' });
+  // Whether the user has chosen a condition themselves; until then the default
+  // below follows the kind of row being created.
+  const [accessTouched, setAccessTouched] = useState(false);
+  // A stored condition this UI cannot render (an unknown shape): kept and
+  // re-stored verbatim, never replaced by a default.
+  const [keptAccess, setKeptAccess] = useState<unknown | null>(null);
+
+  // A row that exists keeps the condition it has: replacing or updating its
+  // values must not widen a whitelist to everyone, nor narrow an app's
+  // AllowAll credential to its author.
+  const applyStoredAccess = (raw: unknown | undefined) => {
+    if (raw === undefined) return;
+    try {
+      setAccessCondition(convertAccessFromContractFormat(raw));
+      setKeptAccess(null);
+    } catch {
+      setKeptAccess(raw);
+    }
+  };
+
+  // A new personal secret under a project admits only its owner until they say
+  // otherwise — anyone who names an AllowAll row can run the project with it.
+  // Repository- and hash-bound rows are an app's own and stay open.
+  useEffect(() => {
+    if (initialData || updateMode || accessTouched) return;
+    setAccessCondition(
+      sourceType === 'project' && accountId
+        ? { type: 'Whitelist', accounts: [accountId] }
+        : { type: 'AllowAll' }
+    );
+  }, [sourceType, accountId, initialData, updateMode, accessTouched]);
   const [encrypting, setEncrypting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [secretsToGenerate, setSecretsToGenerate] = useState<SecretToGenerate[]>([]);
@@ -145,6 +180,7 @@ export function SecretsForm({
       setWasmHash(initialData.wasmHash || '');
       setProfile(initialData.profile);
       setPlaintextSecrets('{\n  "API_KEY": "your-new-api-key"\n}');
+      applyStoredAccess(initialData.access);
     }
   }, [initialData]);
 
@@ -212,6 +248,7 @@ export function SecretsForm({
       }
       setProfile(updateMode.profile);
       setPlaintextSecrets('{\n  "API_KEY": "your-new-api-key"\n}');
+      applyStoredAccess(updateMode.access);
       // Phase 7 audit H3: inherit the existing on-chain vault
       // binding so re-encryption uses the same master and the
       // updated `store_secrets` carries the same `vault_id`. If the
@@ -536,7 +573,7 @@ export function SecretsForm({
 
         // Convert base64 to array and submit to contract
         const encryptedArray = Array.from(atob(data.encrypted_data_base64), c => c.charCodeAt(0));
-        const contractAccess = convertAccessToContractFormat(accessCondition);
+        const contractAccess = keptAccess ?? convertAccessToContractFormat(accessCondition);
         const formData: FormData = {
           sourceType,
           repo: repoNormalized,
@@ -559,6 +596,8 @@ export function SecretsForm({
         setProfile('default');
         setPlaintextSecrets('{\n  "API_KEY": "your-api-key"\n}');
         setAccessCondition({ type: 'AllowAll' });
+        setAccessTouched(false);
+        setKeptAccess(null);
         setSecretsToGenerate([]);
         setError(null);
       } else {
@@ -604,7 +643,7 @@ export function SecretsForm({
         const encrypted = eciesEncrypt(pubkeyHex, plaintextBytes);
         const encryptedArray = Array.from(encrypted);
 
-        const contractAccess = convertAccessToContractFormat(accessCondition);
+        const contractAccess = keptAccess ?? convertAccessToContractFormat(accessCondition);
         const formData: FormData = {
           sourceType,
           repo: repoNormalized,
@@ -627,6 +666,8 @@ export function SecretsForm({
         setProfile('default');
         setPlaintextSecrets('{\n  "API_KEY": "your-api-key"\n}');
         setAccessCondition({ type: 'AllowAll' });
+        setAccessTouched(false);
+        setKeptAccess(null);
         setError(null);
       }
     } catch (err) {
@@ -781,7 +822,7 @@ export function SecretsForm({
 
       // 5. Prepare data for contract storage (will be triggered by user click)
       const encryptedArray = Array.from(atob(result.encrypted_secrets_base64), c => c.charCodeAt(0));
-      const contractAccess = convertAccessToContractFormat(accessCondition);
+      const contractAccess = keptAccess ?? convertAccessToContractFormat(accessCondition);
 
       // Use current form values (user may have changed accessor)
       const formData: FormData = {
@@ -1145,6 +1186,14 @@ export function SecretsForm({
           />
  <p className="mt-1 text-xs text-muted-foreground">
             Profile name for organizing multiple secret sets per repo
+            {sourceType === 'project' && (
+              <>
+                {' '}&mdash; if the project&rsquo;s manifest names this profile as{' '}
+                <code className="bg-card-muted px-1 rounded">author_secrets</code>, the secret reaches
+                every run of the project, and its access condition below is who may run it at all:
+                &ldquo;Everyone&rdquo; for a public app, a whitelist or DAO role for a circle.
+              </>
+            )}
           </p>
         </div>
 
@@ -1252,7 +1301,33 @@ export function SecretsForm({
  <label className="block text-sm font-medium text-foreground mb-2">
             Access Control *
           </label>
-          <AccessConditionBuilder condition={accessCondition} onChange={setAccessCondition} />
+          {keptAccess !== null ? (
+ <div className="p-4 bg-card-muted rounded-md border border-border-strong">
+ <p className="text-sm text-foreground">
+                This secret&rsquo;s stored condition is kept exactly as it is — this form cannot
+                display its shape.
+              </p>
+              <button
+                type="button"
+                onClick={() => { setKeptAccess(null); setAccessTouched(true); }}
+ className="mt-2 text-xs text-accent-text underline"
+              >
+                Replace it with a new condition instead
+              </button>
+            </div>
+          ) : (
+            <AccessConditionBuilder
+              condition={accessCondition}
+              onChange={(c) => { setAccessTouched(true); setAccessCondition(c); }}
+            />
+          )}
+          {keptAccess === null && accessCondition.type === 'AllowAll' && sourceType === 'project' && (
+ <p className="mt-2 text-xs text-warning-text">
+              Everyone: anyone who names this secret can run this project with it. Keep this only
+              for the app&rsquo;s own credential named in its manifest; a personal secret should
+              whitelist you and the agents you hand it to.
+            </p>
+          )}
         </div>
 
         {/* Error Display */}

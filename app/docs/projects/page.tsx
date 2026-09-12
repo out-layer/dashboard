@@ -320,6 +320,9 @@ let name = std::env::var("OUTLAYER_PROJECT_NAME").ok();
  <p className="text-foreground mb-4">
  By default, executions use the <strong>active version</strong>. But you can execute any specific version
  using the <code>version_key</code> parameter. This is useful for testing new versions before making them active.
+ Connector projects are the exception: they run their active version only, and a <code>version_key</code> on
+ a connector call is refused (<code>invalid_version_key</code>). To stop an old version from being called on
+ an ordinary project, remove it (<code>remove_version</code>).
         </p>
 
  <SyntaxHighlighter language="json" style={vscDarkPlus} className="rounded-lg mb-4">

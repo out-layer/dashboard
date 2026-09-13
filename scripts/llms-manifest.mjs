@@ -281,6 +281,8 @@ export const FULL_TEXT_SOURCES = [
     title: 'Best Practices: OutLayer + NEAR',
   },
   { path: 'wasi-examples/PROXY_CONTRACTS_TUTORIAL.md', title: 'Proxy Contracts Tutorial' },
+  { path: 'wasi-examples/CONNECTOR_MANIFEST.md', title: 'The Project Manifest' },
+  { path: 'docs/CONNECTORS.md', title: 'Building a Connector' },
 
   { path: 'contract/README.md', title: 'Smart Contract API' },
   { path: 'sdk/outlayer/README.md', title: 'Rust SDK' },

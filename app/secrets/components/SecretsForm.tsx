@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { eciesEncrypt } from '@/lib/ecies';
 import { AccessConditionBuilder } from './AccessConditionBuilder';
 import { AccessCondition, FormData, SecretSourceType } from './types';
-import { convertAccessFromContractFormat, convertAccessToContractFormat } from './utils';
+import { convertAccessFromContractFormat, convertAccessToContractFormat, initialAccess } from './utils';
 import { useNearWallet } from '@/contexts/NearWalletContext';
 import { VaultScopeToggle } from '@/components/VaultScopeToggle';
 
@@ -40,6 +40,17 @@ interface SecretsFormProps {
     secretName?: string;
     generationType?: string;
   };
+  /**
+   * The condition already stored for the row a link points at, when there is one.
+   *
+   * A link names a project and a profile, and that pair may already hold a secret —
+   * the page detects the collision and warns about it before the save. Without this,
+   * the default for a new row would be written over an existing one: an app's
+   * `AllowAll` author credential would narrow to `Whitelist[self]` and cut off every
+   * user of that app. `undefined` means the link lands on nothing, and the default
+   * for a new row is then correct.
+   */
+  prefillStoredAccess?: unknown;
   // For update mode (preserve PROTECTED_ secrets via signMessage)
   updateMode?: {
     accessor: {
@@ -99,6 +110,7 @@ export function SecretsForm({
   coordinatorUrl,
   initialData,
   prefill,
+  prefillStoredAccess,
   updateMode,
   onUpdateComplete,
   onCancelUpdate,
@@ -148,14 +160,24 @@ export function SecretsForm({
   // A new personal secret under a project admits only its owner until they say
   // otherwise — anyone who names an AllowAll row can run the project with it.
   // Repository- and hash-bound rows are an app's own and stay open.
+  //
+  // `prefillStoredAccess` is the link's case. A link names a project and a
+  // profile, which may already be stored — the page says so itself, in red,
+  // before the save. Defaulting over that row would narrow an app's `AllowAll`
+  // credential to its author and cut off every user of the app, which is the
+  // silent widening this whole screen exists to prevent, pointing the other
+  // way. So a link that lands on an existing row keeps that row's condition,
+  // and only a link that lands on nothing gets the default.
   useEffect(() => {
     if (initialData || updateMode || accessTouched) return;
-    setAccessCondition(
-      sourceType === 'project' && accountId
-        ? { type: 'Whitelist', accounts: [accountId] }
-        : { type: 'AllowAll' }
-    );
-  }, [sourceType, accountId, initialData, updateMode, accessTouched]);
+    const { condition, kept } = initialAccess({ sourceType, accountId, storedAccess: prefillStoredAccess });
+    if (condition) {
+      setAccessCondition(condition);
+      setKeptAccess(null);
+    } else {
+      setKeptAccess(kept);
+    }
+  }, [sourceType, accountId, initialData, updateMode, accessTouched, prefillStoredAccess]);
   const [encrypting, setEncrypting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [secretsToGenerate, setSecretsToGenerate] = useState<SecretToGenerate[]>([]);

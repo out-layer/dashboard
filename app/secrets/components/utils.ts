@@ -300,3 +300,56 @@ export function implicitAccountOf(pubkey: string): string | null {
   hex = '00'.repeat(leading) + hex;
   return hex.length === 64 ? hex : null;
 }
+
+// ── the screen's access decisions, pure ──────────────────────────────────────
+//
+// Kept here, beside the format converters, so each can be asserted as the plan
+// words it without rendering:
+//   - a NEW row under a project admits only the connected account until its
+//     owner says otherwise; repository- and hash-bound rows are an app's own
+//     and stay open;
+//   - a row that EXISTS keeps the condition it has — replacing its values must
+//     neither widen a whitelist to everyone nor narrow an app's AllowAll
+//     credential to its author;
+//   - the AllowAll choice carries a warning, because anyone who names such a
+//     row can run the project with it;
+//   - existing project rows stored AllowAll are the subjects of a one-time
+//     notice; the rows themselves are never changed by the screen.
+
+const isProjectRow = (accessor: unknown): boolean =>
+  typeof accessor === 'object' && accessor !== null && 'Project' in accessor;
+
+/**
+ * The condition a form starts from. `storedAccess` is the row a link or an
+ * update lands on, in the contract's shape; when present it wins, and a shape
+ * this UI cannot render is kept verbatim (`kept`) rather than replaced.
+ */
+export function initialAccess(args: {
+  sourceType: string;
+  accountId: string | null | undefined;
+  storedAccess?: unknown;
+}): { condition: AccessCondition | null; kept: unknown | null } {
+  if (args.storedAccess !== undefined) {
+    try {
+      return { condition: convertAccessFromContractFormat(args.storedAccess), kept: null };
+    } catch {
+      return { condition: null, kept: args.storedAccess };
+    }
+  }
+  return {
+    condition:
+      args.sourceType === 'project' && args.accountId
+        ? { type: 'Whitelist', accounts: [args.accountId] }
+        : { type: 'AllowAll' },
+    kept: null,
+  };
+}
+
+/** Shown beside the AllowAll choice. */
+export const ALLOW_ALL_WARNING =
+  "Anyone who names this secret can run the project with it. Right for an app's own credential named in its manifest; for a personal secret, use a whitelist.";
+
+/** Existing project rows anyone can name — what the notice is about. */
+export function openPersonalRows<T extends { accessor?: unknown; access?: unknown }>(secrets: T[]): T[] {
+  return secrets.filter((s) => isProjectRow(s.accessor) && s.access === 'AllowAll');
+}

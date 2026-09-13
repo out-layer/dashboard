@@ -166,6 +166,36 @@ export default function SecretsSection() {
           </p>
         </section>
 
+        <section id="author-secrets">
+ <AnchorHeading id="author-secrets">The author&apos;s secret &mdash; for any project</AnchorHeading>
+ <p className="text-foreground">
+            Everything above is a secret a <em>caller</em> names in a call. A project can also carry
+            one of its <strong>author&apos;s</strong> own &mdash; an upstream API key, an SMTP password
+            &mdash; decrypted into <em>every</em> run without the caller naming anything. Any WASI
+            project, not only a connector: the artefact declares it in its{' '}
+            <code className="bg-card-muted px-1 rounded">outlayer.manifest</code> section:
+          </p>
+ <pre className="bg-card-muted p-3 rounded text-sm overflow-x-auto mt-2"><code>{`{ "author_secrets": { "profile": "prod" } }`}</code></pre>
+ <p className="text-foreground mt-2">
+            Then store that profile on the <Link href="/secrets" className="text-accent-text underline">Secrets page</Link>{' '}
+            under the accessor <strong>Project</strong> of this project (the form says so beside the
+            profile field). The row&apos;s owner is the publishing account unless the manifest names
+            another <code className="bg-card-muted px-1 rounded">owner</code> &mdash; a team account may
+            hold the credential while a developer account publishes.
+          </p>
+ <p className="text-foreground mt-2">
+            Its <strong>access condition is who may run the project at all</strong>: the keystore judges
+            it against the real caller before anything executes, so{' '}
+            <code className="bg-card-muted px-1 rounded">AllowAll</code> makes a public app, a whitelist
+            or a DAO role makes an app for a circle, and a caller outside it is refused before the code
+            runs. A declared profile nobody has stored refuses every run, with a message that says what
+            to store. A caller&apos;s own secret (named with{' '}
+            <code className="bg-card-muted px-1 rounded">secrets_ref</code>) sits beside the author&apos;s;
+            a name defined on both sides refuses that call, and a name the caller brings that the author
+            never stored is added as the caller&apos;s &mdash; store every name your code reads.
+          </p>
+        </section>
+
         <section id="agent-secrets">
  <AnchorHeading id="agent-secrets">Secrets left FOR an agent</AnchorHeading>
  <p className="text-foreground">

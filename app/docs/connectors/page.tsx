@@ -178,7 +178,11 @@ export default function ConnectorsDocsPage() {
           <p className="text-foreground mt-2">
             Its access condition is judged against the real caller, so it is also who may run your
             connector: <code className="bg-card-muted px-1 rounded">AllowAll</code> for everyone, a
-            whitelist or DAO role for a circle.
+            whitelist or DAO role for a circle. Not a connector feature: any project declares one the
+            same way &mdash; see{' '}
+            <Link href="/docs/secrets#author-secrets" className="text-accent-text underline">
+              The author&apos;s secret
+            </Link>.
           </p>
           <p className="text-foreground mt-3">
             <strong>The caller&apos;s.</strong> A row the call names with{' '}

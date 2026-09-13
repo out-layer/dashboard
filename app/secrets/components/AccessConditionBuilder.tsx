@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { ALLOW_ALL_WARNING } from './utils';
 import { AccessCondition, ComparisonOperator, LogicOperator } from './types';
 import { localInputToNs, nsToLocalInput } from './utils';
 
@@ -21,7 +22,7 @@ export function AccessConditionBuilder({ condition, onChange }: AccessConditionB
   }, [condition]);
 
   const ruleTypes = [
-    { value: 'AllowAll', label: 'Everyone can access', description: "Anyone who names this secret can run the project with it. Right for an app's own credential named in its manifest; for a personal secret, use a whitelist." },
+    { value: 'AllowAll', label: 'Everyone can access', description: ALLOW_ALL_WARNING },
     { value: 'Logic', label: 'Multiple rules (AND/OR)', description: 'Combine several rules together' },
     { value: 'Not', label: 'Opposite rule (NOT)', description: 'Flip a rule to mean the opposite' },
     { value: 'NearBalance', label: 'NEAR Balance Check', description: 'Require minimum NEAR balance' },

@@ -11,7 +11,7 @@ import { AgentSecretForm } from './components/AgentSecretForm';
 import { SecretsList } from './components/SecretsList';
 import { AccessEditor, GranteeWallet } from './components/AccessEditor';
 import { UserSecret, FormData, isRepoAccessor, isWasmHashAccessor, isProjectAccessor, getAccessorLabel } from './components/types';
-import { grantsOf, withoutGrant, implicitAccountOf, nsToIsoUtc } from './components/utils';
+import { grantsOf, withoutGrant, implicitAccountOf, nsToIsoUtc, openPersonalRows } from './components/utils';
 import { getCoordinatorApiUrl } from '@/lib/api';
 import { listAllUserSecrets } from '@/lib/user-secrets';
 
@@ -89,17 +89,20 @@ function SecretsPageContent() {
   // generated key cannot be recovered — the private half only ever existed inside the enclave.
   // The transaction gives no hint either: the old deposit is credited back, so the wallet shows
   // roughly zero. Detect the collision from the list we already loaded and say so up front.
-  const linkOverwrites =
-    fromLink &&
-    Boolean(linkProject) &&
-    Boolean(linkProfile) &&
-    userSecrets.some(
-      (s) =>
-        s.accessor &&
-        isProjectAccessor(s.accessor) &&
-        s.accessor.Project.project_id === linkProject &&
-        s.profile === linkProfile
-    );
+  // The row a link would replace, if it is already stored. Used twice: to warn
+  // about the overwrite, and to hand the form the condition that row already
+  // has — a link must never quietly re-decide who may read an existing secret.
+  const linkTarget =
+    fromLink && Boolean(linkProject) && Boolean(linkProfile)
+      ? userSecrets.find(
+          (s) =>
+            s.accessor &&
+            isProjectAccessor(s.accessor) &&
+            s.accessor.Project.project_id === linkProject &&
+            s.profile === linkProfile
+        )
+      : undefined;
+  const linkOverwrites = Boolean(linkTarget);
 
   const loadUserSecrets = useCallback(async () => {
     if (!accountId) return;
@@ -289,12 +292,49 @@ function SecretsPageContent() {
   };
 
   // `update_access`: the condition moves, the ciphertext stays.
+  //
+  // A condition is stored bytes, so the contract re-prices the row on every
+  // edit. The whole estimate is attached: the deposit already held is credited
+  // towards it and the excess returns in the same transaction, so widening a
+  // whitelist asks only for the growth and narrowing one refunds the
+  // difference. The list carries metadata only, so the row is re-read for the
+  // ciphertext the price depends on.
   const sendAccess = async (secret: UserSecret, newAccess: unknown) => {
+    let deposit = BigInt('0');
+    try {
+      const row = await viewMethod({
+        contractId,
+        method: 'get_secrets',
+        args: { accessor: secret.accessor, profile: secret.profile, owner: accountId },
+      });
+      const ciphertext =
+        row && typeof row === 'object' && 'encrypted_secrets' in row
+          ? String((row as { encrypted_secrets: unknown }).encrypted_secrets ?? '')
+          : '';
+      const estimate = await viewMethod({
+        contractId,
+        method: 'estimate_storage_cost',
+        args: {
+          accessor: secret.accessor,
+          profile: secret.profile,
+          owner: accountId,
+          encrypted_secrets_base64: ciphertext,
+          access: newAccess,
+          vault_id: null,
+        },
+      });
+      deposit = BigInt(String(estimate ?? '0'));
+    } catch (err) {
+      // An unpriced edit is refused by the contract when it grows the row, and
+      // the message says so. Failing here instead would also stop the edits
+      // that need nothing — every narrowing, and every swap of equal size.
+      console.error('Could not price the access change:', err);
+    }
     const action = actionCreators.functionCall(
       'update_access',
       { accessor: secret.accessor, profile: secret.profile, new_access: newAccess },
       BigInt('30000000000000'), // 30 TGas
-      BigInt('0') // the row is re-keyed, not re-stored: no deposit
+      deposit
     );
     await signAndSendTransaction({ receiverId: contractId, actions: [action] });
     setSuccess('Access updated. The secret itself was not touched.');
@@ -344,9 +384,7 @@ function SecretsPageContent() {
 
   // Personal secrets anyone can name. Existing rows are never changed by us;
   // this is how the whitelist default reaches rows stored before it.
-  const openPersonal = userSecrets.filter(
-    (s: UserSecret) => s.accessor && isProjectAccessor(s.accessor) && s.access === 'AllowAll'
-  );
+  const openPersonal = openPersonalRows(userSecrets);
   // An author whose apps legitimately hold AllowAll credentials sees the notice
   // once and puts it away; it is a nudge, not a gate. Per browser, best effort:
   // storage can be absent or blocked, and the page must render either way.
@@ -503,6 +541,9 @@ function SecretsPageContent() {
                   generationType: linkGenerate,
                 }
               : undefined
+          }
+          prefillStoredAccess={
+            fromLink && !editingSecret && !updatingSecret ? linkTarget?.access : undefined
           }
           initialData={
             editingSecret && editingSecret.accessor

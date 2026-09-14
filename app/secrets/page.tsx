@@ -631,125 +631,130 @@ function SecretsPageContent() {
 
       {/* Create + list side-by-side on wide screens */}
       <div className="mt-6 grid items-start gap-6 xl:grid-cols-2">
-      <div>
-        <SecretsForm
-          isConnected={isConnected}
-          accountId={accountId}
-          onSubmit={handleSubmitSecrets}
-          coordinatorUrl={coordinatorUrl}
-          prefill={prefill}
-          prefillStoredAccess={
-            fromLink && !editingSecret && !updatingSecret ? linkTarget?.access : undefined
-          }
-          initialData={initialData}
-          updateMode={updateMode}
-          onUpdateComplete={() => {
-            setUpdatingSecret(null);
-            loadUserSecrets();
-            setSuccess('Secrets updated successfully!');
-          }}
-          onCancelUpdate={() => setUpdatingSecret(null)}
-        />
-
-        {/* A secret that belongs to an AGENT rather than to this account. Same
-            page, because it is the same question — "which credential does this
-            code get" — asked for a wallet that cannot pay for its own storage. */}
- <div className="mt-6">
- <AgentSecretForm
-            coordinatorUrl={coordinatorUrl}
-            contractId={contractId}
-            accountId={accountId}
+      {/* Two columns that pack independently. A row-based grid sizes every
+          row to its tallest cell, so the short block leaves a hole and the
+          long list below it starts past the fold. */}
+        <div className="flex flex-col gap-6">
+        <div>
+          <SecretsForm
             isConnected={isConnected}
-            viewMethod={viewMethod}
-            signAndSendTransaction={signAndSendTransaction}
+            accountId={accountId}
+            onSubmit={handleSubmitSecrets}
+            coordinatorUrl={coordinatorUrl}
+            prefill={prefill}
+            prefillStoredAccess={
+              fromLink && !editingSecret && !updatingSecret ? linkTarget?.access : undefined
+            }
+            initialData={initialData}
+            updateMode={updateMode}
+            onUpdateComplete={() => {
+              setUpdatingSecret(null);
+              loadUserSecrets();
+              setSuccess('Secrets updated successfully!');
+            }}
+            onCancelUpdate={() => setUpdatingSecret(null)}
           />
- </div>
-      </div>
 
-      {/* User's Secrets List */}
-      {accessSecret && (
-        <AccessEditor
-          secret={accessSecret}
-          accountId={accountId}
-          wallets={wallets}
-          onSave={handleSaveAccess}
-          onCancel={() => setAccessSecret(null)}
-        />
-      )}
-      {grantsByAccount.size > 0 && (
-        <div className="mb-4 bg-card border border-border rounded-lg p-4">
-          <h3 className="text-sm font-semibold text-foreground">Secrets handed to other accounts</h3>
-          <p className="mt-1 text-xs text-muted-foreground">
-            Each account below can read the secrets listed under it, on the project those secrets are
-            stored for. A grant outlives the agent&rsquo;s binding or lease unless it carries an expiry
-            &mdash; revoke here what no longer has an agent behind it.
-          </p>
-          {/* Bounded on purpose: this list grows with every grant, and pushing
-              "Your Secrets" below the fold makes the page read as if the list
-              were gone. */}
-          <ul className="mt-3 space-y-3 max-h-64 overflow-y-auto pr-1">
-            {Array.from(grantsByAccount.entries()).map(([account, rows]) => (
-              <li key={account}>
-                <div className="text-xs font-mono break-all text-foreground">
-                  {account}
-                  {ownWallet.has(account) && (
-                    <span className="ml-2 font-sans text-muted-foreground">your wallet {ownWallet.get(account)}</span>
-                  )}
-                  {!ownWallet.has(account) && /^[0-9a-f]{64}$/.test(account) && (
-                    <span className="ml-2 font-sans text-muted-foreground">a wallet you do not own</span>
-                  )}
-                </div>
-                <ul className="mt-1 ml-4 space-y-1">
-                  {rows.map((row) => {
-                    const key = `${getAccessorLabel(row.secret.accessor)}/${row.secret.profile}:${account}`;
-                    return (
-                      <li key={key} className="flex items-center justify-between gap-3 text-xs">
-                        <span className="min-w-0 break-all text-foreground">
-                          {getAccessorLabel(row.secret.accessor)} / {row.secret.profile}
-                          <span className="text-muted-foreground">
-                            {' '}&middot; {row.until_ns ? `until ${nsToIsoUtc(row.until_ns)}` : 'no expiry'}
+          {/* A secret that belongs to an AGENT rather than to this account. Same
+              page, because it is the same question — "which credential does this
+              code get" — asked for a wallet that cannot pay for its own storage. */}
+   <div className="mt-6">
+   <AgentSecretForm
+              coordinatorUrl={coordinatorUrl}
+              contractId={contractId}
+              accountId={accountId}
+              isConnected={isConnected}
+              viewMethod={viewMethod}
+              signAndSendTransaction={signAndSendTransaction}
+            />
+   </div>
+        </div>
+        {openPersonal.length > 0 && !noticeDismissed && (
+          <div className="bg-warning/10 border border-warning/40 rounded-md p-4 text-sm text-warning-text flex items-start justify-between gap-4">
+            <span>
+              {openPersonal.length} of your project secrets admit everyone: anyone who names such a secret can
+              run that project with it. Keep that for an app&rsquo;s own credential named in its manifest;
+              for a personal one, narrow it with &ldquo;Access&rdquo; to yourself and the agents you hand it to.
+            </span>
+            <button type="button" onClick={dismissNotice} className="shrink-0 text-xs underline" title="Hide this notice in this browser">
+              Dismiss
+            </button>
+          </div>
+        )}
+        </div>
+        <div className="flex flex-col gap-6">
+        {accessSecret && (
+          <AccessEditor
+            secret={accessSecret}
+            accountId={accountId}
+            wallets={wallets}
+            onSave={handleSaveAccess}
+            onCancel={() => setAccessSecret(null)}
+          />
+        )}
+        {grantsByAccount.size > 0 && (
+          <div className="bg-card border border-border rounded-lg p-4">
+            <h3 className="text-sm font-semibold text-foreground">Secrets handed to other accounts</h3>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Each account below can read the secrets listed under it, on the project those secrets are
+              stored for. A grant outlives the agent&rsquo;s binding or lease unless it carries an expiry
+              &mdash; revoke here what no longer has an agent behind it.
+            </p>
+            {/* Bounded on purpose: this list grows with every grant, and pushing
+                "Your Secrets" below the fold makes the page read as if the list
+                were gone. */}
+            <ul className="mt-3 space-y-3 max-h-64 overflow-y-auto pr-1">
+              {Array.from(grantsByAccount.entries()).map(([account, rows]) => (
+                <li key={account}>
+                  <div className="text-xs font-mono break-all text-foreground">
+                    {account}
+                    {ownWallet.has(account) && (
+                      <span className="ml-2 font-sans text-muted-foreground">your wallet {ownWallet.get(account)}</span>
+                    )}
+                    {!ownWallet.has(account) && /^[0-9a-f]{64}$/.test(account) && (
+                      <span className="ml-2 font-sans text-muted-foreground">a wallet you do not own</span>
+                    )}
+                  </div>
+                  <ul className="mt-1 ml-4 space-y-1">
+                    {rows.map((row) => {
+                      const key = `${getAccessorLabel(row.secret.accessor)}/${row.secret.profile}:${account}`;
+                      return (
+                        <li key={key} className="flex items-center justify-between gap-3 text-xs">
+                          <span className="min-w-0 break-all text-foreground">
+                            {getAccessorLabel(row.secret.accessor)} / {row.secret.profile}
+                            <span className="text-muted-foreground">
+                              {' '}&middot; {row.until_ns ? `until ${nsToIsoUtc(row.until_ns)}` : 'no expiry'}
+                            </span>
                           </span>
-                        </span>
-                        <button
-                          type="button"
-                          disabled={revoking !== null}
-                          onClick={() => handleRevoke(row.secret, account)}
-                          className="shrink-0 px-2 py-1 border border-destructive/40 rounded text-destructive-text bg-destructive/10 hover:bg-destructive/15 disabled:opacity-50"
-                          title="update_access without this account; the encrypted value is untouched"
-                        >
-                          {revoking === key ? 'Revoking…' : 'Revoke'}
-                        </button>
-                      </li>
-                    );
-                  })}
-                </ul>
-              </li>
-            ))}
-          </ul>
+                          <button
+                            type="button"
+                            disabled={revoking !== null}
+                            onClick={() => handleRevoke(row.secret, account)}
+                            className="shrink-0 px-2 py-1 border border-destructive/40 rounded text-destructive-text bg-destructive/10 hover:bg-destructive/15 disabled:opacity-50"
+                            title="update_access without this account; the encrypted value is untouched"
+                          >
+                            {revoking === key ? 'Revoking…' : 'Revoke'}
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+        <SecretsList
+          secrets={userSecrets}
+          loading={loadingSecrets}
+          isConnected={isConnected}
+          onEdit={handleEditSecret}
+          onUpdate={handleUpdateSecret}
+          onDelete={handleDeleteSecret}
+          onAccess={(secret) => { setAccessSecret(secret); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+          onRefresh={loadUserSecrets}
+        />
         </div>
-      )}
-      {openPersonal.length > 0 && !noticeDismissed && (
-        <div className="mb-4 bg-warning/10 border border-warning/40 rounded-md p-4 text-sm text-warning-text flex items-start justify-between gap-4">
-          <span>
-            {openPersonal.length} of your project secrets admit everyone: anyone who names such a secret can
-            run that project with it. Keep that for an app&rsquo;s own credential named in its manifest;
-            for a personal one, narrow it with &ldquo;Access&rdquo; to yourself and the agents you hand it to.
-          </span>
-          <button type="button" onClick={dismissNotice} className="shrink-0 text-xs underline" title="Hide this notice in this browser">
-            Dismiss
-          </button>
-        </div>
-      )}
-      <SecretsList
-        secrets={userSecrets}
-        loading={loadingSecrets}
-        isConnected={isConnected}
-        onEdit={handleEditSecret}
-        onUpdate={handleUpdateSecret}
-        onDelete={handleDeleteSecret}
-        onAccess={(secret) => { setAccessSecret(secret); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-        onRefresh={loadUserSecrets}
-      />
       </div>
 
       {/* Info Section */}

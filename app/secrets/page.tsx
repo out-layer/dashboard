@@ -2,7 +2,7 @@
 
 import { PageHeader } from '@/components/ui/page-header';
 import { RequireWallet } from '@/components/ui/require-wallet';
-import { Suspense, useState, useEffect, useCallback } from 'react';
+import { Suspense, useState, useEffect, useCallback, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useNearWallet } from '@/contexts/NearWalletContext';
 import { actionCreators } from '@near-js/transactions';
@@ -92,17 +92,108 @@ function SecretsPageContent() {
   // The row a link would replace, if it is already stored. Used twice: to warn
   // about the overwrite, and to hand the form the condition that row already
   // has — a link must never quietly re-decide who may read an existing secret.
+  // A link that names a project and no profile lands on `default` — the form's
+  // own default — so that is the row it may overwrite, and the row whose
+  // condition it must carry.
+  const linkEffectiveProfile = linkProject ? linkProfile || 'default' : linkProfile;
   const linkTarget =
-    fromLink && Boolean(linkProject) && Boolean(linkProfile)
+    fromLink && Boolean(linkProject)
       ? userSecrets.find(
           (s) =>
             s.accessor &&
             isProjectAccessor(s.accessor) &&
             s.accessor.Project.project_id === linkProject &&
-            s.profile === linkProfile
+            s.profile === linkEffectiveProfile
         )
       : undefined;
   const linkOverwrites = Boolean(linkTarget);
+
+  // The form's three prop objects are built here, memoised on the state they
+  // come from, so their identity changes only when the edited or updated
+  // secret does — the form's edit and update effects reload its fields when
+  // they see a new object, and a new object on every render of this page (a
+  // success banner timer, a list refresh) would wipe what the user is typing.
+  const prefill = useMemo(
+    () =>
+      fromLink && !editingSecret && !updatingSecret
+        ? {
+            projectId: linkProject,
+            profile: linkEffectiveProfile,
+            secretName: linkName,
+            generationType: linkGenerate,
+          }
+        : undefined,
+    [fromLink, editingSecret, updatingSecret, linkProject, linkEffectiveProfile, linkName, linkGenerate]
+  );
+  const initialData = useMemo(
+    () =>
+      editingSecret && editingSecret.accessor
+        ? isRepoAccessor(editingSecret.accessor)
+          ? {
+              sourceType: 'repo' as const,
+              repo: editingSecret.accessor.Repo.repo,
+              branch: editingSecret.accessor.Repo.branch || '',
+              wasmHash: '',
+              profile: editingSecret.profile,
+              access: editingSecret.access,
+            }
+          : isWasmHashAccessor(editingSecret.accessor)
+          ? {
+              sourceType: 'wasm_hash' as const,
+              repo: '',
+              branch: '',
+              wasmHash: editingSecret.accessor.WasmHash.hash,
+              profile: editingSecret.profile,
+              access: editingSecret.access,
+            }
+          : isProjectAccessor(editingSecret.accessor)
+          ? {
+              sourceType: 'project' as const,
+              repo: '',
+              branch: '',
+              wasmHash: '',
+              profile: editingSecret.profile,
+              access: editingSecret.access,
+            }
+          : undefined
+        : undefined,
+    [editingSecret]
+  );
+  const updateMode = useMemo(
+    () =>
+      updatingSecret && updatingSecret.accessor
+        ? {
+            accessor: isRepoAccessor(updatingSecret.accessor)
+              ? {
+                  type: 'Repo' as const,
+                  repo: updatingSecret.accessor.Repo.repo,
+                  branch: updatingSecret.accessor.Repo.branch || null,
+                }
+              : isWasmHashAccessor(updatingSecret.accessor)
+              ? {
+                  type: 'WasmHash' as const,
+                  hash: updatingSecret.accessor.WasmHash.hash,
+                }
+              : isProjectAccessor(updatingSecret.accessor)
+              ? {
+                  type: 'Project' as const,
+                  project_id: updatingSecret.accessor.Project.project_id,
+                }
+              : {
+                  type: 'Repo' as const,
+                  repo: '',
+                  branch: null,
+                },
+            profile: updatingSecret.profile,
+            access: updatingSecret.access,
+            // `undefined` delegates the `get_secret_vault` view-call to the form,
+            // which inherits the existing binding; anything else would re-bind a
+            // vault-scoped secret to the default master on update.
+            vaultId: undefined,
+          }
+        : undefined,
+    [updatingSecret]
+  );
 
   const loadUserSecrets = useCallback(async () => {
     if (!accountId) return;
@@ -485,10 +576,10 @@ function SecretsPageContent() {
                 <dd className="font-mono break-all">{linkProject}</dd>
               </div>
             )}
-            {linkProfile && (
+            {linkEffectiveProfile && (
               <div className="flex gap-2">
                 <dt className="opacity-70 w-20 shrink-0">Profile</dt>
-                <dd className="font-mono break-all">{linkProfile}</dd>
+                <dd className="font-mono break-all">{linkEffectiveProfile}</dd>
               </div>
             )}
             {linkName && (
@@ -532,86 +623,12 @@ function SecretsPageContent() {
           accountId={accountId}
           onSubmit={handleSubmitSecrets}
           coordinatorUrl={coordinatorUrl}
-          prefill={
-            fromLink && !editingSecret && !updatingSecret
-              ? {
-                  projectId: linkProject,
-                  profile: linkProfile,
-                  secretName: linkName,
-                  generationType: linkGenerate,
-                }
-              : undefined
-          }
+          prefill={prefill}
           prefillStoredAccess={
             fromLink && !editingSecret && !updatingSecret ? linkTarget?.access : undefined
           }
-          initialData={
-            editingSecret && editingSecret.accessor
-              ? isRepoAccessor(editingSecret.accessor)
-                ? {
-                    sourceType: 'repo' as const,
-                    repo: editingSecret.accessor.Repo.repo,
-                    branch: editingSecret.accessor.Repo.branch || '',
-                    wasmHash: '',
-                    profile: editingSecret.profile,
-                    access: editingSecret.access,
-                  }
-                : isWasmHashAccessor(editingSecret.accessor)
-                ? {
-                    sourceType: 'wasm_hash' as const,
-                    repo: '',
-                    branch: '',
-                    wasmHash: editingSecret.accessor.WasmHash.hash,
-                    profile: editingSecret.profile,
-                    access: editingSecret.access,
-                  }
-                : isProjectAccessor(editingSecret.accessor)
-                ? {
-                    sourceType: 'project' as const,
-                    repo: '',
-                    branch: '',
-                    wasmHash: '',
-                    profile: editingSecret.profile,
-                    access: editingSecret.access,
-                  }
-                : undefined
-              : undefined
-          }
-          updateMode={
-            updatingSecret && updatingSecret.accessor
-              ? {
-                  accessor: isRepoAccessor(updatingSecret.accessor)
-                    ? {
-                        type: 'Repo' as const,
-                        repo: updatingSecret.accessor.Repo.repo,
-                        branch: updatingSecret.accessor.Repo.branch || null,
-                      }
-                    : isWasmHashAccessor(updatingSecret.accessor)
-                    ? {
-                        type: 'WasmHash' as const,
-                        hash: updatingSecret.accessor.WasmHash.hash,
-                      }
-                    : isProjectAccessor(updatingSecret.accessor)
-                    ? {
-                        type: 'Project' as const,
-                        project_id: updatingSecret.accessor.Project.project_id,
-                      }
-                    : {
-                        type: 'Repo' as const,
-                        repo: '',
-                        branch: null,
-                      },
-                  profile: updatingSecret.profile,
-                  access: updatingSecret.access,
-                  // Phase 7 audit H3: pass `undefined` so SecretsForm
-                  // performs the `get_secret_vault` view-call itself
-                  // and inherits the existing binding. Without this,
-                  // an update of a vault-bound secret silently
-                  // re-binds it to the default master.
-                  vaultId: undefined,
-                }
-              : undefined
-          }
+          initialData={initialData}
+          updateMode={updateMode}
           onUpdateComplete={() => {
             setUpdatingSecret(null);
             loadUserSecrets();

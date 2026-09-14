@@ -12,6 +12,9 @@
 
 # testing
 /coverage
+# test/ holds the unit tests (`npm test`); the name is ignored by common global
+# ignore files, so it is re-included here explicitly.
+!/test/
 
 # next.js
 /.next/

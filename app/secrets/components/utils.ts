@@ -320,9 +320,22 @@ const isProjectRow = (accessor: unknown): boolean =>
   typeof accessor === 'object' && accessor !== null && 'Project' in accessor;
 
 /**
+ * A stored condition, in the contract's shape, as the form carries it: rendered
+ * when this UI knows the shape, kept verbatim (`kept`) when it does not — never
+ * replaced by a default.
+ */
+export function carriedAccess(stored: unknown): { condition: AccessCondition | null; kept: unknown | null } {
+  try {
+    return { condition: convertAccessFromContractFormat(stored), kept: null };
+  } catch {
+    return { condition: null, kept: stored };
+  }
+}
+
+/**
  * The condition a form starts from. `storedAccess` is the row a link or an
- * update lands on, in the contract's shape; when present it wins, and a shape
- * this UI cannot render is kept verbatim (`kept`) rather than replaced.
+ * update lands on, in the contract's shape; when present it wins (see
+ * `carriedAccess`).
  */
 export function initialAccess(args: {
   sourceType: string;
@@ -330,11 +343,7 @@ export function initialAccess(args: {
   storedAccess?: unknown;
 }): { condition: AccessCondition | null; kept: unknown | null } {
   if (args.storedAccess !== undefined) {
-    try {
-      return { condition: convertAccessFromContractFormat(args.storedAccess), kept: null };
-    } catch {
-      return { condition: null, kept: args.storedAccess };
-    }
+    return carriedAccess(args.storedAccess);
   }
   return {
     condition:
@@ -343,6 +352,32 @@ export function initialAccess(args: {
         : { type: 'AllowAll' },
     kept: null,
   };
+}
+
+/**
+ * The stored condition a link carries, or nothing. A link names a project and
+ * a profile whose row may already exist; that row's condition is the form's
+ * starting point ONLY while the form still targets that row. Once the user
+ * retargets — another project, another profile, another accessor kind — the
+ * link's row is somebody else's, and the new row starts from the default,
+ * never from a condition copied off a row it is not (an app's `AllowAll`
+ * credential is the one most links land on).
+ */
+export function linkedAccessFor(args: {
+  /** What the link named; both absent when the page was opened without one. */
+  link: { projectId?: string; profile?: string };
+  storedAccess: unknown;
+  sourceType: string;
+  projectId: string;
+  profile: string;
+}): unknown {
+  if (args.storedAccess === undefined) return undefined;
+  if (args.sourceType !== 'project') return undefined;
+  // Compared as the save stores them — trimmed — so a stray space does not
+  // read as a retarget and hand a new default to the link's own row.
+  if ((args.link.projectId ?? '').trim() !== args.projectId.trim()) return undefined;
+  if ((args.link.profile ?? '').trim() !== args.profile.trim()) return undefined;
+  return args.storedAccess;
 }
 
 /** Shown beside the AllowAll choice. */

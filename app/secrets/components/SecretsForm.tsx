@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { eciesEncrypt } from '@/lib/ecies';
 import { AccessConditionBuilder } from './AccessConditionBuilder';
 import { AccessCondition, FormData, SecretSourceType } from './types';
-import { convertAccessFromContractFormat, convertAccessToContractFormat, initialAccess } from './utils';
+import { carriedAccess, convertAccessToContractFormat, initialAccess, linkedAccessFor } from './utils';
 import { useNearWallet } from '@/contexts/NearWalletContext';
 import { VaultScopeToggle } from '@/components/VaultScopeToggle';
 
@@ -149,11 +149,12 @@ export function SecretsForm({
   // AllowAll credential to its author.
   const applyStoredAccess = (raw: unknown | undefined) => {
     if (raw === undefined) return;
-    try {
-      setAccessCondition(convertAccessFromContractFormat(raw));
+    const { condition, kept } = carriedAccess(raw);
+    if (condition) {
+      setAccessCondition(condition);
       setKeptAccess(null);
-    } catch {
-      setKeptAccess(raw);
+    } else {
+      setKeptAccess(kept);
     }
   };
 
@@ -166,18 +167,32 @@ export function SecretsForm({
   // before the save. Defaulting over that row would narrow an app's `AllowAll`
   // credential to its author and cut off every user of the app, which is the
   // silent widening this whole screen exists to prevent, pointing the other
-  // way. So a link that lands on an existing row keeps that row's condition,
-  // and only a link that lands on nothing gets the default.
+  // way. So a link that lands on an existing row keeps that row's condition
+  // WHILE the form still targets that row: the moment the user retargets the
+  // project or the profile, the link's row is not the one being stored, and
+  // its condition must not travel to a new row — the default applies.
+  // The two strings the link carries are what the effect depends on. Without
+  // a link both are undefined and `linkedAccessFor` has nothing to carry
+  // (`prefillStoredAccess` is undefined too).
+  const linkProjectId = prefill?.projectId;
+  const linkProfile = prefill?.profile;
   useEffect(() => {
     if (initialData || updateMode || accessTouched) return;
-    const { condition, kept } = initialAccess({ sourceType, accountId, storedAccess: prefillStoredAccess });
+    const storedAccess = linkedAccessFor({
+      link: { projectId: linkProjectId, profile: linkProfile },
+      storedAccess: prefillStoredAccess,
+      sourceType,
+      projectId,
+      profile,
+    });
+    const { condition, kept } = initialAccess({ sourceType, accountId, storedAccess });
     if (condition) {
       setAccessCondition(condition);
       setKeptAccess(null);
     } else {
       setKeptAccess(kept);
     }
-  }, [sourceType, accountId, initialData, updateMode, accessTouched, prefillStoredAccess]);
+  }, [sourceType, accountId, projectId, profile, linkProjectId, linkProfile, initialData, updateMode, accessTouched, prefillStoredAccess]);
   const [encrypting, setEncrypting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [secretsToGenerate, setSecretsToGenerate] = useState<SecretToGenerate[]>([]);
@@ -193,6 +208,49 @@ export function SecretsForm({
   // Update mode specific state
   const [secretsUpdateMode, setSecretsUpdateMode] = useState<UpdateMode>('append');
 
+  // Everything a fresh create starts from — the target, the values, the
+  // condition, and any update still pending (a pending update is a snapshot
+  // of the row it was prepared for; storing it after the form moved on would
+  // write that row). The vault choice is the user's and stays. Used after a
+  // save, and when an update is cancelled: leaving the cancelled row's
+  // fields in place would let the next save silently land on that row.
+  const resetForm = () => {
+    setSourceType('repo');
+    setRepo('');
+    setBranch('');
+    setWasmHash('');
+    setProjectId('');
+    setProfile('default');
+    setPlaintextSecrets('{\n  "API_KEY": "your-api-key"\n}');
+    setAccessCondition({ type: 'AllowAll' });
+    setAccessTouched(false);
+    setKeptAccess(null);
+    setSecretsToGenerate([]);
+    setGeneratedKeys([]);
+    setPendingUpdate(null);
+    setSecretsUpdateMode('append');
+    setError(null);
+  };
+
+  // Leaving update mode — Cancel, or the parent clearing it — returns the
+  // form to a fresh create. The vault goes too: in update mode it was looked
+  // up for the row being updated, not chosen by the user. The ref tells "was
+  // updating, now not" from "never was", so a form that starts outside update
+  // mode is left alone.
+  const wasUpdating = useRef(false);
+  useEffect(() => {
+    if (updateMode) {
+      wasUpdating.current = true;
+      return;
+    }
+    if (wasUpdating.current) {
+      wasUpdating.current = false;
+      resetForm();
+      setVaultId(null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [updateMode]);
+
   // Load initial data if provided (for edit mode)
   useEffect(() => {
     if (initialData) {
@@ -206,9 +264,8 @@ export function SecretsForm({
     }
   }, [initialData]);
 
-  // Apply what an incoming link proposed, ONCE. The parent builds this object inline, so it is a
-  // new reference on every render; without the guard the effect would re-run and overwrite whatever
-  // the user had since typed.
+  // Apply what an incoming link proposed, ONCE: a link is a starting point, and a later change to
+  // it must not overwrite whatever the user has since typed.
   const prefillApplied = useRef(false);
   useEffect(() => {
     if (!prefill || prefillApplied.current) return;
@@ -254,9 +311,14 @@ export function SecretsForm({
     setPrefillProjectMissing(!owned);
   }, [prefillProjectId, userProjects, projectsNotLoadedYet]);
 
-  // Load update mode data
+  // Load update mode data. Switching straight from one row to another (no
+  // Cancel in between) must not carry the first row's pending update, its
+  // names to generate, or its error into the second.
   useEffect(() => {
     if (updateMode) {
+      setPendingUpdate(null);
+      setSecretsToGenerate([]);
+      setError(null);
       if (updateMode.accessor.type === 'Repo') {
         setSourceType('repo');
         setRepo(updateMode.accessor.repo || '');
@@ -333,6 +395,9 @@ export function SecretsForm({
       });
     return () => {
       cancelled = true;
+      // A lookup abandoned mid-flight leaves nothing pending: whatever comes
+      // next starts its own.
+      setUpdateModeVaultLookupPending(false);
     };
   }, [updateMode, accountId, viewMethod, contractId]);
 
@@ -608,20 +673,7 @@ export function SecretsForm({
         };
 
         await onSubmit(formData, encryptedArray);
-
-        // Clear form on success
-        setSourceType('repo');
-        setRepo('');
-        setBranch('');
-        setWasmHash('');
-        setProjectId('');
-        setProfile('default');
-        setPlaintextSecrets('{\n  "API_KEY": "your-api-key"\n}');
-        setAccessCondition({ type: 'AllowAll' });
-        setAccessTouched(false);
-        setKeptAccess(null);
-        setSecretsToGenerate([]);
-        setError(null);
+        resetForm();
       } else {
         // Only manual secrets - use original flow
         // Build accessor based on source type
@@ -678,19 +730,7 @@ export function SecretsForm({
         };
 
         await onSubmit(formData, encryptedArray);
-
-        // Clear form on success
-        setSourceType('repo');
-        setRepo('');
-        setBranch('');
-        setWasmHash('');
-        setProjectId('');
-        setProfile('default');
-        setPlaintextSecrets('{\n  "API_KEY": "your-api-key"\n}');
-        setAccessCondition({ type: 'AllowAll' });
-        setAccessTouched(false);
-        setKeptAccess(null);
-        setError(null);
+        resetForm();
       }
     } catch (err) {
       console.error('Encryption error:', err);
@@ -896,10 +936,9 @@ export function SecretsForm({
     try {
       await onSubmit(pendingUpdate.formData, pendingUpdate.encryptedArray);
 
-      // Clear pending, reset form, and call completion callback
-      setPendingUpdate(null);
-      setSecretsToGenerate([]);
-      setPlaintextSecrets('{\n  "API_KEY": "your-api-key"\n}');
+      // Stored: this is a create form again, whether or not the parent
+      // clears its update mode in answer to the callback.
+      resetForm();
       if (onUpdateComplete) {
         onUpdateComplete();
       }
@@ -1331,7 +1370,14 @@ export function SecretsForm({
               </p>
               <button
                 type="button"
-                onClick={() => { setKeptAccess(null); setAccessTouched(true); }}
+                onClick={() => {
+                  // Replacing starts from the default for this kind of row,
+                  // not from whatever the builder last held.
+                  setKeptAccess(null);
+                  setAccessTouched(true);
+                  const { condition } = initialAccess({ sourceType, accountId });
+                  if (condition) setAccessCondition(condition);
+                }}
  className="mt-2 text-xs text-accent-text underline"
               >
                 Replace it with a new condition instead

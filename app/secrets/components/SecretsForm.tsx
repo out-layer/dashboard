@@ -1450,10 +1450,10 @@ export function SecretsForm({
                 encrypting ||
                 (isUpdateMode && updateModeVaultLookupPending)
               }
- className={`inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed ${
+ className={`inline-flex items-center px-4 py-2 border text-sm font-medium rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed ${
                 isUpdateMode
-                  ? 'bg-card-muted hover:bg-card-muted focus:ring-purple-500'
-                  : 'bg-accent hover:bg-accent-hover focus:ring-accent'
+                  ? 'bg-card-muted text-foreground border-border-strong hover:bg-card hover:border-accent focus:ring-accent'
+                  : 'bg-accent text-white border-transparent hover:bg-accent-hover focus:ring-accent'
               }`}
             >
               {encrypting

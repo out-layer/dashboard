@@ -11,7 +11,7 @@ import { AgentSecretForm } from './components/AgentSecretForm';
 import { SecretsList } from './components/SecretsList';
 import { AccessEditor, GranteeWallet } from './components/AccessEditor';
 import { UserSecret, FormData, isRepoAccessor, isWasmHashAccessor, isProjectAccessor, getAccessorLabel } from './components/types';
-import { grantsOf, withoutGrant, implicitAccountOf, nsToIsoUtc, openPersonalRows } from './components/utils';
+import { grantsOf, withoutGrant, implicitAccountOf, nsToIsoUtc, openPersonalRows , chainReadRefusal } from './components/utils';
 import { getCoordinatorApiUrl } from '@/lib/api';
 import { listAllUserSecrets } from '@/lib/user-secrets';
 
@@ -263,6 +263,13 @@ function SecretsPageContent() {
   }, [error, success]);
 
   const handleSubmitSecrets = async (formData: FormData, encryptedArray: number[]) => {
+    // Same bound as the edit path: a condition the keystore would refuse to
+    // judge is not worth storing, and saying so here costs no transaction.
+    const tooWide = chainReadRefusal(formData.access);
+    if (tooWide) {
+      setError(tooWide);
+      return;
+    }
     try {
       // Convert encrypted array to base64 for contract
       const encryptedBase64 = Buffer.from(encryptedArray).toString('base64');
@@ -434,6 +441,13 @@ function SecretsPageContent() {
 
   const handleSaveAccess = async (newAccess: unknown) => {
     if (!accessSecret) return;
+    // The contract stores by this bound and the keystore judges by it, so the
+    // refusal belongs here — before a wallet prompt, not as a panic after one.
+    const tooWide = chainReadRefusal(newAccess);
+    if (tooWide) {
+      setError(tooWide);
+      return;
+    }
     await sendAccess(accessSecret, newAccess);
     setAccessSecret(null);
   };
@@ -670,7 +684,10 @@ function SecretsPageContent() {
             stored for. A grant outlives the agent&rsquo;s binding or lease unless it carries an expiry
             &mdash; revoke here what no longer has an agent behind it.
           </p>
-          <ul className="mt-3 space-y-3">
+          {/* Bounded on purpose: this list grows with every grant, and pushing
+              "Your Secrets" below the fold makes the page read as if the list
+              were gone. */}
+          <ul className="mt-3 space-y-3 max-h-64 overflow-y-auto pr-1">
             {Array.from(grantsByAccount.entries()).map(([account, rows]) => (
               <li key={account}>
                 <div className="text-xs font-mono break-all text-foreground">

@@ -1314,7 +1314,7 @@ curl -s https://skills.outlayer.ai/agent-custody/SKILL.md`}
 
         <SyntaxHighlighter language="bash" style={vscDarkPlus} customStyle={{ borderRadius: '0.5rem', fontSize: '0.875rem' }}>
 {`# Login with wallet key (instead of NEAR private key)
-outlayer login --wallet-key wk_15807dbda492636df5280629d7617c3ea80f915ba960389b621e420ca275e545
+outlayer login --wallet-key wk_your_wallet_key
 
 # All commands work transparently
 outlayer deploy my-agent

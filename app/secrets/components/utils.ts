@@ -388,3 +388,37 @@ export const ALLOW_ALL_WARNING =
 export function openPersonalRows<T extends { accessor?: unknown; access?: unknown }>(secrets: T[]): T[] {
   return secrets.filter((s) => isProjectRow(s.accessor) && s.access === 'AllowAll');
 }
+
+/** The leaves a keystore can only answer by asking the chain. */
+const CHAIN_READ_KINDS = ['NearBalance', 'FtBalance', 'NftOwned', 'DaoMember'] as const;
+
+/**
+ * The most such leaves one condition may hold, the same number the contract
+ * stores by and the keystore judges by (`shared_tee_helpers::access_limits`).
+ * They are asked one after another from inside the enclave, so a wide
+ * condition holds a shared keystore for the length of that many round trips.
+ */
+export const MAX_CHAIN_READ_LEAVES = 5;
+
+/** How many leaves of a stored condition ask the chain. */
+export function chainReadLeaves(condition: unknown): number {
+  if (!condition || typeof condition !== 'object') return 0;
+  const node = condition as Record<string, unknown>;
+  if (CHAIN_READ_KINDS.some((kind) => kind in node)) return 1;
+  const logic = node.Logic as { conditions?: unknown[] } | undefined;
+  if (logic?.conditions) return logic.conditions.reduce<number>((n, c) => n + chainReadLeaves(c), 0);
+  const not = node.Not as { condition?: unknown } | undefined;
+  if (not?.condition) return chainReadLeaves(not.condition);
+  return 0;
+}
+
+/**
+ * The sentence to show instead of signing, or null when the condition is
+ * within the bound. Said here so the refusal arrives before a wallet prompt
+ * rather than as a contract panic after one.
+ */
+export function chainReadRefusal(condition: unknown): string | null {
+  const reads = chainReadLeaves(condition);
+  if (reads <= MAX_CHAIN_READ_LEAVES) return null;
+  return `This condition asks the chain ${reads} times (balance, NFT or DAO checks); at most ${MAX_CHAIN_READ_LEAVES} are judged. Name accounts directly, or split the rule across profiles.`;
+}

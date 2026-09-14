@@ -172,7 +172,7 @@ const DIRECT_PRESETS: DirectPreset[] = [
     description: ' Test persistent storage API. Runs test_all command to verify storage operations (set, get, delete, list_keys, has, get_by_version). Uses project-based execution with shared storage across versions.',
     codeSourceType: 'project',
     projectId: 'zavodil2.testnet/test-storage',
-    versionKey: 'fb9086ae8a805ea01be67f2508c7757aa6ece174656a71faed29cff0243541de',
+    versionKey: '',
     buildTarget: 'wasm32-wasip2',
     args: '{"command":"test_all"}',
     responseFormat: 'Text',

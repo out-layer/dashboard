@@ -11,7 +11,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { initialAccess, linkedAccessFor, ALLOW_ALL_WARNING, openPersonalRows } from '../app/secrets/components/utils.ts';
+import { initialAccess, linkedAccessFor, ALLOW_ALL_WARNING, openPersonalRows, chainReadLeaves, chainReadRefusal } from '../app/secrets/components/utils.ts';
 
 const ME = 'me.near';
 const project = (id, access) => ({ accessor: { Project: { project_id: id } }, access, profile: 'p' });
@@ -111,4 +111,31 @@ test('wiring: the form, the page and the builder decide through this module', ()
   assert.match(page, /s\.profile === linkEffectiveProfile/);
   assert.match(page, /profile: linkEffectiveProfile/);
   assert.match(src('../app/secrets/components/AccessConditionBuilder.tsx'), /description: ALLOW_ALL_WARNING/);
+});
+
+test('a condition is refused before signing when it asks the chain more than five times', () => {
+  const read = { NearBalance: { operator: 'Gte', value: '1' } };
+  const or = (n) => ({ Logic: { operator: 'Or', conditions: Array.from({ length: n }, () => read) } });
+
+  assert.equal(chainReadLeaves(or(5)), 5);
+  assert.equal(chainReadRefusal(or(5)), null, 'five is the bound, not past it');
+
+  const refusal = chainReadRefusal(or(6));
+  assert.ok(refusal && refusal.includes('6 times'), `names the count: ${refusal}`);
+
+  // Every kind counts, wherever it sits — under Not, under nested Logic.
+  const mixed = { Not: { condition: { Logic: { operator: 'And', conditions: [
+    { FtBalance: { contract: 'ft.near', operator: 'Gte', value: '1' } },
+    { NftOwned: { contract: 'nft.near', token_id: null } },
+    { DaoMember: { dao_contract: 'dao.near', role: 'council' } },
+    { NearBalance: { operator: 'Gte', value: '1' } },
+    { NftOwned: { contract: 'nft.near', token_id: '2' } },
+    { DaoMember: { dao_contract: 'dao.near', role: 'members' } },
+  ] } } } };
+  assert.ok(chainReadRefusal(mixed)?.includes('6 times'));
+
+  // A whitelist of any size asks the chain nothing.
+  const wide = { Whitelist: { accounts: Array.from({ length: 500 }, (_, i) => `a${i}.near`) } };
+  assert.equal(chainReadLeaves(wide), 0);
+  assert.equal(chainReadRefusal(wide), null);
 });

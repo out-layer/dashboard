@@ -58,6 +58,10 @@ export function AccessEditor({ secret, accountId, wallets = [], onSave, onCancel
   const [error, setError] = useState<string | null>(null);
   const [grantee, setGrantee] = useState('');
   const [grantUntil, setGrantUntil] = useState('');
+  // The date is OFF unless it is asked for. A field that is always live reads
+  // as one that must be filled in, and a value left in a hidden field must
+  // never reach the grant.
+  const [grantUntilOn, setGrantUntilOn] = useState(false);
 
   // The grant view reads and writes the contract shape; the builder keeps the
   // UI shape. One tree, two views.
@@ -88,14 +92,15 @@ export function AccessEditor({ secret, accountId, wallets = [], onSave, onCancel
       setError('That is your own account; it is the owner, not a grantee.');
       return;
     }
-    const until = grantUntil ? localInputToNs(grantUntil) : null;
-    if (grantUntil && until === null) {
+    const until = grantUntilOn && grantUntil ? localInputToNs(grantUntil) : null;
+    if (grantUntilOn && grantUntil && until === null) {
       setError('The expiry is not a readable date.');
       return;
     }
     applyContract(withGrant(contractTree, accountId, account, until));
     setGrantee('');
     setGrantUntil('');
+    setGrantUntilOn(false);
   };
 
   const revoke = (account: string) => {
@@ -184,14 +189,26 @@ export function AccessEditor({ secret, accountId, wallets = [], onSave, onCancel
             )}
           </div>
           <div>
- <label className="block text-xs font-medium text-foreground mb-1">Until (UTC, optional)</label>
-            <input
-              type="datetime-local"
-              step="1"
-              value={grantUntil}
-              onChange={(e) => setGrantUntil(e.target.value)}
+            <label className="flex items-center gap-2 text-xs font-medium text-foreground mb-1">
+              <input
+                type="checkbox"
+                checked={grantUntilOn}
+                onChange={(e) => setGrantUntilOn(e.target.checked)}
+                className="h-3.5 w-3.5 accent-accent"
+              />
+              Until (UTC)
+            </label>
+            {grantUntilOn ? (
+              <input
+                type="datetime-local"
+                step="1"
+                value={grantUntil}
+                onChange={(e) => setGrantUntil(e.target.value)}
  className="block rounded-md border border-border-strong px-3 py-2 text-sm outline-none focus:border-accent focus:ring-1 focus:ring-accent"
-            />
+              />
+            ) : (
+              <p className="text-xs text-muted-foreground py-2">the grant does not lapse on its own</p>
+            )}
           </div>
           <button
             type="button"

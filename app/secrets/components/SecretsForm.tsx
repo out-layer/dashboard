@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { eciesEncrypt } from '@/lib/ecies';
 import { AccessConditionBuilder } from './AccessConditionBuilder';
 import { AccessCondition, FormData, SecretSourceType } from './types';
-import { carriedAccess, convertAccessToContractFormat, initialAccess, linkedAccessFor } from './utils';
+import { carriedAccess, convertAccessToContractFormat, initialAccess, linkedAccessFor, chainReadRefusal } from './utils';
 import { useNearWallet } from '@/contexts/NearWalletContext';
 import { VaultScopeToggle } from '@/components/VaultScopeToggle';
 
@@ -480,6 +480,16 @@ export function SecretsForm({
 
     if (!isConnected || !accountId) {
       setError('Please connect your wallet first');
+      return;
+    }
+
+    // Before the keystore is asked for a public key and before a generated
+    // secret is minted: a condition past the bounds is known from the form
+    // alone, and refusing later would spend a keypair whose private half only
+    // exists inside the ciphertext this refusal discards.
+    const outOfBounds = chainReadRefusal(keptAccess ?? convertAccessToContractFormat(accessCondition));
+    if (outOfBounds) {
+      setError(outOfBounds);
       return;
     }
 
@@ -1450,9 +1460,9 @@ export function SecretsForm({
                 encrypting ||
                 (isUpdateMode && updateModeVaultLookupPending)
               }
- className={`inline-flex items-center px-4 py-2 border text-sm font-medium rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed ${
+ className={`inline-flex items-center px-4 py-2 border text-sm font-medium rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 ring-offset-card disabled:opacity-50 disabled:cursor-not-allowed ${
                 isUpdateMode
-                  ? 'bg-card-muted text-foreground border-border-strong hover:bg-card hover:border-accent focus:ring-accent'
+                  ? 'bg-card-muted text-foreground border-accent/60 hover:bg-card hover:border-accent focus:ring-accent'
                   : 'bg-accent text-white border-transparent hover:bg-accent-hover focus:ring-accent'
               }`}
             >

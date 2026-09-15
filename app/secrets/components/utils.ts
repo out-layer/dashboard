@@ -393,32 +393,69 @@ export function openPersonalRows<T extends { accessor?: unknown; access?: unknow
 const CHAIN_READ_KINDS = ['NearBalance', 'FtBalance', 'NftOwned', 'DaoMember'] as const;
 
 /**
- * The most such leaves one condition may hold, the same number the contract
- * stores by and the keystore judges by (`shared_tee_helpers::access_limits`).
- * They are asked one after another from inside the enclave, so a wide
- * condition holds a shared keystore for the length of that many round trips.
+ * The bounds a stored condition must satisfy, the same numbers the contract
+ * stores by and the keystore judges by (`shared_tee_helpers::access_limits`,
+ * `contract/src/secrets.rs` — change one and change all three).
+ *
+ * Chain reads are asked one after another from inside the enclave, so their
+ * number bounds how long a shared keystore is held. Patterns are compiled
+ * before a decrypt is judged, and a pattern's compiled size is not its text
+ * size, so both how many and how long are bounded.
  */
 export const MAX_CHAIN_READ_LEAVES = 5;
+export const MAX_ACCOUNT_PATTERNS = 16;
+export const MAX_ACCOUNT_PATTERN_BYTES = 4096;
+
+type Counts = { chainReads: number; patterns: number; patternBytes: number };
+
+function countLeaves(condition: unknown): Counts {
+  const zero: Counts = { chainReads: 0, patterns: 0, patternBytes: 0 };
+  if (!condition || typeof condition !== 'object') return zero;
+  const node = condition as Record<string, unknown>;
+
+  const pattern = (node.AccountPattern as { pattern?: unknown } | undefined)?.pattern;
+  if (typeof pattern === 'string') {
+    // Bytes, as the contract counts them.
+    return { chainReads: 0, patterns: 1, patternBytes: new TextEncoder().encode(pattern).length };
+  }
+  if (CHAIN_READ_KINDS.some((kind) => kind in node)) return { ...zero, chainReads: 1 };
+
+  const logic = node.Logic as { conditions?: unknown[] } | undefined;
+  if (logic?.conditions) {
+    return logic.conditions.reduce<Counts>((acc, c) => {
+      const n = countLeaves(c);
+      return {
+        chainReads: acc.chainReads + n.chainReads,
+        patterns: acc.patterns + n.patterns,
+        patternBytes: acc.patternBytes + n.patternBytes,
+      };
+    }, zero);
+  }
+  const not = node.Not as { condition?: unknown } | undefined;
+  if (not?.condition) return countLeaves(not.condition);
+  return zero;
+}
 
 /** How many leaves of a stored condition ask the chain. */
 export function chainReadLeaves(condition: unknown): number {
-  if (!condition || typeof condition !== 'object') return 0;
-  const node = condition as Record<string, unknown>;
-  if (CHAIN_READ_KINDS.some((kind) => kind in node)) return 1;
-  const logic = node.Logic as { conditions?: unknown[] } | undefined;
-  if (logic?.conditions) return logic.conditions.reduce<number>((n, c) => n + chainReadLeaves(c), 0);
-  const not = node.Not as { condition?: unknown } | undefined;
-  if (not?.condition) return chainReadLeaves(not.condition);
-  return 0;
+  return countLeaves(condition).chainReads;
 }
 
 /**
  * The sentence to show instead of signing, or null when the condition is
- * within the bound. Said here so the refusal arrives before a wallet prompt
+ * within every bound. Said here so the refusal arrives before a wallet prompt
  * rather than as a contract panic after one.
  */
 export function chainReadRefusal(condition: unknown): string | null {
-  const reads = chainReadLeaves(condition);
-  if (reads <= MAX_CHAIN_READ_LEAVES) return null;
-  return `This condition asks the chain ${reads} times (balance, NFT or DAO checks); at most ${MAX_CHAIN_READ_LEAVES} are judged. Name accounts directly, or split the rule across profiles.`;
+  const { chainReads, patterns, patternBytes } = countLeaves(condition);
+  if (chainReads > MAX_CHAIN_READ_LEAVES) {
+    return `This condition asks the chain ${chainReads} times (balance, NFT or DAO checks); at most ${MAX_CHAIN_READ_LEAVES} are judged. Name accounts directly, or split the rule across profiles.`;
+  }
+  if (patterns > MAX_ACCOUNT_PATTERNS) {
+    return `This condition holds ${patterns} account patterns; at most ${MAX_ACCOUNT_PATTERNS} are judged. Name accounts directly, or split the rule across profiles.`;
+  }
+  if (patternBytes > MAX_ACCOUNT_PATTERN_BYTES) {
+    return `This condition's account patterns are ${patternBytes} bytes in all; at most ${MAX_ACCOUNT_PATTERN_BYTES} are judged. Shorten them, or name accounts directly.`;
+  }
+  return null;
 }

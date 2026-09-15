@@ -92,8 +92,15 @@ export function AccessEditor({ secret, accountId, wallets = [], onSave, onCancel
       setError('That is your own account; it is the owner, not a grantee.');
       return;
     }
-    const until = grantUntilOn && grantUntil ? localInputToNs(grantUntil) : null;
-    if (grantUntilOn && grantUntil && until === null) {
+    if (grantUntilOn && !grantUntil) {
+      setError('Pick a date, or untick “Until” for a grant that does not lapse on its own.');
+      return;
+    }
+    // Re-granting an account replaces its branch, so a grant that already has
+    // an expiry must not lose it just because this form was not asked for one.
+    const existing = grants.find((g) => g.account === account);
+    const until = grantUntilOn ? localInputToNs(grantUntil) : existing?.until_ns ?? null;
+    if (grantUntilOn && until === null) {
       setError('The expiry is not a readable date.');
       return;
     }
@@ -202,6 +209,7 @@ export function AccessEditor({ secret, accountId, wallets = [], onSave, onCancel
               <input
                 type="datetime-local"
                 step="1"
+                aria-label="Grant expiry, UTC"
                 value={grantUntil}
                 onChange={(e) => setGrantUntil(e.target.value)}
  className="block rounded-md border border-border-strong px-3 py-2 text-sm outline-none focus:border-accent focus:ring-1 focus:ring-accent"
@@ -223,7 +231,9 @@ export function AccessEditor({ secret, accountId, wallets = [], onSave, onCancel
           A grant names the account that PAYS for the agent&rsquo;s calls — a custody wallet&rsquo;s
           64-character account, never the name it acts as under a binding. For an agent you hold
           under a lease, set the expiry to the lease end: the grant lapses with it and nobody has to
-          remember to revoke. An expiry on a new grant here does not change grants already listed.
+          remember to revoke. An expiry set here applies to the grant being added; re-adding an
+          account that already has one keeps the expiry it has, and grants already listed are not
+          changed.
         </p>
       </div>
 

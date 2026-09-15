@@ -11,7 +11,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { initialAccess, linkedAccessFor, ALLOW_ALL_WARNING, openPersonalRows, chainReadLeaves, chainReadRefusal } from '../app/secrets/components/utils.ts';
+import { initialAccess, linkedAccessFor, ALLOW_ALL_WARNING, openPersonalRows, chainReadLeaves, chainReadRefusal, MAX_ACCOUNT_PATTERNS, MAX_ACCOUNT_PATTERN_BYTES } from '../app/secrets/components/utils.ts';
 
 const ME = 'me.near';
 const project = (id, access) => ({ accessor: { Project: { project_id: id } }, access, profile: 'p' });
@@ -138,4 +138,32 @@ test('a condition is refused before signing when it asks the chain more than fiv
   const wide = { Whitelist: { accounts: Array.from({ length: 500 }, (_, i) => `a${i}.near`) } };
   assert.equal(chainReadLeaves(wide), 0);
   assert.equal(chainReadRefusal(wide), null);
+});
+
+test('the UI refuses every bound the contract stores by, not only the chain reads', () => {
+  const pattern = (text) => ({ AccountPattern: { pattern: text } });
+  const or = (conditions) => ({ Logic: { operator: 'Or', conditions } });
+
+  // Count: sixteen are judged, a seventeenth is not.
+  const leaves = (n) => or(Array.from({ length: n }, (_, i) => pattern(`a${i}\\.near`)));
+  assert.equal(chainReadRefusal(leaves(MAX_ACCOUNT_PATTERNS)), null);
+  const many = chainReadRefusal(leaves(MAX_ACCOUNT_PATTERNS + 1));
+  assert.ok(many && many.includes('17 account patterns'), `names the count: ${many}`);
+
+  // Text: counted in BYTES, as the contract counts them.
+  const half = 'a'.repeat(MAX_ACCOUNT_PATTERN_BYTES / 2);
+  assert.equal(chainReadRefusal(or([pattern(half), pattern(half)])), null);
+  const long = chainReadRefusal(or([pattern(half), pattern(half), pattern('b')]));
+  assert.ok(long && long.includes('4097 bytes'), `names the size: ${long}`);
+
+  // A multi-byte character is more than one byte, here as on chain.
+  const twoBytesEach = chainReadRefusal(pattern('é'.repeat(MAX_ACCOUNT_PATTERN_BYTES / 2 + 1)));
+  assert.ok(twoBytesEach && twoBytesEach.includes('bytes'), 'pattern text is measured in bytes');
+
+  // And the chain-read bound still answers first when both are broken.
+  const both = or([
+    ...Array.from({ length: 6 }, () => ({ NearBalance: { operator: 'Gte', value: '1' } })),
+    ...Array.from({ length: 17 }, (_, i) => pattern(`b${i}\\.near`)),
+  ]);
+  assert.ok(chainReadRefusal(both).includes('asks the chain 6 times'));
 });

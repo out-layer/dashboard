@@ -235,6 +235,16 @@ function SecretsPageContent() {
         }),
       );
       setUserSecrets(enriched);
+      // An open Access editor holds the row it was opened with. Re-point it at
+      // the row as the chain now has it, so a condition edited elsewhere — a
+      // revoke from the list beside it, another tab, the CLI — is what Save
+      // starts from. Its `key` carries `updated_at`, so this remounts it.
+      setAccessSecret((open) => {
+        if (!open) return open;
+        const same = (a: UserSecret) =>
+          getAccessorLabel(a.accessor) === getAccessorLabel(open.accessor) && a.profile === open.profile;
+        return enriched.find(same) ?? null;
+      });
     } catch (err) {
       console.error('Failed to load user secrets:', err);
       setError(`Failed to load secrets: ${(err as Error).message}`);
@@ -265,10 +275,13 @@ function SecretsPageContent() {
   const handleSubmitSecrets = async (formData: FormData, encryptedArray: number[]) => {
     // Same bound as the edit path: a condition the keystore would refuse to
     // judge is not worth storing, and saying so here costs no transaction.
+    // THROWN, not returned: the form clears itself and reports success on a
+    // resolved promise, so a silent return would wipe what the user typed and
+    // announce that it was stored.
     const tooWide = chainReadRefusal(formData.access);
     if (tooWide) {
       setError(tooWide);
-      return;
+      throw new Error(tooWide);
     }
     try {
       // Convert encrypted array to base64 for contract
@@ -445,8 +458,8 @@ function SecretsPageContent() {
     // refusal belongs here — before a wallet prompt, not as a panic after one.
     const tooWide = chainReadRefusal(newAccess);
     if (tooWide) {
-      setError(tooWide);
-      return;
+      // The editor catches this and shows it beside the tree being edited.
+      throw new Error(tooWide);
     }
     await sendAccess(accessSecret, newAccess);
     setAccessSecret(null);
@@ -460,7 +473,21 @@ function SecretsPageContent() {
     setRevoking(key);
     setError(null);
     try {
-      await sendAccess(secret, withoutGrant(secret.access, account, accountId));
+      const next = withoutGrant(secret.access, account, accountId);
+      // A row stored before the bounds existed can hold more than they allow.
+      // Revoking from here would prompt the wallet and then panic on chain, so
+      // the owner is sent to the editor, where the whole condition is visible.
+      const tooWide = chainReadRefusal(next);
+      if (tooWide) {
+        setError(`${tooWide} Open “Access” on this secret to edit the condition as a whole.`);
+        return;
+      }
+      await sendAccess(secret, next);
+      // This revoke's condition came from the loaded list. Releasing the
+      // buttons before the list catches up lets the NEXT revoke start from the
+      // state before this one — which puts the account just removed back.
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+      await loadUserSecrets();
     } catch (e) {
       setError(`Failed to revoke: ${(e as Error).message}`);
     } finally {
@@ -681,10 +708,61 @@ function SecretsPageContent() {
             </button>
           </div>
         )}
+   <div className="bg-card-muted border border-border rounded-lg p-4">
+   <h3 className="text-sm font-semibold text-foreground mb-3">
+            How repo-based secrets work
+          </h3>
+   <ol className="text-sm text-muted-foreground space-y-2 list-decimal list-inside">
+            <li>
+   <strong>Create secrets</strong>: Secrets are encrypted with keystore&apos;s public key and stored in the contract
+            </li>
+            <li>
+   <strong>Reference in execution</strong>: Use <code className="bg-card-muted px-1 py-0.5 rounded text-xs font-mono">secrets_ref: {`{profile: "production", account_id: "you.near"}`}</code>
+            </li>
+            <li>
+   <strong>Automatic decryption</strong>: Worker fetches secrets from contract and decrypts via keystore
+            </li>
+            <li>
+   <strong>Access validation</strong>: Keystore validates access conditions (balance checks, whitelists, etc.)
+            </li>
+            <li>
+   <strong>WASI injection</strong>: Decrypted secrets injected as environment variables into WASM
+            </li>
+            <li>
+   <strong>Code access</strong>: Your WASM code uses <code className="bg-card-muted px-1 py-0.5 rounded text-xs font-mono">std::env::var(&quot;API_KEY&quot;)</code>
+            </li>
+          </ol>
+
+   <div className="mt-4 p-3 bg-card rounded-md border border-border">
+   <h4 className="text-xs font-semibold text-foreground mb-2">Example: Request Execution with Secrets</h4>
+   <pre className="text-xs text-foreground overflow-x-auto">
+  {`near call outlayer.testnet request_execution '{
+    "source": {
+      "GitHub": {
+        "repo": "https://github.com/alice/myproject",
+        "commit": "main",
+        "build_target": "wasm32-wasip1"
+      }
+    },
+    "secrets_ref": {
+      "profile": "production",
+      "account_id": "alice.near"
+    },
+    "resource_limits": { ... },
+    "input_data": "{}"
+  }' --accountId alice.near --deposit 0.1`}
+            </pre>
+          </div>
+        </div>
         </div>
         <div className="flex flex-col gap-6">
         {accessSecret && (
           <AccessEditor
+            // The editor reads the row once, into state with no syncing
+            // effect. Without a key, opening Access on a second row while the
+            // first is open would keep the FIRST row's condition and save it
+            // onto the second.
+            key={`${getAccessorLabel(accessSecret.accessor)}/${accessSecret.profile}@${accessSecret.updated_at}`}
             secret={accessSecret}
             accountId={accountId}
             wallets={wallets}
@@ -757,53 +835,6 @@ function SecretsPageContent() {
         </div>
       </div>
 
-      {/* Info Section */}
- <div className="mt-8 max-w-3xl bg-card-muted border border-border rounded-lg p-4">
- <h3 className="text-sm font-semibold text-foreground mb-3">
-          How repo-based secrets work
-        </h3>
- <ol className="text-sm text-muted-foreground space-y-2 list-decimal list-inside">
-          <li>
- <strong>Create secrets</strong>: Secrets are encrypted with keystore&apos;s public key and stored in the contract
-          </li>
-          <li>
- <strong>Reference in execution</strong>: Use <code className="bg-card-muted px-1 py-0.5 rounded text-xs font-mono">secrets_ref: {`{profile: "production", account_id: "you.near"}`}</code>
-          </li>
-          <li>
- <strong>Automatic decryption</strong>: Worker fetches secrets from contract and decrypts via keystore
-          </li>
-          <li>
- <strong>Access validation</strong>: Keystore validates access conditions (balance checks, whitelists, etc.)
-          </li>
-          <li>
- <strong>WASI injection</strong>: Decrypted secrets injected as environment variables into WASM
-          </li>
-          <li>
- <strong>Code access</strong>: Your WASM code uses <code className="bg-card-muted px-1 py-0.5 rounded text-xs font-mono">std::env::var(&quot;API_KEY&quot;)</code>
-          </li>
-        </ol>
-
- <div className="mt-4 p-3 bg-card rounded-md border border-border">
- <h4 className="text-xs font-semibold text-foreground mb-2">Example: Request Execution with Secrets</h4>
- <pre className="text-xs text-foreground overflow-x-auto">
-{`near call outlayer.testnet request_execution '{
-  "source": {
-    "GitHub": {
-      "repo": "https://github.com/alice/myproject",
-      "commit": "main",
-      "build_target": "wasm32-wasip1"
-    }
-  },
-  "secrets_ref": {
-    "profile": "production",
-    "account_id": "alice.near"
-  },
-  "resource_limits": { ... },
-  "input_data": "{}"
-}' --accountId alice.near --deposit 0.1`}
-          </pre>
-        </div>
-      </div>
     </div>
   );
 }

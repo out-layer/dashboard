@@ -180,6 +180,23 @@ export default function SecretsSection() {
               <li>After each release you approve, press <strong>Access</strong> and point the lock at the new build.</li>
             </ol>
           </div>
+ <div className="mt-3 p-3 bg-card-muted border border-border rounded">
+ <p className="text-sm text-foreground font-medium mb-1">Locking before the first run</p>
+ <p className="text-xs text-foreground">
+              You do not have to run a project to learn its hash. The platform compiles in a fixed
+              container, so the same commit gives the same bytes and the number can be worked out in
+              advance — then the very first run is already allowed to read the secret, instead of
+              being the thing that tells you what to type. The order is{' '}
+              <strong>publish, lock, run</strong>: a secret stored against a project can only be
+              stored once that project exists, and what must not come first is a <em>run</em>.
+            </p>
+ <p className="text-xs text-foreground mt-2">
+              Two things decide the bytes besides your source, and both have to match the platform:
+              the compiler image and the architecture it runs on. A plain{' '}
+              <code className="bg-card-muted px-1 rounded">cargo build</code> on your own machine
+              gives a different, equally valid binary — and a hash the platform will never produce.
+            </p>
+          </div>
  <p className="text-foreground mt-3">
             The hash does not drift on its own. A project built from GitHub compiles to the same
             bytes every time it is built from the same commit, so a lock you set stays good until

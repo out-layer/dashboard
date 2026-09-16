@@ -13,7 +13,9 @@ export type AccessCondition =
   | { type: 'Logic'; operator: LogicOperator; conditions: AccessCondition[] }
   | { type: 'Not'; condition: AccessCondition }
   // Admits only before this instant: nanoseconds since the epoch, as a string.
-  | { type: 'ValidUntil'; until_ns: string };
+  | { type: 'ValidUntil'; until_ns: string }
+  // Admits only a run of this exact build: SHA-256 of the WebAssembly bytes, 64 lowercase hex.
+  | { type: 'WasmHash'; hash: string };
 
 // Secret accessor - defines what code can access/decrypt the secret
 export type SecretAccessor =

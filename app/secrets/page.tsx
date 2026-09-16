@@ -11,7 +11,7 @@ import { AgentSecretForm } from './components/AgentSecretForm';
 import { SecretsList } from './components/SecretsList';
 import { AccessEditor, GranteeWallet } from './components/AccessEditor';
 import { UserSecret, FormData, isRepoAccessor, isWasmHashAccessor, isProjectAccessor, getAccessorLabel } from './components/types';
-import { grantsOf, withoutGrant, implicitAccountOf, nsToIsoUtc, openPersonalRows , chainReadRefusal } from './components/utils';
+import { grantsOf, withoutGrant, implicitAccountOf, nsToIsoUtc, openPersonalRows, chainReadRefusal, buildHashRefusal } from './components/utils';
 import { getCoordinatorApiUrl } from '@/lib/api';
 import { listAllUserSecrets } from '@/lib/user-secrets';
 
@@ -35,7 +35,10 @@ function SecretsPageContent() {
   const linkProfile = searchParams.get('profile')?.trim() || '';
   const linkName = searchParams.get('name')?.trim() || '';
   const linkGenerate = searchParams.get('generate')?.trim() || '';
-  const fromLink = Boolean(linkProject || linkProfile || linkName || linkGenerate);
+  // From an execution's details: the SHA-256 of the bytes that ran. The form locks the
+  // row's access condition to that build ("One build only", ANDed with the default).
+  const linkWasmHash = searchParams.get('wasm_hash')?.trim() || '';
+  const fromLink = Boolean(linkProject || linkProfile || linkName || linkGenerate || linkWasmHash);
   const coordinatorUrl = getCoordinatorApiUrl(network);
 
   // User's secrets list
@@ -121,9 +124,10 @@ function SecretsPageContent() {
             profile: linkEffectiveProfile,
             secretName: linkName,
             generationType: linkGenerate,
+            wasmHash: linkWasmHash,
           }
         : undefined,
-    [fromLink, editingSecret, updatingSecret, linkProject, linkEffectiveProfile, linkName, linkGenerate]
+    [fromLink, editingSecret, updatingSecret, linkProject, linkEffectiveProfile, linkName, linkGenerate, linkWasmHash]
   );
   const initialData = useMemo(
     () =>
@@ -456,7 +460,7 @@ function SecretsPageContent() {
     if (!accessSecret) return;
     // The contract stores by this bound and the keystore judges by it, so the
     // refusal belongs here — before a wallet prompt, not as a panic after one.
-    const tooWide = chainReadRefusal(newAccess);
+    const tooWide = (chainReadRefusal(newAccess) ?? buildHashRefusal(newAccess));
     if (tooWide) {
       // The editor catches this and shows it beside the tree being edited.
       throw new Error(tooWide);

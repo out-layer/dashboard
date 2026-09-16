@@ -157,9 +157,24 @@ export default function ExecutionDetails({
     ],
     ['Build target', attestation.build_target || null],
     [
+      'Executed binary',
+      attestation.executed_wasm_sha256 ? (
+        <span className="inline-flex flex-wrap items-center gap-1.5">
+          <ResponsiveHash value={attestation.executed_wasm_sha256} />
+          <Link
+            href={`/secrets?wasm_hash=${attestation.executed_wasm_sha256}`}
+            className="whitespace-nowrap text-accent-text hover:underline"
+          >
+            Lock a secret to this build →
+          </Link>
+        </span>
+      ) : null,
+      'SHA-256 of the exact WebAssembly bytes that ran — what a "One build only" access rule is judged against',
+    ],
+    [
       'WASM hash',
       attestation.wasm_hash ? <ResponsiveHash value={attestation.wasm_hash} /> : null,
-      'SHA-256 of the exact WebAssembly binary that executed',
+      'The artefact key this run was scheduled under. For a WASM URL source it is the binary SHA-256; for a GitHub source it hashes repo, commit and target, so every binary built from that commit shares it',
     ],
     [
       'Input hash',

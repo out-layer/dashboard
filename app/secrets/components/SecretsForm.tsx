@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { eciesEncrypt } from '@/lib/ecies';
 import { AccessConditionBuilder } from './AccessConditionBuilder';
 import { AccessCondition, FormData, SecretSourceType } from './types';
-import { carriedAccess, convertAccessToContractFormat, initialAccess, linkedAccessFor, chainReadRefusal } from './utils';
+import { carriedAccess, convertAccessToContractFormat, initialAccess, linkedAccessFor, chainReadRefusal, buildHashRefusal } from './utils';
 import { useNearWallet } from '@/contexts/NearWalletContext';
 import { VaultScopeToggle } from '@/components/VaultScopeToggle';
 
@@ -39,6 +39,12 @@ interface SecretsFormProps {
     profile?: string;
     secretName?: string;
     generationType?: string;
+    /**
+     * A build to lock the row to, from an execution's details: the SHA-256 of the bytes
+     * that ran. Becomes a "One build only" access rule ANDed with the row's default, so
+     * the project's secret opens for that build and not for a rebuild.
+     */
+    wasmHash?: string;
   };
   /**
    * The condition already stored for the row a link points at, when there is one.
@@ -176,6 +182,8 @@ export function SecretsForm({
   // (`prefillStoredAccess` is undefined too).
   const linkProjectId = prefill?.projectId;
   const linkProfile = prefill?.profile;
+  // A link from an execution's details: the row's default, narrowed to that build.
+  const linkBuildHash = prefill?.wasmHash?.trim().toLowerCase() || '';
   useEffect(() => {
     if (initialData || updateMode || accessTouched) return;
     const storedAccess = linkedAccessFor({
@@ -187,12 +195,28 @@ export function SecretsForm({
     });
     const { condition, kept } = initialAccess({ sourceType, accountId, storedAccess });
     if (condition) {
-      setAccessCondition(condition);
+      // The build a link named locks the row: the default ANDed with a "One build only"
+      // rule. AllowAll narrows to the rule alone — an AND with everyone says nothing more.
+      const locked: AccessCondition = linkBuildHash
+        ? condition.type === 'AllowAll'
+          ? { type: 'WasmHash', hash: linkBuildHash }
+          : { type: 'Logic', operator: 'And', conditions: [condition, { type: 'WasmHash', hash: linkBuildHash }] }
+        : condition;
+      setAccessCondition(locked);
       setKeptAccess(null);
     } else {
-      setKeptAccess(kept);
+      // A condition this form cannot render is kept verbatim — and the link's
+      // lock is still applied, wrapped around it in the contract's own shape.
+      // Dropping it here would let "Lock a secret to this build" return a form
+      // that saves cleanly and locks nothing, which is the one outcome a
+      // security control must never have.
+      setKeptAccess(
+        linkBuildHash
+          ? { Logic: { operator: 'And', conditions: [kept, { WasmHash: { hash: linkBuildHash } }] } }
+          : kept
+      );
     }
-  }, [sourceType, accountId, projectId, profile, linkProjectId, linkProfile, initialData, updateMode, accessTouched, prefillStoredAccess]);
+  }, [sourceType, accountId, projectId, profile, linkProjectId, linkProfile, linkBuildHash, initialData, updateMode, accessTouched, prefillStoredAccess]);
   const [encrypting, setEncrypting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [secretsToGenerate, setSecretsToGenerate] = useState<SecretToGenerate[]>([]);
@@ -487,7 +511,8 @@ export function SecretsForm({
     // secret is minted: a condition past the bounds is known from the form
     // alone, and refusing later would spend a keypair whose private half only
     // exists inside the ciphertext this refusal discards.
-    const outOfBounds = chainReadRefusal(keptAccess ?? convertAccessToContractFormat(accessCondition));
+    const conditionToStore = keptAccess ?? convertAccessToContractFormat(accessCondition);
+    const outOfBounds = chainReadRefusal(conditionToStore) ?? buildHashRefusal(conditionToStore);
     if (outOfBounds) {
       setError(outOfBounds);
       return;
@@ -1056,7 +1081,7 @@ export function SecretsForm({
             {sourceType === 'repo'
               ? 'Bind secrets to a GitHub repository (for CodeSource::GitHub)'
               : sourceType === 'wasm_hash'
-              ? 'Bind secrets to a WASM binary hash (for CodeSource::WasmUrl)'
+              ? 'Bind secrets to a WASM binary hash — the row a raw WASM URL run reads under. To lock a project or repository secret to one build, add a "One build only" access rule instead'
               : 'Bind secrets to a project (shared across all versions)'}
           </p>
         </div>
@@ -1146,7 +1171,9 @@ export function SecretsForm({
               maxLength={64}
             />
  <p className="mt-1 text-xs text-muted-foreground">
-              The SHA256 hash of your compiled WASM binary (used with CodeSource::WasmUrl)
+              The SHA-256 of a WASM binary run by URL (CodeSource::WasmUrl). A project or repository
+              run does not read this row; lock those to a build with the &ldquo;One build only&rdquo;
+              access rule.
             </p>
           </div>
         )}
@@ -1378,6 +1405,13 @@ export function SecretsForm({
                 This secret&rsquo;s stored condition is kept exactly as it is — this form cannot
                 display its shape.
               </p>
+              {linkBuildHash && (
+ <p className="mt-2 text-sm text-foreground">
+                  A <strong>One build only</strong> rule for build{' '}
+                  <code className="bg-card px-1 rounded font-mono text-xs">{linkBuildHash.slice(0, 8)}…{linkBuildHash.slice(-8)}</code>{' '}
+                  is added on top of it, so only that build reads this secret.
+                </p>
+              )}
               <button
                 type="button"
                 onClick={() => {

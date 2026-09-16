@@ -32,6 +32,7 @@ export function AccessConditionBuilder({ condition, onChange }: AccessConditionB
     { value: 'Whitelist', label: 'Whitelist', description: 'Only specific accounts allowed' },
     { value: 'AccountPattern', label: 'Account Pattern', description: 'Match account name with regex' },
     { value: 'ValidUntil', label: 'Until a date', description: 'Admit only before a moment in time (UTC). Under "Multiple rules (AND)" with a whitelist it is a grant that lapses on its own.' },
+    { value: 'WasmHash', label: 'One build only', description: 'Admit only a run of one exact build (SHA-256 of the WebAssembly bytes). Under "Multiple rules (AND)" with a whitelist it is your secret that a rebuild cannot open.' },
   ];
 
   const operators = [
@@ -76,6 +77,9 @@ export function AccessConditionBuilder({ condition, onChange }: AccessConditionB
         break;
       case 'Whitelist':
         newCondition = { type: 'Whitelist', accounts: [] };
+        break;
+      case 'WasmHash':
+        newCondition = { type: 'WasmHash', hash: '' };
         break;
       case 'AccountPattern':
         newCondition = { type: 'AccountPattern', pattern: '' };
@@ -281,6 +285,29 @@ export function AccessConditionBuilder({ condition, onChange }: AccessConditionB
             Read as UTC. From this instant on, the condition denies. Combine it with a whitelist under
             &ldquo;Multiple rules (AND)&rdquo; for a grant that lapses on its own; under
             &ldquo;Opposite rule (NOT)&rdquo; it means &ldquo;valid after&rdquo;.
+          </p>
+        </div>
+      )}
+
+      {/* One build only */}
+      {currentCondition.type === 'WasmHash' && (
+ <div className="mb-4 p-4 bg-card-muted rounded-md">
+ <label className="block text-sm font-medium text-foreground mb-2">
+            Build (SHA-256 of the WebAssembly bytes)
+          </label>
+          <input
+            type="text"
+            value={currentCondition.hash}
+            onChange={(e) => updateCondition({ hash: e.target.value.trim().toLowerCase() })}
+            placeholder="64 lowercase hex characters"
+            maxLength={64}
+ className="block w-full max-w-xl rounded-md border border-border-strong px-3 py-2 font-mono text-sm outline-none focus:border-accent focus:ring-1 focus:ring-accent"
+          />
+ <p className="mt-2 text-xs text-muted-foreground">
+            Only a run of these exact bytes reads the secret; a rebuild has a different hash and is
+            refused. Find it under <strong>Executed binary</strong> in an execution&apos;s details.
+            Under &ldquo;Multiple rules (AND)&rdquo; with a whitelist it is your secret that a rebuild
+            cannot open; <em>Access</em> on the card moves it to the next build without re-storing.
           </p>
         </div>
       )}

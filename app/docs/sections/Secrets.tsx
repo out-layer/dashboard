@@ -105,8 +105,9 @@ export default function SecretsSection() {
  <ul className="list-disc list-inside text-sm text-foreground ml-4">
  <li>Key: <code className="bg-card-muted px-1 rounded">wasm_hash + profile + owner</code></li>
  <li>Example: <code className="bg-card-muted px-1 rounded">cbf80ed0...2f8:production</code></li>
- <li>Best for: Pre-compiled WASM from FastFS/IPFS, immutable deployments</li>
- <li>Guarantees: Only this exact binary can access the secrets</li>
+ <li>Best for: pre-compiled WASM run by URL (CodeSource::WasmUrl), immutable deployments</li>
+ <li>Guarantees: only this exact binary can access the secrets</li>
+ <li>A project or repository run does not read this binding. To lock <em>their</em> secret to one build, add the <strong>One build only</strong> access rule below</li>
               </ul>
             </div>
 
@@ -134,11 +135,113 @@ export default function SecretsSection() {
  <div className="mt-3 p-3 bg-card-muted border border-border rounded">
  <p className="text-sm text-foreground font-medium mb-1">WASM Hash Binding Security</p>
  <p className="text-xs text-foreground">
-              When using WASM hash binding, secrets are cryptographically tied to the exact binary.
-              Any modification to the code produces a different hash, preventing unauthorized access.
-              This is ideal for production deployments where code immutability is required.
+              The binding is the encryption seed, not a lookup rule: the keystore seals the secret to
+              a seed that names the hash, so a different binary does not fail a check — it decrypts
+              nothing. A project or repository secret is protected differently: the
+              <strong> One build only</strong> access rule is judged by the keystore against the hash
+              the worker measured, which is why the lock can move to a new build without the value
+              being re-entered. Neither keeps the secret inside the build: it
+              reaches your code as an environment variable, and code that prints or sends it has
+              leaked it.
             </p>
           </div>
+        </section>
+
+        <section id="build-lock">
+ <AnchorHeading id="build-lock">Locking a secret to one build</AnchorHeading>
+ <p className="text-foreground">
+            Every rule above answers <em>who</em> may read a secret. This one answers <em>what</em> may
+            read it, and it exists because those are different questions.
+          </p>
+ <p className="text-foreground mt-2">
+            When you hand a credential to a project, you are trusting its code — and that code can
+            change under you. A new version is published and your key goes to it, without you being
+            asked. The author need not be hostile for this to matter: a dependency moves, a build
+            script changes, somebody force-pushes. <strong>One build only</strong> removes that
+            trust from the arrangement. The secret opens for one exact binary, identified by the
+            SHA-256 of the bytes that run, and a rebuild is refused. The check is made inside the
+            attested enclave that holds the key, against the measurement the attested worker reports
+            for the code it is about to execute — so nothing the calling code says about itself
+            enters into it.
+          </p>
+ <p className="text-foreground mt-2">
+            Your key does not become unusable at the next release. The lock and the value are stored
+            apart: <strong>Access</strong> moves the lock to a new build without re-entering anything,
+            so a <code className="bg-card-muted px-1 rounded">PROTECTED_</code> key generated in the
+            enclave keeps its value across every release <em>you</em> approve. The decision moves from
+            the author&apos;s publish button to yours.
+          </p>
+ <div className="mt-3 p-3 bg-card-muted border border-border rounded">
+ <p className="text-sm text-foreground font-medium mb-1">How to use it</p>
+ <ol className="list-decimal list-inside text-xs text-foreground space-y-1">
+              <li>Run the project once, or open any past execution.</li>
+              <li>Copy <strong>Executed binary</strong> from its details — that is the hash of the code that actually ran.</li>
+              <li>Use <em>Lock a secret to this build</em> there, or add the <strong>One build only</strong> rule by hand.</li>
+              <li>After each release you approve, press <strong>Access</strong> and point the lock at the new build.</li>
+            </ol>
+          </div>
+ <p className="text-foreground mt-3">
+            The hash does not drift on its own. A project built from GitHub compiles to the same
+            bytes every time it is built from the same commit, so a lock you set stays good until
+            <em> someone publishes new code</em> — which is exactly the event it exists to catch.
+            For that to hold, a project built from source has to commit its{' '}
+            <code className="bg-card-muted px-1 rounded">Cargo.lock</code>: without one its
+            dependency versions are chosen afresh at build time, and the bytes can change with no
+            change to your code.
+          </p>
+ <div className="mt-3 p-3 bg-card-muted border border-border rounded">
+ <p className="text-sm text-foreground font-medium mb-1">What it does not do</p>
+ <p className="text-xs text-foreground">
+              It decides which build may <em>read</em> the secret, not what that build does with it
+              afterwards. The value reaches the code as an environment variable, so code you have
+              locked to is code you have chosen to trust with it — review the build you pin. And for a
+              project built from GitHub, take the hash from <strong>Executed binary</strong> rather
+              than from a local build: the bytes depend on the compiler as well as on the source, and
+              a build with your own toolchain gives a different, equally valid binary.
+            </p>
+          </div>
+        </section>
+
+        <section id="lending-a-secret">
+ <AnchorHeading id="lending-a-secret">Lending a secret to an agent</AnchorHeading>
+ <p className="text-foreground">
+            A secret you store stays <strong>yours</strong>. Handing it to an agent does not copy it
+            anywhere: the row keeps your account as its owner and your profile as its name, and the
+            agent merely <em>names</em> it in a call through{' '}
+            <code className="bg-card-muted px-1 rounded">secrets_ref</code>. Take the grant away and
+            it has nothing — there was never a second copy to take back.
+          </p>
+ <p className="text-foreground mt-2">
+            A grant names any NEAR account: a person, an ordinary named account, or a custody wallet.
+            A wallet&apos;s account is the implicit one that pays for its calls, which is why it looks
+            like 64 hex characters; the <strong>Access</strong> form offers your own wallets by name
+            so you need not hunt for it.
+          </p>
+ <div className="mt-3 p-3 bg-card-muted border border-border rounded">
+ <p className="text-sm text-foreground font-medium mb-1">Worked example: a Gmail key, to one agent, for a day</p>
+ <ol className="list-decimal list-inside text-xs text-foreground space-y-1">
+              <li>Store the key under your own account — <em>Project</em> binding, profile <code className="bg-card-muted px-1 rounded">gmail</code>. The default condition admits you alone.</li>
+              <li>Press <strong>Access</strong> on the card, paste the agent&apos;s account, tick <strong>Until</strong> and pick tomorrow.</li>
+              <li>Save. The stored condition becomes <code className="bg-card-muted px-1 rounded">Or[Whitelist[you], And[Whitelist[agent], ValidUntil(tomorrow)]]</code> — you keep access, the agent&apos;s lapses on its own.</li>
+            </ol>
+ <p className="text-xs text-foreground mt-2">
+              Nothing is re-encrypted at any step: <strong>Access</strong> changes the condition and
+              leaves the value alone, so a <code className="bg-card-muted px-1 rounded">PROTECTED_</code> key
+              generated in the enclave survives every grant and revocation.
+            </p>
+          </div>
+ <p className="text-foreground mt-3">
+            <strong>An expiry is not a revocation.</strong> The expiry is for a grant you already know
+            the end of — a lease, a trial, a day of work — and it lapses without you doing anything.
+            Revoking is for changing your mind sooner: remove the account and the next call is
+            refused. The secrets page lists every account your secrets are handed to, with a
+            one-click revoke, so a grant that outlived its agent is found rather than remembered.
+          </p>
+ <p className="text-foreground mt-2">
+            The rules compose, and this is the tightest useful shape:{' '}
+            <code className="bg-card-muted px-1 rounded">And[Whitelist[agent], ValidUntil(tomorrow), WasmHash(build)]</code>{' '}
+            — one agent, one day, one build. The agent is admitted only while all three hold.
+          </p>
         </section>
 
         <section id="access-control">
@@ -153,6 +256,7 @@ export default function SecretsSection() {
  <li><strong>FT/NFT Balance:</strong> token holders only</li>
  <li><strong>Account Pattern:</strong> regex over the account id, anchored to the whole id</li>
  <li><strong>Until a date:</strong> admits only before an instant (UTC); with a whitelist under AND it is a grant that lapses on its own</li>
+ <li><strong>One build only:</strong> admits only a run of one exact build — the SHA-256 of the WebAssembly bytes, shown as <em>Executed binary</em> in an execution&apos;s details. With a whitelist under AND it is your secret that a rebuild cannot open; <em>Access</em> moves it to the next build without re-storing, so a generated <code className="bg-card-muted px-1 rounded">PROTECTED_</code> key keeps its value across the releases you approve</li>
  <li><strong>Logic:</strong> AND / OR / NOT combinations of the above</li>
           </ul>
  <p className="text-foreground mt-3">

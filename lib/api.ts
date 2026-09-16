@@ -356,6 +356,13 @@ export interface AttestationResponse {
 
   // Task data hashes
   wasm_hash?: string;
+  /**
+   * SHA-256 of the exact WebAssembly bytes that ran — the value a hash-pinned
+   * secret is stored under. `wasm_hash` is the artefact key instead, which for
+   * a GitHub source hashes repo, commit and target rather than the bytes.
+   * Absent on attestations recorded before the worker reported it.
+   */
+  executed_wasm_sha256?: string;
   input_hash?: string;
   output_hash: string;
 

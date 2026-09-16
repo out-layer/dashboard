@@ -43,6 +43,10 @@ export function formatAccessCondition(access: unknown): string {
       const until = obj.ValidUntil as { until_ns: string };
       return `⏳ Until ${nsToIsoUtc(until.until_ns)}`;
     }
+    if (obj.WasmHash && typeof obj.WasmHash === 'object' && obj.WasmHash !== null) {
+      const build = obj.WasmHash as { hash: string };
+      return `🔒 Build ${build.hash.substring(0, 8)}…${build.hash.substring(build.hash.length - 8)}`;
+    }
     if (obj.Logic && typeof obj.Logic === 'object' && obj.Logic !== null) {
       const logic = obj.Logic as { operator: string; conditions: unknown[] };
       const joiner = logic.operator === 'And' ? ' AND ' : ' OR ';
@@ -114,6 +118,8 @@ export function convertAccessFromContractFormat(access: unknown): AccessConditio
   if (dao && typeof dao.dao_contract === 'string') return { type: 'DaoMember', dao_contract: dao.dao_contract, role: String(dao.role ?? '') };
   const vu = one('ValidUntil');
   if (vu && (typeof vu.until_ns === 'string' || typeof vu.until_ns === 'number')) return { type: 'ValidUntil', until_ns: String(vu.until_ns) };
+  const wh = one('WasmHash');
+  if (wh && typeof wh.hash === 'string') return { type: 'WasmHash', hash: wh.hash };
   const logic = one('Logic');
   if (logic && Array.isArray(logic.conditions)) {
     return {
@@ -155,6 +161,8 @@ export function convertAccessToContractFormat(access: AccessCondition): unknown 
       return { Not: { condition: convertAccessToContractFormat(access.condition) } };
     case 'ValidUntil':
       return { ValidUntil: { until_ns: access.until_ns } };
+    case 'WasmHash':
+      return { WasmHash: { hash: access.hash } };
     default:
       // Never widen by accident: an unknown shape is a bug, not "everyone".
       throw new Error('unknown access condition type');
@@ -227,6 +235,20 @@ export function grantsOf(access: unknown, owner: string | null): Grant[] {
  * disappears too; an OR left with one branch becomes that branch. A tree
  * that empties entirely falls back to the owner alone — never to everyone. */
 export function withoutGrant(access: unknown, account: string, owner: string | null): unknown {
+  // Symmetric with `withGrant`: a revocation narrows WHO, and must not take the
+  // row's build lock down with it. Revoking the only name inside
+  // `And[Whitelist[agent], WasmHash]` collapses that AND and would otherwise
+  // fall back to a bare whitelist — leaving the row open to any build.
+  const locks = buildLocksOf(access);
+  if (locks.length) {
+    const pruned = revokeOnto(withoutBuildLocks(access), account, owner);
+    return locks.reduce((tree, lock) => ({ Logic: { operator: 'And', conditions: [tree, lock] } }), pruned);
+  }
+  return revokeOnto(access, account, owner);
+}
+
+/** `withoutGrant`'s original body: the revocation itself, on a lock-free tree. */
+function revokeOnto(access: unknown, account: string, owner: string | null): unknown {
   const REMOVED = Symbol('removed');
   const prune = (node: unknown): unknown | typeof REMOVED => {
     const accounts = whitelistAccounts(node);
@@ -254,6 +276,90 @@ export function withoutGrant(access: unknown, account: string, owner: string | n
  * everyone reads already, a grant means "the owner and the agents named", so
  * it starts from the owner alone. */
 export function withGrant(access: unknown, owner: string | null, account: string, until_ns: string | null): unknown {
+  // A grant widens WHO may read, never WHAT may read. Any build lock on the row
+  // is lifted off first and put back over the result, so the grantee is admitted
+  // under the same lock as everyone else — `And[Or[owner, agent], WasmHash]`,
+  // not `Or[And[owner, WasmHash], agent]`. Without this the one control that
+  // hands a secret to an agent would be the one that unlocks it for them, and
+  // the card would still show the padlock.
+  const locks = buildLocksOf(access);
+  const unlocked = locks.length ? withoutBuildLocks(access) : access;
+  const granted = grantOnto(unlocked, owner, account, until_ns);
+  return locks.reduce((tree, lock) => ({ Logic: { operator: 'And', conditions: [tree, lock] } }), granted);
+}
+
+/** Whether this subtree says something about builds and nothing else — every
+ * leaf in it is a `WasmHash`. Such a subtree is the row's build RULE, whatever
+ * its shape: a bare leaf, `Not{leaf}` ("any build but this one"), `Or[a, b]`
+ * ("either of these two"). */
+function isBuildOnly(node: unknown): boolean {
+  const obj = asObj(node);
+  if (!obj) return false;
+  if (asObj(obj.WasmHash)) return true;
+  const logic = logicOf(node);
+  if (logic) return logic.conditions.length > 0 && logic.conditions.every(isBuildOnly);
+  const not = asObj(obj.Not);
+  if (not && 'condition' in not) return isBuildOnly(not.condition);
+  return false;
+}
+
+/** The build rules in the tree: the LARGEST subtrees that are only about
+ * builds, not the individual leaves inside them.
+ *
+ * Taking leaves instead is how a rule gets inverted. `Not{WasmHash(h)}` means
+ * "any build but h"; lift the leaf out of it and put it back as a plain branch
+ * and the row now means "only h" — the one build its owner excluded. Lifting
+ * `Or[h1, h2]` leaf by leaf is the mirror: put both back as separate ANDs and
+ * the row admits neither. */
+function buildLocksOf(access: unknown): unknown[] {
+  const out: unknown[] = [];
+  const walk = (node: unknown) => {
+    if (isBuildOnly(node)) {
+      out.push(node);
+      return;
+    }
+    const logic = logicOf(node);
+    if (logic) {
+      logic.conditions.forEach(walk);
+      return;
+    }
+    const not = asObj(asObj(node)?.Not);
+    if (not && 'condition' in not) walk(not.condition);
+  };
+  walk(access);
+  return out;
+}
+
+/** The tree with every build rule removed and emptied nodes collapsed — an
+ * `And` of nothing admits everyone, so none may be left behind.
+ *
+ * `'AllowAll'` when nothing else remains: a condition that was only ever a
+ * build rule named nobody, so everyone was admitted on the builds it allowed.
+ * The grant then narrows it exactly as it narrows any other `AllowAll` row. */
+function withoutBuildLocks(access: unknown): unknown {
+  const REMOVED = Symbol('removed');
+  const prune = (node: unknown): unknown | typeof REMOVED => {
+    if (isBuildOnly(node)) return REMOVED;
+    const logic = logicOf(node);
+    if (logic) {
+      const kept = logic.conditions.map(prune).filter((c) => c !== REMOVED);
+      if (kept.length === 0) return REMOVED;
+      if (kept.length === 1) return kept[0];
+      return { Logic: { operator: logic.operator, conditions: kept } };
+    }
+    const not = asObj(asObj(node)?.Not);
+    if (not && 'condition' in not) {
+      const inner = prune(not.condition);
+      return inner === REMOVED ? REMOVED : { Not: { condition: inner } };
+    }
+    return node;
+  };
+  const pruned = prune(access);
+  return pruned === REMOVED ? 'AllowAll' : pruned;
+}
+
+/** `withGrant`'s original body: the grant itself, on a tree carrying no lock. */
+function grantOnto(access: unknown, owner: string | null, account: string, until_ns: string | null): unknown {
   const base = access === 'AllowAll' ? whitelist(owner ? [owner] : []) : withoutGrant(access, account, owner);
   const grant =
     until_ns === null
@@ -439,6 +545,38 @@ function countLeaves(condition: unknown): Counts {
 /** How many leaves of a stored condition ask the chain. */
 export function chainReadLeaves(condition: unknown): number {
   return countLeaves(condition).chainReads;
+}
+
+/**
+ * The sentence to show instead of signing when a "One build only" rule names
+ * something the keystore could never match, or null when every such rule is a
+ * SHA-256. The contract refuses these too — this only moves the refusal in
+ * front of the wallet prompt instead of after it.
+ */
+export function buildHashRefusal(condition: unknown): string | null {
+  let bad: string | null = null;
+  const walk = (node: unknown) => {
+    if (bad !== null) return;
+    const obj = asObj(node);
+    if (!obj) return;
+    const build = asObj(obj.WasmHash);
+    if (build) {
+      const hash = typeof build.hash === 'string' ? build.hash : '';
+      if (!/^[0-9a-f]{64}$/.test(hash)) bad = hash;
+      return;
+    }
+    const logic = logicOf(node);
+    if (logic) {
+      logic.conditions.forEach(walk);
+      return;
+    }
+    const not = asObj(obj.Not);
+    if (not && 'condition' in not) walk(not.condition);
+  };
+  walk(condition);
+  if (bad === null) return null;
+  const named = bad === '' ? 'it is empty' : `"${bad}" is not`;
+  return `A "One build only" rule must be the build's SHA-256 as 64 lowercase hex characters — ${named}. It is shown as "Executed binary" in an execution's details.`;
 }
 
 /**

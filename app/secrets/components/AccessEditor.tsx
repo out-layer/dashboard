@@ -13,6 +13,8 @@ import {
   nsToLocalInput,
   withGrant,
   withoutGrant,
+  chainReadRefusal,
+  buildHashRefusal,
 } from './utils';
 
 /** A custody wallet the connected account owns, offered as a grantee. */
@@ -54,6 +56,12 @@ export function AccessEditor({ secret, accountId, wallets = [], onSave, onCancel
   const [condition, setCondition] = useState<AccessCondition>(
     stored ?? { type: 'Whitelist', accounts: accountId ? [accountId] : [] }
   );
+  // A condition this build cannot render is KEPT, never replaced by the default
+  // above. Replacing it is how an older page un-does a rule it simply does not
+  // know — a build lock stored by a newer one, say — turning a narrowing screen
+  // into the thing that opened the row. Held verbatim and saved verbatim unless
+  // the user asks for a replacement.
+  const [keptTree, setKeptTree] = useState<unknown | null>(stored === null ? secret.access : null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [grantee, setGrantee] = useState('');
@@ -66,6 +74,7 @@ export function AccessEditor({ secret, accountId, wallets = [], onSave, onCancel
   // The grant view reads and writes the contract shape; the builder keeps the
   // UI shape. One tree, two views.
   const contractTree = (() => {
+    if (keptTree !== null) return keptTree;
     try {
       return convertAccessToContractFormat(condition);
     } catch {
@@ -79,9 +88,15 @@ export function AccessEditor({ secret, accountId, wallets = [], onSave, onCancel
   const applyContract = (tree: unknown) => {
     try {
       setCondition(convertAccessFromContractFormat(tree));
+      setKeptTree(null);
       setError(null);
     } catch (e) {
-      setError((e as Error).message);
+      // A tree this build cannot render is carried on verbatim rather than
+      // refused: the grant view edited it correctly, and what it cannot do is
+      // DISPLAY the result. Refusing here would make an unknown leaf enough to
+      // block a revocation.
+      setKeptTree(tree);
+      setError(null);
     }
   };
 
@@ -119,7 +134,13 @@ export function AccessEditor({ secret, accountId, wallets = [], onSave, onCancel
     setSaving(true);
     setError(null);
     try {
-      await onSave(convertAccessToContractFormat(condition));
+      const tree = keptTree ?? convertAccessToContractFormat(condition);
+      const refusal = chainReadRefusal(tree) ?? buildHashRefusal(tree);
+      if (refusal) {
+        setError(refusal);
+        return;
+      }
+      await onSave(tree);
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -135,10 +156,11 @@ export function AccessEditor({ secret, accountId, wallets = [], onSave, onCancel
  <p className="mt-1 text-xs text-muted-foreground">
         Stored now: {formatAccessCondition(secret.access)}
       </p>
-      {stored === null && (
+      {keptTree !== null && (
  <p className="mt-2 text-xs text-warning-text">
-          The stored condition has a shape this page cannot display; saving replaces it with what you
-          build below.
+          The stored condition has a shape this page cannot display, so it is kept exactly as it is.
+          Grants added or revoked below still apply to it, and Save stores it with those changes and
+          nothing else.
         </p>
       )}
 
@@ -184,7 +206,7 @@ export function AccessEditor({ secret, accountId, wallets = [], onSave, onCancel
               list={wallets.length ? 'grantee-wallets' : undefined}
               value={grantee}
               onChange={(e) => setGrantee(e.target.value)}
-              placeholder="executor account — a wallet of yours, or the 64-character account a partner's agent pays from"
+              placeholder="the account that runs the project — a wallet of yours, or any NEAR account"
  className="block w-full rounded-md border border-border-strong px-3 py-2 text-sm font-mono outline-none focus:border-accent focus:ring-1 focus:ring-accent"
             />
             {wallets.length > 0 && (
@@ -228,11 +250,12 @@ export function AccessEditor({ secret, accountId, wallets = [], onSave, onCancel
           </button>
         </div>
  <p className="mt-2 text-xs text-muted-foreground">
-          A grant names the account that PAYS for the agent&rsquo;s calls — a custody wallet&rsquo;s
-          64-character account, never the name it acts as under a binding. For an agent you hold
-          under a lease, set the expiry to the lease end: the grant lapses with it and nobody has to
-          remember to revoke. An expiry set here applies to the grant being added; re-adding an
-          account that already has one keeps the expiry it has, and grants already listed are not
+          A grant names the account that <strong>pays</strong> for the calls — any NEAR account will
+          do. For an agent, that is its custody wallet, whose id is 64 hex characters because it is
+          an implicit account, and not the name the agent acts as under a binding. For an agent you
+          hold under a lease, set the expiry to the lease end: the grant lapses with it and nobody
+          has to remember to revoke. An expiry set here applies to the grant being added; re-adding
+          an account that already has one keeps the expiry it has, and grants already listed are not
           changed.
         </p>
       </div>
@@ -245,7 +268,26 @@ export function AccessEditor({ secret, accountId, wallets = [], onSave, onCancel
           express: patterns, balances, DAO roles, NOT.
         </p>
  <div className="mt-2">
-          <AccessConditionBuilder condition={condition} onChange={setCondition} />
+          {keptTree !== null ? (
+ <div className="p-4 bg-card-muted rounded-md border border-border-strong">
+ <p className="text-sm text-foreground">
+                This condition has a shape this page cannot display, so it is kept exactly as it is.
+                Grants added or revoked above still apply to it.
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  setKeptTree(null);
+                  setCondition({ type: 'Whitelist', accounts: accountId ? [accountId] : [] });
+                }}
+ className="mt-2 text-xs text-accent-text underline"
+              >
+                Replace it with a new condition instead
+              </button>
+            </div>
+          ) : (
+            <AccessConditionBuilder condition={condition} onChange={setCondition} />
+          )}
         </div>
       </details>
  <p className="mt-3 text-xs text-muted-foreground">

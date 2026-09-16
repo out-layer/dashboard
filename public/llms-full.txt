@@ -1079,7 +1079,9 @@ Encrypted client-side, decrypted only inside TEE.
 outlayer secrets set '{"API_KEY":"sk-...","DB_URL":"postgres://..."}'
 outlayer secrets set '{"API_KEY":"sk-..."}' --project alice.near/my-agent
 outlayer secrets set '{"API_KEY":"sk-..."}' --repo github.com/user/repo --branch main
-outlayer secrets set '{"API_KEY":"sk-..."}' --wasm-hash abc123...
+outlayer secrets set '{"API_KEY":"sk-..."}' --wasm-hash abc123...   # the row a raw WASM URL run reads under
+outlayer secrets set '{"SIGNING_KEY":"..."}' --project alice.near/oracle --build <sha256>   # locked to one build
+outlayer secrets access --project alice.near/oracle --access whitelist:alice.near --build <new sha256>   # move to the next release
 
 # Named profile
 outlayer secrets set '{"KEY":"val"}' --profile production
@@ -1105,6 +1107,21 @@ outlayer secrets delete --profile production
 ```
 
 Default accessor: `--project` auto-resolved from `outlayer.toml` if present.
+
+`--build <sha256>` locks a project's or repository's row to one build: the
+condition becomes `And[<access>, WasmHash(hash)]` (or the `WasmHash` leaf alone
+under `allow-all`), and the keystore admits only a run whose bytes hash to it.
+A rebuild is refused with the build named. The value stays; `secrets access
+--build <new sha256>` moves the row to the next release without re-storing, so
+a generated `PROTECTED_` key keeps its value — and with no `--access` it keeps
+the readers the row already has. `--wasm-hash` is different: it is the accessor
+a raw WASM URL run reads under, not a lock on a project row.
+
+On a locked row, `secrets set --access …` is refused: an explicit condition
+replaces the stored one, lock included, and unlocking a row is not what a
+command about readers should do silently. Pass `--build` to keep it locked, or
+`--drop-build` to remove the lock deliberately. The hash is **Executed binary**
+in an execution's details on the dashboard.
 
 ### Payment Keys
 
@@ -2352,8 +2369,9 @@ wasm (`outlayer.manifest` custom section, see `CONNECTOR_MANIFEST.md`):
 ```
 
 The worker decrypts that profile into **every** run of the project; the call
-carries nothing. Its access condition is judged against the real caller, which
-makes it the project's admission gate: `AllowAll` for a public app, a
+carries nothing. Its access condition is judged against the real caller — the
+transaction's signer, or, where the condition says `Predecessor`, the account
+that called the contract — which makes it the project's admission gate: `AllowAll` for a public app, a
 `Whitelist` or `DaoMember` for a circle — a caller the condition refuses gets a
 refused run before anything executes. A declared profile nobody stored refuses
 the run too, with a message saying what to store. Two cautions: a manifest that
@@ -4945,10 +4963,30 @@ manifest because it is the artefact's, not the call's.
 Access to a stored secret is governed on chain by an `AccessCondition`, which is
 richer than a list: `AllowAll`, `Whitelist`, `AccountPattern`, `NearBalance`,
 `FtBalance`, `NftOwned`, `DaoMember`, `ValidUntil` (admits only before an
-instant), and `Logic`/`Not` to combine them. That is how you can hand a
-credential to a class of callers — everyone holding a particular NFT, every
-member of a DAO role — without naming them, and how a grant to one agent is
-made to lapse on its own: `And[Whitelist[agent], ValidUntil(lease end)]`.
+instant), `WasmHash` (admits only a run of one exact build), `Predecessor`
+(judges the condition it wraps on the account that *called* the contract
+rather than the signer), and `Logic`/`Not` to combine them. That is how you
+can hand a credential to a class of callers — everyone holding a particular
+NFT, every member of a DAO role — without naming them, and how a grant to one
+agent is made to lapse on its own: `And[Whitelist[agent], ValidUntil(lease
+end)]`.
+
+Every leaf but `Predecessor` is judged on the transaction's signer, so a
+contract the owner signs any transaction to is the predecessor when it relays
+`request_execution` naming the owner's row — and the owner's own whitelist
+admits it. `And[Whitelist[me], Predecessor{Whitelist[me]}]` closes that: a
+call is admitted only when the account that called the contract is the owner,
+with no contract in between. `Predecessor{Whitelist[dao]}` names the one relay
+calls may come through instead. Over HTTPS nothing relays a call, and the
+payment key's owner is judged as the caller too. A function-call access key on
+the owner's own account signs directly — predecessor and signer are both the
+owner — and no condition can see it.
+
+Those class checks ask the chain, one after another, while a shared keystore
+waits — so a condition may hold **at most five** of them (`NearBalance`,
+`FtBalance`, `NftOwned`, `DaoMember`), and at most sixteen `AccountPattern`
+leaves of four kibibytes in all. Naming accounts costs nothing: a `Whitelist`
+is answered from the condition itself, at any size.
 
 Decryption happens in the keystore TEE and the plaintext exists only inside the
 worker that runs your module. The coordinator never sees it.
@@ -4983,8 +5021,9 @@ the name of, its own. A reference the contract could never hold a row for — an
 account id that is not one, a profile that is not 1–64 bytes or holds an ASCII
 character other than a letter, digit, `-` or `_` — is refused at the door
 (`invalid_secrets_ref`, 400) rather than queued for a run that would read
-nothing; on the on-chain path the contract itself refuses it at
-`request_execution`, before yielding, with the same words.
+nothing; on the on-chain path the contract itself refuses a malformed
+`profile` at `request_execution`, before yielding, with the same sentence,
+and a malformed `account_id` fails argument deserialisation there.
 
 The header is meaningful only for a key owned by a custody wallet. An ordinary
 payment key's holder addresses their own secrets through the body, as always.
@@ -4992,6 +5031,30 @@ payment key's holder addresses their own secrets through the body, as always.
 ### 4.3 How secrets reach your code
 
 As environment variables. Read them with `std::env::var`.
+
+**Locking a secret to one build.** A project's or repository's row carries
+across versions — publish v2 and it keeps working. A credential a new build
+must *not* inherit — a signing key that *is* the connector's identity, say —
+says so in its access condition: a `WasmHash` leaf admits only a run whose
+bytes hash to that SHA-256, ANDed with whoever may read the row:
+
+```json
+{"Logic": {"operator": "And", "conditions": [
+  {"Whitelist": {"accounts": ["alice.near"]}},
+  {"WasmHash": {"hash": "<sha256 of the build>"}}
+]}}
+```
+
+The keystore judges the leaf against the hash the worker measured on the
+bytes it is about to run, sent with every decrypt — never a value the call,
+the manifest or your guest supplies. A rebuild has a different hash and is
+refused with a message naming the build the row is locked to. The row and its
+ciphertext stay put: `update_access` moves the condition to the next build
+without re-encrypting, so a `PROTECTED_` key generated in the enclave keeps its
+value across the releases you approve. From the CLI: `outlayer secrets set
+--project … --build <sha256>` to store locked, `outlayer secrets access
+--project … --access … --build <new sha256>` to move it. The hash is shown as
+**Executed binary** in an execution's details on the dashboard.
 
 Two rules protect you from a caller who tries to impersonate the platform:
 
@@ -5223,7 +5286,7 @@ access; one that echoed secrets would make every test run a leak.
 * [`wasi-examples/CONNECTOR_MANIFEST.md`](https://github.com/out-layer/outlayer/blob/main/wasi-examples/CONNECTOR_MANIFEST.md) — manifest reference
 * [`wasi-examples/WASI_TUTORIAL.md`](https://github.com/out-layer/outlayer/blob/main/wasi-examples/WASI_TUTORIAL.md) — writing and building a WASI guest
 * [`wasi-examples/WASM_ENV_VARS.md`](https://github.com/out-layer/outlayer/blob/main/wasi-examples/WASM_ENV_VARS.md) — every injected variable
-* [`connectors/SKILL.md`](https://github.com/out-layer/outlayer/blob/main/connectors/SKILL.md) — the library as an AGENT reads it: the call, the refusal codes, what a call costs, and one line per connector. Every connector ships its own `SKILL.md` next to its code; write one when you publish, because an agent that has to infer your operations from prose gets them wrong
+* [`skills.outlayer.ai/outlayer-connectors`](https://skills.outlayer.ai/outlayer-connectors/SKILL.md) — the library as an AGENT reads it: the call, the refusal codes, what a call costs, and one line per connector. Every connector publishes its own skill beside it (`https://skills.outlayer.ai/<connector>/SKILL.md`), with a pointer to that URL next to the code; write one when you publish, because an agent that has to infer your operations from prose gets them wrong
 * [`connectors/connector-probe/`](https://github.com/out-layer/outlayer/tree/main/connectors/connector-probe/) — a working connector to copy
 
 ---
@@ -5525,16 +5588,42 @@ near call outlayer.testnet update_access '{
 `access` (on `store_secrets` and `update_access`) is an `AccessCondition`, evaluated
 by the keystore inside the TEE against the account the run is attributed to — the
 transaction's SIGNER on chain (a contract that relays `request_execution` is the
-predecessor and pays, but the signer is the one judged), a payment key's owner over
-HTTPS — never against a name the call claims. Variants: `"AllowAll"`; `{"Whitelist": {"accounts": [...]}}` (exact match);
+predecessor and pays, but the signer is the one judged — unless the condition
+says otherwise with `Predecessor`), a payment key's owner over HTTPS — never
+against a name the call claims. Variants: `"AllowAll"`; `{"Whitelist": {"accounts": [...]}}` (exact match);
 `{"AccountPattern": {"pattern": "..."}}` (a regex anchored to the whole id);
 `{"NearBalance": {"operator": "Gte", "value": "<yocto>"}}`; `{"FtBalance": {"contract",
 "operator", "value"}}`; `{"NftOwned": {"contract", "token_id"}}`; `{"DaoMember":
 {"dao_contract", "role"}}`; `{"ValidUntil": {"until_ns": "<nanoseconds since the
-epoch, as a string>"}}` (admits strictly before that instant); `{"Logic": {"operator":
+epoch, as a string>"}}` (admits strictly before that instant); `{"WasmHash": {"hash":
+"<SHA-256 of the build, 64 lowercase hex>"}}` (admits only a run of that exact build —
+the keystore compares it with the hash the worker measured on the bytes it executes;
+`update_access` moves a row to the next build without re-encrypting);
+`{"Predecessor": {"condition": ...}}` (judges the condition it wraps on the account
+that CALLED the contract — `predecessor_account_id`: the relaying contract, or the
+signer on a direct call — so `And[Whitelist[me], Predecessor{Whitelist[me]}]` admits only
+the owner's own direct calls and `Predecessor{Whitelist[dao]}` only calls through that
+DAO; over HTTPS the payment key's owner is judged as the calling account too, so there
+the wrapper adds nothing); `{"Logic": {"operator":
 "And" | "Or", "conditions": [...]}}` and `{"Not": {"condition": ...}}` to combine
 them. The contract stores the condition without evaluating it; the Borsh layout of
 `SecretProfile.access` is the variant order, so new variants are only ever appended.
+
+The contract stores no condition the keystore would refuse to judge, so both
+`store_secrets` and `update_access` refuse one past these bounds — and
+`estimate_storage_cost` quotes no such condition either:
+
+* at most **5** leaves that can only be answered by asking the chain
+  (`NearBalance`, `FtBalance`, `NftOwned`, `DaoMember`). They are asked one
+  after another from inside the enclave, against contracts the row's owner
+  chose, and a shared keystore waits for all of them;
+* at most **16** `AccountPattern` leaves and **4096 bytes** of pattern text in
+  all. A pattern's compiled size is not its text size, and the keystore
+  compiles every pattern of a condition before judging a decrypt.
+
+A whitelist is answered from the condition itself, so neither its size nor the
+number of whitelist leaves is bounded — the only cost is storage, which the
+row's owner pays for.
 
 #### `list_user_secrets`
 One PAGE of the secrets stored by an account. It reads storage per entry, so an

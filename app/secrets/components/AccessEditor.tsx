@@ -13,8 +13,11 @@ import {
   nsToLocalInput,
   withGrant,
   withoutGrant,
-  chainReadRefusal,
-  buildHashRefusal,
+  conditionRefusal,
+  callersOf,
+  namedAccounts,
+  predecessorNodes,
+  withCallers,
 } from './utils';
 
 /** A custody wallet the connected account owns, offered as a grantee. */
@@ -84,6 +87,22 @@ export function AccessEditor({ secret, accountId, wallets = [], onSave, onCancel
   const grants = contractTree === null ? [] : grantsOf(contractTree, accountId);
   const isAllowAll = condition.type === 'AllowAll';
   const ownWallet = new Map(wallets.map((w) => [w.account, w.label]));
+  // The calling-account rule, as the screen offers it: "direct calls only"
+  // names every account the row admits, plus the contracts the owner composes
+  // through. `custom` is any other shape — the builder's, not this view's.
+  const callers = contractTree === null ? null : callersOf(contractTree);
+  const named = contractTree === null ? [] : namedAccounts(contractTree, accountId);
+  const directOnly = callers !== null && !callers.custom;
+  const viaContracts = directOnly ? callers.accounts.filter((a) => !named.includes(a)) : [];
+  const [viaInput, setViaInput] = useState('');
+
+  // A grant or a revocation changes WHO the row names; a "direct calls only"
+  // rule names the same accounts, so it follows. The contracts named beside
+  // them are the owner's own list and are carried as they are.
+  const followingCallers = (tree: unknown): unknown => {
+    if (!directOnly) return tree;
+    return withCallers(tree, [...namedAccounts(tree, accountId), ...viaContracts]);
+  };
 
   const applyContract = (tree: unknown) => {
     try {
@@ -100,11 +119,26 @@ export function AccessEditor({ secret, accountId, wallets = [], onSave, onCancel
     }
   };
 
+  // Every edit here is made in the owner's name — the fallback a revocation
+  // leaves behind, the accounts a rule follows — so none is made without one.
+  const noOwner = () => {
+    if (accountId) return false;
+    setError('Connect the wallet that owns this secret before editing who may read it.');
+    return true;
+  };
+
   const addGrant = () => {
     const account = grantee.trim();
-    if (!account || contractTree === null) return;
+    if (!account || contractTree === null || noOwner()) return;
     if (account === accountId) {
       setError('That is your own account; it is the owner, not a grantee.');
+      return;
+    }
+    if (viaContracts.includes(account)) {
+      // A contract that calls on the owner's behalf is not a reader; naming it
+      // as both would make its revocation silently drop it from the calling
+      // list as well.
+      setError(`${account} is named as a contract calls may come through; remove it there first to hand it the secret instead.`);
       return;
     }
     if (grantUntilOn && !grantUntil) {
@@ -119,15 +153,36 @@ export function AccessEditor({ secret, accountId, wallets = [], onSave, onCancel
       setError('The expiry is not a readable date.');
       return;
     }
-    applyContract(withGrant(contractTree, accountId, account, until));
+    applyContract(followingCallers(withGrant(contractTree, accountId, account, until)));
     setGrantee('');
     setGrantUntil('');
     setGrantUntilOn(false);
   };
 
   const revoke = (account: string) => {
-    if (contractTree === null) return;
-    applyContract(withoutGrant(contractTree, account, accountId));
+    if (contractTree === null || noOwner()) return;
+    applyContract(followingCallers(withoutGrant(contractTree, account, accountId)));
+  };
+
+  const setDirectOnly = (on: boolean) => {
+    if (contractTree === null || noOwner()) return;
+    applyContract(withCallers(contractTree, on ? named : []));
+  };
+
+  const addVia = () => {
+    const account = viaInput.trim();
+    if (!account || contractTree === null || !directOnly || noOwner()) return;
+    if (named.includes(account) || viaContracts.includes(account)) {
+      setError(`${account} is already admitted as a calling account.`);
+      return;
+    }
+    applyContract(withCallers(contractTree, [...named, ...viaContracts, account]));
+    setViaInput('');
+  };
+
+  const removeVia = (account: string) => {
+    if (contractTree === null || !directOnly || noOwner()) return;
+    applyContract(withCallers(contractTree, [...named, ...viaContracts.filter((a) => a !== account)]));
   };
 
   const save = async () => {
@@ -135,7 +190,7 @@ export function AccessEditor({ secret, accountId, wallets = [], onSave, onCancel
     setError(null);
     try {
       const tree = keptTree ?? convertAccessToContractFormat(condition);
-      const refusal = chainReadRefusal(tree) ?? buildHashRefusal(tree);
+      const refusal = conditionRefusal(tree);
       if (refusal) {
         setError(refusal);
         return;
@@ -167,6 +222,12 @@ export function AccessEditor({ secret, accountId, wallets = [], onSave, onCancel
       {/* Grants */}
  <div className="mt-4">
  <h4 className="text-sm font-medium text-foreground">Handed to</h4>
+        {callers?.custom && (
+ <p className="mt-1 text-xs text-warning-text">
+            This row carries a calling-account rule this view cannot extend to a grantee. A grant
+            added here is admitted from anywhere; to put it under that rule, edit the full condition.
+          </p>
+        )}
         {isAllowAll ? (
  <p className="mt-1 text-xs text-warning-text">
             Everyone: anyone who names this secret can run the project with it. Adding a grant below
@@ -260,12 +321,104 @@ export function AccessEditor({ secret, accountId, wallets = [], onSave, onCancel
         </p>
       </div>
 
+      {/* Who may CALL: the contract in between, or none */}
+ <div className="mt-4">
+ <h4 className="text-sm font-medium text-foreground">Called from</h4>
+        {callers?.custom ? (
+ <p className="mt-1 text-xs text-muted-foreground">
+            A calling-account rule this view cannot summarise is set —{' '}
+            {predecessorNodes(contractTree).map(formatAccessCondition).join('; ')} — under an OR, a NOT,
+            or beside another. Edit it under Full condition.
+          </p>
+        ) : isAllowAll || named.length === 0 ? (
+ <p className="mt-1 text-xs text-muted-foreground">
+            {isAllowAll ? 'Everyone reads this row' : 'This row names no account'}, so there is nobody
+            to require direct calls from. Add a grant first.
+          </p>
+        ) : (
+          <>
+            <label className="mt-1 flex items-center gap-2 text-xs font-medium text-foreground">
+              <input
+                type="checkbox"
+                checked={directOnly}
+                onChange={(e) => setDirectOnly(e.target.checked)}
+                className="h-3.5 w-3.5 accent-accent"
+              />
+              Direct calls only
+            </label>
+ <p className="mt-1 text-xs text-muted-foreground">
+              A call is admitted only when the account that calls OutLayer is one of the accounts this
+              row names — you and the grantees above — with no other contract in between. Without
+              this, a contract you sign any transaction to can relay a call that names this secret
+              into the project it is bound to, under your own name. With it, a DAO or a router calling
+              on your behalf is refused unless you name it below. A grantee that is itself a contract
+              is on the list, and may relay. Over HTTPS nothing relays a call: the payment
+              key&rsquo;s owner is judged, as always.
+            </p>
+            {directOnly && (
+ <div className="mt-2">
+ <p className="text-xs text-foreground">
+                  Calls must come straight from:{' '}
+ <span className="font-mono break-all">{named.join(', ') || '—'}</span>
+                </p>
+                {viaContracts.length > 0 && (
+ <ul className="mt-2 divide-y divide-border rounded-md border border-border">
+                    {viaContracts.map((a) => (
+                      <li key={a} className="flex items-center justify-between gap-3 px-3 py-2 text-xs">
+ <div className="min-w-0">
+ <div className="font-mono break-all text-foreground">{a}</div>
+ <div className="text-muted-foreground">calls through this contract are admitted</div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => removeVia(a)}
+ className="shrink-0 px-2 py-1 border border-destructive/40 rounded text-destructive-text bg-destructive/10 hover:bg-destructive/15"
+                          title="Calls through this contract will be refused"
+                        >
+                          Remove
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+ <div className="mt-2 grid gap-2 sm:grid-cols-[1fr_auto] sm:items-end">
+                  <div>
+ <label className="block text-xs font-medium text-foreground mb-1">Also through these contracts</label>
+                    <input
+                      type="text"
+                      value={viaInput}
+                      onChange={(e) => setViaInput(e.target.value)}
+                      placeholder="a DAO or a router that calls on your behalf — dao.sputnik-dao.near"
+ className="block w-full rounded-md border border-border-strong px-3 py-2 text-sm font-mono outline-none focus:border-accent focus:ring-1 focus:ring-accent"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={addVia}
+                    disabled={!viaInput.trim()}
+ className="px-3 py-2 text-sm font-medium rounded border border-info/40 text-info bg-info/10 hover:bg-info/15 disabled:opacity-50"
+                  >
+                    Add contract
+                  </button>
+                </div>
+ <p className="mt-2 text-xs text-muted-foreground">
+                  A contract named here is trusted by your choice: it may relay a call naming this
+                  secret with any input it likes. Name contracts that check who calls them. A grant
+                  that lapses on its own stays on this list until you revoke it: the date ends what
+                  it may read, not what it may relay.
+                </p>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+
       {/* The tree itself */}
  <details className="mt-4">
  <summary className="cursor-pointer text-sm font-medium text-foreground">Full condition</summary>
  <p className="mt-2 text-xs text-muted-foreground">
-          The same condition, as the contract stores it — for anything the grant view does not
-          express: patterns, balances, DAO roles, NOT.
+          The same condition, as the contract stores it — for anything the views above do not
+          express: patterns, balances, DAO roles, NOT, a calling-account rule other than a list.
         </p>
  <div className="mt-2">
           {keptTree !== null ? (
@@ -286,7 +439,7 @@ export function AccessEditor({ secret, accountId, wallets = [], onSave, onCancel
               </button>
             </div>
           ) : (
-            <AccessConditionBuilder condition={condition} onChange={setCondition} />
+            <AccessConditionBuilder condition={condition} onChange={setCondition} accountId={accountId} />
           )}
         </div>
       </details>

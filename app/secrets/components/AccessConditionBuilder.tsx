@@ -8,9 +8,12 @@ import { localInputToNs, nsToLocalInput } from './utils';
 interface AccessConditionBuilderProps {
   condition?: AccessCondition;
   onChange: (condition: AccessCondition) => void;
+  /** The connected account: what a fresh "Calling account must…" rule names,
+   * so the rule never starts as a whitelist of nobody. */
+  accountId?: string | null;
 }
 
-export function AccessConditionBuilder({ condition, onChange }: AccessConditionBuilderProps) {
+export function AccessConditionBuilder({ condition, onChange, accountId = null }: AccessConditionBuilderProps) {
   const [currentCondition, setCurrentCondition] = useState<AccessCondition>(
     condition || { type: 'AllowAll' }
   );
@@ -33,6 +36,7 @@ export function AccessConditionBuilder({ condition, onChange }: AccessConditionB
     { value: 'AccountPattern', label: 'Account Pattern', description: 'Match account name with regex' },
     { value: 'ValidUntil', label: 'Until a date', description: 'Admit only before a moment in time (UTC). Under "Multiple rules (AND)" with a whitelist it is a grant that lapses on its own.' },
     { value: 'WasmHash', label: 'One build only', description: 'Admit only a run of one exact build (SHA-256 of the WebAssembly bytes). Under "Multiple rules (AND)" with a whitelist it is your secret that a rebuild cannot open.' },
+    { value: 'Predecessor', label: 'Calling account must…', description: 'Judge the rule below on the account that CALLED the contract — the relaying contract, or the signer on a direct call — instead of the signer. Under "Multiple rules (AND)" with a whitelist of yourself it admits only calls that come straight from you; a DAO or a router calling on your behalf is refused unless the rule names it. Over HTTPS the payment key\'s owner is judged.' },
   ];
 
   const operators = [
@@ -80,6 +84,9 @@ export function AccessConditionBuilder({ condition, onChange }: AccessConditionB
         break;
       case 'WasmHash':
         newCondition = { type: 'WasmHash', hash: '' };
+        break;
+      case 'Predecessor':
+        newCondition = { type: 'Predecessor', condition: { type: 'Whitelist', accounts: accountId ? [accountId] : [] } };
         break;
       case 'AccountPattern':
         newCondition = { type: 'AccountPattern', pattern: '' };
@@ -214,6 +221,7 @@ export function AccessConditionBuilder({ condition, onChange }: AccessConditionB
                 <AccessConditionBuilder
                   condition={cond}
                   onChange={(newCond) => updateLogicCondition(index, newCond)}
+                  accountId={accountId}
                 />
               </div>
             ))}
@@ -241,6 +249,28 @@ export function AccessConditionBuilder({ condition, onChange }: AccessConditionB
             <AccessConditionBuilder
               condition={currentCondition.condition}
               onChange={(newCond) => updateCondition({ condition: newCond })}
+              accountId={accountId}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Calling account - Recursive */}
+      {currentCondition.type === 'Predecessor' && (
+ <div className="mb-4 p-4 bg-card-muted rounded-md border border-border-strong">
+ <label className="block text-sm font-medium text-foreground mb-2">
+            What must the calling account satisfy?
+          </label>
+ <p className="text-xs text-muted-foreground mb-3">
+            The rule below is judged on the account that called the contract, not on who signed.
+            On a direct call that is the signer; through a contract it is that contract. Over HTTPS
+            nothing relays the call, so the payer is judged.
+          </p>
+ <div className="pl-4 border-l-2 border-info/50 bg-card p-3 rounded">
+            <AccessConditionBuilder
+              condition={currentCondition.condition}
+              onChange={(newCond) => updateCondition({ condition: newCond })}
+              accountId={accountId}
             />
           </div>
         </div>

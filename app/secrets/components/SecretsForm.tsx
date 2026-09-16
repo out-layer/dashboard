@@ -4,7 +4,17 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { eciesEncrypt } from '@/lib/ecies';
 import { AccessConditionBuilder } from './AccessConditionBuilder';
 import { AccessCondition, FormData, SecretSourceType } from './types';
-import { carriedAccess, convertAccessToContractFormat, initialAccess, linkedAccessFor, chainReadRefusal, buildHashRefusal } from './utils';
+import {
+  carriedAccess,
+  convertAccessFromContractFormat,
+  convertAccessToContractFormat,
+  initialAccess,
+  linkedAccessFor,
+  conditionRefusal,
+  callersOf,
+  namedAccounts,
+  withCallers,
+} from './utils';
 import { useNearWallet } from '@/contexts/NearWalletContext';
 import { VaultScopeToggle } from '@/components/VaultScopeToggle';
 
@@ -512,7 +522,7 @@ export function SecretsForm({
     // alone, and refusing later would spend a keypair whose private half only
     // exists inside the ciphertext this refusal discards.
     const conditionToStore = keptAccess ?? convertAccessToContractFormat(accessCondition);
-    const outOfBounds = chainReadRefusal(conditionToStore) ?? buildHashRefusal(conditionToStore);
+    const outOfBounds = conditionRefusal(conditionToStore);
     if (outOfBounds) {
       setError(outOfBounds);
       return;
@@ -1431,6 +1441,7 @@ export function SecretsForm({
             <AccessConditionBuilder
               condition={accessCondition}
               onChange={(c) => { setAccessTouched(true); setAccessCondition(c); }}
+              accountId={accountId}
             />
           )}
           {keptAccess === null && accessCondition.type === 'AllowAll' && sourceType === 'project' && (
@@ -1440,6 +1451,53 @@ export function SecretsForm({
               whitelist you and the agents you hand it to.
             </p>
           )}
+          {keptAccess === null && sourceType === 'project' && accountId && (() => {
+            // "Direct calls only", on the condition as the contract will store
+            // it: the row's named accounts — you, by default — become the only
+            // accounts a call may come from, with no contract in between. Any
+            // other calling-account rule is the builder's and is left alone.
+            let tree: unknown;
+            try {
+              tree = convertAccessToContractFormat(accessCondition);
+            } catch {
+              return null;
+            }
+            const callers = callersOf(tree);
+            if (callers?.custom) return null;
+            // Everyone reads an AllowAll row: there is nobody to require direct
+            // calls from, and a tick here would turn "everyone" into "only me"
+            // under a sentence that reads as adding a constraint.
+            if (tree === 'AllowAll') return null;
+            const named = namedAccounts(tree, accountId);
+            // A tree that names nobody (a pattern, a DAO role) has no readers
+            // to be direct about; the builder's own rule is the way there.
+            if (named.length === 0) return null;
+            return (
+ <div className="mt-3">
+                <label className="flex items-center gap-2 text-xs font-medium text-foreground">
+                  <input
+                    type="checkbox"
+                    checked={callers !== null}
+                    onChange={(e) => {
+                      setAccessTouched(true);
+                      const accounts = e.target.checked ? named : [];
+                      setAccessCondition(convertAccessFromContractFormat(withCallers(tree, accounts)));
+                    }}
+                    className="h-3.5 w-3.5 accent-accent"
+                  />
+                  Direct calls only
+                </label>
+ <p className="mt-1 text-xs text-muted-foreground">
+                  A call is admitted only when the account that calls OutLayer is one the rule names
+                  — {named.join(', ')} — with no other contract in between.
+                  Without this, a contract you sign any transaction to can relay a call that names this
+                  secret into the project it is bound to, under your own name. A DAO or a router
+                  calling on your behalf will be refused; name it under &ldquo;Calling account
+                  must…&rdquo; to admit it.
+                </p>
+              </div>
+            );
+          })()}
         </div>
 
         {/* Error Display */}

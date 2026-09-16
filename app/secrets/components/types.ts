@@ -15,7 +15,11 @@ export type AccessCondition =
   // Admits only before this instant: nanoseconds since the epoch, as a string.
   | { type: 'ValidUntil'; until_ns: string }
   // Admits only a run of this exact build: SHA-256 of the WebAssembly bytes, 64 lowercase hex.
-  | { type: 'WasmHash'; hash: string };
+  | { type: 'WasmHash'; hash: string }
+  // Judges the inner condition on the account that CALLED the contract (the relaying
+  // contract, or the signer on a direct call) instead of the signer. Over HTTPS the payer
+  // is judged as both.
+  | { type: 'Predecessor'; condition: AccessCondition };
 
 // Secret accessor - defines what code can access/decrypt the secret
 export type SecretAccessor =

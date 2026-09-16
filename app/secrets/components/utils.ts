@@ -56,6 +56,10 @@ export function formatAccessCondition(access: unknown): string {
       const not = obj.Not as { condition: unknown };
       return `🚫 NOT ${formatAccessCondition(not.condition)}`;
     }
+    if (obj.Predecessor && typeof obj.Predecessor === 'object' && obj.Predecessor !== null) {
+      const via = obj.Predecessor as { condition: unknown };
+      return `↪ Called from: ${formatAccessCondition(via.condition)}`;
+    }
   }
 
   return 'Unknown condition';
@@ -130,6 +134,8 @@ export function convertAccessFromContractFormat(access: unknown): AccessConditio
   }
   const not = one('Not');
   if (not && 'condition' in not) return { type: 'Not', condition: convertAccessFromContractFormat(not.condition) };
+  const via = one('Predecessor');
+  if (via && 'condition' in via) return { type: 'Predecessor', condition: convertAccessFromContractFormat(via.condition) };
   throw new Error(`unknown access condition: ${Object.keys(obj).join(', ')}`);
 }
 
@@ -163,6 +169,8 @@ export function convertAccessToContractFormat(access: AccessCondition): unknown 
       return { ValidUntil: { until_ns: access.until_ns } };
     case 'WasmHash':
       return { WasmHash: { hash: access.hash } };
+    case 'Predecessor':
+      return { Predecessor: { condition: convertAccessToContractFormat(access.condition) } };
     default:
       // Never widen by accident: an unknown shape is a bug, not "everyone".
       throw new Error('unknown access condition type');
@@ -236,13 +244,24 @@ export function grantsOf(access: unknown, owner: string | null): Grant[] {
  * that empties entirely falls back to the owner alone — never to everyone. */
 export function withoutGrant(access: unknown, account: string, owner: string | null): unknown {
   // Symmetric with `withGrant`: a revocation narrows WHO, and must not take the
-  // row's build lock down with it. Revoking the only name inside
+  // row's rules down with it. Revoking the only name inside
   // `And[Whitelist[agent], WasmHash]` collapses that AND and would otherwise
-  // fall back to a bare whitelist — leaving the row open to any build.
-  const locks = buildLocksOf(access);
-  if (locks.length) {
-    const pruned = revokeOnto(withoutBuildLocks(access), account, owner);
-    return locks.reduce((tree, lock) => ({ Logic: { operator: 'And', conditions: [tree, lock] } }), pruned);
+  // fall back to a bare whitelist — leaving the row open to any build; the
+  // same for a calling-account rule.
+  // A plain calling-account rule names the row's own readers, so the revoked
+  // account leaves it too — a grantee that is a contract must not keep
+  // relaying the owner's calls after its grant is gone. A rule that empties
+  // follows the whitelist's own fallback to the owner alone, so the owner is
+  // never locked out of their own direct calls.
+  const rules = rulesOf(access).map((rule) => {
+    const callers = plainCallersOf(rule);
+    if (!callers) return rule;
+    const kept = callers.filter((a) => a !== account);
+    return { Predecessor: { condition: whitelist(kept.length ? kept : owner ? [owner] : []) } };
+  });
+  if (rules.length) {
+    const pruned = revokeOnto(withoutRules(access), account, owner);
+    return rules.reduce((tree, rule) => ({ Logic: { operator: 'And', conditions: [tree, rule] } }), pruned);
   }
   return revokeOnto(access, account, owner);
 }
@@ -276,16 +295,17 @@ function revokeOnto(access: unknown, account: string, owner: string | null): unk
  * everyone reads already, a grant means "the owner and the agents named", so
  * it starts from the owner alone. */
 export function withGrant(access: unknown, owner: string | null, account: string, until_ns: string | null): unknown {
-  // A grant widens WHO may read, never WHAT may read. Any build lock on the row
-  // is lifted off first and put back over the result, so the grantee is admitted
-  // under the same lock as everyone else — `And[Or[owner, agent], WasmHash]`,
-  // not `Or[And[owner, WasmHash], agent]`. Without this the one control that
-  // hands a secret to an agent would be the one that unlocks it for them, and
-  // the card would still show the padlock.
-  const locks = buildLocksOf(access);
-  const unlocked = locks.length ? withoutBuildLocks(access) : access;
-  const granted = grantOnto(unlocked, owner, account, until_ns);
-  return locks.reduce((tree, lock) => ({ Logic: { operator: 'And', conditions: [tree, lock] } }), granted);
+  // A grant widens WHO may read, never WHAT may read or FROM WHERE. Any rule
+  // on the row — a build lock, a calling-account rule — is lifted off first and
+  // put back over the result, so the grantee is admitted under the same rules
+  // as everyone else: `And[Or[owner, agent], WasmHash]`, not
+  // `Or[And[owner, WasmHash], agent]`. Without this the one control that hands
+  // a secret to an agent would be the one that unlocks it for them, and the
+  // card would still show the padlock.
+  const rules = rulesOf(access);
+  const bare = rules.length ? withoutRules(access) : access;
+  const granted = grantOnto(bare, owner, account, until_ns);
+  return rules.reduce((tree, rule) => ({ Logic: { operator: 'And', conditions: [tree, rule] } }), granted);
 }
 
 /** Whether this subtree says something about builds and nothing else — every
@@ -303,18 +323,146 @@ function isBuildOnly(node: unknown): boolean {
   return false;
 }
 
-/** The build rules in the tree: the LARGEST subtrees that are only about
- * builds, not the individual leaves inside them.
+/** Whether this subtree is about the CALLING account and nothing else — every
+ * leaf in it sits under a `Predecessor`. A `Predecessor` node is such a rule
+ * whatever it holds: the names inside it are calling contracts, never
+ * grantees, so the grant view must neither list nor edit them. */
+function isCallerRuleOnly(node: unknown): boolean {
+  const obj = asObj(node);
+  if (!obj) return false;
+  if (asObj(obj.Predecessor)) return true;
+  const logic = logicOf(node);
+  if (logic) return logic.conditions.length > 0 && logic.conditions.every(isCallerRuleOnly);
+  const not = asObj(obj.Not);
+  if (not && 'condition' in not) return isCallerRuleOnly(not.condition);
+  return false;
+}
+
+/** A subtree the grant view leaves alone: a build rule, or a calling-account rule. */
+const isRule = (node: unknown): boolean => isBuildOnly(node) || isCallerRuleOnly(node);
+
+/** The rules ON THE ROW: the LARGEST subtrees that are only about builds, or
+ * only about the calling account, and sit as direct conjuncts of the root's
+ * AND chain — not the individual leaves inside them, and nothing under an OR
+ * or a NOT.
  *
  * Taking leaves instead is how a rule gets inverted. `Not{WasmHash(h)}` means
  * "any build but h"; lift the leaf out of it and put it back as a plain branch
  * and the row now means "only h" — the one build its owner excluded. Lifting
  * `Or[h1, h2]` leaf by leaf is the mirror: put both back as separate ANDs and
- * the row admits neither. */
-function buildLocksOf(access: unknown): unknown[] {
+ * the row admits neither.
+ *
+ * Reaching under an OR or a NOT is how a whole BRANCH gets inverted:
+ * `Or[Whitelist[owner], Predecessor{dao}]` admits the owner from anywhere;
+ * lift the rule out and re-AND it and the owner's direct calls are refused.
+ * `Not{Or[Whitelist[s], Predecessor{deputy}]}` excludes calls through the
+ * deputy; lifted and re-ANDed, they become the only ones admitted. So a rule
+ * that is not on the spine stays exactly where it is, and the grant view
+ * reports it as custom. */
+function rulesOf(access: unknown): unknown[] {
   const out: unknown[] = [];
   const walk = (node: unknown) => {
-    if (isBuildOnly(node)) {
+    if (isRule(node)) {
+      out.push(node);
+      return;
+    }
+    const logic = logicOf(node);
+    if (logic && logic.operator === 'And') logic.conditions.forEach(walk);
+  };
+  walk(access);
+  return out;
+}
+
+/** The tree with every rule removed and emptied nodes collapsed — an `And` of
+ * nothing admits everyone, so none may be left behind.
+ *
+ * `'AllowAll'` when nothing else remains: a condition that was only ever a
+ * rule named nobody, so everyone was admitted where the rule allowed. The
+ * grant then narrows it exactly as it narrows any other `AllowAll` row. */
+function withoutRules(access: unknown): unknown {
+  const REMOVED = Symbol('removed');
+  // The same walk as `rulesOf`: only the AND spine is pruned, so what this
+  // removes is exactly what that lifted, and an OR or a NOT keeps its branch.
+  const prune = (node: unknown): unknown | typeof REMOVED => {
+    if (isRule(node)) return REMOVED;
+    const logic = logicOf(node);
+    if (logic && logic.operator === 'And') {
+      const kept = logic.conditions.map(prune).filter((c) => c !== REMOVED);
+      if (kept.length === 0) return REMOVED;
+      if (kept.length === 1) return kept[0];
+      return { Logic: { operator: 'And', conditions: kept } };
+    }
+    return node;
+  };
+  const pruned = prune(access);
+  return pruned === REMOVED ? 'AllowAll' : pruned;
+}
+
+// ── The calling-account rule, as the screen offers it ───────────────────────
+//
+// The screen writes ONE shape: `And[<who>, Predecessor{Whitelist[accounts]}]`
+// — "a call is admitted only when the account that called the contract is one
+// of these". The accounts are the row's own named readers (so each reads only
+// by calling directly, with no contract in between) plus any contracts the
+// owner composes through: a DAO, a router. Any other calling-account rule — a
+// pattern, a membership, a negation — is the builder's business; the grant
+// view reports it as custom and leaves it alone.
+
+/** Every account the tree admits by name — the owner among them only when
+ * the tree names them — in the order named; the owner first. Empty for a tree
+ * that names nobody (an `AllowAll`, a pattern alone). The calling accounts of
+ * a rule are not readers and are not listed. */
+export function namedAccounts(access: unknown, owner: string | null): string[] {
+  const names = new Set<string>();
+  const walk = (node: unknown) => {
+    const accounts = whitelistAccounts(node);
+    if (accounts) {
+      accounts.forEach((a) => names.add(a));
+      return;
+    }
+    const logic = logicOf(node);
+    if (logic) logic.conditions.forEach(walk);
+  };
+  walk(access);
+  const all = [...names];
+  return owner && all.includes(owner) ? [owner, ...all.filter((a) => a !== owner)] : all;
+}
+
+/** The plain calling-account rule on the row: the accounts of its
+ * `Predecessor{Whitelist[...]}` leaves, or `null` when there is no such rule.
+ * A tree whose calling-account rule is anything else — a pattern, a DAO, a
+ * negation — is CUSTOM (`custom: true`) and is not summarised. */
+export function callersOf(access: unknown): { accounts: string[]; custom: boolean } | null {
+  const everywhere = predecessorNodes(access);
+  if (everywhere.length === 0) return null;
+  // Plain means: exactly ONE wrapper in the whole tree, on the spine, holding
+  // a whitelist that names somebody. Two wrappers ANDed is "nobody" (one
+  // account cannot be two) and merging them would widen it to "either"; a
+  // wrapper under an OR or a NOT is a branch of its own; an empty whitelist
+  // admits nobody and must not read as a list.
+  const plain = rulesOf(access).filter(isPlainCallerRule);
+  if (everywhere.length !== 1 || plain.length !== 1) return { accounts: [], custom: true };
+  const accounts = [...new Set(plainCallersOf(plain[0]) ?? [])];
+  if (accounts.length === 0) return { accounts: [], custom: true };
+  // "Direct calls only" means every reader the row names may call directly.
+  // A rule that omits a named reader — `And[Whitelist[owner, agent],
+  // Predecessor{Whitelist[dao]}]`, which `--via` alone writes — refuses the
+  // owner's and the agent's own direct calls; summarising it as "straight
+  // from owner, agent" would be false, and following the next grant with the
+  // rule would admit calls the owner never allowed. A rule over a tree that
+  // names nobody has no readers to be direct about. Both are custom.
+  const named = namedAccounts(access, null);
+  if (named.length === 0 || !named.every((a) => accounts.includes(a))) return { accounts: [], custom: true };
+  return { accounts, custom: false };
+}
+
+/** Every `Predecessor` node in the tree, wherever it sits. */
+export function predecessorNodes(access: unknown): unknown[] {
+  const out: unknown[] = [];
+  const walk = (node: unknown) => {
+    const obj = asObj(node);
+    if (!obj) return;
+    if (asObj(obj.Predecessor)) {
       out.push(node);
       return;
     }
@@ -323,39 +471,76 @@ function buildLocksOf(access: unknown): unknown[] {
       logic.conditions.forEach(walk);
       return;
     }
-    const not = asObj(asObj(node)?.Not);
+    const not = asObj(obj.Not);
     if (not && 'condition' in not) walk(not.condition);
   };
   walk(access);
   return out;
 }
 
-/** The tree with every build rule removed and emptied nodes collapsed — an
- * `And` of nothing admits everyone, so none may be left behind.
- *
- * `'AllowAll'` when nothing else remains: a condition that was only ever a
- * build rule named nobody, so everyone was admitted on the builds it allowed.
- * The grant then narrows it exactly as it narrows any other `AllowAll` row. */
-function withoutBuildLocks(access: unknown): unknown {
-  const REMOVED = Symbol('removed');
-  const prune = (node: unknown): unknown | typeof REMOVED => {
-    if (isBuildOnly(node)) return REMOVED;
+/** The accounts of a `Predecessor{Whitelist[...]}`, or `null` for any other node. */
+function plainCallersOf(node: unknown): string[] | null {
+  return whitelistAccounts(asObj(asObj(node)?.Predecessor)?.condition);
+}
+
+/** The tree with its plain calling-account rule replaced by one naming
+ * exactly `accounts` — or removed, for an empty list. Custom calling-account
+ * rules are kept where they are; build rules too. */
+export function withCallers(access: unknown, accounts: string[]): unknown {
+  const kept = rulesOf(access).filter((r) => !isPlainCallerRule(r));
+  const bare = withoutRules(access);
+  const rule = accounts.length ? { Predecessor: { condition: whitelist([...new Set(accounts)]) } } : null;
+  const rules = rule ? [...kept, rule] : kept;
+  if (rules.length === 0) return bare;
+  // A rule over `AllowAll` is the rule alone: an AND with everyone says nothing more.
+  const base = bare === 'AllowAll' ? null : bare;
+  const [first, ...rest] = base ? [base, ...rules] : rules;
+  return rest.reduce((tree, r) => ({ Logic: { operator: 'And', conditions: [tree, r] } }), first);
+}
+
+/** A `Predecessor` holding nothing but a whitelist — the one shape the screen writes. */
+function isPlainCallerRule(node: unknown): boolean {
+  return plainCallersOf(node) !== null;
+}
+
+/**
+ * The sentence to show instead of signing when a whitelist anywhere in the
+ * condition names nobody — outside a NOT, an empty whitelist admits no call
+ * at all, wherever it sits: on the row, inside a calling-account rule, under
+ * an AND — and the contract stores it. Null when every whitelist names
+ * somebody. Moves the refusal in front of the wallet prompt.
+ */
+export function emptyWhitelistRefusal(condition: unknown): string | null {
+  let empty = false;
+  const walk = (node: unknown) => {
+    if (empty) return;
+    const obj = asObj(node);
+    if (!obj) return;
+    if (whitelistAccounts(node)?.length === 0) {
+      empty = true;
+      return;
+    }
+    // Under a NOT an empty whitelist admits everyone — a different mistake,
+    // and not this one.
+    if (asObj(obj.Not)) return;
     const logic = logicOf(node);
     if (logic) {
-      const kept = logic.conditions.map(prune).filter((c) => c !== REMOVED);
-      if (kept.length === 0) return REMOVED;
-      if (kept.length === 1) return kept[0];
-      return { Logic: { operator: logic.operator, conditions: kept } };
+      logic.conditions.forEach(walk);
+      return;
     }
-    const not = asObj(asObj(node)?.Not);
-    if (not && 'condition' in not) {
-      const inner = prune(not.condition);
-      return inner === REMOVED ? REMOVED : { Not: { condition: inner } };
-    }
-    return node;
+    const via = asObj(obj.Predecessor);
+    if (via && 'condition' in via) walk(via.condition);
   };
-  const pruned = prune(access);
-  return pruned === REMOVED ? 'AllowAll' : pruned;
+  walk(condition);
+  return empty
+    ? 'A whitelist in this condition names nobody, so no call could ever be admitted. Name at least one account, or remove that rule.'
+    : null;
+}
+
+/** Every reason this condition must not be signed, or null: the bounds, a
+ * malformed build, a whitelist that admits nobody. */
+export function conditionRefusal(condition: unknown): string | null {
+  return chainReadRefusal(condition) ?? buildHashRefusal(condition) ?? emptyWhitelistRefusal(condition);
 }
 
 /** `withGrant`'s original body: the grant itself, on a tree carrying no lock. */
@@ -539,6 +724,10 @@ function countLeaves(condition: unknown): Counts {
   }
   const not = node.Not as { condition?: unknown } | undefined;
   if (not?.condition) return countLeaves(not.condition);
+  // A calling-account rule re-judges its condition on another account; every
+  // leaf inside it is compiled and asked exactly as it would be outside.
+  const via = node.Predecessor as { condition?: unknown } | undefined;
+  if (via?.condition) return countLeaves(via.condition);
   return zero;
 }
 
@@ -572,6 +761,8 @@ export function buildHashRefusal(condition: unknown): string | null {
     }
     const not = asObj(obj.Not);
     if (not && 'condition' in not) walk(not.condition);
+    const via = asObj(obj.Predecessor);
+    if (via && 'condition' in via) walk(via.condition);
   };
   walk(condition);
   if (bad === null) return null;

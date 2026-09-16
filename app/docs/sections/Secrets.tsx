@@ -197,6 +197,33 @@ export default function SecretsSection() {
               gives a different, equally valid binary — and a hash the platform will never produce.
             </p>
           </div>
+ <div className="mt-3 p-3 bg-card-muted border border-border rounded">
+ <p className="text-sm text-foreground font-medium mb-1">Who may call</p>
+ <p className="text-xs text-foreground">
+              A condition is judged against the account that <strong>signed</strong> the transaction.
+              That is what lets a DAO or a router call on your behalf — but it also means a contract
+              you sign <em>any</em> transaction to can relay a call that names your secret into the
+              project it is bound to, under your own name, with input it chose. The row admits it,
+              because the signer is you.
+            </p>
+ <p className="text-xs text-foreground mt-2">
+              <strong>Direct calls only</strong> (on a secret&rsquo;s Access panel, or{' '}
+              <code className="bg-card-muted px-1 rounded">outlayer secrets set --direct</code>) adds a
+              rule judged on the account that <em>called</em> the contract instead: a call is admitted
+              only when that account is one the row names — you and your grantees — with no other
+              contract in between. Name the contracts you do compose through under &ldquo;Also
+              through these contracts&rdquo; (<code className="bg-card-muted px-1 rounded">--via</code>).
+              In the full condition it is{' '}
+              <code className="bg-card-muted px-1 rounded">Predecessor</code> wrapping any rule — a
+              whitelist, a DAO membership, a pattern — judged on the calling account.
+            </p>
+ <p className="text-xs text-foreground mt-2">
+              Two edges. Over HTTPS nothing relays a call: your payment key&rsquo;s owner is judged as
+              the calling account, so the rule changes nothing there. And a function-call access key
+              on your own account signs directly — the calling account is you — so a dapp holding one
+              is not something this rule can see.
+            </p>
+          </div>
  <p className="text-foreground mt-3">
             The hash does not drift on its own. A project built from GitHub compiles to the same
             bytes every time it is built from the same commit, so a lock you set stays good until

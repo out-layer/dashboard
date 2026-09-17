@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { actionCreators } from '@near-js/transactions';
 import { PageHeader } from '@/components/ui/page-header';
@@ -46,6 +46,7 @@ function ConnectGmail() {
   const [stage, setStage] = useState<Stage>('idle');
   const [error, setError] = useState<string | null>(null);
   const [txHash, setTxHash] = useState<string | null>(null);
+  const attempted = useRef(false);
 
   const projectId = GMAIL_PROJECT[network] ?? GMAIL_PROJECT.testnet;
   const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ?? '';
@@ -88,7 +89,12 @@ function ConnectGmail() {
         const refreshToken: string = answer.refresh_token;
 
         setStage('sealing');
-        const accessor = { Project: { project_id: projectId } };
+        // The accessor has TWO shapes and they are not interchangeable. The
+        // coordinator's enum is internally tagged (`#[serde(tag = "type")]`),
+        // the contract's is externally tagged; sending one where the other is
+        // expected is a 422 with no explanation.
+        const forCoordinator = { type: 'Project', project_id: projectId };
+        const forContract = { Project: { project_id: projectId } };
         // The row's key, derived by the keystore from the accessor and owner —
         // the same call the secrets page makes, and the reason the token can be
         // sealed here rather than anywhere that could keep it.
@@ -96,7 +102,7 @@ function ConnectGmail() {
         const pubkeyResponse = await fetch(`${coordinatorUrl}/secrets/pubkey`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ accessor, owner: accountId, secrets_json: secretsJson }),
+          body: JSON.stringify({ accessor: forCoordinator, owner: accountId, secrets_json: secretsJson }),
         });
         if (!pubkeyResponse.ok) throw new Error(await pubkeyResponse.text());
         const { pubkey } = await pubkeyResponse.json();
@@ -109,7 +115,7 @@ function ConnectGmail() {
         // names it send mail as you.
         const access = { Whitelist: { accounts: [accountId] } };
         const args = {
-          accessor,
+          accessor: forContract,
           profile: PROFILE,
           encrypted_secrets_base64: encryptedBase64,
           access,
@@ -151,15 +157,23 @@ function ConnectGmail() {
       return;
     }
     const code = params.get('code');
-    if (!code || !accountId || stage !== 'idle' || txHash) return;
+    if (!code || !accountId || attempted.current) return;
+    // Once, and only once. Without this latch a failure inside `store` puts the
+    // stage back to idle, the effect runs again with the code still in the URL,
+    // and the state check — whose value the first pass consumed — reports "not
+    // from this tab" over the top of the real reason.
+    attempted.current = true;
     const expected = sessionStorage.getItem(STATE_KEY);
     sessionStorage.removeItem(STATE_KEY);
+    // The code is spent either way. Taking it out of the address bar keeps a
+    // reload from retrying something Google will never honour twice.
+    window.history.replaceState({}, '', '/connect/gmail');
     if (!expected || params.get('state') !== expected) {
       setError('This callback did not come from a connection started in this tab. Start again.');
       return;
     }
     void store(code);
-  }, [params, accountId, stage, txHash, store]);
+  }, [params, accountId, store]);
 
   const busy = stage === 'exchanging' || stage === 'sealing' || stage === 'storing';
   const working = {

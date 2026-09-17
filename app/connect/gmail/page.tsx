@@ -104,7 +104,16 @@ function ConnectGmail() {
         // The row's key, derived inside the keystore enclave from the accessor
         // and the owner. Its private half never leaves that enclave, which is
         // what makes it safe to do the sealing here.
-        const secretsJson = JSON.stringify({ GMAIL_REFRESH_TOKEN: answer.refresh_token });
+        // The policy rides along, because the connector sends nothing without
+        // one and a credential that cannot send is not a finished connection.
+        // `{}` is the widest it goes — anywhere, no daily cap, no attachments —
+        // and it is narrowed on the secrets page, which is where a rule about
+        // recipients belongs. Values are strings: a secret row is
+        // `HashMap<String, String>`, so the policy travels as JSON text.
+        const secretsJson = JSON.stringify({
+          GMAIL_REFRESH_TOKEN: answer.refresh_token,
+          GMAIL_POLICY: '{}',
+        });
         const pubkeyResponse = await fetch(`${coordinatorUrl}/secrets/pubkey`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -269,6 +278,11 @@ function ConnectGmail() {
           <p>
             Connected. The credential is stored as <code>{PROFILE}</code> under{' '}
             <code>{projectId}</code>, readable by <code>{accountId}</code> and nobody else.
+          </p>
+          <p>
+            It starts with the widest rule there is: an agent you grant may write to anyone, as
+            often as it likes. Narrow that on the secrets page whenever you want — recipients, a
+            daily cap, a subject prefix.
           </p>
           <p>
             To let an agent send: open the{' '}

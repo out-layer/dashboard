@@ -922,6 +922,12 @@ export function SecretsForm({
         } catch {
           if (errorText) errorMessage = errorText;
         }
+        // A refusal about the KEY has to name the key. It is public, the wallet
+        // chose its spelling and its scheme, and without seeing it the reader is
+        // left comparing a message to a format they cannot inspect.
+        if (/public key/i.test(errorMessage)) {
+          errorMessage += ` — this wallet signed with "${signed.publicKey}".`;
+        }
         throw new Error(errorMessage);
       }
 

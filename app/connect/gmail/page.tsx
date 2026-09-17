@@ -10,15 +10,17 @@ import { getCoordinatorApiUrl } from '@/lib/api';
 import { eciesEncrypt } from '@/lib/ecies';
 
 /**
- * Connecting a Gmail account, in one page.
+ * Connecting a Gmail account, in two steps and two clicks.
  *
- * Google's consent screen, then the same three steps the secrets page takes for
- * any secret: ask the keystore for the row's public key, seal in the browser,
- * and store on chain. The refresh token exists in this tab and nowhere else —
- * the server that exchanges the code hands it straight back and keeps nothing.
+ * The split is not decoration. Everything up to the encryption happens on the
+ * way back from Google with no interaction — and then the page STOPS and asks.
+ * A wallet cannot be opened from inside that chain: it is not a user gesture,
+ * the popup it came from is gone, and Meteor fails on its own internals rather
+ * than showing anything a person can act on. So the transaction waits behind a
+ * button, which is also where the reader finds out what they are about to sign.
  *
- * What is stored is only the token. The OAuth client it belongs to is the
- * connector's own, held as its author secret, so nobody's row carries a
+ * What is stored is only the refresh token. The OAuth client it belongs to is
+ * the connector's own, held as its author secret, so nobody's row carries a
  * credential of ours for them to extract.
  */
 
@@ -36,7 +38,7 @@ const PROFILE = 'gmail';
 
 const STATE_KEY = 'outlayer:connect:gmail:state';
 
-type Stage = 'idle' | 'exchanging' | 'sealing' | 'storing' | 'done';
+type Stage = 'idle' | 'preparing' | 'ready' | 'storing' | 'done';
 
 function ConnectGmail() {
   const { accountId, signAndSendTransaction, contractId, viewMethod, network } = useNearWallet();
@@ -46,6 +48,9 @@ function ConnectGmail() {
   const [stage, setStage] = useState<Stage>('idle');
   const [error, setError] = useState<string | null>(null);
   const [txHash, setTxHash] = useState<string | null>(null);
+  /** The sealed credential, waiting for the owner to sign. Ciphertext only: the
+   *  token itself is dropped as soon as it has been encrypted. */
+  const [sealed, setSealed] = useState<string | null>(null);
   const attempted = useRef(false);
 
   const projectId = GMAIL_PROJECT[network] ?? GMAIL_PROJECT.testnet;
@@ -56,6 +61,13 @@ function ConnectGmail() {
     () => (typeof window === 'undefined' ? '' : `${window.location.origin}/connect/gmail`),
     [],
   );
+
+  // The accessor has TWO shapes and they are not interchangeable: the
+  // coordinator's enum is internally tagged (`#[serde(tag = "type")]`), the
+  // contract's is externally tagged. Sending one where the other is expected is
+  // a 422 with nothing in it to explain itself.
+  const forCoordinator = useMemo(() => ({ type: 'Project', project_id: projectId }), [projectId]);
+  const forContract = useMemo(() => ({ Project: { project_id: projectId } }), [projectId]);
 
   const consent = useCallback(() => {
     const state = crypto.randomUUID();
@@ -74,11 +86,13 @@ function ConnectGmail() {
     window.location.href = url.toString();
   }, [clientId, redirectUri]);
 
-  const store = useCallback(
+  /** Step one: the code becomes a credential, and the credential becomes
+   *  ciphertext. No wallet, no signature, nothing on chain yet. */
+  const prepare = useCallback(
     async (code: string) => {
       setError(null);
+      setStage('preparing');
       try {
-        setStage('exchanging');
         const exchanged = await fetch('/connect/gmail/exchange', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -86,19 +100,11 @@ function ConnectGmail() {
         });
         const answer = await exchanged.json().catch(() => ({}));
         if (!exchanged.ok) throw new Error(answer?.error || `The exchange failed (HTTP ${exchanged.status}).`);
-        const refreshToken: string = answer.refresh_token;
 
-        setStage('sealing');
-        // The accessor has TWO shapes and they are not interchangeable. The
-        // coordinator's enum is internally tagged (`#[serde(tag = "type")]`),
-        // the contract's is externally tagged; sending one where the other is
-        // expected is a 422 with no explanation.
-        const forCoordinator = { type: 'Project', project_id: projectId };
-        const forContract = { Project: { project_id: projectId } };
-        // The row's key, derived by the keystore from the accessor and owner —
-        // the same call the secrets page makes, and the reason the token can be
-        // sealed here rather than anywhere that could keep it.
-        const secretsJson = JSON.stringify({ GMAIL_REFRESH_TOKEN: refreshToken });
+        // The row's key, derived inside the keystore enclave from the accessor
+        // and the owner. Its private half never leaves that enclave, which is
+        // what makes it safe to do the sealing here.
+        const secretsJson = JSON.stringify({ GMAIL_REFRESH_TOKEN: answer.refresh_token });
         const pubkeyResponse = await fetch(`${coordinatorUrl}/secrets/pubkey`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -106,42 +112,55 @@ function ConnectGmail() {
         });
         if (!pubkeyResponse.ok) throw new Error(await pubkeyResponse.text());
         const { pubkey } = await pubkeyResponse.json();
-        const sealed = eciesEncrypt(pubkey, new TextEncoder().encode(secretsJson));
-        const encryptedBase64 = Buffer.from(sealed).toString('base64');
 
-        setStage('storing');
-        // Yours alone until you grant an agent, which is the Access screen on
-        // the secrets page. A connector row left open would let anyone who
-        // names it send mail as you.
-        const access = { Whitelist: { accounts: [accountId] } };
-        const args = {
-          accessor: forContract,
-          profile: PROFILE,
-          encrypted_secrets_base64: encryptedBase64,
-          access,
-          vault_id: null,
-        };
-        const cost = await viewMethod({
-          contractId,
-          method: 'estimate_storage_cost',
-          args: { ...args, owner: accountId },
-        });
-        if (!cost) throw new Error('The contract would not quote the storage cost.');
-        const response = await signAndSendTransaction({
-          receiverId: contractId,
-          actions: [
-            actionCreators.functionCall('store_secrets', args, BigInt('50000000000000'), BigInt(String(cost))),
-          ],
-        });
-        setTxHash(response?.transaction?.hash ?? null);
-        setStage('done');
+        const bytes = eciesEncrypt(pubkey, new TextEncoder().encode(secretsJson));
+        setSealed(Buffer.from(bytes).toString('base64'));
+        setStage('ready');
       } catch (e) {
         setError(e instanceof Error ? e.message : String(e));
         setStage('idle');
       }
     },
-    [accountId, contractId, coordinatorUrl, projectId, redirectUri, signAndSendTransaction, viewMethod],
+    [accountId, coordinatorUrl, forCoordinator, redirectUri],
   );
+
+  /** Step two, from a click: the ciphertext goes on chain. */
+  const finish = useCallback(async () => {
+    if (!sealed) return;
+    setError(null);
+    setStage('storing');
+    try {
+      // Yours alone until you grant an agent. A connector row left open would
+      // let anyone who names it send mail as you.
+      const args = {
+        accessor: forContract,
+        profile: PROFILE,
+        encrypted_secrets_base64: sealed,
+        access: { Whitelist: { accounts: [accountId] } },
+        vault_id: null,
+      };
+      const cost = await viewMethod({
+        contractId,
+        method: 'estimate_storage_cost',
+        args: { ...args, owner: accountId },
+      });
+      if (!cost) throw new Error('The contract would not quote the storage cost.');
+      const response = await signAndSendTransaction({
+        receiverId: contractId,
+        actions: [
+          actionCreators.functionCall('store_secrets', args, BigInt('50000000000000'), BigInt(String(cost))),
+        ],
+      });
+      setTxHash(response?.transaction?.hash ?? null);
+      setStage('done');
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+      // Back to `ready`, not to the start: the credential is still sealed and
+      // in hand, so a refused or closed wallet costs another click and not
+      // another trip through Google.
+      setStage('ready');
+    }
+  }, [accountId, contractId, forContract, sealed, signAndSendTransaction, viewMethod]);
 
   // Google sends the browser back here with a code. The state it carries has to
   // be the one this tab generated: without that check, a link could make a
@@ -158,10 +177,10 @@ function ConnectGmail() {
     }
     const code = params.get('code');
     if (!code || !accountId || attempted.current) return;
-    // Once, and only once. Without this latch a failure inside `store` puts the
-    // stage back to idle, the effect runs again with the code still in the URL,
-    // and the state check — whose value the first pass consumed — reports "not
-    // from this tab" over the top of the real reason.
+    // Once, and only once. Without this latch a failure inside `prepare` puts
+    // the stage back to idle, the effect runs again with the code still in the
+    // URL, and the state check — whose value the first pass consumed — reports
+    // "not from this tab" over the top of the real reason.
     attempted.current = true;
     const expected = sessionStorage.getItem(STATE_KEY);
     sessionStorage.removeItem(STATE_KEY);
@@ -172,18 +191,11 @@ function ConnectGmail() {
       setError('This callback did not come from a connection started in this tab. Start again.');
       return;
     }
-    void store(code);
-  }, [params, accountId, store]);
-
-  const busy = stage === 'exchanging' || stage === 'sealing' || stage === 'storing';
-  const working = {
-    exchanging: 'Asking Google for a durable credential…',
-    sealing: 'Sealing it to the keystore, in this browser…',
-    storing: 'Storing it on chain — approve the transaction in your wallet…',
-  } as const;
+    void prepare(code);
+  }, [params, accountId, prepare]);
 
   return (
-    <div className="max-w-2xl">
+    <div className="max-w-2xl space-y-4">
       <PageHeader title="Connect Gmail" description="Let an agent send mail from your own address." />
 
       {!clientId && (
@@ -192,42 +204,85 @@ function ConnectGmail() {
         </p>
       )}
 
-      {stage === 'done' ? (
-        <div className="space-y-3">
-          <p className="text-sm">
-            Connected. Your credential is stored as <code>{PROFILE}</code> under{' '}
-            <code>{projectId}</code>, readable by <code>{accountId}</code> and nobody else.
-          </p>
-          <p className="text-sm">
-            Give an agent access on the <a className="underline" href="/secrets">secrets page</a> — its Access
-            screen adds an account and can put an expiry on the grant. The agent then names{' '}
-            <code>{`{ account_id: "${accountId}", profile: "${PROFILE}" }`}</code> in its call.
-          </p>
-          {txHash && <p className="text-xs text-gray-500">Transaction {txHash}</p>}
-        </div>
-      ) : (
-        <div className="space-y-4">
+      {stage === 'idle' && (
+        <>
           <p className="text-sm">
             Google will ask you to allow one thing: sending mail. This connector cannot read your
             mailbox — it never asks for a scope that would let it, so no message of yours can reach
             an agent.
           </p>
-          <p className="text-sm">
-            What is stored is a credential for your account, sealed in this browser to a key only
-            the keystore enclave holds. Until you grant an agent, you are the only one who can use
-            it.
-          </p>
           <button
             onClick={consent}
-            disabled={busy || !clientId}
+            disabled={!clientId}
             className="rounded bg-[#cc6600] px-4 py-2 text-sm text-white disabled:opacity-50"
           >
-            {busy ? working[stage as keyof typeof working] : 'Connect Google account'}
+            Connect Google account
           </button>
+        </>
+      )}
+
+      {stage === 'preparing' && (
+        <p className="text-sm">Getting a durable credential from Google and encrypting it here…</p>
+      )}
+
+      {(stage === 'ready' || stage === 'storing') && (
+        <>
+          <div className="rounded border border-gray-200 p-4 text-sm space-y-2">
+            <p className="font-medium">Google has granted the credential, and it is already encrypted.</p>
+            <p>
+              The encryption happened in this browser. It was sealed to a key whose private half
+              exists only inside the keystore enclave — <strong>not on our servers, and not in
+              this page</strong>. From here on nobody can read it, us included.
+            </p>
+            <p>
+              Nothing has been stored yet. One transaction writes the encrypted credential to the
+              smart contract, under your account, with a rule that names{' '}
+              <strong>only {accountId}</strong>. The enclave will open it for your runs and for
+              nobody else&apos;s.
+            </p>
+            <p>
+              When you want your agent to send mail, you add its account to that rule on the{' '}
+              <a className="underline" href="/secrets">
+                secrets page
+              </a>{' '}
+              — with an expiry, if you want the access to lapse on its own. You can take it back at
+              any time, and the credential never leaves your row while you do.
+            </p>
+          </div>
+          <button
+            onClick={finish}
+            disabled={stage === 'storing'}
+            className="rounded bg-[#cc6600] px-4 py-2 text-sm text-white disabled:opacity-50"
+          >
+            {stage === 'storing'
+              ? 'Waiting for your wallet…'
+              : 'Finish: store the encrypted key on the contract'}
+          </button>
+          {stage === 'storing' && (
+            <p className="text-xs text-gray-500">Approve the transaction in your wallet.</p>
+          )}
+        </>
+      )}
+
+      {stage === 'done' && (
+        <div className="space-y-3 text-sm">
+          <p>
+            Connected. The credential is stored as <code>{PROFILE}</code> under{' '}
+            <code>{projectId}</code>, readable by <code>{accountId}</code> and nobody else.
+          </p>
+          <p>
+            To let an agent send: open the{' '}
+            <a className="underline" href="/secrets">
+              secrets page
+            </a>
+            , find this row and add the agent&apos;s account under Access. It then names{' '}
+            <code>{`{ account_id: "${accountId}", profile: "${PROFILE}" }`}</code> in its calls.
+          </p>
+          {txHash && <p className="text-xs text-gray-500">Transaction {txHash}</p>}
         </div>
       )}
 
-      {error && <p className="mt-4 text-sm text-red-600">{error}</p>}
+      {error && <p className="text-sm text-red-600">{error}</p>}
     </div>
   );
 }

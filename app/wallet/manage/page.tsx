@@ -245,10 +245,10 @@ function WalletManagePage() {
                     that list comes from the on-chain policies. This card is the
                     only place a NEW agent appears, so the subscription has to
                     be reachable from here too, not only once a policy exists.
-                    The key from `?key=` is already saved to this browser above,
-                    which is what the subscription page reads. */}
+                    The subscription page asks for the agent's PAYMENT key: a
+                    subscription belongs to one, and a `wk_` does not name it. */}
                 <Link
-                  href={`/subscription?wallet=${encodeURIComponent(`ed25519:${apiKeyWallet.address}`)}`}
+                  href="/subscription"
  className="text-sm text-accent-text hover:underline"
                 >
                   subscription
@@ -388,13 +388,11 @@ function WalletManagePage() {
                       >
                         remove
                       </button>
-                      {/* The subscription belongs to this agent's own key, and
-                          that key has no string to paste anywhere — the saved
-                          `wk_` is what identifies it. So the way in is here,
-                          beside the key, rather than on a page that would have
-                          to ask for something nobody can produce. */}
+                      {/* The way in to a subscription for this agent. It
+                          belongs to one of the agent's PAYMENT keys, which the
+                          page asks for — the saved `wk_` does not name one. */}
                       <Link
-                        href={`/subscription?wallet=${encodeURIComponent(wallet.wallet_pubkey)}`}
+                        href="/subscription"
  className="text-xs text-accent-text hover:underline"
                       >
                         subscription

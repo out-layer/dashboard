@@ -373,12 +373,12 @@ near call usdt.tether-token.near ft_transfer_call '{
                 </td>
               </tr>
               <tr>
- <td className="px-4 py-3 text-sm">Connector calls per wallet, per day</td>
- <td className="px-4 py-3 text-sm font-mono">10 → 50 → 500</td>
+ <td className="px-4 py-3 text-sm">Calls on a trial key</td>
+ <td className="px-4 py-3 text-sm font-mono">10 in all</td>
  <td className="px-4 py-3 text-sm text-muted-foreground">
-                  By wallet age: first day, first week, then established. Independent of paying —
-                  see{' '}
- <Link href="/docs/subscriptions" className="text-accent-text hover:underline">
+                  In the wallet&apos;s first week, connectors only; then{' '}
+ <code>402 trial_exhausted</code>. A key with money on it has no call limit — see{' '}
+ <Link href="/docs/subscriptions#trial-keys" className="text-accent-text hover:underline">
                     Connectors &amp; Subscriptions
  </Link>
                   .

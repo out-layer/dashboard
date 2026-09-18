@@ -1,14 +1,11 @@
 'use client';
 
-import { Suspense, useCallback, useEffect, useState } from 'react';
-import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
+import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { actionCreators } from '@near-js/transactions';
 import { PageHeader } from '@/components/ui/page-header';
 import { InfoHint } from '@/components/ui/info-hint';
 import { useNearWallet } from '@/contexts/NearWalletContext';
 import { getCoordinatorApiUrl } from '@/lib/api';
-import { getAllWalletKeys } from '@/lib/wallet-keys';
 
 /**
  * Buy a subscription, and see when it starts and how long it lasts.
@@ -19,15 +16,14 @@ import { getAllWalletKeys } from '@/lib/wallet-keys';
  * an allowance bought up front.
  *
  * It is bought ON CHAIN by naming owner and nonce in an `ft_transfer_call`, so
- * nothing secret is pasted here. Anyone can pay for somebody else's key.
+ * the payment itself carries nothing secret and anyone can pay for somebody
+ * else's key. The key string is asked for only to READ what the key carries —
+ * `/subscription/status` reports on the key presented to it — and it is held
+ * in component state, never stored.
  *
  * One caution worth repeating to the user: two subscribed keys are two budgets.
  * Nothing merges them and nothing warns, so a person who subscribes a second
  * key pays twice for one agent's worth of work.
- *
- * (Keyless "agent keys" were removed on 2026-08-21. Every key is a string its
- * holder presents; this page's `wk_` picker is a convenience for finding the
- * key, not a second kind of it.)
  */
 
 interface Plan {
@@ -43,9 +39,12 @@ interface SubscriptionStatus {
   has_subscription: boolean;
   expires_at: string | null;
   accepting_calls_until: string | null;
-  allowance_total_usd: string;
-  allowance_spent_usd: string;
-  allowance_available_usd: string;
+  /** A trial key only. A trial is a number of calls, and the three allowance
+   *  figures are then absent — show the calls, never a dollar figure. */
+  trial?: { calls: number; calls_used: number; calls_left: number };
+  allowance_total_usd?: string;
+  allowance_spent_usd?: string;
+  allowance_available_usd?: string;
   balance: string;
   expired: boolean;
 }
@@ -80,11 +79,16 @@ function SubscriptionPageContent() {
   const { network, contractId, viewMethod, isConnected, signAndSendTransaction, stablecoin } =
     useNearWallet();
   const coordinatorUrl = getCoordinatorApiUrl(network);
-  const searchParams = useSearchParams();
 
   const [plans, setPlans] = useState<Plan[]>([]);
-  const [savedKeys, setSavedKeys] = useState<Record<string, { apiKey: string; label?: string }>>({});
-  const [selectedWallet, setSelectedWallet] = useState('');
+  /**
+   * The payment key whose subscription this is, `owner:nonce:secret`.
+   *
+   * Pasted, held in this component and nowhere else — not in storage, not in the
+   * URL. `/subscription/status` reports on the key presented to it, so the key
+   * is what the page needs; a wallet's `wk_` does not name one.
+   */
+  const [paymentKey, setPaymentKey] = useState('');
   const [status, setStatus] = useState<SubscriptionStatus | null>(null);
   /**
    * What the allowance was before the payment.
@@ -97,27 +101,16 @@ function SubscriptionPageContent() {
    */
   const [before, setBefore] = useState<SubscriptionStatus | null>(null);
 
-  // The "before" reading belongs to ONE key. Switching agents must forget it:
-  // comparing this agent's allowance against the last one's would announce a
-  // credit that never happened — and, when the new one holds less, print a
-  // negative sum as if money had arrived.
+  // The "before" reading belongs to ONE key. Another key must forget it:
+  // comparing this key's allowance against the last one's would announce a
+  // credit that never happened.
   useEffect(() => {
     setBefore(null);
     setNotice(null);
-  }, [selectedWallet]);
+  }, [paymentKey]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
-
-  // The wallets page links here with the agent already chosen — that is where
-  // its `wk_` is kept, and once it is known this page has nothing to ask for.
-  useEffect(() => {
-    const keys = getAllWalletKeys();
-    setSavedKeys(keys);
-    const asked = searchParams.get('wallet');
-    const first = asked && keys[asked] ? asked : Object.keys(keys)[0];
-    if (first) setSelectedWallet(first);
-  }, [searchParams]);
 
   // The catalogue is on chain, so it loads for anyone — no key, no wallet.
   useEffect(() => {
@@ -134,51 +127,69 @@ function SubscriptionPageContent() {
     };
   }, [contractId, viewMethod]);
 
-  const agentKey = selectedWallet ? savedKeys[selectedWallet]?.apiKey ?? '' : '';
+  const presentedKey = paymentKey.trim();
+  // The coordinator's own rule for the secret: 64 hex characters. Nothing is
+  // sent until the WHOLE key is here — a looser test would post every prefix of
+  // the secret as it is typed.
+  const keyLooksRight = /^[^:\s]+:\d+:[0-9a-fA-F]{64}$/.test(presentedKey);
+  // Which read is the current one. An answer to an earlier key must not land on
+  // the screen — or in the purchase, which names `status.owner` and `nonce`.
+  const readSeq = useRef(0);
 
   /**
-   * What this credential carries.
-   *
-   * The agent path authenticates with the `wk_`, which the coordinator accepts
-   * for READS — and the answer carries the owner and nonce that the on-chain
+   * What this key carries. The answer names the owner and nonce the on-chain
    * purchase has to name, so nothing else has to know them.
    */
   const loadStatus = useCallback(async () => {
-    if (!agentKey) {
-      setStatus(null);
-      return;
-    }
-    const headers = { Authorization: `Bearer ${agentKey}` };
-
+    const seq = ++readSeq.current;
+    // Whatever was on screen belonged to the key before this one: its figures,
+    // its error — and the owner and nonce a purchase would name. Gone before
+    // the new read starts, so nothing can be bought for the previous key while
+    // this one is still loading.
+    setStatus(null);
     setError(null);
+    if (!keyLooksRight) return;
+    const headers = { 'X-Payment-Key': presentedKey };
+
     try {
       const resp = await fetch(`${coordinatorUrl}/subscription/status`, { headers });
+      if (seq !== readSeq.current) return;
       if (!resp.ok) {
         const body = await resp.text();
         throw new Error(`Could not read the subscription (HTTP ${resp.status}): ${body}`);
       }
-      setStatus((await resp.json()) as SubscriptionStatus);
+      const read = (await resp.json()) as SubscriptionStatus;
+      if (seq !== readSeq.current) return;
+      setStatus(read);
     } catch (err) {
+      if (seq !== readSeq.current) return;
       setStatus(null);
       setError((err as Error).message);
     }
-  }, [coordinatorUrl, agentKey]);
+  }, [coordinatorUrl, presentedKey, keyLooksRight]);
+
+  // The latest `loadStatus`, for the delayed re-read after a payment: a timer
+  // holding the closure it was created with would read a key since replaced.
+  const loadStatusRef = useRef(loadStatus);
+  useEffect(() => {
+    loadStatusRef.current = loadStatus;
+  }, [loadStatus]);
 
   useEffect(() => {
     loadStatus();
   }, [loadStatus]);
 
   /**
-   * An agent's subscription is bought ON CHAIN.
+   * The subscription is bought ON CHAIN.
    *
    * `buy_subscription` names the key by owner and nonce, so no key string is
    * involved anywhere — which is why anyone can pay for somebody else's key
-   * without ever holding it. The
+   * without ever holding its secret. The
    * money is revenue on arrival rather than the key's balance, and the
    * coordinator grants the allowance against the event the contract emits, so
    * it appears a moment after the transaction rather than inside it.
    */
-  const buyForAgent = async (plan: Plan) => {
+  const buyForKey = async (plan: Plan) => {
     setError(null);
     setNotice(null);
     if (!isConnected) {
@@ -186,7 +197,7 @@ function SubscriptionPageContent() {
       return;
     }
     if (!status) {
-      setError('Choose an agent whose key this browser knows.');
+      setError('Paste the payment key the subscription is for.');
       return;
     }
 
@@ -202,7 +213,7 @@ function SubscriptionPageContent() {
             action: 'buy_subscription',
             nonce: status.nonce,
             // Spelled out rather than left to default to the sender: the
-            // subscription belongs to the AGENT, and the sender is you.
+            // subscription belongs to the KEY's owner, and the sender is you.
             owner: status.owner,
             plan: plan.index,
           }),
@@ -220,7 +231,7 @@ function SubscriptionPageContent() {
       setNotice(
         'Payment sent. The allowance is granted against the on-chain event, so it lands here a moment later — use Refresh if it has not appeared yet.',
       );
-      setTimeout(loadStatus, 4000);
+      setTimeout(() => loadStatusRef.current(), 4000);
     } catch (err) {
       setError(`The payment did not go through: ${(err as Error).message}`);
     } finally {
@@ -228,8 +239,10 @@ function SubscriptionPageContent() {
     }
   };
 
-  const walletOptions = Object.entries(savedKeys);
-  const canBuy = Boolean(status) && isConnected;
+  // A trial key has no record on chain — nonce 0 is the coordinator's own — so
+  // a purchase naming it is refused by the contract and refunded. Never offered.
+  const isTrial = Boolean(status?.trial);
+  const canBuy = Boolean(status) && !isTrial && isConnected;
 
   return (
  <div className="w-full">
@@ -268,57 +281,56 @@ function SubscriptionPageContent() {
                 className="ml-2"
                 text={
  <>
-                    An agent&apos;s payment key has no key string: it is named after the wallet,
-                    and the coordinator resolves it from the <code>wk_</code> the agent presents.
-                    That is why an agent&apos;s subscription is paid for on chain, by naming the
-                    key — and why there is nothing here to copy or keep safe.
+                    A subscription belongs to one payment key. The key is read here to find its
+                    owner and number — that is what the on-chain payment names — and to show what it
+                    carries. It stays in this tab: it is not saved and not sent anywhere but the
+                    coordinator.
  </>
                 }
               />
  </h2>
 
  <div className="mt-4">
-                {walletOptions.length === 0 ? (
- <p className="text-sm text-muted-foreground">
-                    This browser knows no agent wallet keys. Save one on the{' '}
- <Link className="text-accent-text underline" href="/wallet/manage">
-                      wallets
- </Link>{' '}
-                    page — the <em>subscription</em> link beside a saved key brings you back here
-                    with that agent already chosen.
- </p>
-                ) : (
  <label className="block">
- <span className="text-sm font-medium text-foreground">Agent</span>
- <select
-                      className="mt-1 w-full rounded-md border border-border bg-background px-3 py-2 font-mono text-sm"
-                      value={selectedWallet}
-                      onChange={(e) => setSelectedWallet(e.target.value)}
-                    >
-                      {walletOptions.map(([pubkey, entry]) => (
- <option key={pubkey} value={pubkey}>
-                          {entry.label ? `${entry.label} — ` : ''}
-                          {pubkey.substring(0, 26)}…
- </option>
-                      ))}
- </select>
+ <span className="text-sm font-medium text-foreground">Payment key</span>
+ <input
+                  type="password"
+                  // Not "off": browsers ignore that on a password field and offer
+                  // to SAVE it. This value is what they leave alone.
+                  autoComplete="one-time-code"
+                  spellCheck={false}
+                  className="mt-1 w-full rounded-md border border-border bg-background px-3 py-2 font-mono text-sm"
+                  placeholder="owner:nonce:secret"
+                  value={paymentKey}
+                  onChange={(e) => setPaymentKey(e.target.value)}
+                />
  <span className="mt-1 block text-xs text-muted-foreground">
-                      Its <code>wk_</code> stays in this browser, and its payment key has no string
-                      to lose.
+                  The string <code>create-payment-key</code> returned — what the agent sends as{' '}
+ <code>X-Payment-Key</code>.
+                  {presentedKey && !keyLooksRight
+                    ? ' It has three parts: owner, number, and a secret of 64 hex characters.'
+                    : ''}{' '}
+                  It is kept only while this tab is open: after a wallet that redirects, paste it
+                  again to see the allowance land.
  </span>
  </label>
-                )}
  </div>
  </section>
 
  <section className="rounded-lg border border-border bg-card p-5">
  <h2 className="text-lg font-semibold text-foreground">Pay</h2>
  <p className="mt-2 text-sm text-muted-foreground">
-              One transaction from your wallet, in stablecoin, naming the agent&apos;s key. You
-              pay; the agent is what carries the allowance — it needs no NEAR and no balance of its
-              own for this.
+              One transaction from your wallet, in stablecoin, naming the key by its owner and
+              number. You pay; the key is what carries the allowance — it needs no NEAR and no
+              balance of its own for this.
  </p>
 
+            {isTrial && (
+ <p className="mt-4 rounded-md border border-border bg-background p-3 text-sm text-muted-foreground">
+                This is a trial key. A trial cannot carry a subscription — create a payment key for
+                the agent and subscribe that one.
+ </p>
+            )}
             {plans.length === 0 ? (
  <p className="mt-4 text-sm text-muted-foreground">No plan is on sale on this network yet.</p>
             ) : (
@@ -333,7 +345,7 @@ function SubscriptionPageContent() {
  <div className="text-sm text-muted-foreground">{usd(plan.price_usd)} per period</div>
  </div>
  <button
-                      onClick={() => buyForAgent(plan)}
+                      onClick={() => buyForKey(plan)}
                       disabled={busy || !canBuy}
  className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
                     >
@@ -368,6 +380,8 @@ function SubscriptionPageContent() {
               // Same key, and MORE than before. Anything else is not a receipt.
               before.owner === status.owner &&
               before.nonce === status.nonce &&
+              status.allowance_total_usd !== undefined &&
+              before.allowance_total_usd !== undefined &&
               BigInt(status.allowance_total_usd) > BigInt(before.allowance_total_usd) && (
  <div className="mt-3 rounded-md border border-success/30 bg-success/10 p-3 text-sm text-success-text">
                 Allowance credited:{' '}
@@ -385,7 +399,7 @@ function SubscriptionPageContent() {
 
             {!status ? (
  <p className="mt-3 text-sm text-muted-foreground">
-                Choose an agent, or paste a payment key. Every figure here comes back from the
+                Paste a payment key. Every figure here comes back from the
                 coordinator for that exact key — nothing on this page is inferred.
  </p>
             ) : (
@@ -399,9 +413,24 @@ function SubscriptionPageContent() {
  <div className="flex justify-between gap-3">
  <dt className="text-muted-foreground">Subscription</dt>
  <dd className="font-medium text-foreground">
-                    {status.has_subscription ? (status.expired ? 'expired' : 'active') : 'none'}
+                    {status.trial
+                      ? 'trial'
+                      : status.has_subscription
+                        ? status.expired
+                          ? 'expired'
+                          : 'active'
+                        : 'none'}
  </dd>
  </div>
+                {status.trial ? (
+ <div className="flex justify-between gap-3">
+ <dt className="text-muted-foreground">Trial calls left</dt>
+ <dd className="font-mono">
+                      {status.trial.calls_left} of {status.trial.calls}
+ </dd>
+ </div>
+                ) : (
+ <>
  <div className="flex justify-between gap-3">
  <dt className="text-muted-foreground">Allowance left</dt>
  <dd className="font-mono">{usd(status.allowance_available_usd)}</dd>
@@ -414,6 +443,8 @@ function SubscriptionPageContent() {
  <dt className="text-muted-foreground">Key balance</dt>
  <dd className="font-mono">{usd(status.balance)}</dd>
  </div>
+ </>
+                )}
  <div className="flex justify-between gap-3">
  <dt className="text-muted-foreground">Expires</dt>
  <dd>{when(status.expires_at)}</dd>

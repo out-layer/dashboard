@@ -3,8 +3,8 @@
 import { AnchorHeading, useHashNavigation } from '../sections/utils';
 
 /**
- * Connectors, subscriptions, trial keys and the quota — the four things that
- * decide what a call costs and whether it is allowed to run.
+ * Connectors, subscriptions and the trial — what decides what a call costs and
+ * whether it is allowed to run.
  *
  * Every figure here is the one the code actually uses. Where a number is an
  * operator setting rather than a constant, it says so instead of pretending it
@@ -63,8 +63,9 @@ export default function SubscriptionsDocsPage() {
  <a href="/docs/earnings" className="text-accent-text underline">
               Earnings
  </a>
-            . Nothing about the share depends on how the caller paid: money, allowance or trial,
-            the author is credited the same.
+            . The share comes out of what a customer paid: a call paid with money, on chain or
+            from a funded key, credits the author. A call covered by a subscription allowance or
+            by a trial was not paid for by the caller, and credits the author nothing.
  </p>
         </section>
 
@@ -96,46 +97,31 @@ export default function SubscriptionsDocsPage() {
  </li>
  </ul>
  <p className="text-foreground mt-3">
- <strong>Where the agent&apos;s key comes from.</strong> It is created once, with{' '}
- <code className="bg-card-muted px-1 rounded">
-              POST /wallet/v1/create-payment-key
- </code>{' '}
-            and <code className="bg-card-muted px-1 rounded">{'{"agent": true}'}</code>. No key
-            string comes back and none is stored — the key is named after the wallet, and the{' '}
- <code className="bg-card-muted px-1 rounded">wk_</code> you already hold is what spends it.
-            A wallet has exactly one. Until it exists,{' '}
- <code className="bg-card-muted px-1 rounded">GET /subscription/status</code> with that{' '}
- <code className="bg-card-muted px-1 rounded">wk_</code> answers{' '}
- <code className="bg-card-muted px-1 rounded">401 Missing X-Payment-Key header</code> — the
-            wallet has no key of its own to report on yet.
+ <strong>Where the key comes from.</strong> A wallet creates it with{' '}
+ <code className="bg-card-muted px-1 rounded">POST /wallet/v1/create-payment-key</code>. The answer carries the key string,{' '}
+ <code className="bg-card-muted px-1 rounded">owner:nonce:secret</code>, shown once — it is what the agent sends as{' '}
+ <code className="bg-card-muted px-1 rounded">X-Payment-Key</code> on every call, and what{' '}
+ <code className="bg-card-muted px-1 rounded">GET /subscription/status</code> reads to report what the key has left.
  </p>
  <p className="text-foreground mt-3">
- <strong>A subscription is bought for an AGENT&apos;s key.</strong> An agent has no payment
-            key string to present — its <code className="bg-card-muted px-1 rounded">wk_</code>{' '}
-            stands for it, and the coordinator resolves the key from that. So the purchase names
-            the key instead: an <code className="bg-card-muted px-1 rounded">ft_transfer_call</code>{' '}
-            carrying{' '}
+ <strong>A subscription is bought for a key, by naming it.</strong> The purchase is an{' '}
+ <code className="bg-card-muted px-1 rounded">ft_transfer_call</code> carrying{' '}
  <code className="bg-card-muted px-1 rounded">
-              {'{"action":"buy_subscription","nonce":N,"owner":"<agent>","plan":0}'}
+              {'{"action":"buy_subscription","nonce":N,"owner":"<key owner>","plan":0}'}
  </code>
-            . The sender pays and the agent carries the allowance, so one transaction from your
-            wallet subscribes an agent that owns nothing.
+            . The sender pays and the key carries the allowance, so one transaction from your
+            wallet subscribes an agent that owns nothing — and nothing secret is needed to pay.
  </p>
  <p className="text-foreground mt-3">
-            The <code className="bg-card-muted px-1 rounded">wk_</code> itself buys nothing: it
-            reads its own status, allowance and expiry and authorises nothing that spends. Buying,
-            and choosing where warnings are sent, stay with the owner — a compromised agent should
-            not be able to do them on your behalf.
+            The wallet&apos;s <code className="bg-card-muted px-1 rounded">wk_</code> buys nothing and pays for nothing: it runs the
+            wallet. On <code className="bg-card-muted px-1 rounded">/call</code> it is refused as{' '}
+ <code className="bg-card-muted px-1 rounded">401 wk_is_not_a_payer</code>. Buying, and choosing where warnings are sent, stay
+            with the owner — a compromised agent should not be able to do them on your behalf.
  </p>
  <p className="text-foreground mt-3">
- <strong>Why the agent&apos;s key and not any key.</strong> Technically a subscription is
-            not a special kind of key: it is an attribute an ordinary payment key can carry too.
-            But a wallet has exactly ONE agent key, so &quot;the agent&apos;s subscription&quot;
-            names one thing, while an account can hold many ordinary keys and each could carry a
-            subscription of its own. Nothing merges them and nothing warns, so two subscribed keys
-            means paying twice for one agent&apos;s worth of work. Our interface therefore offers
-            the shape that cannot be got wrong — and if you ever do want several, on several
-            agents, nothing stops you: it just rarely pays for itself at today&apos;s prices.
+ <strong>One subscribed key per agent.</strong> A subscription is an attribute any payment
+            key can carry, and an account can hold many keys. Nothing merges them and nothing
+            warns, so two subscribed keys means paying twice for one agent&apos;s worth of work.
  </p>
  <p className="text-foreground mt-3">
             An ordinary payment key with no subscription is not second-class: it pays per call out
@@ -153,90 +139,50 @@ export default function SubscriptionsDocsPage() {
         </section>
 
         <section id="trial-keys">
- <AnchorHeading id="trial-keys">Trial keys, old and new</AnchorHeading>
+ <AnchorHeading id="trial-keys">The trial: ten calls, in the wallet&apos;s first week</AnchorHeading>
  <p className="text-foreground">
- <strong>What a trial key used to be:</strong> a small balance that could be spent on
-            anything, including running arbitrary WASI code at our expense.
+            A trial is <strong>ten connector calls, within seven days of the wallet&apos;s creation</strong>.
+            That is the whole rule. The wallet claims a key with{' '}
+            <code className="bg-card-muted px-1 rounded">POST /trial-key</code>, sends it as{' '}
+            <code className="bg-card-muted px-1 rounded">X-Payment-Key</code>, and the answer says how many calls it
+            makes and when it stops working.
  </p>
- <p className="text-foreground mt-3">
- <strong>What it is now:</strong> a grant, scoped to the curated connectors, so that the
-            thing you can try for free is the thing we sell. Concretely:
- </p>
- <ul className="list-disc pl-6 mt-3 space-y-2 text-foreground">
+ <ul className="list-disc list-inside text-foreground mt-3 space-y-1">
  <li>
-              its value is an <strong>allowance</strong>, not a balance — granted by us, never
-              withdrawable, and it ends at its expiry. A balance is the customer&apos;s money, and
-              money does not expire;
+              The week is counted from the wallet&apos;s creation, not from the claim: a trial claimed on day six
+              works for one day. Claim it when you register.
+ </li>
+ <li>A call counts once it is accepted — any operation, a free one included, and whether or not the run then succeeds. A refused attempt costs nothing.</li>
+ <li>
+              The eleventh call answers <code className="bg-card-muted px-1 rounded">402 trial_exhausted</code>, and
+              any call after the week <code className="bg-card-muted px-1 rounded">402 trial_expired</code>. Both are
+              final; the next step is a payment key with money on it.
  </li>
  <li>
-              it is a <strong>grant</strong>: it cannot be withdrawn and cannot be used to pay a
-              developer through <code className="bg-card-muted px-1 rounded">X-Attached-Deposit</code>,
-              so it can only ever become compute and connector fees;
+              It reaches the curated connectors and nothing else, cannot pay a developer through{' '}
+              <code className="bg-card-muted px-1 rounded">X-Attached-Deposit</code>, and cannot be withdrawn.
  </li>
  <li>
-              it is <strong>scoped to the connector namespace</strong> and nothing else, so it
-              cannot run arbitrary code on our account;
- </li>
- <li>
-              it carries <strong>no wallet</strong>. A trial call gets no custody host functions:
-              a connector that spends real balances is not a &quot;try before you buy&quot;
-              operation.
+              There is no balance to read — a trial is not measured in money.{' '}
+              <code className="bg-card-muted px-1 rounded">GET /subscription/status</code> reports{' '}
+              <code className="bg-card-muted px-1 rounded">trial.calls_left</code>.
  </li>
  </ul>
- <p className="text-foreground mt-3">
-            One per wallet, claimable within a window after the wallet is created, valid for a
-            number of days — all three are operator settings rather than constants, and the claim
-            endpoint reports the exact values it granted. There is also a per-IP cap, which exists
-            for the obvious reason.
- </p>
+ <p className="text-foreground mt-3">One per wallet.</p>
         </section>
 
-        <section id="quota">
- <AnchorHeading id="quota">The per-wallet connector quota</AnchorHeading>
+        <section id="no-quota">
+ <AnchorHeading id="no-quota">A paying caller has no call quota</AnchorHeading>
  <p className="text-foreground">
-            Connector calls are also rate-limited per wallet, by a ladder that widens as the wallet
-            gets older. The shipped ladder starts at <strong>10 calls a day</strong> for a wallet in
-            its first 24 hours, <strong>50</strong> after a day, and <strong>500</strong> after a
-            week. Operators can change the ladder; the numbers live in the coordinator&apos;s
- <code className="bg-card-muted px-1 rounded">connector_quota_tiers</code> table.
+            A caller who pays is not limited by any count of connector calls. A funded key is bounded by the
+            money on it; a subscription by its allowance. If a task needs more than the trial, fund a key —
+            there is no quota to wait out.
  </p>
  <p className="text-foreground mt-3">
- <strong>The quota is independent of paying.</strong> It is not a feature a subscription
-            unlocks and it is not something a subscription takes away: it exists so that one busy
-            agent cannot exhaust the workers, and so that one abuser cannot ruin deliverability for
-            everyone sharing a connector&apos;s reputation. A subscriber and a non-subscriber of the
-            same wallet age get the same ladder.
+            What remains is technical: a per-key rate limit per minute, one call in flight at a time for a key
+            living on an allowance, and each connector&apos;s own ceiling on a single operation, there against a
+            runaway loop and far above ordinary use — Gmail, for one, stops at 500 sends a day per wallet. An attempt refused by that cap still counts toward it, so wait for the window to end rather than retrying into it.
  </p>
- <p className="text-foreground mt-3">
-            What a subscription changes is <em>how a call is paid for</em>, not how many are
-            allowed. What the quota changes is <em>how many</em>, not the price. They are two
-            different questions and neither answer moved when the other was introduced.
- </p>
-        </section>
-
-        <section id="what-changed">
- <AnchorHeading id="what-changed">What changed, plainly</AnchorHeading>
- <ul className="list-disc pl-6 space-y-2 text-foreground">
- <li>
-              Connectors now carry their prices <strong>on chain</strong>, per operation, and the
-              contract charges the exact operation named in the request. Over-payment is returned;
-              the caller pays the price, not what they attached.
- </li>
- <li>
-              Connector authors are credited <strong>on chain</strong>, per operation, out of that
-              price.
- </li>
- <li>
-              A subscription is a new way to pay for those calls, bought for an AGENT&apos;s key.
-              Everything that worked before — a funded payment key, paid per call — works exactly
-              as it did.
- </li>
- <li>
-              Trial keys are now scoped to connectors. Running arbitrary WASI is still available on
-              a funded key, exactly as it always was; what changed is that we no longer fund it for
-              you.
- </li>
- </ul>
         </section>
  </div>
  </div>

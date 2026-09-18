@@ -180,7 +180,7 @@ export const SECTIONS = [
         title: 'Connectors & Subscriptions',
         path: '/docs/subscriptions',
         summary:
-          'What a connector is and how its operations are priced on chain, the per-operation author share, subscriptions as a flat allowance for a payment key, what trial keys grant now versus before, and the per-wallet connector quota',
+          'What a connector is and how its operations are priced on chain, the per-operation author share, subscriptions as a flat allowance for a payment key, and the trial — ten connector calls in the first week of a wallet, with no call quota for a caller who pays',
       },
       {
         title: 'Earnings',

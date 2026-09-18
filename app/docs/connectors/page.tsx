@@ -23,7 +23,7 @@ export default function ConnectorsDocsPage() {
 
       <p className="text-foreground mb-6">
         For what a connector <em>costs</em> to call — operation prices, the author&apos;s share,
-        subscriptions, trials and the per-wallet quota — see{' '}
+        subscriptions and the trial — see{' '}
         <Link href="/docs/subscriptions" className="text-accent-text underline">
           Connectors &amp; Subscriptions
         </Link>
@@ -231,7 +231,8 @@ export default function ConnectorsDocsPage() {
               on the 1st, which turns a monthly cap into a stampede.
             </li>
             <li>
-              <strong>The per-wallet connector quota</strong>, which grows with the wallet&apos;s age.
+              <strong>The trial&apos;s ten calls</strong>, for a caller on a trial key. A caller who pays has no such
+              count — only the operation limits above.
             </li>
             <li>
               <strong>The caller&apos;s own money</strong> — balance, allowance, or per-call cap.
@@ -239,8 +240,8 @@ export default function ConnectorsDocsPage() {
           </ul>
           <p className="text-foreground mt-3">
             Operation names in the coordinator&apos;s own rules carry the connector id
-            (<code className="bg-card-muted px-1 rounded">near-email:send</code>, or a whole-segment
-            wildcard <code className="bg-card-muted px-1 rounded">near-email:*</code> — no general
+            (<code className="bg-card-muted px-1 rounded">gmail:send</code>, or a whole-segment
+            wildcard <code className="bg-card-muted px-1 rounded">gmail:*</code> — no general
             globbing). In <em>your manifest</em> you write them without it.
           </p>
         </section>

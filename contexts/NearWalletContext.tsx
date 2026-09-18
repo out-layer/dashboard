@@ -77,69 +77,6 @@ const getNetworkConfig = (network: NetworkType) => ({
   },
 });
 
-const BASE58 = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
-
-/** Byte length of a base58 string, or -1 if it is not base58 at all. */
-function decodedBase58Length(text: string): number {
-  const bytes: number[] = [];
-  for (const char of text) {
-    let carry = BASE58.indexOf(char);
-    if (carry < 0) return -1;
-    for (let i = 0; i < bytes.length; i++) {
-      carry += bytes[i] * 58;
-      bytes[i] = carry & 0xff;
-      carry >>= 8;
-    }
-    while (carry > 0) {
-      bytes.push(carry & 0xff);
-      carry >>= 8;
-    }
-  }
-  // Every leading '1' is a leading zero byte.
-  let leadingZeros = 0;
-  for (const char of text) {
-    if (char !== '1') break;
-    leadingZeros++;
-  }
-  return bytes.length + leadingZeros;
-}
-
-/**
- * A signing key in the one spelling every verifier here accepts:
- * `ed25519:<base58>`.
- *
- * NEP-413 says a wallet returns it that way and not all of them do — some hand
- * back the bare base58. The keystore refuses anything else outright ("Invalid
- * public key format"), which reads like a broken signature rather than a
- * spelling, so the difference is settled here instead of at each caller.
- *
- * Adding the prefix is safe precisely because it is checked: a NEAR ed25519 key
- * is 32 bytes, and a string that does not decode to 32 bytes of base58 is not
- * one, whatever it is. That case throws with what actually arrived — a public
- * key is public, and naming it is the difference between a fixable report and
- * "the wallet did something".
- */
-function nearPublicKey(value: unknown): string {
-  if (typeof value !== 'string' || !value.trim()) {
-    throw new Error(
-      `The wallet returned no public key with the signature (got ${value === undefined ? 'undefined' : typeof value}). Nothing can be verified without it.`,
-    );
-  }
-  const key = value.trim();
-  // Already canonical — whatever the scheme. This function repairs a MISSING
-  // prefix; it does not decide which signature schemes exist. NEAR is adding
-  // post-quantum keys (`ml-dsa-65:<base58>`), and a normaliser that only let
-  // ed25519 through would refuse them here, far from the verifier that actually
-  // has an opinion, and with a message about spelling rather than support.
-  if (/^[a-z0-9-]+:/.test(key)) return key;
-  // Bare base58 of 32 bytes can only be ed25519 — that is the one NEAR key type
-  // of that length, so the prefix is a deduction rather than a guess.
-  if (decodedBase58Length(key) === 32) return `ed25519:${key}`;
-  throw new Error(
-    `The wallet returned a public key this app cannot read: "${key}". Expected <scheme>:<base58>, or bare base58 of 32 bytes for ed25519.`,
-  );
-}
-
 export function NearWalletProvider({ children }: { children: ReactNode }) {
   // Read network from localStorage or use default
   const getInitialNetwork = (): NetworkType => {
@@ -487,7 +424,7 @@ export function NearWalletProvider({ children }: { children: ReactNode }) {
       // on us.
       return {
         signature: result.signature,
-        publicKey: nearPublicKey(result.publicKey),
+        publicKey: result.publicKey,
         accountId: result.accountId,
       };
     } catch (error) {

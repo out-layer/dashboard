@@ -1,5 +1,6 @@
 'use client';
 
+import { shortKey } from '@/lib/short-key';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { eciesEncrypt } from '@/lib/ecies';
 import { AccessConditionBuilder } from './AccessConditionBuilder';
@@ -926,7 +927,7 @@ export function SecretsForm({
         // chose its spelling and its scheme, and without seeing it the reader is
         // left comparing a message to a format they cannot inspect.
         if (/public key/i.test(errorMessage)) {
-          errorMessage += ` — this wallet signed with "${signed.publicKey}".`;
+          errorMessage += ` — this wallet signed with "${shortKey(signed.publicKey)}".`;
         }
         throw new Error(errorMessage);
       }

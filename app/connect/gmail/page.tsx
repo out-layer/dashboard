@@ -1,5 +1,6 @@
 'use client';
 
+import { shortKey } from '@/lib/short-key';
 import React, { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { actionCreators } from '@near-js/transactions';
@@ -450,7 +451,7 @@ function ConnectGmail() {
           } catch {
             /* plain text */
           }
-          if (/public key/i.test(why)) why += ` — this wallet signed with "${signed.publicKey}".`;
+          if (/public key/i.test(why)) why += ` — this wallet signed with "${shortKey(signed.publicKey)}".`;
           throw new Error(why);
         }
         const answer = await response.json();

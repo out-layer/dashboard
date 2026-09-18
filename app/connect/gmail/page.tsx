@@ -15,16 +15,83 @@ import { gmailPolicy } from '@/lib/policies/gmail';
 import { emptyValue, fromJson, toJson, validate } from '@/lib/policies/policy';
 import type { PolicyValue } from '@/lib/policies/types';
 import { formatAccessCondition } from '@/app/secrets/components/utils';
+import { isImplicitAccount, shortAccount } from '@/lib/short-account';
 
 /**
  * Connecting a Gmail account, and looking after the connection afterwards.
  *
- * Two facts shape this page. A wallet cannot be opened from inside a promise
- * chain — only from a click — so every signature waits behind a button, which
- * is also where the reader learns what they are about to sign. And the policy
- * is sealed on chain together with the credential, so this page cannot read it
- * back: the one way to see it is to run the connector, which on chain is a
- * transaction whose answer comes back sealed to a key this page holds.
+ * **This is the reference owner page for a connector.** Every connector whose
+ * credential a person stores needs one, and every one of them faces the same
+ * constraints. The rules below are what this page is shaped by; copy them with
+ * the layout, because each exists for a failure that is invisible until it
+ * happens to a real user.
+ *
+ * ## The wallet
+ *
+ * 1. **A wallet opens from a click and from nothing else.** Not from an effect,
+ *    a promise chain, a redirect callback or a timer. Browsers only treat a real
+ *    click as a user gesture, and a wallet opened otherwise fails on its own
+ *    internals (Meteor answers `reading 'M_ID'`) — an error nobody can act on.
+ * 2. **Split the flow AT the signature.** Do every unsigned thing first — the
+ *    fetches, the key exchange — then STOP and render what happened and what the
+ *    transaction will do: what is stored, under whose account, who can read it,
+ *    how to undo it. The action goes in the button's label, never a bare
+ *    "Confirm".
+ * 3. **A refused or closed wallet returns to that screen, not to the start.**
+ *    Whatever was already obtained stays in hand, so a second attempt costs one
+ *    click and not another trip through a provider's consent.
+ * 4. **When a change needs two wallet steps, the second one is the whole
+ *    screen.** A signature that only re-sealed a row, with the transaction still
+ *    to come, is the exact place a person believes they are finished and leaves.
+ *    So: the rest of the page is hidden, the block is numbered ("Step 2 of 2"),
+ *    it says in plain words that nothing is saved yet, and it carries one
+ *    button. Detail goes behind a disclosure, not next to the button.
+ *
+ * ## Reading what is stored
+ *
+ * 5. **The page cannot read a secret back, and must not pretend otherwise.** A
+ *    row is sealed to the keystore enclave; the only door into it is running the
+ *    connector, which on chain is a transaction. The connector seals its answer
+ *    to a one-time key made here, so the chain records ciphertext only.
+ * 6. **So state is loaded on demand, behind a button — never on page load** (it
+ *    costs the owner a transaction), and never described before it is loaded.
+ *    Until then the editor says so rather than showing a default that looks like
+ *    the truth. A write that replaces state nobody has read is allowed, and it
+ *    says so in the button's own label: a person who never looked should not
+ *    find out afterwards that they replaced something.
+ * 7. **A wallet that signs on its own page comes back by redirect**, to a page
+ *    that has been reloaded and remembers nothing. Anything the answer needs —
+ *    here the reply key — must outlive that trip in `sessionStorage`, and the
+ *    outcome is fetched by hash from the RPC.
+ *
+ * ## What the reader sees
+ *
+ * 8. **The default view is the task.** Explanation lives behind `<More>`
+ *    disclosures. A person who came to change a setting should not have to read
+ *    a page about enclaves to find the field.
+ * 9. **Rare actions go last and closed** (reconnecting a provider), and expand
+ *    themselves only when something is actually pending in them.
+ * 10. **No long identifier is printed in full mid-sentence.** An agent's
+ *     implicit account is 64 characters and a post-quantum key is thousands;
+ *     both are shown short, with the whole value in a tooltip, so the eye can
+ *     still tell one from another.
+ *
+ * ## Storing safely
+ *
+ * 11. **A first connection re-checks the row before storing.** A tab left open
+ *     from before another one connected would otherwise reset an existing row's
+ *     access rule and policy.
+ * 12. **An update never rewrites what it did not mean to.** It merges through
+ *     the keystore, keeps the row's existing access rule and vault binding, and
+ *     refuses to store a result that came back missing the keys it should have
+ *     preserved.
+ * 13. **Check the connector is published on this network before offering to
+ *     connect.** Nothing downstream does: the keystore derives a public key
+ *     from a seed string, and the contract stores a row under any project id,
+ *     existing or not. A page that skips this check takes a storage deposit for
+ *     a credential nothing can ever read.
+ *
+ * ## This connector in particular
  *
  * What is stored is the refresh token and the policy. The OAuth client the
  * token belongs to is the connector's own, held as its author secret, so
@@ -70,6 +137,37 @@ interface Row {
   updated_at: number;
 }
 
+/** Who may use the row, as chips: a whitelist is the case this page writes, and
+ *  an agent's 64-character account is shown short. Anything else falls back to
+ *  the secrets page's one-line description. */
+function AccessChips({ access }: { access: unknown }) {
+  const accounts = (access as { Whitelist?: { accounts?: unknown } } | null)?.Whitelist?.accounts;
+  if (!Array.isArray(accounts)) return <span>{formatAccessCondition(access)}</span>;
+  return (
+    <span className="inline-flex flex-wrap gap-1 align-middle">
+      {accounts.map((a) => (
+        <span key={String(a)} title={String(a)} className="rounded bg-white/70 px-1.5 py-0.5 font-mono text-xs">
+          {isImplicitAccount(String(a)) ? '🤖 ' : ''}
+          {shortAccount(String(a))}
+        </span>
+      ))}
+    </span>
+  );
+}
+
+/** Detail a reader may want and does not need: closed until asked for (rule 8).
+ *  Everything a page would otherwise say "just in case" belongs in one of
+ *  these — the page then reads as the task, and the explanation is still one
+ *  click away for whoever wants it. */
+function More({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <details className="text-xs text-muted-foreground">
+      <summary className="cursor-pointer select-none hover:text-foreground">{label}</summary>
+      <div className="mt-2 space-y-2">{children}</div>
+    </details>
+  );
+}
+
 function ConnectGmail() {
   const { accountId, signAndSendTransaction, signMessage, contractId, viewMethod, network } = useNearWallet();
   const params = useSearchParams();
@@ -80,6 +178,8 @@ function ConnectGmail() {
   // ---- the row this account holds, if any ------------------------------
   /** `'unknown'`: the contract could not be read — neither "connected" nor "not yet" may be shown. */
   const [row, setRow] = useState<Row | null | 'loading' | 'unknown'>('loading');
+  /** Whether this network has the connector at all (rule 13). */
+  const [published, setPublished] = useState<boolean | null>(null);
   const [vaultId, setVaultId] = useState<string | null>(null);
 
   // ---- a first connection ---------------------------------------------
@@ -93,8 +193,13 @@ function ConnectGmail() {
 
   // ---- the policy, as this page knows it ------------------------------
   const [policy, setPolicy] = useState<PolicyValue>(emptyValue());
-  /** Whether `policy` is what the connector reported, or only what this page has typed. */
-  const [policyRead, setPolicyRead] = useState<{ present: boolean; sentToday: number; unknownKeys: string[] } | null>(null);
+  /** How the editor's value became known — `null` while it is only what this
+   *  page has typed, and nothing about the stored policy is known at all.
+   *  `read` is the connector's own answer; `saved` is what this page has just
+   *  written, which is equally certain but says nothing about `sentToday`. */
+  const [policyRead, setPolicyRead] = useState<
+    { origin: 'read' | 'saved'; present: boolean; sentToday: number; unknownKeys: string[] } | null
+  >(null);
   const [reading, setReading] = useState(false);
 
   // ---- an update of an existing row: sign, then store -----------------
@@ -131,19 +236,21 @@ function ConnectGmail() {
   const loadRow = useCallback(async () => {
     if (!accountId) return;
     try {
-      const [found, vault] = await Promise.all([
+      const [found, vault, project] = await Promise.all([
         viewMethod({ contractId, method: 'get_secrets', args: { accessor: forContract, profile: PROFILE, owner: accountId } }),
         viewMethod({ contractId, method: 'get_secret_vault', args: { accessor: forContract, profile: PROFILE, owner: accountId } }),
+        viewMethod({ contractId, method: 'get_project', args: { project_id: projectId } }),
       ]);
       setRow(found && typeof found === 'object' ? (found as Row) : null);
       setVaultId(typeof vault === 'string' ? vault : null);
+      setPublished(!!(project && typeof project === 'object' && (project as { active_version?: string }).active_version));
     } catch (e) {
       // Not `null`: that would offer a first connection to an account that may
       // well be connected, and the refusal would come only after Google.
       setRow('unknown');
       setError(`Could not read the contract: ${e instanceof Error ? e.message : String(e)}`);
     }
-  }, [accountId, contractId, forContract, viewMethod]);
+  }, [accountId, contractId, forContract, projectId, viewMethod]);
 
   useEffect(() => {
     void loadRow();
@@ -263,6 +370,12 @@ function ConnectGmail() {
         access: { Whitelist: { accounts: [accountId] } },
         vault_id: null,
       };
+      // Rule 13, beside its sibling below rather than in the markup alone:
+      // nothing downstream refuses a row stored for a project that does not
+      // exist, so the deposit would buy a credential nothing can read.
+      if (published === false) {
+        throw new Error(`The Gmail connector is not published on ${network}, so a credential stored here could never be read. Switch networks and start again.`);
+      }
       // A row that exists keeps its rule and its policy: this path would reset
       // both. A tab that started a first connection before another one finished
       // is how a first connection reaches an existing row.
@@ -286,7 +399,7 @@ function ConnectGmail() {
       // through Google.
       setStage('ready');
     }
-  }, [accountId, contractId, forContract, policy, refreshToken, rowPubkey, signAndSendTransaction, viewMethod]);
+  }, [accountId, contractId, forContract, network, policy, published, refreshToken, rowPubkey, signAndSendTransaction, viewMethod]);
 
   // ---- an existing row: read the policy by running the connector ----------
   /** The connector's answer, opened with the reply key and put into the editor. */
@@ -310,7 +423,12 @@ function ConnectGmail() {
       const fieldsOnly = Object.fromEntries(Object.entries(opened).filter(([k]) => !STATUS_META_KEYS.has(k)));
       const { value, unknownKeys } = fromJson(gmailPolicy, fieldsOnly);
       setPolicy(opened.present === false ? emptyValue() : value);
-      setPolicyRead({ present: opened.present !== false, sentToday: Number(env.output?.sent_today ?? 0), unknownKeys });
+      setPolicyRead({
+        origin: 'read',
+        present: opened.present !== false,
+        sentToday: Number(env.output?.sent_today ?? 0),
+        unknownKeys,
+      });
       setSaved(null);
     },
     [],
@@ -504,7 +622,11 @@ function ConnectGmail() {
       setUpdate(null);
       setUpdateStage('idle');
       setReconnectToken(null);
-      if ('GMAIL_POLICY' in update.keys) setPolicyRead({ present: true, sentToday: policyRead?.sentToday ?? 0, unknownKeys: [] });
+      // Written, not read: certain about the policy, and silent about
+      // anything the connector alone could tell us.
+      if ('GMAIL_POLICY' in update.keys) {
+        setPolicyRead({ origin: 'saved', present: true, sentToday: 0, unknownKeys: [] });
+      }
       void loadRow();
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -579,8 +701,20 @@ function ConnectGmail() {
         </div>
       )}
 
+      {published === false && stage === 'idle' && (
+        <div className="rounded border border-gray-200 p-4 text-sm space-y-2">
+          <p className="font-medium">The Gmail connector is not published on {network} yet.</p>
+          <p className="text-muted-foreground">
+            Connecting here would store a credential nothing can read — the project{' '}
+            <code>{projectId}</code> does not exist on this network. Switch the network at the top of the page, or
+            come back when it is published.
+          </p>
+          {row && <p className="text-muted-foreground">Your stored row is still here and is not affected.</p>}
+        </div>
+      )}
+
       {/* ---------------- a first connection ---------------- */}
-      {row === null && stage === 'idle' && !reconnectToken && (
+      {published !== false && row === null && stage === 'idle' && !reconnectToken && (
         <>
           <p className="text-sm">
             Google will ask you to allow one thing: sending mail. This connector cannot read your
@@ -601,22 +735,22 @@ function ConnectGmail() {
 
       {(stage === 'ready' || stage === 'storing') && (
         <>
-          <div className="rounded border border-gray-200 p-4 text-sm space-y-2">
-            <p className="font-medium">Google has granted the credential.</p>
-            <p>
-              Nothing has been stored yet. When you press the button, this browser seals the
-              credential and the policy below to a key whose private half exists only inside the
-              keystore enclave — <strong>not on our servers, and not in this page</strong> — and one
-              transaction writes them to the smart contract, under your account, with a rule that
-              names <strong>only {accountId}</strong>. The enclave will open it for your runs and for
-              nobody else&apos;s.
+          <div className="rounded border-2 border-amber-400 bg-amber-50 p-4 text-sm space-y-2">
+            <p className="font-medium text-amber-900">Google has granted the credential. Nothing is saved yet.</p>
+            <p className="text-amber-900">
+              Choose what the agent may do, then press the button: your browser encrypts the credential and one
+              transaction stores it under <strong>{accountId}</strong>, readable by you alone.
             </p>
-            <p>
-              When you want your agent to send mail, you add its account to that rule on the{' '}
-              <a className="underline" href="/secrets">secrets page</a> — with an expiry, if you want
-              the access to lapse on its own. You can take it back at any time, and the credential
-              never leaves your row while you do.
-            </p>
+            <More label="Who can read it, and how do I give an agent access?">
+              <p>
+                It is sealed to a key whose private half exists only inside the keystore enclave — not on our
+                servers, and not in this page.
+              </p>
+              <p>
+                To let an agent send mail you add its account on the <a className="underline" href="/secrets">secrets page</a>,
+                with an expiry if you want the access to lapse on its own. You can take it back at any time.
+              </p>
+            </More>
           </div>
           <PolicyEditor schema={gmailPolicy} value={policy} onChange={setPolicy} disabled={stage === 'storing'} />
           <button
@@ -632,160 +766,203 @@ function ConnectGmail() {
 
       {stage === 'done' && (
         <div className="space-y-4">
-          <div className="rounded border border-green-300 bg-green-50 p-4">
+          <div className="rounded border border-green-300 bg-green-50 p-4 text-sm">
             <p className="font-medium text-green-800">Gmail connected.</p>
-            <p className="mt-1 text-sm text-green-900">
-              Your credential is stored on the contract, encrypted. Only the keystore enclave can
-              open it, and only for callers your rule admits — right now that is{' '}
-              <strong>{accountId}</strong> and nobody else.
-            </p>
-            <p className="mt-1 text-sm text-green-900">{gmailPolicy.summarize(policy)}</p>
-          </div>
-          <div className="space-y-2 text-sm">
-            <p>
-              To let an agent send, add its account under Access on the row named{' '}
-              <code>{PROFILE}</code> under <code>{projectId}</code>. It then names{' '}
-              <code>{`{ account_id: "${accountId}", profile: "${PROFILE}" }`}</code> in its calls.
-              Removing the row disconnects the account.
+            <p className="mt-1 text-green-900">
+              {gmailPolicy.summarize(policy)} Nobody can send until you grant an agent.
             </p>
           </div>
           <a href="/secrets" className="inline-block rounded bg-green-600 px-4 py-2 text-sm text-white hover:bg-green-700">
-            Open the secrets page
+            Grant an agent access
           </a>
-          {txHash && <p className="text-xs text-gray-500">Transaction {txHash}</p>}
+          <More label="Where the credential lives, and what an agent names">
+            <p>
+              Row <code>{PROFILE}</code> under <code>{projectId}</code>, encrypted, readable by{' '}
+              <strong>{accountId}</strong> alone until you add someone under Access. An agent you granted names{' '}
+              <code>{`{ account_id: "${accountId}", profile: "${PROFILE}" }`}</code> in its calls. Removing the row
+              disconnects the account.
+            </p>
+            {txHash && <p>Transaction {txHash}</p>}
+          </More>
         </div>
       )}
 
       {/* ---------------- an existing connection ---------------- */}
-      {loaded && stage === 'idle' && (
+      {published !== false && loaded && stage === 'idle' && (
         <div className="space-y-4">
-          <div className="rounded border border-green-300 bg-green-50 p-4 text-sm">
-            <p className="font-medium text-green-800">Gmail is connected.</p>
-            <p className="mt-1 text-green-900">
-              Since {connectedSince?.toLocaleDateString()}
-              {updatedAt && updatedAt.getTime() !== connectedSince?.getTime() ? `, last updated ${updatedAt.toLocaleDateString()}` : ''}.
-              Who may use it: {formatAccessCondition(loaded.access)}.{' '}
-              <a className="underline" href={`/secrets?project=${encodeURIComponent(projectId)}&profile=${PROFILE}`}>Manage access</a>
-            </p>
+          <div className="rounded border border-green-300 bg-green-50 px-4 py-3 text-sm text-green-900">
+            <span className="font-medium text-green-800">Gmail is connected.</span> Who may use it:{' '}
+            <AccessChips access={loaded.access} />{' '}
+            <a className="underline" href={`/secrets?project=${encodeURIComponent(projectId)}&profile=${PROFILE}`}>
+              Manage access
+            </a>
           </div>
 
-          {saved && (
-            <div className="rounded border border-green-300 bg-green-50 p-3 text-sm text-green-900">
-              {saved}
-            </div>
-          )}
+          {saved && <div className="rounded border border-green-300 bg-green-50 px-4 py-3 text-sm text-green-900">✓ {saved}</div>}
 
-          {/* ---- the policy ---- */}
-          <div className="space-y-3">
-            {!policyRead && (
-              <div className="rounded border border-gray-200 p-4 text-sm space-y-2">
-                <p className="font-medium">Your policy is stored sealed, together with the credential.</p>
-                <p>
-                  Only the keystore enclave can open it, so this page cannot read it back. The one
-                  door into the enclave is running the connector, and on chain a run is a
-                  transaction: it attaches 0.1 NEAR, keeps the run&apos;s cost — about 0.0013 NEAR —
-                  and returns the rest. The connector answers with the policy sealed to a key this
-                  page has just created and never sends anywhere, so the chain records only
-                  ciphertext.
-                </p>
-                <button
-                  onClick={readPolicy}
-                  disabled={busy}
-                  className="rounded bg-[#cc6600] px-4 py-2 text-sm text-white disabled:opacity-50"
-                >
-                  {reading ? 'Waiting for your wallet…' : 'Show current policy (one transaction)'}
-                </button>
-                <p className="text-xs text-muted-foreground">
-                  Or set a new one without reading it — what you save below replaces whatever is stored.
-                </p>
-              </div>
-            )}
-
-            {policyRead && !policyRead.present && (
-              <p className="rounded border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
-                The connector reports <strong>no policy at all</strong> in this row, so nothing can be sent
-                from it until one is saved. The line below is what saving would set.
-              </p>
-            )}
-
-            {policyRead && (
-              <p className="text-xs text-muted-foreground">
-                Read from the connector just now. {policyRead.sentToday} message{policyRead.sentToday === 1 ? '' : 's'} sent today
-                by you — each caller has its own daily counter, and your agent&apos;s is not this one.
-                {policyRead.unknownKeys.length > 0 && (
-                  <>
-                    {' '}The stored policy also has {policyRead.unknownKeys.map((k) => <code key={k}>{k}</code>)} — a key this
-                    connector does not know, which makes it refuse to send. Saving from here drops it.
-                  </>
-                )}
-              </p>
-            )}
-
-            <PolicyEditor schema={gmailPolicy} value={policy} onChange={setPolicy} disabled={busy} defaultOpen={!!policyRead} />
-
-            {updateStage === 'idle' || (updateStage === 'signing' && update?.keys.GMAIL_POLICY !== undefined) ? (
-              <button
-                onClick={() => beginUpdate({ keys: { GMAIL_POLICY: toJson(gmailPolicy, policy) }, label: 'Policy saved.' })}
-                disabled={busy || policyErrors.length > 0}
-                className="rounded bg-[#cc6600] px-4 py-2 text-sm text-white disabled:opacity-50"
-              >
-                {updateStage === 'signing' ? 'Waiting for your signature…' : 'Save policy: sign, then store'}
-              </button>
-            ) : null}
-          </div>
-
-          {/* ---- the credential ---- */}
-          <div className="rounded border border-gray-200 p-4 text-sm space-y-2">
-            <p className="font-medium">Reconnect the Google account</p>
-            <p>
-              If Google has revoked the token — the agent reports <code>credential_expired</code> —
-              or you want to connect a different mailbox. A new consent, then one signature and one
-              transaction; the policy you have stays as it is.
-            </p>
-            {!reconnectToken ? (
-              <button onClick={() => consent('reconnect')} disabled={!clientId || busy} className="rounded border border-gray-300 px-4 py-2 text-sm disabled:opacity-50">
-                Reconnect Google account
-              </button>
-            ) : updateStage === 'idle' ? (
-              <button
-                onClick={() => beginUpdate({ keys: { GMAIL_REFRESH_TOKEN: reconnectToken }, label: 'Google account reconnected.' })}
-                disabled={busy}
-                className="rounded bg-[#cc6600] px-4 py-2 text-sm text-white disabled:opacity-50"
-              >
-                Google granted a new credential — sign to put it in your row
-              </button>
-            ) : null}
-          </div>
-
-          {/* ---- step two of any update ---- */}
-          {(updateStage === 'ready-to-store' || updateStage === 'storing') && (
-            <div className="rounded border border-gray-200 p-4 text-sm space-y-2">
-              <p className="font-medium">Signed. The keystore has re-sealed your row with the change merged in.</p>
-              {pendingSummary && (
-                <p>
-                  It holds {pendingSummary.total} key{pendingSummary.total === 1 ? '' : 's'}
-                  {pendingSummary.updated.length > 0 && (
-                    <>
-                      ; changed: {pendingSummary.updated.map((k) => <code key={k}>{k}</code>).reduce<React.ReactNode[]>((acc, el, i) => (i ? [...acc, ', ', el] : [el]), [])}
-                    </>
-                  )}
-                  .
-                </p>
-              )}
-              <p>
-                Nothing is on chain yet. One transaction stores the re-sealed row under the same
-                rule it has now — {formatAccessCondition(loaded.access)}. The storage deposit is quoted
-                again for the new size; what the row already holds counts toward it, and the
-                difference is returned.
+          {/* Rule 4: while a signed change waits for its transaction, this block
+              IS the page. The policy editor and everything else are not
+              rendered — a second control on screen here is a person deciding
+              they are done and closing the tab with nothing saved. */}
+          {updateStage === 'ready-to-store' || updateStage === 'storing' ? (
+            <div className="rounded border-2 border-amber-400 bg-amber-50 p-4 text-sm space-y-3">
+              <p className="text-base font-semibold text-amber-900">Step 2 of 2 — not saved yet</p>
+              <p className="text-amber-900">
+                {update?.keys.GMAIL_POLICY !== undefined
+                  ? 'Your signature only encrypted the new policy. It takes effect when you save it on chain.'
+                  : 'Your signature only encrypted the new credential. It takes effect when you save it on chain.'}
               </p>
               <button
                 onClick={storeUpdate}
                 disabled={updateStage === 'storing'}
-                className="rounded bg-[#cc6600] px-4 py-2 text-sm text-white disabled:opacity-50"
+                className="rounded bg-[#cc6600] px-5 py-2.5 text-sm font-medium text-white disabled:opacity-50"
               >
-                {updateStage === 'storing' ? 'Waiting for your wallet…' : 'Store on contract'}
+                {updateStage === 'storing' ? 'Waiting for your wallet…' : 'Save on chain'}
               </button>
+              <More label="What does this transaction do?">
+                {pendingSummary && (
+                  <p>
+                    The keystore re-sealed your row with the change merged in: {pendingSummary.total} key
+                    {pendingSummary.total === 1 ? '' : 's'}
+                    {pendingSummary.updated.length > 0 ? `, changed: ${pendingSummary.updated.join(', ')}` : ''}.
+                  </p>
+                )}
+                <p>
+                  One transaction stores it under the access rule it has now. The storage deposit is quoted again
+                  for the new size; what the row already holds counts toward it, and the difference is returned.
+                </p>
+              </More>
             </div>
+          ) : (
+            <>
+              {/* ---- the policy ---- */}
+              <div className="space-y-3">
+                {policyRead?.origin === 'read' && !policyRead.present && (
+                  <p className="rounded border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
+                    The connector reports <strong>no policy at all</strong> in this row, so nothing can be sent
+                    from it until one is saved.
+                  </p>
+                )}
+
+                <PolicyEditor
+                  key={policyRead ? 'read' : 'unread'}
+                  schema={gmailPolicy}
+                  value={policy}
+                  onChange={setPolicy}
+                  disabled={busy}
+                  defaultOpen={!!policyRead}
+                  headline={policyRead ? undefined : 'not loaded — what you save replaces what is stored'}
+                />
+
+                {policyRead?.origin === 'read' && policyRead.unknownKeys.length > 0 && (
+                  <p className="text-xs text-amber-800">
+                    The stored policy also has {policyRead.unknownKeys.join(', ')} — a key this connector does not
+                    know, which makes it refuse to send. Saving from here drops it.
+                  </p>
+                )}
+
+                {!policyRead && (
+                  <p className="rounded border border-red-300 bg-red-50 p-3 text-sm text-red-800">
+                    You have not read the policy stored now. Saving replaces it — whatever it allows — with what is
+                    in the form above.
+                  </p>
+                )}
+
+                <div className="flex flex-wrap items-center gap-2">
+                  {policyRead?.origin !== 'read' && (
+                    <button
+                      onClick={readPolicy}
+                      disabled={busy}
+                      className="rounded border border-gray-300 px-4 py-2 text-sm disabled:opacity-50"
+                    >
+                      {reading ? 'Waiting for your wallet…' : 'Load current policy'}
+                    </button>
+                  )}
+                  <button
+                    onClick={() => beginUpdate({ keys: { GMAIL_POLICY: toJson(gmailPolicy, policy) }, label: 'Policy saved.' })}
+                    disabled={busy || policyErrors.length > 0}
+                    className={`rounded px-4 py-2 text-sm text-white disabled:opacity-50 ${
+                      policyRead ? 'bg-[#cc6600]' : 'bg-red-700 hover:bg-red-800'
+                    }`}
+                  >
+                    {updateStage === 'signing' && update?.keys.GMAIL_POLICY !== undefined
+                      ? 'Waiting for your signature…'
+                      : policyRead
+                        ? 'Update policy'
+                        : 'Yes, overwrite the stored policy'}
+                  </button>
+                </div>
+
+                {!policyRead && (
+                  <More label="Why does loading the policy need a transaction?">
+                    <p>
+                      Your policy is stored sealed, together with the credential, and only the keystore enclave can
+                      open it — this page cannot read it back. The one door into the enclave is running the
+                      connector, and on chain a run is a transaction: it attaches 0.1 NEAR, keeps the run&apos;s
+                      cost — about 0.0013 NEAR — and returns the rest.
+                    </p>
+                    <p>
+                      The connector answers with the policy sealed to a key this page has just created and never
+                      sends anywhere, so the chain records only ciphertext.
+                    </p>
+                  </More>
+                )}
+                {policyRead && (
+                  <p className="text-xs text-muted-foreground">
+                    {policyRead.origin === 'read'
+                      ? 'Loaded from the connector just now.'
+                      : 'Saved just now — this is what the row holds; load it to see what the connector reads back.'}{' '}
+                    Saving takes two steps: a signature, then one transaction.
+                  </p>
+                )}
+              </div>
+
+              {/* Rule 9: reconnecting is rare, so it sits last and closed —
+                  unless a new credential is already in hand, when it opens
+                  itself, because what is pending must never be hidden. */}
+              <div className="border-t border-gray-200 pt-3 space-y-3">
+                {reconnectToken ? (
+                  <div className="rounded border-2 border-amber-400 bg-amber-50 p-4 text-sm space-y-2">
+                    <p className="font-medium text-amber-900">Google granted a new credential. It is not in your row yet.</p>
+                    <button
+                      onClick={() => beginUpdate({ keys: { GMAIL_REFRESH_TOKEN: reconnectToken }, label: 'Google account reconnected.' })}
+                      disabled={busy}
+                      className="rounded bg-[#cc6600] px-4 py-2 text-sm text-white disabled:opacity-50"
+                    >
+                      {updateStage === 'signing' ? 'Waiting for your signature…' : 'Sign to put it in your row'}
+                    </button>
+                  </div>
+                ) : (
+                  <More label="Reconnect the Google account">
+                    <p>
+                      If Google has revoked the token — the agent reports <code>credential_expired</code> — or you
+                      want a different mailbox. A new consent, then one signature and one transaction; the policy
+                      you have stays as it is.
+                    </p>
+                    <button
+                      onClick={() => consent('reconnect')}
+                      disabled={!clientId || busy}
+                      className="rounded border border-gray-300 px-3 py-1.5 text-sm text-foreground disabled:opacity-50"
+                    >
+                      Reconnect Google account
+                    </button>
+                  </More>
+                )}
+                <More label="Connection details">
+                  <p>
+                    Row <code>{PROFILE}</code> under <code>{projectId}</code>, connected {connectedSince?.toLocaleDateString()}
+                    {updatedAt && updatedAt.getTime() !== connectedSince?.getTime() ? `, last updated ${updatedAt.toLocaleDateString()}` : ''}.
+                    An agent you granted names <code>{`{ account_id: "${accountId}", profile: "${PROFILE}" }`}</code> in its calls.
+                  </p>
+                  {policyRead?.origin === 'read' && (
+                    <p>
+                      {policyRead.sentToday} message{policyRead.sentToday === 1 ? '' : 's'} sent today by you — each caller has
+                      its own daily counter, and your agent&apos;s is not this one.
+                    </p>
+                  )}
+                </More>
+              </div>
+            </>
           )}
         </div>
       )}

@@ -2,6 +2,10 @@
  * A connector's policy, described once so one editor can render every
  * connector's.
  *
+ * Add a connector by writing its schema (see `gmail.ts`) — `PolicyEditor`
+ * renders it, `policy.ts` turns it into the JSON the connector reads and back,
+ * and neither needs to learn anything about the connector.
+ *
  * A policy is the owner's rule about what their agent may do with a credential:
  * who it may write to, how much it may spend, which markets it may touch. Each
  * connector reads its own JSON, but the shapes repeat — a list of names, a

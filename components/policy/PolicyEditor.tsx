@@ -8,11 +8,24 @@ import { isUnrestricted, validate } from '@/lib/policies/policy';
 /**
  * One editor for every connector's policy, driven by its schema.
  *
- * Closed, it is one line: what the policy allows, in a sentence, and a way to
- * change it. Open, it is the schema's questions in order, each field with an
- * (i) for what it does and, whenever it is empty, a line saying what empty
- * permits. The sentence stays at the bottom while editing, so the owner reads
- * the consequence of a change rather than the field they changed.
+ * A policy names what an agent may do with somebody's bank, mailbox or trading
+ * account, and the person setting it is not reading a reference manual. Four
+ * decisions follow from that, and a new connector's schema inherits them for
+ * free — write `lib/policies/<connector>.ts` and this renders it.
+ *
+ * 1. **Closed, it is one line**: what the policy allows, as a sentence, and a
+ *    way to change it. A form of eight fields, open by default, reads as work
+ *    to be done and gets skipped.
+ * 2. **The summary states permissions, never restrictions.** Every field is a
+ *    narrowing of a consent already given, so an empty policy allows
+ *    everything — and a page that renders empty fields silently lets the reader
+ *    conclude the opposite. Under each empty field, `absentMeans` says what
+ *    leaving it empty permits.
+ * 3. **The sentence stays under the fields while editing**, so what is read
+ *    back is the consequence of the change rather than the field that changed.
+ * 4. **Nothing is described that has not been loaded.** A caller that has not
+ *    read the stored policy passes `headline`, and the editor says so instead
+ *    of summarising a value it does not have.
  */
 export function PolicyEditor({
   schema,
@@ -20,12 +33,16 @@ export function PolicyEditor({
   onChange,
   disabled = false,
   defaultOpen = false,
+  headline,
 }: {
   schema: PolicySchema;
   value: PolicyValue;
   onChange: (next: PolicyValue) => void;
   disabled?: boolean;
   defaultOpen?: boolean;
+  /** Shown instead of the summary while the value is not the stored one — a
+   *  page that has not loaded the policy must not describe it. */
+  headline?: string;
 }) {
   const [open, setOpen] = useState(defaultOpen);
   const summary = schema.summarize(value);
@@ -38,7 +55,13 @@ export function PolicyEditor({
       <div className="flex items-start justify-between gap-3 p-3">
         <div>
           <span className="font-medium">Policy: </span>
-          {isUnrestricted(value) ? <span className="font-medium">anyone, no limits</span> : <span>{summary}</span>}
+          {headline && isUnrestricted(value) ? (
+            <span className="text-muted-foreground">{headline}</span>
+          ) : isUnrestricted(value) ? (
+            <span className="font-medium">anyone, no limits</span>
+          ) : (
+            <span>{summary}</span>
+          )}
         </div>
         <button
           type="button"

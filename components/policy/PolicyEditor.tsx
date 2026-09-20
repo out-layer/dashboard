@@ -26,6 +26,10 @@ import { isUnrestricted, validate } from '@/lib/policies/policy';
  * 4. **Nothing is described that has not been loaded.** A caller that has not
  *    read the stored policy passes `headline`, and the editor says so instead
  *    of summarising a value it does not have.
+ * 5. **An empty policy is described by the connector, not assumed.** Most
+ *    policies narrow a consent, so empty means everything; a connector that
+ *    fails closed sets `emptySummary`, and the closed line says "nothing is
+ *    allowed yet" instead of the opposite.
  */
 export function PolicyEditor({
   schema,
@@ -58,7 +62,7 @@ export function PolicyEditor({
           {headline && isUnrestricted(value) ? (
             <span className="text-muted-foreground">{headline}</span>
           ) : isUnrestricted(value) ? (
-            <span className="font-medium">anyone, no limits</span>
+            <span className="font-medium">{schema.emptySummary ?? 'anyone, no limits'}</span>
           ) : (
             <span>{summary}</span>
           )}
@@ -108,7 +112,7 @@ function Field({
   onChange: (v: PolicyValue[string]) => void;
   disabled: boolean;
 }) {
-  const empty = value === undefined || value === '' || (Array.isArray(value) && value.length === 0);
+  const empty = value === undefined || value === '' || value === false || (Array.isArray(value) && value.length === 0);
   return (
     <div className="space-y-1">
       <label className="flex items-center gap-1.5 text-sm">
@@ -117,6 +121,18 @@ function Field({
       </label>
       {field.kind === 'list' ? (
         <ListInput field={field} entries={Array.isArray(value) ? value : []} onChange={onChange} disabled={disabled} />
+      ) : field.kind === 'choices' ? (
+        <ChoicesInput field={field} chosen={Array.isArray(value) ? value : []} onChange={onChange} disabled={disabled} />
+      ) : field.kind === 'toggle' ? (
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={value === true}
+            onChange={(e) => onChange(e.target.checked ? true : undefined)}
+            disabled={disabled}
+          />
+          <span className="text-muted-foreground">{value === true ? 'allowed' : 'not allowed'}</span>
+        </label>
       ) : field.kind === 'number' ? (
         <div className="flex items-center gap-2">
           <input
@@ -207,6 +223,72 @@ function ListInput({
         onBlur={() => draft.trim() && commit(draft)}
         className="w-full max-w-xs rounded border border-gray-300 px-2 py-1 text-sm disabled:opacity-50"
       />
+    </div>
+  );
+}
+
+/** A set from a fixed vocabulary: presets for what most people mean, then every choice under its group. */
+function ChoicesInput({
+  field,
+  chosen,
+  onChange,
+  disabled,
+}: {
+  field: PolicyField;
+  chosen: string[];
+  onChange: (v: string[] | undefined) => void;
+  disabled: boolean;
+}) {
+  const options = field.options ?? [];
+  const groups = [...new Set(options.map((o) => o.group))];
+  // Stored in the vocabulary's own order, whatever order it was clicked in: two
+  // policies that allow the same things are then the same text.
+  const put = (values: string[]) => {
+    const next = options.map((o) => o.value).filter((v) => values.includes(v));
+    onChange(next.length ? next : undefined);
+  };
+  const toggle = (value: string) => put(chosen.includes(value) ? chosen.filter((v) => v !== value) : [...chosen, value]);
+  const same = (values: string[]) => values.length === chosen.length && values.every((v) => chosen.includes(v));
+
+  return (
+    <div className="space-y-2">
+      {(field.presets?.length ?? 0) > 0 && (
+        <div className="flex flex-wrap gap-1">
+          {field.presets!.map((preset) => (
+            <button
+              key={preset.label}
+              type="button"
+              onClick={() => put(preset.values)}
+              disabled={disabled}
+              className={`rounded border px-2 py-0.5 text-xs disabled:opacity-50 ${
+                same(preset.values) ? 'border-[#cc6600] bg-amber-50 text-foreground' : 'border-gray-300 text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              {preset.label}
+            </button>
+          ))}
+          {chosen.length > 0 && (
+            <button type="button" onClick={() => onChange(undefined)} disabled={disabled} className="px-2 py-0.5 text-xs text-muted-foreground underline disabled:opacity-50">
+              clear
+            </button>
+          )}
+        </div>
+      )}
+      {groups.map((group) => (
+        <div key={group} className="space-y-0.5">
+          <p className="text-xs text-muted-foreground">{group}</p>
+          <div className="flex flex-wrap gap-x-4 gap-y-1">
+            {options
+              .filter((o) => o.group === group)
+              .map((o) => (
+                <label key={o.value} className="flex items-center gap-1.5 text-xs" title={o.value}>
+                  <input type="checkbox" checked={chosen.includes(o.value)} onChange={() => toggle(o.value)} disabled={disabled} />
+                  {o.label}
+                </label>
+              ))}
+          </div>
+        </div>
+      ))}
     </div>
   );
 }

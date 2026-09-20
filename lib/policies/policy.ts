@@ -6,7 +6,7 @@ export function fields(schema: PolicySchema): PolicyField[] {
 }
 
 function isEmpty(v: PolicyValue[string]): boolean {
-  return v === undefined || v === '' || (Array.isArray(v) && v.length === 0);
+  return v === undefined || v === '' || v === false || (Array.isArray(v) && v.length === 0);
 }
 
 /** A policy that narrows nothing. */
@@ -55,8 +55,10 @@ export function fromJson(
       continue;
     }
     if (raw === null || raw === undefined) continue;
-    if (f.kind === 'list') {
+    if (f.kind === 'list' || f.kind === 'choices') {
       value[k] = Array.isArray(raw) ? raw.map(String) : [String(raw)];
+    } else if (f.kind === 'toggle') {
+      if (raw === true) value[k] = true;
     } else if (f.kind === 'number') {
       const n = typeof raw === 'number' ? raw : Number(raw);
       if (Number.isFinite(n)) value[k] = n;
@@ -82,7 +84,11 @@ export function validate(schema: PolicySchema, value: PolicyValue): string[] {
       const n = typeof v === 'number' ? v : Number(v);
       const min = f.min ?? 1;
       if (!Number.isInteger(n) || n < min) errors.push(`${f.label}: a whole number of at least ${min}`);
+    } else if (f.kind === 'choices' && Array.isArray(v)) {
+      const known = new Set((f.options ?? []).map((o) => o.value));
+      for (const entry of v) if (!known.has(entry)) errors.push(`${f.label}: "${entry}" is not something this connector does`);
     }
   }
+  errors.push(...(schema.check?.(value) ?? []));
   return errors;
 }

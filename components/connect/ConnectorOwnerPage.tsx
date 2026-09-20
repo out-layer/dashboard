@@ -81,14 +81,19 @@ import { shortKey } from '@/lib/short-key';
  *     bar before anything else happens, so a reload cannot retry it.
  * 15. **The credential exists in this tab's memory and nowhere else** until the
  *     owner's transaction: not in storage, not in a URL, not in an error.
- * 16. **The trip to the provider must be one that always comes back.** A
- *     provider's "install" or "configure" page returns only the first time; for
- *     anyone who has been there before it is a dead end, and the person is left
- *     on somebody else's site with nothing stored. Start with the step that
- *     redirects unconditionally — the authorisation — and do whatever else the
- *     provider needs afterwards, in ANOTHER tab, with the credential already in
- *     hand here and a "check again" button (rule 15 is why it must be another
- *     tab: leaving this one drops the credential).
+ * 16. **Every trip to the provider is one the provider brings back — by its own
+ *     documented mechanism, not one invented here.** A provider's "install" or
+ *     "configure" page returns only if the provider was told where to (GitHub: a
+ *     Setup URL with "Redirect on update"); sent there without that, a person is
+ *     stranded on somebody else's site with nothing stored. The return carries
+ *     no credential and nothing in it is to be trusted — the tab's memory is
+ *     gone too (rule 15) — so the page answers it by running the authorisation
+ *     again, which a provider completes without a screen for someone who has
+ *     authorised before. See `providerReturn`.
+ * 17. **What is asked of the provider's API from the browser is asked uncached.**
+ *     GitHub answers with `max-age=60`, and a page that re-reads "what does this
+ *     credential reach" inside that minute shows the owner the answer from
+ *     before they changed it.
  */
 export interface ConnectorSpec {
   /** The route segment and the connector id: `/connect/{id}`. */
@@ -123,12 +128,13 @@ export interface ConnectorSpec {
    */
   inspect?(credential: string): Promise<CredentialView | null>;
   /**
-   * A callback that belongs to no connection started in this tab but is not an
-   * attack either — the provider's own page redirecting here after something
-   * the owner did in ANOTHER tab. Returns what to tell them, or null to treat it
-   * as the stranger's link rule 14 refuses.
+   * The provider sending the owner back after a step done on ITS pages — an app
+   * installed, repositories changed (rule 16). Not a credential and not to be
+   * trusted; it says only that the owner was just there. `resume`: a first
+   * connection carries on by authorising again; a connected account needs
+   * nothing stored, and is told `note`.
    */
-  strayCallback?(params: URLSearchParams): string | null;
+  providerReturn?(params: URLSearchParams): { resume: boolean; note: string } | null;
 
   /** Before the first click: what the provider is about to ask, and what this connector can and cannot do. */
   intro: React.ReactNode;
@@ -148,10 +154,10 @@ export interface CredentialView {
   label: string;
   starting?: PolicyValue;
   /**
-   * Something the owner still does at the provider, in another tab, while the
-   * credential waits here — choosing which repositories an app reaches. The
-   * credential does not change when they do it, so the page offers "check
-   * again" rather than another consent. `urgent` when nothing works until then.
+   * Something the owner does on the provider's own pages — choosing which
+   * repositories an app reaches. The provider brings them back (rule 16) and
+   * the page picks the connection up again. `urgent` when nothing works until
+   * it is done.
    */
   todo?: { urgent: boolean; text: string; href: string; linkLabel: string };
 }
@@ -222,9 +228,6 @@ export function ConnectorOwnerPage({ spec }: { spec: ConnectorSpec }) {
   /** The provider's credential, held until the owner signs (rule 15). */
   const [credential, setCredential] = useState<string | null>(null);
   const [credentialView, setCredentialView] = useState<CredentialView | null>(null);
-  const [rechecking, setRechecking] = useState(false);
-  /** The policy this page last suggested, as text: a re-check replaces the editor's value only while it is still that. */
-  const suggested = useRef<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [rowPubkey, setRowPubkey] = useState<string | null>(null);
   const [txHash, setTxHash] = useState<string | null>(null);
@@ -318,10 +321,7 @@ export function ConnectorOwnerPage({ spec }: { spec: ConnectorSpec }) {
         // API being slow must not cost the owner the consent they just gave.
         const seen = (await spec.inspect?.(secret).catch(() => null)) ?? null;
         setCredentialView(seen);
-        if (seen?.starting) {
-          suggested.current = JSON.stringify(seen.starting);
-          setPolicy(seen.starting);
-        }
+        if (seen?.starting) setPolicy(seen.starting);
         setCredential(secret);
         setRowPubkey(pubkey);
         setStage('ready');
@@ -332,25 +332,6 @@ export function ConnectorOwnerPage({ spec }: { spec: ConnectorSpec }) {
     },
     [accountId, coordinatorUrl, credentialKey, forCoordinator, policyKey, spec],
   );
-
-  /** From a click: ask the provider again what the credential in hand reaches (rule 16). */
-  const recheck = useCallback(async () => {
-    if (!credential || !spec.inspect) return;
-    setRechecking(true);
-    try {
-      const seen = await spec.inspect(credential).catch(() => null);
-      if (!seen) return;
-      setCredentialView(seen);
-      // The owner's edits are theirs. Only a value that is still exactly what
-      // this page proposed is replaced by the new proposal.
-      if (seen.starting && suggested.current === JSON.stringify(policy)) {
-        suggested.current = JSON.stringify(seen.starting);
-        setPolicy(seen.starting);
-      }
-    } finally {
-      setRechecking(false);
-    }
-  }, [credential, policy, spec]);
 
   // A reconnect whose row is gone by the time the provider answers has a
   // credential and nowhere to merge it. It becomes a first connection.
@@ -613,18 +594,22 @@ export function ConnectorOwnerPage({ spec }: { spec: ConnectorSpec }) {
       setError(refusal);
       return;
     }
-    if (!spec.hasCredentialIn(params)) {
-      // The provider's page sending the owner back after something done in
-      // another tab, with nothing to exchange.
-      const stray = spec.strayCallback?.(params) ?? null;
-      if (stray && !attempted.current) {
-        attempted.current = true;
-        window.history.replaceState({}, '', route);
-        setNotice(stray);
-      }
+    if (!accountId || attempted.current) return;
+    // Rule 16: back from a step on the provider's own pages. Whatever else the
+    // address carries — GitHub may add a `code` nobody here asked for — is not
+    // used. Waits for the row: a connected account needs nothing stored, a
+    // first connection carries on by authorising again, which is a navigation
+    // and not a wallet (rule 1 is about wallets).
+    const returned = spec.providerReturn?.(params) ?? null;
+    if (returned) {
+      if (row === 'loading') return;
+      attempted.current = true;
+      window.history.replaceState({}, '', route);
+      if (returned.resume && row === null && spec.configured) consent('connect');
+      else setNotice(returned.note);
       return;
     }
-    if (!accountId || attempted.current) return;
+    if (!spec.hasCredentialIn(params)) return;
     // Once, and only once. Without this latch a failure inside the exchange
     // puts the stage back to idle, the effect runs again with the code still in
     // the URL, and the state check — whose value the first pass consumed —
@@ -637,9 +622,7 @@ export function ConnectorOwnerPage({ spec }: { spec: ConnectorSpec }) {
     const callback = new URLSearchParams(params.toString());
     window.history.replaceState({}, '', route);
     if (!expected || callback.get('state') !== expected) {
-      const stray = spec.strayCallback?.(callback) ?? null;
-      if (stray) setNotice(stray);
-      else setError(`This callback did not come from a connection started in this tab, so it was not used. Press "${spec.connectLabel}" to start here.`);
+      setError(`This callback did not come from a connection started in this tab, so it was not used. Press "${spec.connectLabel}" to start here.`);
       return;
     }
     setError(null);
@@ -658,7 +641,7 @@ export function ConnectorOwnerPage({ spec }: { spec: ConnectorSpec }) {
         setError(e instanceof Error ? e.message : String(e));
         setStage('idle');
       });
-  }, [MODE_KEY, STATE_KEY, accountId, params, prepareWithCredential, redirectUri, route, spec]);
+  }, [MODE_KEY, STATE_KEY, accountId, consent, params, prepareWithCredential, redirectUri, route, row, spec]);
 
   // ---- render -------------------------------------------------------------
   const busy = updateStage === 'signing' || updateStage === 'storing' || reading;
@@ -723,18 +706,12 @@ export function ConnectorOwnerPage({ spec }: { spec: ConnectorSpec }) {
             <p className="font-medium text-amber-900">{spec.provider} has granted the credential. Nothing is saved yet.</p>
             {credentialView && <p className="text-amber-900">{credentialView.label}</p>}
             {credentialView?.todo && (
-              <div className={credentialView.todo.urgent ? 'rounded border border-amber-500 bg-white/70 p-3 space-y-2' : 'space-y-1'}>
-                <p className={credentialView.todo.urgent ? 'font-medium text-amber-900' : 'text-amber-900'}>{credentialView.todo.text}</p>
-                <div className="flex flex-wrap items-center gap-3">
-                  {/* Another tab, always: this one holds the credential (rule 15). */}
-                  <a className="underline text-amber-900" href={credentialView.todo.href} target="_blank" rel="noopener noreferrer">
-                    {credentialView.todo.linkLabel} ↗
-                  </a>
-                  <button onClick={recheck} disabled={rechecking || stage === 'storing'} className="rounded border border-amber-500 px-3 py-1 text-xs text-amber-900 disabled:opacity-50">
-                    {rechecking ? 'Checking…' : 'Done there — check again'}
-                  </button>
-                </div>
-              </div>
+              <p className={credentialView.todo.urgent ? 'rounded border border-amber-500 bg-white/70 p-3 font-medium text-amber-900' : 'text-amber-900'}>
+                {credentialView.todo.text}{' '}
+                <a className="underline" href={credentialView.todo.href}>
+                  {credentialView.todo.linkLabel}
+                </a>
+              </p>
             )}
             <p className="text-amber-900">
               Choose what the agent may do, then press the button: your browser encrypts the credential and one transaction stores it

@@ -15,6 +15,10 @@ import { NextRequest, NextResponse } from 'next/server';
  * `NEXT_PUBLIC_GITHUB_APP_SLUG` carry the public half to the browser, which
  * builds the links to GitHub from them.
  *
+ * The app's registration is part of the flow: Callback URL and Setup URL are
+ * both `<origin>/connect/github`, "Redirect on update" is ON, and "Request user
+ * authorization (OAuth) during installation" is OFF — see the page's header.
+ *
  * The app has "Expire user authorization tokens" OFF, so what comes back is one
  * token with no expiry and no refresh token. A token that DOES carry an expiry
  * means that setting was turned on, and the connection would die within hours:

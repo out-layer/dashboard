@@ -81,6 +81,14 @@ import { shortKey } from '@/lib/short-key';
  *     bar before anything else happens, so a reload cannot retry it.
  * 15. **The credential exists in this tab's memory and nowhere else** until the
  *     owner's transaction: not in storage, not in a URL, not in an error.
+ * 16. **The trip to the provider must be one that always comes back.** A
+ *     provider's "install" or "configure" page returns only the first time; for
+ *     anyone who has been there before it is a dead end, and the person is left
+ *     on somebody else's site with nothing stored. Start with the step that
+ *     redirects unconditionally — the authorisation — and do whatever else the
+ *     provider needs afterwards, in ANOTHER tab, with the credential already in
+ *     hand here and a "check again" button (rule 15 is why it must be another
+ *     tab: leaving this one drops the credential).
  */
 export interface ConnectorSpec {
   /** The route segment and the connector id: `/connect/{id}`. */
@@ -113,7 +121,14 @@ export interface ConnectorSpec {
    * it acts as, what it reaches — and a policy to start the editor from. Best
    * effort: a failure here is not a reason to refuse the connection.
    */
-  inspect?(credential: string): Promise<{ label: string; starting?: PolicyValue } | null>;
+  inspect?(credential: string): Promise<CredentialView | null>;
+  /**
+   * A callback that belongs to no connection started in this tab but is not an
+   * attack either — the provider's own page redirecting here after something
+   * the owner did in ANOTHER tab. Returns what to tell them, or null to treat it
+   * as the stranger's link rule 14 refuses.
+   */
+  strayCallback?(params: URLSearchParams): string | null;
 
   /** Before the first click: what the provider is about to ask, and what this connector can and cannot do. */
   intro: React.ReactNode;
@@ -126,6 +141,19 @@ export interface ConnectorSpec {
   usage?: { key: string; say(count: number): string };
   /** Anything the provider needs looked after outside this page — e.g. which repositories an app reaches. */
   connectedExtra?: React.ReactNode;
+}
+
+/** What a credential turned out to be. */
+export interface CredentialView {
+  label: string;
+  starting?: PolicyValue;
+  /**
+   * Something the owner still does at the provider, in another tab, while the
+   * credential waits here — choosing which repositories an app reaches. The
+   * credential does not change when they do it, so the page offers "check
+   * again" rather than another consent. `urgent` when nothing works until then.
+   */
+  todo?: { urgent: boolean; text: string; href: string; linkLabel: string };
 }
 
 const REPLY_TTL_MS = 10 * 60 * 1000;
@@ -193,7 +221,11 @@ export function ConnectorOwnerPage({ spec }: { spec: ConnectorSpec }) {
   const [stage, setStage] = useState<Stage>('idle');
   /** The provider's credential, held until the owner signs (rule 15). */
   const [credential, setCredential] = useState<string | null>(null);
-  const [credentialLabel, setCredentialLabel] = useState<string | null>(null);
+  const [credentialView, setCredentialView] = useState<CredentialView | null>(null);
+  const [rechecking, setRechecking] = useState(false);
+  /** The policy this page last suggested, as text: a re-check replaces the editor's value only while it is still that. */
+  const suggested = useRef<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [rowPubkey, setRowPubkey] = useState<string | null>(null);
   const [txHash, setTxHash] = useState<string | null>(null);
   const attempted = useRef(false);
@@ -284,9 +316,12 @@ export function ConnectorOwnerPage({ spec }: { spec: ConnectorSpec }) {
         const { pubkey } = await pubkeyResponse.json();
         // What it is, before it is stored. Never a reason to fail: a provider's
         // API being slow must not cost the owner the consent they just gave.
-        const seen = await spec.inspect?.(secret).catch(() => null);
-        setCredentialLabel(seen?.label ?? null);
-        if (seen?.starting) setPolicy(seen.starting);
+        const seen = (await spec.inspect?.(secret).catch(() => null)) ?? null;
+        setCredentialView(seen);
+        if (seen?.starting) {
+          suggested.current = JSON.stringify(seen.starting);
+          setPolicy(seen.starting);
+        }
         setCredential(secret);
         setRowPubkey(pubkey);
         setStage('ready');
@@ -297,6 +332,25 @@ export function ConnectorOwnerPage({ spec }: { spec: ConnectorSpec }) {
     },
     [accountId, coordinatorUrl, credentialKey, forCoordinator, policyKey, spec],
   );
+
+  /** From a click: ask the provider again what the credential in hand reaches (rule 16). */
+  const recheck = useCallback(async () => {
+    if (!credential || !spec.inspect) return;
+    setRechecking(true);
+    try {
+      const seen = await spec.inspect(credential).catch(() => null);
+      if (!seen) return;
+      setCredentialView(seen);
+      // The owner's edits are theirs. Only a value that is still exactly what
+      // this page proposed is replaced by the new proposal.
+      if (seen.starting && suggested.current === JSON.stringify(policy)) {
+        suggested.current = JSON.stringify(seen.starting);
+        setPolicy(seen.starting);
+      }
+    } finally {
+      setRechecking(false);
+    }
+  }, [credential, policy, spec]);
 
   // A reconnect whose row is gone by the time the provider answers has a
   // credential and nowhere to merge it. It becomes a first connection.
@@ -559,7 +613,18 @@ export function ConnectorOwnerPage({ spec }: { spec: ConnectorSpec }) {
       setError(refusal);
       return;
     }
-    if (!spec.hasCredentialIn(params) || !accountId || attempted.current) return;
+    if (!spec.hasCredentialIn(params)) {
+      // The provider's page sending the owner back after something done in
+      // another tab, with nothing to exchange.
+      const stray = spec.strayCallback?.(params) ?? null;
+      if (stray && !attempted.current) {
+        attempted.current = true;
+        window.history.replaceState({}, '', route);
+        setNotice(stray);
+      }
+      return;
+    }
+    if (!accountId || attempted.current) return;
     // Once, and only once. Without this latch a failure inside the exchange
     // puts the stage back to idle, the effect runs again with the code still in
     // the URL, and the state check — whose value the first pass consumed —
@@ -572,7 +637,9 @@ export function ConnectorOwnerPage({ spec }: { spec: ConnectorSpec }) {
     const callback = new URLSearchParams(params.toString());
     window.history.replaceState({}, '', route);
     if (!expected || callback.get('state') !== expected) {
-      setError(`This callback did not come from a connection started in this tab, so it was not used. Press "${spec.connectLabel}" to start here.`);
+      const stray = spec.strayCallback?.(callback) ?? null;
+      if (stray) setNotice(stray);
+      else setError(`This callback did not come from a connection started in this tab, so it was not used. Press "${spec.connectLabel}" to start here.`);
       return;
     }
     setError(null);
@@ -604,6 +671,8 @@ export function ConnectorOwnerPage({ spec }: { spec: ConnectorSpec }) {
       <PageHeader title={spec.title} description={spec.description} />
 
       {!spec.configured && <p className="text-sm text-red-600">{spec.notConfigured}</p>}
+
+      {notice && <p className="rounded border border-blue-200 bg-blue-50 p-3 text-sm text-blue-900">{notice}</p>}
 
       {row === 'loading' && stage === 'idle' && <p className="text-sm text-muted-foreground">Checking whether this account is connected…</p>}
 
@@ -652,7 +721,21 @@ export function ConnectorOwnerPage({ spec }: { spec: ConnectorSpec }) {
         <>
           <div className="rounded border-2 border-amber-400 bg-amber-50 p-4 text-sm space-y-2">
             <p className="font-medium text-amber-900">{spec.provider} has granted the credential. Nothing is saved yet.</p>
-            {credentialLabel && <p className="text-amber-900">{credentialLabel}</p>}
+            {credentialView && <p className="text-amber-900">{credentialView.label}</p>}
+            {credentialView?.todo && (
+              <div className={credentialView.todo.urgent ? 'rounded border border-amber-500 bg-white/70 p-3 space-y-2' : 'space-y-1'}>
+                <p className={credentialView.todo.urgent ? 'font-medium text-amber-900' : 'text-amber-900'}>{credentialView.todo.text}</p>
+                <div className="flex flex-wrap items-center gap-3">
+                  {/* Another tab, always: this one holds the credential (rule 15). */}
+                  <a className="underline text-amber-900" href={credentialView.todo.href} target="_blank" rel="noopener noreferrer">
+                    {credentialView.todo.linkLabel} ↗
+                  </a>
+                  <button onClick={recheck} disabled={rechecking || stage === 'storing'} className="rounded border border-amber-500 px-3 py-1 text-xs text-amber-900 disabled:opacity-50">
+                    {rechecking ? 'Checking…' : 'Done there — check again'}
+                  </button>
+                </div>
+              </div>
+            )}
             <p className="text-amber-900">
               Choose what the agent may do, then press the button: your browser encrypts the credential and one transaction stores it
               under <strong>{accountId}</strong>, readable by you alone.

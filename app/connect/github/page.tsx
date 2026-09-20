@@ -24,15 +24,21 @@ import { githubPolicy, githubStartingPolicy } from '@/lib/policies/github';
  * person reads last mentions none of them. Said BEFORE they leave for GitHub:
  * otherwise they come back believing they lent their gists and nothing else.
  *
- * **One trip for a first connection.** The app requests authorisation during
- * installation, so "Connect" goes to the installation page and GitHub carries
- * the person through both. Reconnecting — the app already installed — goes
- * straight to authorisation. Both return here with a `code`.
+ * **Authorise first, choose repositories second.** GitHub's installation page
+ * redirects back only on the very FIRST install; for an account that has the app
+ * already it is a settings page that ends on GitHub, and a person sent there is
+ * stranded with nothing stored. Authorisation always comes back — at once, with
+ * no screen at all, for someone who authorised before. So "Connect" is the
+ * authorisation, and with the token in hand the page asks GitHub what it
+ * reaches: when that is nothing, it links to the installation page IN ANOTHER
+ * TAB and offers "check again". The token does not change when repositories do.
  *
- * **An installation can come back without a code.** On an organisation the
- * person does not own, GitHub files a REQUEST for its owners and returns with
- * `setup_action=request`. That is not a failure and not a connection; the page
- * says what it is and what happens next.
+ * **That other tab comes back here too**, because the app requests authorisation
+ * during installation: GitHub redirects it to this page with a `code` the first
+ * tab never asked for. It is met with a note — go back to the tab you were in —
+ * not with the refusal a stranger's link gets, and the code is left to expire.
+ * On an organisation the person does not own GitHub files a REQUEST for its
+ * owners instead (`setup_action=request`), and the note says so.
  *
  * **The credential is one token that does not expire**, and there is no author
  * secret: the connector never refreshes anything. `exchange` refuses a token
@@ -54,13 +60,21 @@ async function inspect(token: string) {
   const login: string | null = typeof user?.login === 'string' ? user.login : null;
   const reachable: string[] = Array.isArray(repos) ? repos.map((r) => r?.full_name).filter((n): n is string => typeof n === 'string') : [];
   if (!login) return null;
-  const reach =
-    reachable.length === 0
-      ? 'It reaches no repository yet — the app is installed on none. Gists still work; repositories are added on GitHub at any time.'
-      : `It reaches ${reachable.length === 30 ? '30 or more repositories' : reachable.length === 1 ? 'one repository' : `${reachable.length} repositories`}: ${reachable.slice(0, 5).join(', ')}${reachable.length > 5 ? ', …' : ''}.`;
+  const none = reachable.length === 0;
+  const reach = none
+    ? ''
+    : ` It reaches ${reachable.length === 30 ? '30 or more repositories' : reachable.length === 1 ? 'one repository' : `${reachable.length} repositories`}: ${reachable.slice(0, 5).join(', ')}${reachable.length > 5 ? ', …' : ''}.`;
   return {
-    label: `Connected as @${login}. Everything the agent does will appear under this name. ${reach}`,
+    label: `Connected as @${login}. Everything the agent does will appear under this name.${reach}`,
     starting: githubStartingPolicy(login, reachable),
+    todo: {
+      urgent: none,
+      text: none
+        ? 'It reaches no repository yet: the OutLayer app is not installed on any. Choose them on GitHub — it opens in another tab, and this one keeps your place. (Gists work without it.)'
+        : 'Which repositories it reaches is set on GitHub, and can be changed now or later:',
+      href: INSTALL_URL,
+      linkLabel: none ? 'Choose repositories on GitHub' : 'change repositories',
+    },
   };
 }
 
@@ -76,10 +90,9 @@ const spec: ConnectorSpec = {
   configured: Boolean(CLIENT_ID && APP_SLUG),
   notConfigured: 'This deployment has no GitHub App configured, so the connection cannot be started.',
 
-  consentUrl: ({ mode, state, redirectUri }) => {
-    // A first connection installs AND authorises in one trip; a reconnect has
-    // the app installed already and only needs a new authorisation.
-    if (mode === 'connect') return `${INSTALL_URL}?state=${encodeURIComponent(state)}`;
+  consentUrl: ({ state, redirectUri }) => {
+    // Always the authorisation, never the installation page: this is the trip
+    // that comes back whatever the account's history with the app is.
     const url = new URL('https://github.com/login/oauth/authorize');
     url.searchParams.set('client_id', CLIENT_ID);
     url.searchParams.set('redirect_uri', redirectUri);
@@ -87,10 +100,19 @@ const spec: ConnectorSpec = {
     return url.toString();
   },
 
-  callbackRefusal: (params) => {
-    if (params.get('setup_action') === 'request') {
-      return 'GitHub sent an installation REQUEST to the owners of that organisation — you are not one of them, so nothing is connected yet. When an owner approves it, come back and press Connect again.';
+  // The installation page, opened in another tab from the step above, ends here.
+  strayCallback: (params) => {
+    const action = params.get('setup_action');
+    if (action === 'request') {
+      return 'GitHub sent an installation REQUEST to the owners of that organisation — you are not one of them, so those repositories are not reachable yet. You can close this tab; in the tab where you were connecting, press “check again” once an owner has approved it.';
     }
+    if (action === 'install' || action === 'update') {
+      return 'The repositories are saved on GitHub. You can close this tab — go back to the one where you were connecting and press “check again”.';
+    }
+    return null;
+  },
+
+  callbackRefusal: (params) => {
     const refused = params.get('error');
     if (!refused) return null;
     return refused === 'access_denied'
@@ -121,16 +143,16 @@ const spec: ConnectorSpec = {
       </p>
       <ol className="list-decimal space-y-1 pl-5">
         <li>
-          <strong>On GitHub, next:</strong> which repositories the OutLayer app may touch at all. Pick the few you mean — a repository
-          you do not pick does not exist as far as the agent is concerned, and nothing on this page can change that.
+          <strong>On GitHub:</strong> which repositories the OutLayer app may touch at all. Pick the few you mean — a repository you do
+          not pick does not exist as far as the agent is concerned, and nothing on this page can change that.
         </li>
         <li>
-          <strong>Back here:</strong> what the agent may do inside those — read, comment, open pull requests — and how much a day.
+          <strong>Here:</strong> what the agent may do inside those — read, comment, open pull requests — and how much a day.
         </li>
       </ol>
       <p className="text-muted-foreground">
-        GitHub&apos;s last screen lists only &ldquo;Gists&rdquo;. That is expected: access to repositories is granted by the step before
-        it, where you pick them, and GitHub does not repeat it.
+        The button takes you to GitHub to authorise the app and brings you straight back. Its screen lists only &ldquo;Gists&rdquo; —
+        that is expected: repositories are chosen separately, and this page shows you which ones it reaches as soon as you return.
       </p>
       <More label="What can it never do, whatever I allow?">
         <p>
@@ -141,7 +163,7 @@ const spec: ConnectorSpec = {
       </More>
     </>
   ),
-  connectLabel: 'Choose repositories on GitHub',
+  connectLabel: 'Connect GitHub account',
   reconnectLabel: 'Reconnect the GitHub account',
   reconnectWhy: (
     <p>

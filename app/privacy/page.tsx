@@ -108,21 +108,38 @@ export default function PrivacyPage() {
           <ul className="list-disc pl-6 space-y-2">
             <li>
               <strong>Data accessed:</strong> the authorisation you grant, and the content of the messages
-              your agent asks to send, such as recipients, subject, body and attachments.
+              your agent asks to send, such as recipients, subject, body and attachments. Nothing is read
+              back out of your mailbox: a send-only scope returns no message, no address book and no profile
+              data. The only derived data we hold is a count of messages sent per day, which your own limit is
+              measured against; it is a number and a date, with no content and no recipients in it.
             </li>
             <li>
               <strong>Use:</strong> solely to send the messages your agent requests, within the rules you
-              configure for it.
+              configure for it. Neither the authorisation nor message content is used for any other purpose,
+              including advertising, credit or lending decisions, or profiling.
             </li>
             <li>
-              <strong>Storage and protection:</strong> the authorisation is stored encrypted and is used only
-              inside hardware-isolated environments.
+              <strong>Storage and protection:</strong> the authorisation is encrypted in your browser, before
+              it reaches any server of ours, to a key held by a hardware-isolated environment (an Intel TDX
+              confidential virtual machine). Only code whose hash your record authorises, attested by Intel,
+              receives the key to decrypt it; our operators cannot. Message content exists only in that
+              environment&rsquo;s memory for the duration of the send.
+            </li>
+            <li>
+              <strong>Retention and deletion:</strong> the encrypted authorisation is kept until you delete
+              the record or revoke the connector at Google &mdash; either alone ends access. Message content
+              is not retained once the send returns. Deleting the record removes it from the contract&rsquo;s
+              state; because the record lives on a public blockchain, the transaction that stored the
+              ciphertext remains in that chain&rsquo;s history, where it stays undecryptable and, once you
+              have revoked at Google, of no use to anyone.
             </li>
             <li>
               <strong>Sharing:</strong> message content is transmitted to Google to deliver it. We do not sell
-              Google user data, use it for advertising, or use it to develop, improve or train generalised
-              artificial-intelligence or machine-learning models. We do not allow humans to read it, except
-              with your consent, for security purposes, or to comply with applicable law.
+              Google user data or transfer it to data brokers, advertisers or any other third party, and we do
+              not use it for advertising. We do not use it to develop, improve or train artificial-intelligence
+              or machine-learning models, and we do not transfer it to any third-party service that would use
+              it to train theirs. We do not allow humans to read it, except with your consent, for security
+              purposes, or to comply with applicable law.
             </li>
             <li>
               <strong>Revoking access:</strong> you can revoke the connector&rsquo;s access at any time at{' '}

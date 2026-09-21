@@ -10,6 +10,7 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { CodeBlock } from '@/components/ui/code-block';
 import { HashChip } from '@/components/ui/hash-chip';
 import { getCoordinatorApiUrl } from '@/lib/api';
+import { checkOpAgainstHash, type OpCheck } from '@/lib/approval-hash';
 import Link from 'next/link';
 import { findKeyForWallets, saveWalletKey } from '@/lib/wallet-keys';
 
@@ -18,6 +19,10 @@ interface PendingApproval {
   wallet_id: string;
   request_type: string;
   request_data: Record<string, unknown>;
+  /** The exact canonical string `request_hash` is the sha256 of, as the coordinator sent it. */
+  op_canonical?: string | null;
+  /** That string hashed HERE and compared with `request_hash` (see lib/approval-hash). */
+  op_check?: OpCheck;
   required_approvals: number;
   approved_count: number;
   request_hash: string;
@@ -109,7 +114,11 @@ function WalletApprovalsContent() {
         const data = await resp.json();
         if (data.pending_approvals) {
           for (const pa of data.pending_approvals) {
-            allApprovals.push({ ...pa, wallet_pubkey: pubkey });
+            // Checked when loaded, not when clicked: the signature has to follow the
+            // click with nothing awaited in between, and the page has to be able to
+            // say "do not sign this" before anyone reaches for the button.
+            const op_check = await checkOpAgainstHash(pa.op_canonical, pa.request_hash);
+            allApprovals.push({ ...pa, wallet_pubkey: pubkey, op_check });
           }
         }
       } catch {
@@ -226,6 +235,10 @@ function WalletApprovalsContent() {
       // binds the vote to THIS wallet (no cross-wallet replay). Must match the keystore.
       if (!approval.wallet_pubkey) {
         throw new Error('Missing wallet_pubkey for this approval — open the approval detail to approve.');
+      }
+      // Never sign a hash this browser could not tie to the operation on screen.
+      if (approval.op_check?.status !== 'match') {
+        throw new Error('The operation shown could not be matched to the hash you would sign. Nothing was signed.');
       }
       const message = `approve:${approvalId}:${approval.wallet_pubkey}:${approval.request_hash}`;
 
@@ -472,16 +485,37 @@ function WalletApprovalsContent() {
                   </div>
                 </div>
 
-                {/* Canonical operation — exactly what your approval signs off on */}
+                {/* What is shown as "what you sign" is the parse of the very string this
+                    browser hashed and matched to `request_hash`. The request is only how the
+                    caller asked — for a limit order it has a price and a quantity, while the
+                    amounts exist only in the op. */}
  <div className="mt-3">
-                  <CodeBlock
-                    code={JSON.stringify(approval.request_data, null, 2)}
-                    language="json"
-                    filename={`${approval.request_type} — requested operation`}
-                  />
+                  {approval.op_check?.status === 'match' ? (
+                    <>
+                      <CodeBlock
+                        code={JSON.stringify(approval.op_check.op, null, 2)}
+                        language="json"
+                        filename={`${approval.request_type} — the operation you sign`}
+                      />
  <div className="mt-2 flex flex-wrap items-center gap-1.5 text-xs text-faint-foreground">
-                    Signed hash: <HashChip value={approval.request_hash} trim={10} />
- <span>— your NEP-413 approval signs this exact hash; it commits to the operation above.</span>
+                        Signed hash: <HashChip value={approval.request_hash} trim={10} />
+ <span>— checked in this browser: it is the sha256 of the operation above. Your NEP-413 approval signs this exact hash.</span>
+                      </div>
+                    </>
+                  ) : (
+ <p className="text-sm text-destructive-text">
+                      {approval.op_check?.status === 'mismatch'
+                        ? 'Do not approve: the hash you would sign is NOT the hash of the operation the server describes.'
+                        : 'This request carries no canonical operation to check the hash against, so it cannot be approved from this page.'}
+                      {' '}Signed hash: <HashChip value={approval.request_hash} trim={10} />
+                    </p>
+                  )}
+ <div className="mt-3">
+                    <CodeBlock
+                      code={JSON.stringify(approval.request_data, null, 2)}
+                      language="json"
+                      filename={`${approval.request_type} — as it was requested`}
+                    />
                   </div>
                 </div>
 
@@ -501,7 +535,7 @@ function WalletApprovalsContent() {
                       </button>
                       <button
                         onClick={() => handleApprove(approval.id)}
-                        disabled={approvingId === approval.id}
+                        disabled={approvingId === approval.id || approval.op_check?.status !== 'match'}
  className="px-4 py-2 bg-accent text-on-accent text-sm rounded-lg font-semibold hover:bg-accent-hover disabled:opacity-50 cursor-pointer"
                       >
                         {approvingId === approval.id ? 'Processing...' : 'Approve'}

@@ -734,6 +734,22 @@ near view worker.outlayer.near is_measurements_approved '{
         </div>
       </section>
 
+      {/* Approving an agent's action */}
+ <section className="mb-12">
+ <AnchorHeading id="approving-agent-actions">Approving an Agent&apos;s Action</AnchorHeading>
+ <p className="text-foreground mb-4">
+          When a custody wallet&apos;s policy asks you to confirm an operation, the request comes from your agent,
+          not from the TEE &mdash; and you do not need to trust where it came from. What the TEE guarantees is that
+          nothing executes unless your policy allows it and your approvers signed this exact operation. Your signature is bound to the SHA-256 of the operation; your browser recomputes
+          that hash before Approve is enabled; and the keystore, inside Intel TDX, evaluates your policy again and
+          verifies your approvers&apos; signatures over that same hash before it signs anything. A forged request
+          can do nothing a genuine one could not. Details and a command to check the hash yourself:{' '}
+          <Link href="/docs/agent-custody#verify-approval" className="text-accent-text hover:underline">
+            What you sign when you approve
+          </Link>.
+        </p>
+      </section>
+
       {/* What Operator Cannot Do */}
  <section className="mb-12">
  <AnchorHeading id="operator-limits">What the Operator Cannot Do</AnchorHeading>

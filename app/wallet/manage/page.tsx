@@ -351,6 +351,14 @@ function WalletManagePage() {
                   </div>
                 </div>
 
+                {wallet.frozen && (
+ <p className="mt-2 text-xs text-muted-foreground">
+                    Frozen: the agent can start nothing new. Orders it already placed stay open and keep filling &mdash;
+                    a freeze does not cancel them. Cancelling is never frozen and the agent&apos;s API key still works for
+                    it: have the agent (or do it yourself with that key) call <code className="bg-card-muted px-1 rounded">POST /wallet/v1/limit-orders/cancel-all</code>.
+                  </p>
+                )}
+
                 {/* API Key (local browser storage) */}
  <div className="mt-3 pt-3 border-t border-border">
  <div className="mb-2">

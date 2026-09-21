@@ -34,6 +34,11 @@ export interface PolicyForm {
   swap_enabled: boolean;
   /** cross_chain_withdraw: 1Click swap+bridge — Trusted; the riskiest, irreversible exit. */
   cross_chain_withdraw_enabled: boolean;
+  /** limit_order: a swap rested on 1Click at the owner's price. Authorised once,
+   *  paid out later with no further signature — so it is gated like an exit.
+   *  ONE switch in the form drives both halves of the gate: the default-DENY
+   *  capability and the `limit_order` transaction type. */
+  limit_order_enabled: boolean;
   /** sign_message: comma-separated NEP-413 recipient allowlist (default-DENY; never fund-moving). */
   sign_message_allowed_recipients: string;
   /** evm_sign: allow EVM signing (EIP-712 / EIP-191 / raw tx). At the engine level this is
@@ -79,6 +84,7 @@ export const DEFAULT_POLICY: PolicyForm = {
   payment_check_enabled: false,
   swap_enabled: false,
   cross_chain_withdraw_enabled: false,
+  limit_order_enabled: false,
   sign_message_allowed_recipients: '',
   // EVM-signing checkbox starts UNCHECKED — fund-moving, so opt-in like every
   // other capability (matches the engine's default-DENY). A dashboard policy
@@ -116,6 +122,25 @@ export function yoctoToNear(yocto: string): string {
 // Build policy rules from form state (everything except approval)
 // ============================================================================
 
+/**
+ * The transaction types a form will SAVE, or `null` when it saves no type rule
+ * at all (an empty box: no restriction). `limit_order` is never taken from the
+ * box — the capability switch owns it. One function for the builder and for the
+ * form's "permits NO transaction type" warning, so the warning cannot describe
+ * a different list than the one that is saved.
+ */
+export function effectiveTransactionTypes(
+  form: Pick<PolicyForm, 'transaction_types' | 'limit_order_enabled'>,
+): string[] | null {
+  if (!form.transaction_types.trim()) return null;
+  const types = form.transaction_types.split(',').map((t) => t.trim()).filter((t) => t && t !== 'limit_order');
+  if (form.limit_order_enabled) types.push('limit_order');
+  return types;
+}
+
+/** The form-string spelling of `transaction_types: []` (see `parsePolicyResponse`). */
+export const NO_TRANSACTION_TYPES = ',';
+
 export function buildPolicyRules(
   form: PolicyForm,
   apiKeyHash?: string,
@@ -142,7 +167,16 @@ export function buildPolicyRules(
   }
 
   if (form.transaction_types.trim()) {
-    rules.transaction_types = form.transaction_types.split(',').map((t) => t.trim()).filter(Boolean);
+    // `limit_order` is not a checkbox of its own: the capability switch owns it,
+    // so the two halves of the gate cannot be set against each other (a
+    // capability without the type — or the type without the capability — reads
+    // as "enabled" in the form and is refused by the keystore).
+    //
+    // The rule is emitted whenever the box held ANYTHING, `limit_order` included
+    // — even if what is left is an empty list. An owner who restricted the
+    // wallet to limit orders and then switches them off has a wallet that may
+    // do nothing, not one that may do everything.
+    rules.transaction_types = effectiveTransactionTypes(form);
   }
 
   if (form.allowed_tokens && form.allowed_tokens !== '*') {
@@ -190,6 +224,9 @@ export function buildPolicyRules(
   }
   if (form.cross_chain_withdraw_enabled) {
     capabilities.cross_chain_withdraw = { allowed: true };
+  }
+  if (form.limit_order_enabled) {
+    capabilities.limit_order = { allowed: true };
   }
   const smRecipients = form.sign_message_allowed_recipients.split(',').map((r) => r.trim()).filter(Boolean);
   if (smRecipients.length > 0) {
@@ -283,7 +320,18 @@ export function parsePolicyResponse(
     // unrelated, changed what the wallet may do".
     address_mode: rules.addresses ? (addr.mode || 'whitelist') : 'none',
     addresses: (addr.list || []).join(', '),
-    transaction_types: (rules.transaction_types || []).join(','),
+    // `limit_order` stays IN this string even though no checkbox shows it (the
+    // capability switch owns it). Cut out here, a policy whose only type is
+    // `limit_order` loads as an empty box — which means "no restriction" — and
+    // the next Save would drop the rule and permit every other type.
+    //
+    // A stored EMPTY list is "no type is permitted", and an empty box is "no
+    // restriction" — opposites. It loads as a bare separator: non-empty, so
+    // `buildPolicyRules` still emits the rule, and holding no type, so the
+    // rule it emits is `[]` again.
+    transaction_types: rules.transaction_types
+      ? (rules.transaction_types.join(',') || NO_TRANSACTION_TYPES)
+      : '',
     allowed_tokens: (rules.allowed_tokens || []).join(',') || '*',
     allowed_hours_start: tr.allowed_hours?.[0]?.toString() || '',
     allowed_hours_end: tr.allowed_hours?.[1]?.toString() || '',
@@ -300,6 +348,7 @@ export function parsePolicyResponse(
     payment_check_enabled: caps.payment_check?.allowed === true,
     swap_enabled: caps.swap?.allowed === true,
     cross_chain_withdraw_enabled: caps.cross_chain_withdraw?.allowed === true,
+    limit_order_enabled: caps.limit_order?.allowed === true,
     sign_message_allowed_recipients: (caps.sign_message?.allowed_recipients || []).join(', '),
     // evm_sign is DEFAULT-DENY: the form shows it enabled only when the policy
     // explicitly set allowed:true.

@@ -370,12 +370,12 @@ export default function AgentCustodyPage() {
               </tr>
  <tr className="border-b">
  <td className="px-4 py-2 font-semibold">Transaction types</td>
- <td className="px-4 py-2">Restrict allowed operations: <code className="bg-card-muted px-1 rounded">transfer</code>, <code className="bg-card-muted px-1 rounded">call</code> (incl. deposits to Intents), <code className="bg-card-muted px-1 rounded">withdraw</code>, <code className="bg-card-muted px-1 rounded">swap</code>, <code className="bg-card-muted px-1 rounded">cross_chain_withdraw</code> (separate, default-deny), <code className="bg-card-muted px-1 rounded">delete</code></td>
+ <td className="px-4 py-2">Restrict allowed operations: <code className="bg-card-muted px-1 rounded">transfer</code>, <code className="bg-card-muted px-1 rounded">call</code> (incl. deposits to Intents), <code className="bg-card-muted px-1 rounded">withdraw</code>, <code className="bg-card-muted px-1 rounded">swap</code>, <code className="bg-card-muted px-1 rounded">cross_chain_withdraw</code> (separate, default-deny), <code className="bg-card-muted px-1 rounded">limit_order</code> (separate, default-deny), <code className="bg-card-muted px-1 rounded">delete</code></td>
  <td className="px-4 py-2 font-mono text-xs">call, swap only</td>
               </tr>
  <tr className="border-b">
  <td className="px-4 py-2 font-semibold">Capabilities</td>
- <td className="px-4 py-2">Opt-in gates for powerful primitives, all <strong>default-deny</strong> under a policy except <code className="bg-card-muted px-1 rounded">sign_message</code> (default-allow): <code className="bg-card-muted px-1 rounded">raw_sign</code> (+ per-chain allowlist), <code className="bg-card-muted px-1 rounded">swap</code>, <code className="bg-card-muted px-1 rounded">cross_chain_withdraw</code>, <code className="bg-card-muted px-1 rounded">confidential</code>, <code className="bg-card-muted px-1 rounded">payment_check</code>, <code className="bg-card-muted px-1 rounded">sign_message</code> (+ recipient allowlist), <code className="bg-card-muted px-1 rounded">evm_sign</code> (EVM EIP-712/EIP-191/raw-tx; <strong>default-DENY</strong> — set <code className="bg-card-muted px-1 rounded">allowed:true</code> to permit, with a <code className="bg-card-muted px-1 rounded">raw_tx</code> sub-flag default-OFF), <code className="bg-card-muted px-1 rounded">solana_sign</code> (Solana messages/transactions; same model as <code className="bg-card-muted px-1 rounded">evm_sign</code> — default-DENY with a <code className="bg-card-muted px-1 rounded">raw_tx</code> sub-flag default-OFF). A wallet with <strong>no policy</strong> is unrestricted. Each may also set <code className="bg-card-muted px-1 rounded">requires_approval</code></td>
+ <td className="px-4 py-2">Opt-in gates for powerful primitives, all <strong>default-deny</strong> under a policy except <code className="bg-card-muted px-1 rounded">sign_message</code> (default-allow): <code className="bg-card-muted px-1 rounded">raw_sign</code> (+ per-chain allowlist), <code className="bg-card-muted px-1 rounded">swap</code>, <code className="bg-card-muted px-1 rounded">cross_chain_withdraw</code>, <code className="bg-card-muted px-1 rounded">limit_order</code>, <code className="bg-card-muted px-1 rounded">confidential</code>, <code className="bg-card-muted px-1 rounded">payment_check</code>, <code className="bg-card-muted px-1 rounded">sign_message</code> (+ recipient allowlist), <code className="bg-card-muted px-1 rounded">evm_sign</code> (EVM EIP-712/EIP-191/raw-tx; <strong>default-DENY</strong> — set <code className="bg-card-muted px-1 rounded">allowed:true</code> to permit, with a <code className="bg-card-muted px-1 rounded">raw_tx</code> sub-flag default-OFF), <code className="bg-card-muted px-1 rounded">solana_sign</code> (Solana messages/transactions; same model as <code className="bg-card-muted px-1 rounded">evm_sign</code> — default-DENY with a <code className="bg-card-muted px-1 rounded">raw_tx</code> sub-flag default-OFF). A wallet with <strong>no policy</strong> is unrestricted. Each may also set <code className="bg-card-muted px-1 rounded">requires_approval</code></td>
  <td className="px-4 py-2 font-mono text-xs">swap: allowed</td>
               </tr>
               <tr>
@@ -475,6 +475,7 @@ export default function AgentCustodyPage() {
     "sign_message": { "allowed": true,  "allowed_recipients": [] },
     "swap":         { "allowed": false },
     "cross_chain_withdraw": { "allowed": false },
+    "limit_order":  { "allowed": false },
     "payment_check": { "allowed": false },
     "evm_sign":     { "allowed": true,  "raw_tx": false },
     "solana_sign":  { "allowed": false, "raw_tx": false }
@@ -496,7 +497,7 @@ export default function AgentCustodyPage() {
  <p className="text-sm text-foreground">
  <strong>Multisig also covers NEAR Intents operations.</strong> On a multisig wallet, a
  swap &mdash; or any NEAR Intents <em>Trusted</em> operation (<code className="bg-card-muted px-1 rounded">swap</code>,
- <code className="bg-card-muted px-1 rounded">confidential</code>, <code className="bg-card-muted px-1 rounded">cross_chain_withdraw</code>) &mdash;
+ <code className="bg-card-muted px-1 rounded">confidential</code>, <code className="bg-card-muted px-1 rounded">cross_chain_withdraw</code>, <code className="bg-card-muted px-1 rounded">limit_order</code>) &mdash;
  executes only after the required approvers confirm it. Approval controls <em>whether</em> the
             operation happens: the TEE verifies the approver signatures and pins the recipient. It does
  <strong>not</strong> itself re-check the token or amount &mdash; for these Trusted operations the
@@ -548,6 +549,54 @@ Approver 2: Signs approval via NEAR wallet (dashboard)
             </tbody>
           </table>
         </div>
+
+ <h3 id="verify-approval" className="text-xl font-semibold text-foreground mt-8 mb-3 scroll-mt-4">What you sign when you approve</h3>
+ <p className="text-foreground mb-3">
+ <em>&ldquo;When I sign a confirmation of my agent&apos;s action, I want to be sure the request came from the
+          TEE.&rdquo;</em> The direct answer: a request never comes <em>from</em> the TEE. It comes from your
+          agent, through our server, and no signature could tell you otherwise &mdash; anyone able to submit an
+          operation would receive the same &ldquo;genuine&rdquo; stamp. What the TEE guarantees is the part that
+          matters: <strong>nothing executes unless your policy allows it and your approvers signed this exact
+          operation.</strong> So you do not need to trust where a request came from &mdash; only to read the
+          operation in front of you. Four things make that true:
+        </p>
+ <ol className="list-decimal list-inside space-y-2 text-foreground mb-4">
+          <li><strong>Your signature is bound to the operation itself.</strong> A vote signs{' '}
+            <code className="bg-card-muted px-1 rounded">approve:{'}}approval_id{{'}:{'}}wallet_pubkey{{'}:{'}}request_hash{{'}</code>, where{' '}
+            <code className="bg-card-muted px-1 rounded">request_hash</code> is the SHA-256 of the operation in canonical form (recipient, token,
+            amount, and for an order its output terms and recipient type). It cannot be replayed for another
+            wallet or stretched to another operation.</li>
+          <li><strong>Your browser checks that before you can sign.</strong> The approvals page hashes the
+            canonical operation itself and compares it with the hash you are about to sign. What is on screen is
+            the parse of that exact string. If they differ &mdash; or the operation is missing &mdash; Approve is
+            disabled. So the operation you read is the one your signature covers, whatever the agent or the
+            server claims. (That check is this site&apos;s code; the command at the end of this section does
+            the same without it.)</li>
+          <li><strong>The TEE decides again at execution.</strong> Inside Intel TDX the keystore decrypts your
+            policy (stored encrypted on chain; nothing else can read it), evaluates the operation against it
+            once more, and verifies that enough signatures from the approvers <em>your policy names</em> cover{' '}
+            <em>this</em> hash. Only then does it sign. An operation your policy forbids is refused however many
+            approvals it carries.</li>
+          <li><strong>The keystore itself is verifiable.</strong> Its TDX measurements are approved on chain by
+            the keystore DAO, and its master secret is released only to an approved measurement &mdash; see{' '}
+            <Link href="/docs/trust-verification#ckd" className="text-accent-text hover:underline">Trust &amp; Verification</Link>.</li>
+        </ol>
+ <p className="text-foreground mb-3">
+          The consequence: a request that somebody <em>invented</em> has exactly the power of a genuine one &mdash;
+          none beyond what your policy allows and you knowingly approved. There is nothing a forged request can
+          make the wallet do that a real one could not.
+        </p>
+ <p className="text-foreground mb-3">
+ <strong>What this does not cover.</strong> The agent chose the operation; approving is your judgement of
+          it. Judge the operation shown, not any text the agent attached to it. And for the NEAR Intents{' '}
+          <em>Trusted</em> operations described above, the off-chain routing is built at execution time.
+        </p>
+ <p className="text-foreground mb-2">Check the hash yourself, without this site:</p>
+        <SyntaxHighlighter language="bash" style={vscDarkPlus} customStyle={{ borderRadius: '0.5rem', fontSize: '0.8rem' }}>
+{`A=https://api.outlayer.ai/wallet/v1/approval/$APPROVAL_ID
+curl -s $A | jq -j .op_canonical | shasum -a 256   # the hash of the operation
+curl -s $A | jq -r .request_hash                   # the hash your vote signs — must be equal`}
+        </SyntaxHighlighter>
       </section>
 
       {/* Quick Start */}
@@ -883,11 +932,93 @@ curl -s -X POST -H "Content-Type: application/json" \\
  <strong>NEAR Intents is mainnet-only.</strong> There are no testnet Intents solvers, so on
  testnet the coordinator returns <strong>HTTP 503</strong> for every intents-dependent
           endpoint — namely <code className="bg-card-muted px-1 rounded">/wallet/v1/intents/*</code>          (deposit, withdraw, swap, cross-chain deposit, payment-check, and their quote / dry-run
-          variants), cross-chain gasless withdrawals, and all <code className="bg-card-muted px-1 rounded">/wallet/v1/confidential/*</code> routes.
+          variants), cross-chain gasless withdrawals, <code className="bg-card-muted px-1 rounded">/wallet/v1/limit-orders</code>, and all <code className="bg-card-muted px-1 rounded">/wallet/v1/confidential/*</code> routes.
  Test these against the <strong>mainnet</strong> API only. Account, address,
  balance, transfer, contract <code className="bg-card-muted px-1 rounded">call</code>,
           message signing, policy, approval, and delete endpoints work on both networks.
         </div>
+      </section>
+
+      {/* Limit Orders */}
+ <section id="limit-orders" className="mb-10 scroll-mt-4">
+ <AnchorHeading id="limit-orders">Limit Orders</AnchorHeading>
+
+ <p className="text-foreground mb-4">
+          A limit order is a swap that waits for your price. The wallet says what it sells (or buys),
+          how much, and at what price; the order rests on 1Click and fills &mdash; possibly in several
+          slices &mdash; when the market reaches it. It ends when it is filled, cancelled, or reaches its
+          deadline (7 days unless you set one). Mainnet only, funded from the wallet&apos;s intents balance.
+        </p>
+
+ <div className="bg-card-muted border-l-4 border-yellow-500 p-4 mb-4 text-sm text-foreground">
+ <strong>Authorised once, paid out later.</strong> Every other operation here is signed at the
+          moment money moves. A resting order is not: the policy decides when it is created, and the
+          payout happens later &mdash; possibly days later &mdash; with no further signature. Two things
+          follow. A price through the market fills <em>immediately</em>, so a limit order is gated as the
+          exit it can become, not as the patient thing it is named after. And freezing the wallet stops new
+          orders but does not cancel resting ones: a freeze closes the agent&apos;s access, it does not unwind
+          what is already placed. Cancelling is never frozen &mdash; call cancel-all afterwards; it is
+          asynchronous, and 1Click may still fill a last slice before a cancel lands.
+        </div>
+
+ <p className="text-foreground mb-2">
+ <strong>Policy.</strong> Default-deny. Under a policy a limit order needs both the{' '}
+          <code className="bg-card-muted px-1 rounded">limit_order</code> capability and the{' '}
+          <code className="bg-card-muted px-1 rounded">limit_order</code> transaction type &mdash; the policy form&apos;s
+          single switch sets both. <code className="bg-card-muted px-1 rounded">swap</code> and{' '}
+          <code className="bg-card-muted px-1 rounded">cross_chain_withdraw</code> neither imply it nor stand in for it.
+          The address rules apply to <code className="bg-card-muted px-1 rounded">recipient</code> (where the filled output is paid)
+          and the amount limits to what the wallet sends. On a multisig wallet, approvers sign the order&apos;s
+          exact terms &mdash; what is sent, and the least it must return.
+        </p>
+
+        <SyntaxHighlighter language="bash" style={vscDarkPlus} customStyle={{ borderRadius: '0.5rem', fontSize: '0.875rem' }}>
+{`# Sell 1 wNEAR for USDC at 5 USDC per NEAR, or better.
+# quantity: base asset, smallest units (digits only).  price: quote per one WHOLE base, a positive decimal.
+curl -s -X POST -H "Content-Type: application/json" \\
+  -H "Authorization: Bearer $API_KEY" \\
+  -H "Idempotency-Key: $(uuidgen)" \\
+  -d '{"base_asset":"nep141:wrap.near","quote_asset":"nep141:17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1","side":"sell","quantity":"1000000000000000000000000","price":"5"}' \\
+  "https://api.outlayer.ai/wallet/v1/limit-orders"
+# -> 1Click's order as created, plus the funding transfer:
+#    { "order_id": "order_…", "fill_status": "awaiting_deposit", "is_payout_status_final": false,
+#      "app_fees": [...], "transfer_intent_hash": "…", ... }   (it turns "open" within seconds)
+
+# Read it (poll in minutes, not seconds — an order can rest for days)
+curl -s -H "Authorization: Bearer $API_KEY" "https://api.outlayer.ai/wallet/v1/limit-orders/$ORDER_ID"
+
+# Cancel one order, or every unfinished order of THIS wallet. Never policy-gated; works on a frozen
+# wallet with the same API key. Asynchronous: what already filled is still paid out, the rest is
+# refunded to the wallet's intents balance; an order is over when is_payout_status_final is true.
+# cancel-all → { "known": 2, "cancelled": 2, "failed": 0, "complete": true }  (complete:false → call again)
+curl -s -X POST -H "Authorization: Bearer $API_KEY" "https://api.outlayer.ai/wallet/v1/limit-orders/$ORDER_ID/cancel"
+curl -s -X POST -H "Authorization: Bearer $API_KEY" "https://api.outlayer.ai/wallet/v1/limit-orders/cancel-all"`}
+        </SyntaxHighlighter>
+
+ <ul className="list-disc list-inside text-sm text-foreground mt-3 space-y-1">
+          <li>The answer is 1Click&apos;s own order: field names in snake_case, enumerated values in lower case,
+            nothing renamed. <code className="bg-card-muted px-1 rounded">is_payout_status_final</code> is the only signal
+            that an order is over &mdash; <code className="bg-card-muted px-1 rounded">fill_status</code> alone is not, and a{' '}
+            <code className="bg-card-muted px-1 rounded">pending_cancel</code> order may still fill a last slice.</li>
+          <li>Filled output goes to <code className="bg-card-muted px-1 rounded">recipient</code> (your own intents balance when omitted;{' '}
+            <code className="bg-card-muted px-1 rounded">recipient_type: &quot;destination_chain&quot;</code> pays an address on the
+            output asset&apos;s own chain, <code className="bg-card-muted px-1 rounded">&quot;confidential_intents&quot;</code> the
+            confidential shard, which the policy must also permit through the <code className="bg-card-muted px-1 rounded">confidential</code> capability).
+            The unfilled remainder always comes back to the wallet.</li>
+          <li>While an order is <code className="bg-card-muted px-1 rounded">partially_filled</code>,{' '}
+            <code className="bg-card-muted px-1 rounded">partial_fills</code> lists the fills so far;{' '}
+            <code className="bg-card-muted px-1 rounded">payouts</code> carries the withdrawal and refund legs once there are any;{' '}
+            <code className="bg-card-muted px-1 rounded">estimated_withdraw_fee</code> /{' '}
+            <code className="bg-card-muted px-1 rounded">estimated_refund_fee</code> are 1Click&apos;s own cost estimates, passed
+            through as given. Every attribute of 1Click&apos;s order is passed through; only{' '}
+            <code className="bg-card-muted px-1 rounded">transfer_intent_hash</code> and{' '}
+            <code className="bg-card-muted px-1 rounded">request_id</code> are OutLayer&apos;s.</li>
+          <li>If 1Click&apos;s own figures for the order are worse than the terms the policy authorised, the
+            still-unfunded order is cancelled and nothing is sent.</li>
+          <li>1Click takes its own fee from the input and reports it as{' '}
+            <code className="bg-card-muted px-1 rounded">app_fees</code> (basis points); OutLayer does not set it.
+            Minimum order value is 0.1 USD.</li>
+        </ul>
       </section>
 
       {/* Confidential Intents */}

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { PolicyForm } from '@/lib/wallet-policy';
+import { PolicyForm, effectiveTransactionTypes } from '@/lib/wallet-policy';
 import { AuthorizedKeysSection } from './AuthorizedKeysSection';
 
 interface PolicyFormFieldsProps {
@@ -158,6 +158,11 @@ export function PolicyFormFields({ policyForm, onChange, apiKeyHash, knownKeyHas
             };
             return (
  <div className="space-y-2 mt-1">
+                {effectiveTransactionTypes(policyForm)?.length === 0 && (
+ <p className="text-xs text-destructive-text">
+                    This policy permits NO transaction type: the wallet can do nothing. Check the types it should be allowed.
+                  </p>
+                )}
                 <div>
  <span className="text-xs text-faint-foreground">Direct on-chain:</span>
  <div className="flex flex-col gap-0.5 mt-0.5">
@@ -330,6 +335,34 @@ export function PolicyFormFields({ policyForm, onChange, apiKeyHash, knownKeyHas
               Can require multisig approval: check &quot;Send cross-chain&quot; under &quot;Require
               approval for&quot; and set a threshold. The quote is re-fetched fresh at execution,
               so approval delays don&apos;t invalidate it.
+            </p>
+          )}
+        </div>
+
+        {/* limit_order */}
+ <div className="mb-3">
+ <label className="flex items-center gap-1.5 text-sm cursor-pointer">
+            <input
+              type="checkbox"
+              checked={policyForm.limit_order_enabled}
+              onChange={(e) => update({ limit_order_enabled: e.target.checked })}
+ className="rounded border-border-strong"
+            />
+ <span className="font-medium">limit_order — rest a swap at your price</span>
+          </label>
+ <p className="text-xs text-destructive-text mt-0.5 ml-5">
+            Default-DENY. The wallet authorises the order ONCE; it then waits on 1Click (up to 7
+            days) and pays out with no further signature. An order priced through the market
+            fills at once — so this is gated like a withdrawal: the address rules apply to where
+            it pays out, and the amount limits to what it sends. Enabling swap or cross-chain
+            withdraw does NOT enable it, and vice versa.
+          </p>
+          {policyForm.limit_order_enabled && (
+ <p className="text-xs text-faint-foreground ml-5 mt-1">
+              Freezing the wallet stops new orders but does not cancel resting ones &mdash; cancel
+              them through the API (cancel-all works on a frozen wallet). Can require multisig approval — check
+              &quot;Limit order&quot; under &quot;Require approval for&quot;; approvers sign the
+              order&apos;s exact terms (what is sent, and the least it must return).
             </p>
           )}
         </div>

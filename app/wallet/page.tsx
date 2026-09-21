@@ -109,8 +109,8 @@ function WalletHandoffContent() {
   // verifies the approver signatures, then signs the (re-fetched, fresh) Trusted artifact.
   // (Confidential also requires approval when a threshold is set; payment_check is gated by its
   // capability + per-transaction amount cap, not the threshold.)
-  const allTxTypes = ['transfer', 'call', 'delete', 'intents_withdraw', 'intents_swap', 'cross_chain_withdraw'] as const;
-  const [approvalTypes, setApprovalTypes] = useState<Set<string>>(new Set(['transfer', 'call', 'delete', 'intents_withdraw', 'cross_chain_withdraw']));
+  const allTxTypes = ['transfer', 'call', 'delete', 'intents_withdraw', 'intents_swap', 'cross_chain_withdraw', 'limit_order'] as const;
+  const [approvalTypes, setApprovalTypes] = useState<Set<string>>(new Set(['transfer', 'call', 'delete', 'intents_withdraw', 'cross_chain_withdraw', 'limit_order']));
 
   // Policy form with augmentPolicy that adds owner-based approval
   const {
@@ -549,9 +549,10 @@ function WalletHandoffContent() {
                           intents_withdraw: 'Withdraw (same-chain)',
                           intents_swap: 'Swap',
                           cross_chain_withdraw: 'Send cross-chain (bridge off NEAR)',
+                          limit_order: 'Limit order',
                         };
                         const directTypes = ['transfer', 'call', 'delete'] as const;
-                        const intentsTypes = ['intents_withdraw', 'intents_swap', 'cross_chain_withdraw'] as const;
+                        const intentsTypes = ['intents_withdraw', 'intents_swap', 'cross_chain_withdraw', 'limit_order'] as const;
                         const renderCheckbox = (txType: string) => (
  <label key={txType} className="flex items-center gap-1.5 text-sm cursor-pointer">
                             <input

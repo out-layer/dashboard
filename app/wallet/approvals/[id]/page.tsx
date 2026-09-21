@@ -6,6 +6,7 @@ import { getCoordinatorApiUrl } from '@/lib/api';
 import { useNearWallet } from '@/contexts/NearWalletContext';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
+import { checkOpAgainstHash, type OpCheck } from '@/lib/approval-hash';
 
 interface ApprovalDetail {
   id: string;
@@ -13,6 +14,8 @@ interface ApprovalDetail {
   request_type: string;
   /** Canonical op the keystore will sign — rendered as-is from the API (null for legacy rows). */
   op: Record<string, unknown> | null;
+  /** The exact canonical string `request_hash` is the sha256 of, as the coordinator sent it. */
+  op_canonical?: string | null;
   request_data: Record<string, unknown>;
   request_hash: string;
   /** Wallet's on-chain pubkey, bound into the vote message to prevent cross-wallet replay. */
@@ -41,6 +44,7 @@ function ApprovalDetailContent() {
   const coordinatorUrl = getCoordinatorApiUrl(network);
 
   const [approval, setApproval] = useState<ApprovalDetail | null>(null);
+  const [opCheck, setOpCheck] = useState<OpCheck | null>(null);
   const [loading, setLoading] = useState(false);
   const [voting, setVoting] = useState<null | 'approve' | 'reject'>(null);
   const [error, setError] = useState<string | null>(null);
@@ -60,6 +64,9 @@ function ApprovalDetailContent() {
         throw new Error(errorData.message || `Failed to load approval: ${resp.status}`);
       }
       const data = await resp.json();
+      // Hashed here, on load — not on click, where nothing may be awaited before
+      // the wallet opens. See lib/approval-hash.
+      setOpCheck(await checkOpAgainstHash(data.op_canonical, data.request_hash));
       setApproval(data);
     } catch (err) {
       setError((err as Error).message);
@@ -72,11 +79,16 @@ function ApprovalDetailContent() {
     loadApproval();
   }, [loadApproval]);
 
-  // Dumb voting: the API supplies `request_hash`; the dashboard only signs the fixed
-  // `{vote}:{approval_id}:{request_hash}` string and posts it. No local policy/canonical/
-  // hash logic — the keystore re-derives and verifies the hash itself.
+  // The API supplies `request_hash` and the canonical op; this page hashes the op
+  // itself and approves only a hash it could tie to the operation on screen. The
+  // keystore re-derives and verifies the hash again before it signs anything.
   const handleVote = async (vote: 'approve' | 'reject') => {
     if (!approval) return;
+    // Rejecting needs no such proof: it moves nothing.
+    if (vote === 'approve' && opCheck?.status !== 'match') {
+      setError('The operation shown could not be matched to the hash you would sign. Nothing was signed.');
+      return;
+    }
 
     if (!isConnected) {
       setError(`Connect your NEAR wallet to ${vote}.`);
@@ -234,11 +246,17 @@ function ApprovalDetailContent() {
  <div className="bg-card border border-border rounded-lg p-6 border border-border">
  <h2 className="text-lg font-semibold text-foreground mb-3">Operation</h2>
  <pre className="bg-card-muted rounded p-4 text-sm text-foreground overflow-x-auto">
-              {JSON.stringify(approval.op ?? approval.request_data, null, 2)}
+              {JSON.stringify(opCheck?.status === 'match' ? opCheck.op : approval.request_data, null, 2)}
             </pre>
-            {!approval.op && (
+            {opCheck?.status === 'match' ? (
  <p className="text-xs text-faint-foreground mt-2">
-                Legacy request (no canonical op stored) — showing request data.
+                Checked in this browser: the request hash is the sha256 of the operation above.
+              </p>
+            ) : (
+ <p className="text-sm text-destructive-text mt-2">
+                {opCheck?.status === 'mismatch'
+                  ? 'Do not approve: the hash you would sign is NOT the hash of the operation the server describes. Showing the request data.'
+                  : 'This request carries no canonical operation to check the hash against, so it cannot be approved from this page. Showing the request data.'}
               </p>
             )}
           </div>
@@ -279,7 +297,7 @@ function ApprovalDetailContent() {
               </button>
               <button
                 onClick={() => handleVote('approve')}
-                disabled={voting !== null || !isConnected}
+                disabled={voting !== null || !isConnected || opCheck?.status !== 'match'}
  className="px-6 py-3 bg-accent text-on-accent rounded-lg font-medium disabled:opacity-50"
               >
                 {voting === 'approve' ? 'Approving...' : 'Approve'}

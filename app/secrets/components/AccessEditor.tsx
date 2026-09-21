@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import { InfoHint } from '@/components/ui/info-hint';
 import { CopyText } from '@/components/ui/copy-text';
 import { isImplicitAccount, shortAccount } from '@/lib/short-account';
@@ -37,10 +37,6 @@ interface AccessEditorProps {
   wallets?: GranteeWallet[];
   onSave: (newAccess: unknown) => Promise<void>;
   onCancel: () => void;
-  /** Opened by a link from another page — "grant an agent access" — rather than
-   *  by the row's own button: it is then the reason the visitor is here, so it
-   *  is framed and scrolled into view instead of appearing above a list. */
-  highlight?: boolean;
 }
 
 /**
@@ -63,11 +59,7 @@ interface AccessEditorProps {
  * decision in front of the reader: a warning about the row as it is, and the
  * condition that will be stored when it differs from the one stored now.
  */
-export function AccessEditor({ secret, accountId, wallets = [], onSave, onCancel, highlight = false }: AccessEditorProps) {
-  const frame = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (highlight) frame.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  }, [highlight]);
+export function AccessEditor({ secret, accountId, wallets = [], onSave, onCancel }: AccessEditorProps) {
   const stored: AccessCondition | null = (() => {
     try {
       return convertAccessFromContractFormat(secret.access);
@@ -227,8 +219,7 @@ export function AccessEditor({ secret, accountId, wallets = [], onSave, onCancel
 
   return (
  <div
-      ref={frame}
-      className={`bg-card rounded-lg p-4 sm:p-5 mb-6 ${highlight ? 'border-2 border-accent shadow-lg ring-4 ring-accent/15' : 'border border-info/40'}`}
+      className="bg-card rounded-lg p-4 sm:p-5 mb-6 border border-border"
     >
  <h3 className="text-base font-semibold text-foreground">
         Who may read {getAccessorLabel(secret.accessor)} / {secret.profile}

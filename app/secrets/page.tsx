@@ -62,8 +62,6 @@ function SecretsPageContent() {
   const [updatingSecret, setUpdatingSecret] = useState<UserSecret | null>(null);
   // The secret whose readers are being changed (update_access; the value stays).
   const [accessSecret, setAccessSecret] = useState<UserSecret | null>(null);
-  /** The access form was opened by a link, so it is what the visitor came for. */
-  const [accessFromLink, setAccessFromLink] = useState(false);
   const openedFromLink = useRef(false);
   // The custody wallets this account owns, as grantees: a grant names the
   // wallet's implicit account, which is what pays for its calls.
@@ -132,7 +130,6 @@ function SecretsPageContent() {
     openedFromLink.current = true;
     if (row) {
       setAccessSecret(row);
-      setAccessFromLink(true);
     } else {
       setError(`This account has no secret “${wanted}” for ${linkProject}, so there is nothing to grant access to yet.`);
     }
@@ -620,6 +617,18 @@ function SecretsPageContent() {
   };
 
 
+  // One operation at a time. Opening Access, Replace or Update on a row leaves
+  // that form alone on the page; everything else is hidden — not unmounted, so a
+  // half-typed create form is still there on the way back — until the visitor
+  // saves or goes back.
+  const focus: 'access' | 'form' | null = accessSecret ? 'access' : editingSecret || updatingSecret ? 'form' : null;
+  const focusedRow = accessSecret ?? editingSecret ?? updatingSecret;
+  const leaveFocus = () => {
+    setAccessSecret(null);
+    setEditingSecret(null);
+    setUpdatingSecret(null);
+  };
+
   return (
  <div className="w-full">
       {/* Header */}
@@ -687,12 +696,24 @@ function SecretsPageContent() {
         </div>
       )}
 
-      {/* Create + list side-by-side on wide screens */}
-      <div className="mt-6 grid items-start gap-6 xl:grid-cols-2">
+      {focus && focusedRow && (
+        <div className="mt-4 flex flex-wrap items-baseline gap-x-3 gap-y-1 text-sm">
+          <button type="button" onClick={leaveFocus} className="text-accent hover:underline">
+            &larr; Back to secrets
+          </button>
+          <span className="min-w-0 break-all text-muted-foreground">
+            {focus === 'access' ? 'Access' : updatingSecret ? 'Update' : 'Replace'} &middot;{' '}
+            {getAccessorLabel(focusedRow.accessor)} / {focusedRow.profile}
+          </span>
+        </div>
+      )}
+
+      {/* Create + list side-by-side on wide screens; one narrow column in focus */}
+      <div className={focus ? 'mt-4 max-w-3xl' : 'mt-6 grid items-start gap-6 xl:grid-cols-2'}>
       {/* Two columns that pack independently. A row-based grid sizes every
           row to its tallest cell, so the short block leaves a hole and the
           long list below it starts past the fold. */}
-        <div className="flex flex-col gap-6">
+        <div className={focus === 'access' ? 'hidden' : 'flex flex-col gap-6'}>
         <div>
           <SecretsForm
             isConnected={isConnected}
@@ -716,7 +737,7 @@ function SecretsPageContent() {
           {/* A secret that belongs to an AGENT rather than to this account. Same
               page, because it is the same question — "which credential does this
               code get" — asked for a wallet that cannot pay for its own storage. */}
-   <div className="mt-6">
+   <div className={focus ? 'hidden' : 'mt-6'}>
    <AgentSecretForm
               coordinatorUrl={coordinatorUrl}
               contractId={contractId}
@@ -727,7 +748,7 @@ function SecretsPageContent() {
             />
    </div>
         </div>
-        {openPersonal.length > 0 && !noticeDismissed && (
+        {!focus && openPersonal.length > 0 && !noticeDismissed && (
           <div className="bg-warning/10 border border-warning/40 rounded-md p-4 text-sm text-warning-text flex items-start justify-between gap-4">
             <span>
               {openPersonal.length} of your project secrets admit everyone: anyone who names such a secret can
@@ -739,7 +760,7 @@ function SecretsPageContent() {
             </button>
           </div>
         )}
-   <div className="bg-card-muted border border-border rounded-lg p-4">
+   <div className={focus ? 'hidden' : 'bg-card-muted border border-border rounded-lg p-4'}>
    <h3 className="text-sm font-semibold text-foreground mb-3">
             How repo-based secrets work
           </h3>
@@ -786,7 +807,7 @@ function SecretsPageContent() {
           </div>
         </div>
         </div>
-        <div className="flex flex-col gap-6">
+        <div className={focus === 'form' ? 'hidden' : 'flex flex-col gap-6'}>
         {accessSecret && (
           <AccessEditor
             // The editor reads the row once, into state with no syncing
@@ -798,14 +819,10 @@ function SecretsPageContent() {
             accountId={accountId}
             wallets={wallets}
             onSave={handleSaveAccess}
-            onCancel={() => {
-              setAccessSecret(null);
-              setAccessFromLink(false);
-            }}
-            highlight={accessFromLink}
+            onCancel={() => setAccessSecret(null)}
           />
         )}
-        {grantsByAccount.size > 0 && (
+        {!focus && grantsByAccount.size > 0 && (
           <div className="bg-card border border-border rounded-lg p-4">
             <h3 className="text-sm font-semibold text-foreground">Secrets handed to other accounts</h3>
             <p className="mt-1 text-xs text-muted-foreground">
@@ -822,20 +839,19 @@ function SecretsPageContent() {
                   <div className="text-xs break-all text-foreground">
                     {/* The whole id, and one click copies it: this is the value
                         an owner pastes into an agent's configuration. */}
+                    {/^[0-9a-f]{64}$/.test(account) && <span className="mr-1" aria-hidden>🤖</span>}
                     <CopyText value={account} />
                     {ownWallet.has(account) && (
                       <span className="ml-2 font-sans text-muted-foreground">your wallet {ownWallet.get(account)}</span>
                     )}
-                    {!ownWallet.has(account) && /^[0-9a-f]{64}$/.test(account) && (
-                      <span className="ml-2 font-sans text-muted-foreground">a wallet you do not own</span>
-                    )}
                   </div>
-                  <ul className="mt-1 ml-4 space-y-1">
+                  <ul className="mt-1 ml-1 space-y-1 border-l border-border pl-3">
                     {rows.map((row) => {
                       const key = `${getAccessorLabel(row.secret.accessor)}/${row.secret.profile}:${account}`;
                       return (
                         <li key={key} className="flex items-center justify-between gap-3 text-xs">
                           <span className="min-w-0 break-all text-foreground">
+                            <span className="mr-1.5 text-muted-foreground" aria-hidden>🔑</span>
                             {getAccessorLabel(row.secret.accessor)} / {row.secret.profile}
                             <span className="text-muted-foreground">
                               {' '}&middot; {row.until_ns ? `until ${nsToIsoUtc(row.until_ns)}` : 'no expiry'}
@@ -859,6 +875,7 @@ function SecretsPageContent() {
             </ul>
           </div>
         )}
+        <div className={focus ? 'hidden' : undefined}>
         <SecretsList
           secrets={userSecrets}
           loading={loadingSecrets}
@@ -866,9 +883,10 @@ function SecretsPageContent() {
           onEdit={handleEditSecret}
           onUpdate={handleUpdateSecret}
           onDelete={handleDeleteSecret}
-          onAccess={(secret) => { setAccessSecret(secret); setAccessFromLink(false); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+          onAccess={(secret) => { setAccessSecret(secret); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
           onRefresh={loadUserSecrets}
         />
+        </div>
         </div>
       </div>
 

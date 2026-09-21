@@ -145,21 +145,37 @@ export interface ConnectorSpec {
   grantHint: string;
   /** A count the connector's `status` reports beside the policy, and how to say it. */
   usage?: { key: string; say(count: number): string };
+  /**
+   * What else the connector's OPEN `status` output is worth showing a connected
+   * owner — for GitHub, the repositories the stored credential reaches. The page
+   * cannot ask the provider itself once the credential is stored (rule 5), so
+   * this is the only honest source, and it arrives with the policy read.
+   */
+  statusView?(output: Record<string, unknown>): { list?: CredentialView['list']; manage?: CredentialView['manage'] } | null;
   /** Anything the provider needs looked after outside this page — e.g. which repositories an app reaches. */
   connectedExtra?: React.ReactNode;
 }
 
 /** What a credential turned out to be. */
 export interface CredentialView {
+  /** One line: who it acts as. */
   label: string;
+  /**
+   * What it reaches, as a list rather than a sentence — the owner is checking
+   * whether it is the right set, and a set is read by scanning it.
+   */
+  list?: { heading: string; values: string[]; more?: boolean };
+  /** Where that set is changed, as a quiet link under it. Not a sentence: by the
+   *  time the list is right, saying how to change it is noise. */
+  manage?: { href: string; label: string };
   starting?: PolicyValue;
   /**
-   * Something the owner does on the provider's own pages — choosing which
-   * repositories an app reaches. The provider brings them back (rule 16) and
-   * the page picks the connection up again. `urgent` when nothing works until
-   * it is done.
+   * Something the owner must do on the provider's own pages before any of this
+   * works — no repository chosen at all. The provider brings them back
+   * (rule 16) and the page picks the connection up again. Only for that case:
+   * anything optional is `manage`.
    */
-  todo?: { urgent: boolean; text: string; href: string; linkLabel: string };
+  todo?: { text: string; href: string; linkLabel: string };
 }
 
 const REPLY_TTL_MS = 10 * 60 * 1000;
@@ -236,6 +252,8 @@ export function ConnectorOwnerPage({ spec }: { spec: ConnectorSpec }) {
   // ---- the policy, as this page knows it ------------------------------
   const [policy, setPolicy] = useState<PolicyValue>(emptyValue());
   const [policyRead, setPolicyRead] = useState<{ origin: 'read' | 'saved'; present: boolean; used: number; unknownKeys: string[] } | null>(null);
+  /** What the last `status` read said about the stored credential, beside its policy. */
+  const [statusView, setStatusView] = useState<{ list?: CredentialView['list']; manage?: CredentialView['manage'] } | null>(null);
   const [reading, setReading] = useState(false);
 
   // ---- an update of an existing row: sign, then store -----------------
@@ -400,6 +418,7 @@ export function ConnectorOwnerPage({ spec }: { spec: ConnectorSpec }) {
       if (opened.readable === false) {
         throw new Error(`The stored policy cannot be read by the connector: ${String(opened.error)}. Save a new one below.`);
       }
+      setStatusView(spec.statusView?.(env.output ?? {}) ?? null);
       const fieldsOnly = Object.fromEntries(Object.entries(opened).filter(([k]) => !STATUS_META_KEYS.has(k)));
       const { value, unknownKeys } = fromJson(spec.policy, fieldsOnly);
       setPolicy(opened.present === false ? emptyValue() : value);
@@ -705,8 +724,26 @@ export function ConnectorOwnerPage({ spec }: { spec: ConnectorSpec }) {
           <div className="rounded border-2 border-amber-400 bg-amber-50 p-4 text-sm space-y-2">
             <p className="font-medium text-amber-900">{spec.provider} has granted the credential. Nothing is saved yet.</p>
             {credentialView && <p className="text-amber-900">{credentialView.label}</p>}
+            {credentialView?.list && (
+              <div className="space-y-1">
+                <p className="text-amber-900">{credentialView.list.heading}</p>
+                <div className="flex flex-wrap gap-1">
+                  {credentialView.list.values.map((value) => (
+                    <span key={value} className="rounded bg-white/70 px-1.5 py-0.5 font-mono text-xs text-amber-900">
+                      {value}
+                    </span>
+                  ))}
+                  {credentialView.list.more && <span className="px-1 py-0.5 text-xs text-amber-900">and more</span>}
+                </div>
+              </div>
+            )}
+            {credentialView?.manage && (
+              <a className="inline-block text-xs text-amber-900 underline" href={credentialView.manage.href}>
+                {credentialView.manage.label}
+              </a>
+            )}
             {credentialView?.todo && (
-              <p className={credentialView.todo.urgent ? 'rounded border border-amber-500 bg-white/70 p-3 font-medium text-amber-900' : 'text-amber-900'}>
+              <p className="rounded border border-amber-500 bg-white/70 p-3 font-medium text-amber-900">
                 {credentialView.todo.text}{' '}
                 <a className="underline" href={credentialView.todo.href}>
                   {credentialView.todo.linkLabel}
@@ -795,6 +832,25 @@ export function ConnectorOwnerPage({ spec }: { spec: ConnectorSpec }) {
             </div>
           ) : (
             <>
+              {statusView?.list && (
+                <div className="space-y-1 rounded border border-gray-200 p-3">
+                  <p className="text-sm">{statusView.list.heading}</p>
+                  <div className="flex flex-wrap gap-1">
+                    {statusView.list.values.map((value) => (
+                      <span key={value} className="rounded bg-gray-100 px-1.5 py-0.5 font-mono text-xs">
+                        {value}
+                      </span>
+                    ))}
+                    {statusView.list.more && <span className="px-1 py-0.5 text-xs text-muted-foreground">and more</span>}
+                  </div>
+                  {statusView.manage && (
+                    <a className="inline-block text-xs text-muted-foreground underline hover:text-foreground" href={statusView.manage.href}>
+                      {statusView.manage.label}
+                    </a>
+                  )}
+                </div>
+              )}
+
               <div className="space-y-3">
                 {policyRead?.origin === 'read' && !policyRead.present && (
                   <p className="rounded border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">

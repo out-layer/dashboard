@@ -44,7 +44,6 @@ test('a selection that cannot work is refused before it is stored', () => {
   assert.match(errors({ actions: ['issue_get'] }), /Repositories/);
   assert.match(errors({ actions: ['commit'], repos: ['a/b'], max_writes_per_day: 5 }), /Branches it may write to/);
   assert.match(errors({ actions: ['pr_merge'], repos: ['a/b'], max_writes_per_day: 5 }), /switch is off/);
-  assert.match(errors({ actions: ['commit'], repos: ['a/b'], branches: ['agent/*'], max_writes_per_day: 5, max_files_per_commit: 50 }), /at most 20/);
   // Gists name no repository, so none is asked for.
   assert.equal(errors({ actions: ['gist_create'], max_writes_per_day: 5 }), '');
   assert.equal(errors({ actions: ['issue_get', 'issue_comment'], repos: ['a/b'], max_writes_per_day: 5 }), '');

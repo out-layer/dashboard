@@ -19,8 +19,10 @@ import { isUnrestricted, validate } from '@/lib/policies/policy';
  * 2. **The summary states permissions, never restrictions.** Every field is a
  *    narrowing of a consent already given, so an empty policy allows
  *    everything — and a page that renders empty fields silently lets the reader
- *    conclude the opposite. Under each empty field, `absentMeans` says what
- *    leaving it empty permits.
+ *    conclude the opposite. What leaving a field empty permits is `absentMeans`,
+ *    and it rides in the same (i) as the help: one place to look, one line per
+ *    field, and a form of eight fields that fits on a screen. The sentence at
+ *    the foot is what a reader who opens nothing still sees.
  * 3. **The sentence stays under the fields while editing**, so what is read
  *    back is the consequence of the change rather than the field that changed.
  * 4. **Nothing is described that has not been loaded.** A caller that has not
@@ -78,9 +80,9 @@ export function PolicyEditor({
       </div>
 
       {open && (
-        <div className="border-t border-gray-200 p-3 space-y-4">
+        <div className="border-t border-gray-200 p-3 space-y-3">
           {schema.groups.map((group) => (
-            <fieldset key={group.question} className="space-y-3">
+            <fieldset key={group.question} className="space-y-2">
               <legend className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{group.question}</legend>
               {group.fields.map((field) => (
                 <Field key={field.key} field={field} value={value[field.key]} onChange={(v) => set(field.key, v)} disabled={disabled} />
@@ -112,12 +114,21 @@ function Field({
   onChange: (v: PolicyValue[string]) => void;
   disabled: boolean;
 }) {
-  const empty = value === undefined || value === '' || value === false || (Array.isArray(value) && value.length === 0);
   return (
     <div className="space-y-1">
       <label className="flex items-center gap-1.5 text-sm">
         <span>{field.label}</span>
-        <InfoHint text={field.help} />
+        <InfoHint
+          text={
+            <>
+              <span className="block">{field.help}</span>
+              <span className="mt-2 block border-t border-border pt-2">
+                <strong className="font-medium">Left empty:</strong> {field.absentMeans}
+              </span>
+            </>
+          }
+        />
+        {field.unit && field.kind === 'number' && <span className="text-xs text-muted-foreground">({field.unit})</span>}
       </label>
       {field.kind === 'list' ? (
         <ListInput field={field} entries={Array.isArray(value) ? value : []} onChange={onChange} disabled={disabled} />
@@ -144,7 +155,6 @@ function Field({
             disabled={disabled}
             className="w-28 rounded border border-gray-300 px-2 py-1 text-sm disabled:opacity-50"
           />
-          {field.unit && <span className="text-xs text-muted-foreground">{field.unit}</span>}
         </div>
       ) : (
         <input
@@ -156,7 +166,6 @@ function Field({
           className="w-full max-w-xs rounded border border-gray-300 px-2 py-1 text-sm disabled:opacity-50"
         />
       )}
-      {empty && <p className="text-xs text-muted-foreground">{field.absentMeans}</p>}
     </div>
   );
 }
@@ -241,6 +250,10 @@ function ChoicesInput({
 }) {
   const options = field.options ?? [];
   const groups = [...new Set(options.map((o) => o.group))];
+  // Closed to begin with: the presets are what most owners want, and a wall of
+  // twenty-five boxes above them reads as work. Opened by a preset, so the
+  // owner SEES what it just did — and closable again from there.
+  const [open, setOpen] = useState(false);
   // Stored in the vocabulary's own order, whatever order it was clicked in: two
   // policies that allow the same things are then the same text.
   const put = (values: string[]) => {
@@ -258,7 +271,10 @@ function ChoicesInput({
             <button
               key={preset.label}
               type="button"
-              onClick={() => put(preset.values)}
+              onClick={() => {
+                put(preset.values);
+                setOpen(true);
+              }}
               disabled={disabled}
               className={`rounded border px-2 py-0.5 text-xs disabled:opacity-50 ${
                 same(preset.values) ? 'border-[#cc6600] bg-amber-50 text-foreground' : 'border-gray-300 text-muted-foreground hover:text-foreground'
@@ -274,10 +290,19 @@ function ChoicesInput({
           )}
         </div>
       )}
-      {groups.map((group) => (
-        <div key={group} className="space-y-0.5">
-          <p className="text-xs text-muted-foreground">{group}</p>
-          <div className="flex flex-wrap gap-x-4 gap-y-1">
+      <button
+        type="button"
+        onClick={() => setOpen(!open)}
+        disabled={disabled}
+        className="text-xs text-muted-foreground underline hover:text-foreground disabled:opacity-50"
+      >
+        {open ? 'Hide the list' : `Show all ${options.length}, one by one${chosen.length > 0 ? ` — ${chosen.length} ticked` : ''}`}
+      </button>
+      {open &&
+        groups.map((group) => (
+          <div key={group} className="space-y-0.5">
+            <p className="text-xs text-muted-foreground">{group}</p>
+            <div className="flex flex-wrap gap-x-4 gap-y-1">
             {options
               .filter((o) => o.group === group)
               .map((o) => (
@@ -286,9 +311,9 @@ function ChoicesInput({
                   {o.label}
                 </label>
               ))}
+            </div>
           </div>
-        </div>
-      ))}
+        ))}
     </div>
   );
 }

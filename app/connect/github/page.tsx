@@ -66,20 +66,24 @@ async function inspect(token: string) {
   const reachable: string[] = Array.isArray(repos) ? repos.map((r) => r?.full_name).filter((n): n is string => typeof n === 'string') : [];
   if (!login) return null;
   const none = reachable.length === 0;
-  const reach = none
-    ? ''
-    : ` It reaches ${reachable.length === 30 ? '30 or more repositories' : reachable.length === 1 ? 'one repository' : `${reachable.length} repositories`}: ${reachable.slice(0, 5).join(', ')}${reachable.length > 5 ? ', …' : ''}.`;
   return {
-    label: `Connected as @${login}. Everything the agent does will appear under this name.${reach}`,
+    label: `Connected as @${login}. Everything the agent does will appear under this name.`,
+    list: none
+      ? undefined
+      : {
+          heading: `It reaches ${reachable.length === 1 ? 'one repository' : `${reachable.length} repositories`}:`,
+          values: reachable,
+          more: reachable.length >= 30,
+        },
+    manage: none ? undefined : { href: INSTALL_URL, label: 'Add or remove repositories on GitHub ↗' },
     starting: githubStartingPolicy(login, reachable),
-    todo: {
-      urgent: none,
-      text: none
-        ? 'It reaches no repository yet: the OutLayer app is not installed on any. Choose them on GitHub — it brings you back here when you save. (Gists work without it.)'
-        : 'Which repositories it reaches is set on GitHub, and can be changed now or later — GitHub brings you back here when you save:',
-      href: INSTALL_URL,
-      linkLabel: none ? 'Choose repositories on GitHub' : 'change repositories',
-    },
+    todo: none
+      ? {
+          text: 'It reaches no repository yet: the OutLayer app is not installed on any. Gists work without it; for anything else, choose them on GitHub — it brings you back here when you save.',
+          href: INSTALL_URL,
+          linkLabel: 'Choose repositories on GitHub',
+        }
+      : undefined,
   };
 }
 
@@ -183,14 +187,35 @@ const spec: ConnectorSpec = {
   ),
   grantHint: 'Nobody can use it until you grant an agent.',
   usage: { key: 'writes_today', say: (n) => `${n} write${n === 1 ? '' : 's'} today by you` },
+
+  // `status` reports what the STORED credential reaches — which this page cannot
+  // ask GitHub itself once the token is sealed. It arrives with the policy read.
+  statusView: (output) => {
+    const repos = Array.isArray(output.reachable_repositories) ? output.reachable_repositories.filter((r): r is string => typeof r === 'string') : [];
+    const acting = typeof output.acting_as === 'string' ? `@${output.acting_as}` : 'this account';
+    if (repos.length === 0) {
+      return {
+        list: { heading: `${acting} reaches no repository — the OutLayer app is installed on none. Gists still work.`, values: [] },
+        manage: { href: INSTALL_URL, label: 'Choose repositories on GitHub ↗' },
+      };
+    }
+    return {
+      list: {
+        heading: `${acting} reaches ${repos.length === 1 ? 'one repository' : `${repos.length} repositories`}:`,
+        values: repos,
+        more: Boolean(output.reachable_more),
+      },
+      manage: { href: INSTALL_URL, label: 'Add or remove repositories on GitHub ↗' },
+    };
+  },
   connectedExtra: (
     <p>
       Which repositories the agent can reach is set on GitHub, not here:{' '}
       <a className="underline" href={INSTALL_URL}>
         change repositories
       </a>
-      . GitHub brings you back when you save, and nothing has to be stored again. To stop everything at once, remove the app at GitHub →
-      Settings → Applications.
+      . GitHub brings you back when you save, and nothing has to be stored again — load the policy below to see the current list. To
+      stop everything at once, remove the app at GitHub → Settings → Applications.
     </p>
   ),
 };

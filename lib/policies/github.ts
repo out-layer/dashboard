@@ -176,15 +176,6 @@ export const githubPolicy: PolicySchema = {
           absentMeans: 'Not set: nothing is written at all. Reading is not limited by this.',
           min: 1,
         },
-        {
-          key: 'max_files_per_commit',
-          label: 'Files in one commit',
-          kind: 'number',
-          unit: 'files (at most 20)',
-          help: 'How many files one commit may create, change or delete.',
-          absentMeans: 'Ten.',
-          min: 1,
-        },
       ],
     },
     {
@@ -244,8 +235,6 @@ export const githubPolicy: PolicySchema = {
     if (actions.includes('pr_merge') && value.allow_merge !== true) {
       problems.push('Merge is ticked but its switch is off — turn on "Merge pull requests", or untick merge');
     }
-    const max = value.max_files_per_commit;
-    if (typeof max === 'number' && max > 20) problems.push('Files in one commit: at most 20');
     return problems;
   },
 

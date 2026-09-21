@@ -1,5 +1,6 @@
 'use client';
 
+import { HashChip } from '@/components/ui/hash-chip';
 import { PageHeader } from '@/components/ui/page-header';
 import { RequireWallet } from '@/components/ui/require-wallet';
 import { Suspense, useState, useEffect, useCallback, useMemo } from 'react';
@@ -788,8 +789,10 @@ function SecretsPageContent() {
             <ul className="mt-3 space-y-3 max-h-64 overflow-y-auto pr-1">
               {Array.from(grantsByAccount.entries()).map(([account, rows]) => (
                 <li key={account}>
-                  <div className="text-xs font-mono break-all text-foreground">
-                    {account}
+                  <div className="text-xs break-all text-foreground">
+                    {/* The whole id, and one click copies it: this is the value
+                        an owner pastes into an agent's configuration. */}
+                    <HashChip value={account} trim={0} title="Click to copy" className="bg-transparent px-0 border-0 text-foreground" />
                     {ownWallet.has(account) && (
                       <span className="ml-2 font-sans text-muted-foreground">your wallet {ownWallet.get(account)}</span>
                     )}

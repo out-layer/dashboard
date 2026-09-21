@@ -1,6 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { InfoHint } from '@/components/ui/info-hint';
+import { CopyText } from '@/components/ui/copy-text';
+import { isImplicitAccount, shortAccount } from '@/lib/short-account';
 import { AccessConditionBuilder } from './AccessConditionBuilder';
 import { AccessCondition, UserSecret, getAccessorLabel } from './types';
 import {
@@ -34,6 +37,10 @@ interface AccessEditorProps {
   wallets?: GranteeWallet[];
   onSave: (newAccess: unknown) => Promise<void>;
   onCancel: () => void;
+  /** Opened by a link from another page — "grant an agent access" — rather than
+   *  by the row's own button: it is then the reason the visitor is here, so it
+   *  is framed and scrolled into view instead of appearing above a list. */
+  highlight?: boolean;
 }
 
 /**
@@ -47,8 +54,20 @@ interface AccessEditorProps {
  * leased agent's executor is the partner's wallet, so its lease end is not
  * something this page can read; the date is typed from the lease. The builder
  * underneath edits the same tree for anything the grant view does not express.
+ *
+ * **The form is the controls; the explanations are one click away.** Most
+ * visitors come to add one account and leave. Everything that explains a
+ * control — who a grant names, what "direct calls only" closes, what a relaying
+ * contract may do — sits behind the (i) beside that control, so the form reads
+ * as three short rows. What stays in the open is only what changes the
+ * decision in front of the reader: a warning about the row as it is, and the
+ * condition that will be stored when it differs from the one stored now.
  */
-export function AccessEditor({ secret, accountId, wallets = [], onSave, onCancel }: AccessEditorProps) {
+export function AccessEditor({ secret, accountId, wallets = [], onSave, onCancel, highlight = false }: AccessEditorProps) {
+  const frame = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (highlight) frame.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, [highlight]);
   const stored: AccessCondition | null = (() => {
     try {
       return convertAccessFromContractFormat(secret.access);
@@ -203,48 +222,73 @@ export function AccessEditor({ secret, accountId, wallets = [], onSave, onCancel
     }
   };
 
+  const storedText = formatAccessCondition(secret.access);
+  const nextText = contractTree === null ? '—' : formatAccessCondition(contractTree);
+
   return (
- <div className="bg-card border border-info/40 rounded-lg p-4 sm:p-6 mb-6">
+ <div
+      ref={frame}
+      className={`bg-card rounded-lg p-4 sm:p-5 mb-6 ${highlight ? 'border-2 border-accent shadow-lg ring-4 ring-accent/15' : 'border border-info/40'}`}
+    >
  <h3 className="text-base font-semibold text-foreground">
         Who may read {getAccessorLabel(secret.accessor)} / {secret.profile}
       </h3>
- <p className="mt-1 text-xs text-muted-foreground">
-        Stored now: {formatAccessCondition(secret.access)}
-      </p>
       {keptTree !== null && (
  <p className="mt-2 text-xs text-warning-text">
-          The stored condition has a shape this page cannot display, so it is kept exactly as it is.
-          Grants added or revoked below still apply to it, and Save stores it with those changes and
-          nothing else.
+          The stored condition has a shape this page cannot display, so it is kept exactly as it is. Grants added or revoked below still apply
+          to it.
         </p>
       )}
 
       {/* Grants */}
- <div className="mt-4">
- <h4 className="text-sm font-medium text-foreground">Handed to</h4>
+ <div className="mt-3">
+ <h4 className="flex items-center gap-1.5 text-sm font-medium text-foreground">
+          Handed to
+          <InfoHint
+            text={
+              <>
+                <span className="block">
+                  A grant names the account that <strong>pays</strong> for the calls — any NEAR account. For an agent that is its custody
+                  wallet: 64 hex characters, because it is an implicit account, and not the name the agent acts as under a binding.
+                </span>
+                <span className="mt-2 block">
+                  For an agent held under a lease, set the expiry to the lease end: the grant lapses with it and nobody has to remember to
+                  revoke.
+                </span>
+                <span className="mt-2 block">
+                  An expiry applies to the grant being added. Re-adding an account that already has one keeps the expiry it has; grants
+                  already listed are not changed.
+                </span>
+              </>
+            }
+          />
+        </h4>
         {callers?.custom && (
  <p className="mt-1 text-xs text-warning-text">
-            This row carries a calling-account rule this view cannot extend to a grantee. A grant
-            added here is admitted from anywhere; to put it under that rule, edit the full condition.
+            This row carries a calling-account rule this view cannot extend to a grantee: a grant added here is admitted from anywhere. Edit the
+            full condition to put it under that rule.
           </p>
         )}
         {isAllowAll ? (
  <p className="mt-1 text-xs text-warning-text">
-            Everyone: anyone who names this secret can run the project with it. Adding a grant below
-            narrows it to you and the accounts you name.
+            Everyone: anyone who names this secret can run the project with it. Adding a grant narrows it to you and the accounts you name.
           </p>
         ) : grants.length === 0 ? (
  <p className="mt-1 text-xs text-muted-foreground">Nobody besides you.</p>
         ) : (
  <ul className="mt-2 divide-y divide-border rounded-md border border-border">
             {grants.map((g) => (
-              <li key={`${g.account}:${g.until_ns ?? ''}`} className="flex items-center justify-between gap-3 px-3 py-2 text-xs">
+              <li key={`${g.account}:${g.until_ns ?? ''}`} className="flex items-center justify-between gap-3 px-3 py-1.5 text-xs">
  <div className="min-w-0">
- <div className="font-mono break-all text-foreground">{g.account}</div>
- <div className="text-muted-foreground">
+                  <CopyText
+                    value={g.account}
+                    display={`${isImplicitAccount(g.account) ? '🤖 ' : ''}${shortAccount(g.account)}`}
+                    className="text-foreground"
+                  />
+ <span className="ml-2 text-muted-foreground">
                     {ownWallet.has(g.account) ? `your wallet ${ownWallet.get(g.account)} · ` : ''}
                     {g.until_ns ? `until ${nsToIsoUtc(g.until_ns)}` : 'no expiry'}
-                  </div>
+                  </span>
                 </div>
                 <button
                   type="button"
@@ -259,6 +303,10 @@ export function AccessEditor({ secret, accountId, wallets = [], onSave, onCancel
           </ul>
         )}
 
+        {/* One row. Unticked, "Until" is a single line on the row's baseline;
+            ticked, it becomes a label over its date control, like the field
+            beside it. Nothing is said about a grant with no date: the absence of
+            a date already says it. */}
  <div className="mt-3 grid gap-2 sm:grid-cols-[1fr_auto_auto] sm:items-end">
           <div>
  <label className="block text-xs font-medium text-foreground mb-1">Grant to</label>
@@ -267,7 +315,7 @@ export function AccessEditor({ secret, accountId, wallets = [], onSave, onCancel
               list={wallets.length ? 'grantee-wallets' : undefined}
               value={grantee}
               onChange={(e) => setGrantee(e.target.value)}
-              placeholder="the account that runs the project — a wallet of yours, or any NEAR account"
+              placeholder="an agent’s wallet, or any NEAR account"
  className="block w-full rounded-md border border-border-strong px-3 py-2 text-sm font-mono outline-none focus:border-accent focus:ring-1 focus:ring-accent"
             />
             {wallets.length > 0 && (
@@ -279,7 +327,7 @@ export function AccessEditor({ secret, accountId, wallets = [], onSave, onCancel
             )}
           </div>
           <div>
-            <label className="flex items-center gap-2 text-xs font-medium text-foreground mb-1">
+            <label className={`flex items-center gap-2 text-xs font-medium text-foreground ${grantUntilOn ? 'mb-1' : 'py-2.5'}`}>
               <input
                 type="checkbox"
                 checked={grantUntilOn}
@@ -288,7 +336,7 @@ export function AccessEditor({ secret, accountId, wallets = [], onSave, onCancel
               />
               Until (UTC)
             </label>
-            {grantUntilOn ? (
+            {grantUntilOn && (
               <input
                 type="datetime-local"
                 step="1"
@@ -297,8 +345,6 @@ export function AccessEditor({ secret, accountId, wallets = [], onSave, onCancel
                 onChange={(e) => setGrantUntil(e.target.value)}
  className="block rounded-md border border-border-strong px-3 py-2 text-sm outline-none focus:border-accent focus:ring-1 focus:ring-accent"
               />
-            ) : (
-              <p className="text-xs text-muted-foreground py-2">the grant does not lapse on its own</p>
             )}
           </div>
           <button
@@ -310,65 +356,56 @@ export function AccessEditor({ secret, accountId, wallets = [], onSave, onCancel
             Add grant
           </button>
         </div>
- <p className="mt-2 text-xs text-muted-foreground">
-          A grant names the account that <strong>pays</strong> for the calls — any NEAR account will
-          do. For an agent, that is its custody wallet, whose id is 64 hex characters because it is
-          an implicit account, and not the name the agent acts as under a binding. For an agent you
-          hold under a lease, set the expiry to the lease end: the grant lapses with it and nobody
-          has to remember to revoke. An expiry set here applies to the grant being added; re-adding
-          an account that already has one keeps the expiry it has, and grants already listed are not
-          changed.
-        </p>
       </div>
 
       {/* Who may CALL: the contract in between, or none */}
- <div className="mt-4">
- <h4 className="text-sm font-medium text-foreground">Called from</h4>
+ <div className="mt-3">
         {callers?.custom ? (
- <p className="mt-1 text-xs text-muted-foreground">
-            A calling-account rule this view cannot summarise is set —{' '}
-            {predecessorNodes(contractTree).map(formatAccessCondition).join('; ')} — under an OR, a NOT,
-            or beside another. Edit it under Full condition.
+ <p className="text-xs text-muted-foreground">
+            <span className="font-medium text-foreground">Called from:</span> a calling-account rule this view cannot summarise —{' '}
+            {predecessorNodes(contractTree).map(formatAccessCondition).join('; ')}. Edit it under Full condition.
           </p>
-        ) : isAllowAll || named.length === 0 ? (
- <p className="mt-1 text-xs text-muted-foreground">
-            {isAllowAll ? 'Everyone reads this row' : 'This row names no account'}, so there is nobody
-            to require direct calls from. Add a grant first.
-          </p>
-        ) : (
+        ) : isAllowAll || named.length === 0 ? null : (
           <>
-            <label className="mt-1 flex items-center gap-2 text-xs font-medium text-foreground">
-              <input
-                type="checkbox"
-                checked={directOnly}
-                onChange={(e) => setDirectOnly(e.target.checked)}
-                className="h-3.5 w-3.5 accent-accent"
+            <div className="flex items-center gap-1.5">
+              <label className="flex items-center gap-2 text-xs font-medium text-foreground">
+                <input
+                  type="checkbox"
+                  checked={directOnly}
+                  onChange={(e) => setDirectOnly(e.target.checked)}
+                  className="h-3.5 w-3.5 accent-accent"
+                />
+                Direct calls only
+              </label>
+              <InfoHint
+                text={
+                  <>
+                    <span className="block">
+                      A call is admitted only when the account that calls OutLayer is one this row names — you and the grantees — with no
+                      other contract in between.
+                    </span>
+                    <span className="mt-2 block">
+                      Without it, a contract you sign any transaction to can relay a call naming this secret into its project, under your
+                      name. With it, a DAO or a router calling on your behalf is refused unless you name it.
+                    </span>
+                    <span className="mt-2 block">
+                      A grantee that is itself a contract is on the list, and may relay. Over HTTPS nothing relays a call: the payment
+                      key&rsquo;s owner is judged, as always.
+                    </span>
+                  </>
+                }
               />
-              Direct calls only
-            </label>
- <p className="mt-1 text-xs text-muted-foreground">
-              A call is admitted only when the account that calls OutLayer is one of the accounts this
-              row names — you and the grantees above — with no other contract in between. Without
-              this, a contract you sign any transaction to can relay a call that names this secret
-              into the project it is bound to, under your own name. With it, a DAO or a router calling
-              on your behalf is refused unless you name it below. A grantee that is itself a contract
-              is on the list, and may relay. Over HTTPS nothing relays a call: the payment
-              key&rsquo;s owner is judged, as always.
-            </p>
+            </div>
             {directOnly && (
- <div className="mt-2">
- <p className="text-xs text-foreground">
-                  Calls must come straight from:{' '}
- <span className="font-mono break-all">{named.join(', ') || '—'}</span>
-                </p>
+ <div className="mt-2 space-y-2">
                 {viaContracts.length > 0 && (
- <ul className="mt-2 divide-y divide-border rounded-md border border-border">
+ <ul className="divide-y divide-border rounded-md border border-border">
                     {viaContracts.map((a) => (
-                      <li key={a} className="flex items-center justify-between gap-3 px-3 py-2 text-xs">
- <div className="min-w-0">
- <div className="font-mono break-all text-foreground">{a}</div>
- <div className="text-muted-foreground">calls through this contract are admitted</div>
-                        </div>
+                      <li key={a} className="flex items-center justify-between gap-3 px-3 py-1.5 text-xs">
+                        <span className="min-w-0">
+                          <CopyText value={a} className="text-foreground" />
+                          <span className="ml-2 text-muted-foreground">may relay</span>
+                        </span>
                         <button
                           type="button"
                           onClick={() => removeVia(a)}
@@ -381,14 +418,30 @@ export function AccessEditor({ secret, accountId, wallets = [], onSave, onCancel
                     ))}
                   </ul>
                 )}
- <div className="mt-2 grid gap-2 sm:grid-cols-[1fr_auto] sm:items-end">
+ <div className="grid gap-2 sm:grid-cols-[1fr_auto] sm:items-end">
                   <div>
- <label className="block text-xs font-medium text-foreground mb-1">Also through these contracts</label>
+ <label className="mb-1 flex items-center gap-1.5 text-xs font-medium text-foreground">
+                      Also through these contracts
+                      <InfoHint
+                        text={
+                          <>
+                            <span className="block">
+                              A contract named here is trusted by your choice: it may relay a call naming this secret with any input it likes.
+                              Name contracts that check who calls them.
+                            </span>
+                            <span className="mt-2 block">
+                              A grant that lapses on its own stays on this list until you revoke it: the date ends what it may read, not what
+                              it may relay.
+                            </span>
+                          </>
+                        }
+                      />
+                    </label>
                     <input
                       type="text"
                       value={viaInput}
                       onChange={(e) => setViaInput(e.target.value)}
-                      placeholder="a DAO or a router that calls on your behalf — dao.sputnik-dao.near"
+                      placeholder="a DAO or a router — dao.sputnik-dao.near"
  className="block w-full rounded-md border border-border-strong px-3 py-2 text-sm font-mono outline-none focus:border-accent focus:ring-1 focus:ring-accent"
                     />
                   </div>
@@ -401,12 +454,6 @@ export function AccessEditor({ secret, accountId, wallets = [], onSave, onCancel
                     Add contract
                   </button>
                 </div>
- <p className="mt-2 text-xs text-muted-foreground">
-                  A contract named here is trusted by your choice: it may relay a call naming this
-                  secret with any input it likes. Name contracts that check who calls them. A grant
-                  that lapses on its own stays on this list until you revoke it: the date ends what
-                  it may read, not what it may relay.
-                </p>
               </div>
             )}
           </>
@@ -414,12 +461,11 @@ export function AccessEditor({ secret, accountId, wallets = [], onSave, onCancel
       </div>
 
       {/* The tree itself */}
- <details className="mt-4">
- <summary className="cursor-pointer text-sm font-medium text-foreground">Full condition</summary>
- <p className="mt-2 text-xs text-muted-foreground">
-          The same condition, as the contract stores it — for anything the views above do not
-          express: patterns, balances, DAO roles, NOT, a calling-account rule other than a list.
-        </p>
+ <details className="mt-3">
+ <summary className="cursor-pointer text-xs font-medium text-muted-foreground hover:text-foreground">
+          Full condition — patterns, balances, DAO roles, NOT
+        </summary>
+ <p className="mt-2 text-xs text-muted-foreground">Stored now: {storedText}</p>
  <div className="mt-2">
           {keptTree !== null ? (
  <div className="p-4 bg-card-muted rounded-md border border-border-strong">
@@ -443,14 +489,18 @@ export function AccessEditor({ secret, accountId, wallets = [], onSave, onCancel
           )}
         </div>
       </details>
- <p className="mt-3 text-xs text-muted-foreground">
-        Will be stored: {contractTree === null ? '—' : formatAccessCondition(contractTree)}
-      </p>
+      {/* Shown only once it says something: before any edit it would repeat the
+          list above, and afterwards it is the one line worth reading before Save. */}
+      {nextText !== storedText && (
+ <p className="mt-3 rounded border border-border bg-card-muted px-3 py-2 text-xs text-foreground">
+          <span className="font-medium">Will be stored:</span> {nextText}
+        </p>
+      )}
 
       {error && (
  <p className="mt-2 text-sm text-destructive-text">{error}</p>
       )}
- <div className="mt-4 flex gap-2">
+ <div className="mt-3 flex gap-2">
         <button
           type="button"
           onClick={save}

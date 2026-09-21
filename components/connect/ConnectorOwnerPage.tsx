@@ -667,6 +667,9 @@ export function ConnectorOwnerPage({ spec }: { spec: ConnectorSpec }) {
   const connectedSince = loaded ? new Date(loaded.created_at / 1_000_000) : null;
   const updatedAt = loaded ? new Date(loaded.updated_at / 1_000_000) : null;
   const updatingPolicy = update ? policyKey in update.keys : false;
+  // Straight to this row's access form, opened and framed — not to a page of
+  // every secret the account has, to find the row and its button again.
+  const grantHref = `/secrets?project=${encodeURIComponent(projectId)}&profile=${encodeURIComponent(profile)}&access=1`;
 
   return (
     <div className="max-w-2xl space-y-4">
@@ -757,11 +760,8 @@ export function ConnectorOwnerPage({ spec }: { spec: ConnectorSpec }) {
             <More label="Who can read it, and how do I give an agent access?">
               <p>It is sealed to a key whose private half exists only inside the keystore enclave — not on our servers, and not in this page.</p>
               <p>
-                To let an agent use it you add its account on the{' '}
-                <a className="underline" href="/secrets">
-                  secrets page
-                </a>
-                , with an expiry if you want the access to lapse on its own. You can take it back at any time.
+                To let an agent use it you add its account to this row on the secrets page — the next screen offers the link — with an
+                expiry if you want the access to lapse on its own. You can take it back at any time.
               </p>
             </More>
           </div>
@@ -781,7 +781,7 @@ export function ConnectorOwnerPage({ spec }: { spec: ConnectorSpec }) {
               {spec.policy.summarize(policy)} {spec.grantHint}
             </p>
           </div>
-          <a href="/secrets" className="inline-block rounded bg-green-600 px-4 py-2 text-sm text-white hover:bg-green-700">
+          <a href={grantHref} className="inline-block rounded bg-green-600 px-4 py-2 text-sm text-white hover:bg-green-700">
             Grant an agent access
           </a>
           <More label="Where the credential lives, and what an agent names">
@@ -800,7 +800,7 @@ export function ConnectorOwnerPage({ spec }: { spec: ConnectorSpec }) {
         <div className="space-y-4">
           <div className="rounded border border-green-300 bg-green-50 px-4 py-3 text-sm text-green-900">
             <span className="font-medium text-green-800">{spec.provider} is connected.</span> Who may use it: <AccessChips access={loaded.access} />{' '}
-            <a className="underline" href={`/secrets?project=${encodeURIComponent(projectId)}&profile=${profile}`}>
+            <a className="underline" href={grantHref}>
               Manage access
             </a>
           </div>

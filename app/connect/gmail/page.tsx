@@ -772,7 +772,7 @@ function ConnectGmail() {
               {gmailPolicy.summarize(policy)} Nobody can send until you grant an agent.
             </p>
           </div>
-          <a href="/secrets" className="inline-block rounded bg-green-600 px-4 py-2 text-sm text-white hover:bg-green-700">
+          <a href={`/secrets?project=${encodeURIComponent(projectId)}&profile=${PROFILE}&access=1`} className="inline-block rounded bg-green-600 px-4 py-2 text-sm text-white hover:bg-green-700">
             Grant an agent access
           </a>
           <More label="Where the credential lives, and what an agent names">
@@ -793,7 +793,7 @@ function ConnectGmail() {
           <div className="rounded border border-green-300 bg-green-50 px-4 py-3 text-sm text-green-900">
             <span className="font-medium text-green-800">Gmail is connected.</span> Who may use it:{' '}
             <AccessChips access={loaded.access} />{' '}
-            <a className="underline" href={`/secrets?project=${encodeURIComponent(projectId)}&profile=${PROFILE}`}>
+            <a className="underline" href={`/secrets?project=${encodeURIComponent(projectId)}&profile=${PROFILE}&access=1`}>
               Manage access
             </a>
           </div>

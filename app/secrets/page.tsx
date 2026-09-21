@@ -1,9 +1,9 @@
 'use client';
 
-import { HashChip } from '@/components/ui/hash-chip';
+import { CopyText } from '@/components/ui/copy-text';
 import { PageHeader } from '@/components/ui/page-header';
 import { RequireWallet } from '@/components/ui/require-wallet';
-import { Suspense, useState, useEffect, useCallback, useMemo } from 'react';
+import { Suspense, useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useNearWallet } from '@/contexts/NearWalletContext';
 import { actionCreators } from '@near-js/transactions';
@@ -39,7 +39,12 @@ function SecretsPageContent() {
   // From an execution's details: the SHA-256 of the bytes that ran. The form locks the
   // row's access condition to that build ("One build only", ANDed with the default).
   const linkWasmHash = searchParams.get('wasm_hash')?.trim() || '';
-  const fromLink = Boolean(linkProject || linkProfile || linkName || linkGenerate || linkWasmHash);
+  // `access=1` is a different kind of link: not "create this secret" but "open
+  // who may read the one that exists" — where a connector's owner page sends a
+  // person to grant their agent. It must not reach the create form at all:
+  // that form, prefilled with an existing row's name, is an offer to overwrite it.
+  const linkAccess = searchParams.get('access') === '1' && Boolean(linkProject);
+  const fromLink = !linkAccess && Boolean(linkProject || linkProfile || linkName || linkGenerate || linkWasmHash);
   const coordinatorUrl = getCoordinatorApiUrl(network);
 
   // User's secrets list
@@ -57,6 +62,9 @@ function SecretsPageContent() {
   const [updatingSecret, setUpdatingSecret] = useState<UserSecret | null>(null);
   // The secret whose readers are being changed (update_access; the value stays).
   const [accessSecret, setAccessSecret] = useState<UserSecret | null>(null);
+  /** The access form was opened by a link, so it is what the visitor came for. */
+  const [accessFromLink, setAccessFromLink] = useState(false);
+  const openedFromLink = useRef(false);
   // The custody wallets this account owns, as grantees: a grant names the
   // wallet's implicit account, which is what pays for its calls.
   const [wallets, setWallets] = useState<GranteeWallet[]>([]);
@@ -111,6 +119,24 @@ function SecretsPageContent() {
         )
       : undefined;
   const linkOverwrites = Boolean(linkTarget);
+
+  // An access link, once the rows are in: open the form of the row it names, as
+  // if its own Access button had been pressed. Once — a refresh of the list must
+  // not reopen a form the visitor has closed.
+  useEffect(() => {
+    if (!linkAccess || openedFromLink.current || loadingSecrets || userSecrets.length === 0) return;
+    const wanted = linkProfile || 'default';
+    const row = userSecrets.find(
+      (s) => s.accessor && isProjectAccessor(s.accessor) && s.accessor.Project.project_id === linkProject && s.profile === wanted,
+    );
+    openedFromLink.current = true;
+    if (row) {
+      setAccessSecret(row);
+      setAccessFromLink(true);
+    } else {
+      setError(`This account has no secret “${wanted}” for ${linkProject}, so there is nothing to grant access to yet.`);
+    }
+  }, [linkAccess, linkProject, linkProfile, loadingSecrets, userSecrets]);
 
   // The form's three prop objects are built here, memoised on the state they
   // come from, so their identity changes only when the edited or updated
@@ -772,7 +798,11 @@ function SecretsPageContent() {
             accountId={accountId}
             wallets={wallets}
             onSave={handleSaveAccess}
-            onCancel={() => setAccessSecret(null)}
+            onCancel={() => {
+              setAccessSecret(null);
+              setAccessFromLink(false);
+            }}
+            highlight={accessFromLink}
           />
         )}
         {grantsByAccount.size > 0 && (
@@ -792,7 +822,7 @@ function SecretsPageContent() {
                   <div className="text-xs break-all text-foreground">
                     {/* The whole id, and one click copies it: this is the value
                         an owner pastes into an agent's configuration. */}
-                    <HashChip value={account} trim={0} title="Click to copy" className="bg-transparent px-0 border-0 text-foreground" />
+                    <CopyText value={account} />
                     {ownWallet.has(account) && (
                       <span className="ml-2 font-sans text-muted-foreground">your wallet {ownWallet.get(account)}</span>
                     )}
@@ -836,7 +866,7 @@ function SecretsPageContent() {
           onEdit={handleEditSecret}
           onUpdate={handleUpdateSecret}
           onDelete={handleDeleteSecret}
-          onAccess={(secret) => { setAccessSecret(secret); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+          onAccess={(secret) => { setAccessSecret(secret); setAccessFromLink(false); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
           onRefresh={loadUserSecrets}
         />
         </div>

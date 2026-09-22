@@ -874,6 +874,31 @@ curl -s -X POST -H "Content-Type: application/json" \\
  <td className="px-4 py-2 font-mono text-xs">/wallet/v1/intents/transfer</td>
               </tr>
  <tr className="border-b">
+ <td className="px-4 py-2">Rest a limit order</td>
+ <td className="px-4 py-2 font-mono">POST</td>
+ <td className="px-4 py-2 font-mono text-xs">/wallet/v1/limit-orders</td>
+              </tr>
+ <tr className="border-b">
+ <td className="px-4 py-2">List limit orders</td>
+ <td className="px-4 py-2 font-mono">GET</td>
+ <td className="px-4 py-2 font-mono text-xs">/wallet/v1/limit-orders?open=&amp;limit=&amp;offset=</td>
+              </tr>
+ <tr className="border-b">
+ <td className="px-4 py-2">Read one limit order</td>
+ <td className="px-4 py-2 font-mono">GET</td>
+ <td className="px-4 py-2 font-mono text-xs">/wallet/v1/limit-orders/&#123;order_id&#125;</td>
+              </tr>
+ <tr className="border-b">
+ <td className="px-4 py-2">Cancel one limit order</td>
+ <td className="px-4 py-2 font-mono">POST</td>
+ <td className="px-4 py-2 font-mono text-xs">/wallet/v1/limit-orders/&#123;order_id&#125;/cancel</td>
+              </tr>
+ <tr className="border-b">
+ <td className="px-4 py-2">Cancel every resting order</td>
+ <td className="px-4 py-2 font-mono">POST</td>
+ <td className="px-4 py-2 font-mono text-xs">/wallet/v1/limit-orders/cancel-all?offset=&amp;limit=</td>
+              </tr>
+ <tr className="border-b">
  <td className="px-4 py-2">Delete wallet</td>
  <td className="px-4 py-2 font-mono">POST</td>
  <td className="px-4 py-2 font-mono text-xs">/wallet/v1/delete</td>
@@ -947,78 +972,169 @@ curl -s -X POST -H "Content-Type: application/json" \\
           A limit order is a swap that waits for your price. The wallet says what it sells (or buys),
           how much, and at what price; the order rests on 1Click and fills &mdash; possibly in several
           slices &mdash; when the market reaches it. It ends when it is filled, cancelled, or reaches its
-          deadline (7 days unless you set one). Mainnet only, funded from the wallet&apos;s intents balance.
+          deadline (7 days unless you set one). <strong>Mainnet only</strong>, funded from the wallet&apos;s
+          intents balance.
         </p>
 
- <div className="bg-card-muted border-l-4 border-yellow-500 p-4 mb-4 text-sm text-foreground">
- <strong>Authorised once, paid out later.</strong> Every other operation here is signed at the
-          moment money moves. A resting order is not: the policy decides when it is created, and the
-          payout happens later &mdash; possibly days later &mdash; with no further signature. Two things
-          follow. A price through the market fills <em>immediately</em>, so a limit order is gated as the
-          exit it can become, not as the patient thing it is named after. And freezing the wallet stops new
-          orders but does not cancel resting ones: a freeze closes the agent&apos;s access, it does not unwind
-          what is already placed. Cancelling is never frozen &mdash; call cancel-all afterwards; it is
-          asynchronous, and 1Click may still fill a last slice before a cancel lands.
+ <div className="bg-card-muted border-l-4 border-yellow-500 p-4 mb-6 text-sm text-foreground">
+ <strong>Authorised once, paid out later.</strong> Every other operation here is signed as money
+          moves; a resting order is not. The policy decides when the order is created, and the payout
+          happens later &mdash; possibly days later &mdash; with no further signature. Two consequences:
+          a price through the market fills <em>immediately</em>, so an order is gated as the exit it can
+          become; and freezing the wallet stops new orders but does not cancel resting ones. Cancelling
+          is never frozen &mdash; call <code className="bg-card-muted px-1 rounded">cancel-all</code> after a freeze, with the same API key.
         </div>
 
- <p className="text-foreground mb-2">
- <strong>Policy.</strong> Default-deny. Under a policy a limit order needs both the{' '}
-          <code className="bg-card-muted px-1 rounded">limit_order</code> capability and the{' '}
-          <code className="bg-card-muted px-1 rounded">limit_order</code> transaction type &mdash; the policy form&apos;s
-          single switch sets both. <code className="bg-card-muted px-1 rounded">swap</code> and{' '}
-          <code className="bg-card-muted px-1 rounded">cross_chain_withdraw</code> neither imply it nor stand in for it.
-          The address rules apply to <code className="bg-card-muted px-1 rounded">recipient</code> (where the filled output is paid)
-          and the amount limits to what the wallet sends. On a multisig wallet, approvers sign the order&apos;s
-          exact terms &mdash; what is sent, and the least it must return.
+ <h3 className="text-xl font-semibold text-foreground mt-8 mb-3">Endpoints</h3>
+ <div className="overflow-x-auto mb-6">
+ <table className="min-w-full text-sm border border-border">
+ <thead className="bg-card-muted">
+              <tr>
+ <th className="px-4 py-2 text-left font-semibold border-b">Method</th>
+ <th className="px-4 py-2 text-left font-semibold border-b">Endpoint</th>
+ <th className="px-4 py-2 text-left font-semibold border-b">What it does</th>
+              </tr>
+            </thead>
+            <tbody>
+ <tr className="border-b">
+ <td className="px-4 py-2 font-mono text-xs">POST</td>
+ <td className="px-4 py-2 font-mono text-xs">/wallet/v1/limit-orders</td>
+ <td className="px-4 py-2">Rest an order. Answers the created order, or <code className="bg-card-muted px-1 rounded">pending_approval</code> on a multisig wallet.</td>
+              </tr>
+ <tr className="border-b">
+ <td className="px-4 py-2 font-mono text-xs">GET</td>
+ <td className="px-4 py-2 font-mono text-xs">/wallet/v1/limit-orders</td>
+ <td className="px-4 py-2">This wallet&apos;s orders as last recorded. <code className="bg-card-muted px-1 rounded">open=true</code> for unfinished only; <code className="bg-card-muted px-1 rounded">limit</code> 1&ndash;100, <code className="bg-card-muted px-1 rounded">offset</code>. Does not refresh them &mdash; poll the order, not the list.</td>
+              </tr>
+ <tr className="border-b">
+ <td className="px-4 py-2 font-mono text-xs">GET</td>
+ <td className="px-4 py-2 font-mono text-xs">/wallet/v1/limit-orders/&#123;order_id&#125;</td>
+ <td className="px-4 py-2">One order, read live from 1Click while it is working. <code className="bg-card-muted px-1 rounded">404</code> for an order that is not yours.</td>
+              </tr>
+ <tr className="border-b">
+ <td className="px-4 py-2 font-mono text-xs">POST</td>
+ <td className="px-4 py-2 font-mono text-xs">/wallet/v1/limit-orders/&#123;order_id&#125;/cancel</td>
+ <td className="px-4 py-2">Cancel one order.</td>
+              </tr>
+              <tr>
+ <td className="px-4 py-2 font-mono text-xs">POST</td>
+ <td className="px-4 py-2 font-mono text-xs">/wallet/v1/limit-orders/cancel-all</td>
+ <td className="px-4 py-2">Cancel every unfinished order of this wallet, 50 per call, oldest first.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+ <h3 className="text-xl font-semibold text-foreground mt-8 mb-3">Request</h3>
+ <div className="overflow-x-auto mb-6">
+ <table className="min-w-full text-sm border border-border">
+ <thead className="bg-card-muted">
+              <tr>
+ <th className="px-4 py-2 text-left font-semibold border-b">Field</th>
+ <th className="px-4 py-2 text-left font-semibold border-b">Req.</th>
+ <th className="px-4 py-2 text-left font-semibold border-b">Meaning</th>
+              </tr>
+            </thead>
+            <tbody>
+ <tr className="border-b"><td className="px-4 py-2 font-mono text-xs">base_asset</td><td className="px-4 py-2">yes</td><td className="px-4 py-2">Asset <code className="bg-card-muted px-1 rounded">quantity</code> is denominated in.</td></tr>
+ <tr className="border-b"><td className="px-4 py-2 font-mono text-xs">quote_asset</td><td className="px-4 py-2">yes</td><td className="px-4 py-2">Asset <code className="bg-card-muted px-1 rounded">price</code> is denominated in.</td></tr>
+ <tr className="border-b"><td className="px-4 py-2 font-mono text-xs">side</td><td className="px-4 py-2">yes</td><td className="px-4 py-2"><code className="bg-card-muted px-1 rounded">sell</code> spends the base asset, <code className="bg-card-muted px-1 rounded">buy</code> spends the quote asset.</td></tr>
+ <tr className="border-b"><td className="px-4 py-2 font-mono text-xs">quantity</td><td className="px-4 py-2">yes</td><td className="px-4 py-2">Base amount in its <strong>smallest units</strong> &mdash; digits only.</td></tr>
+ <tr className="border-b"><td className="px-4 py-2 font-mono text-xs">price</td><td className="px-4 py-2">yes</td><td className="px-4 py-2">Quote per <strong>one whole</strong> base, a positive decimal string (<code className="bg-card-muted px-1 rounded">&quot;5&quot;</code>, <code className="bg-card-muted px-1 rounded">&quot;0.25&quot;</code>, <code className="bg-card-muted px-1 rounded">&quot;1.2e1&quot;</code>).</td></tr>
+ <tr className="border-b"><td className="px-4 py-2 font-mono text-xs">recipient</td><td className="px-4 py-2">no</td><td className="px-4 py-2">Where filled output is paid. Omitted &rarr; this wallet&apos;s own intents balance. The policy&apos;s address rules apply either way.</td></tr>
+ <tr className="border-b"><td className="px-4 py-2 font-mono text-xs">recipient_type</td><td className="px-4 py-2">no</td><td className="px-4 py-2"><code className="bg-card-muted px-1 rounded">intents</code> (default), <code className="bg-card-muted px-1 rounded">destination_chain</code> (an address on the output asset&apos;s chain, then required), or <code className="bg-card-muted px-1 rounded">confidential_intents</code> (also needs the <code className="bg-card-muted px-1 rounded">confidential</code> capability).</td></tr>
+ <tr><td className="px-4 py-2 font-mono text-xs">deadline</td><td className="px-4 py-2">no</td><td className="px-4 py-2">RFC 3339 expiry. Omitted &rarr; 7 days.</td></tr>
+            </tbody>
+          </table>
+        </div>
+ <p className="text-sm text-muted-foreground mb-6">
+          Minimum order value is <strong>0.1 USD</strong>. The wallet&apos;s intents balance is checked before
+          anything is created &mdash; short of it, the call answers <code className="bg-card-muted px-1 rounded">insufficient_balance</code>.
         </p>
 
-        <SyntaxHighlighter language="bash" style={vscDarkPlus} customStyle={{ borderRadius: '0.5rem', fontSize: '0.875rem' }}>
-{`# Sell 1 wNEAR for USDC at 5 USDC per NEAR, or better.
-# quantity: base asset, smallest units (digits only).  price: quote per one WHOLE base, a positive decimal.
-curl -s -X POST -H "Content-Type: application/json" \\
+ <h3 className="text-xl font-semibold text-foreground mt-8 mb-3">Reading an order</h3>
+ <p className="text-foreground mb-3">
+          The answer is 1Click&apos;s own order: field names in snake_case, enumerated values in lower case,
+          nothing renamed or left out. Only <code className="bg-card-muted px-1 rounded">transfer_intent_hash</code> and{' '}
+ <code className="bg-card-muted px-1 rounded">request_id</code> are OutLayer&apos;s.
+        </p>
+ <div className="overflow-x-auto mb-4">
+ <table className="min-w-full text-sm border border-border">
+ <thead className="bg-card-muted">
+              <tr>
+ <th className="px-4 py-2 text-left font-semibold border-b">Field</th>
+ <th className="px-4 py-2 text-left font-semibold border-b">What it tells you</th>
+              </tr>
+            </thead>
+            <tbody>
+ <tr className="border-b"><td className="px-4 py-2 font-mono text-xs">is_payout_status_final</td><td className="px-4 py-2"><strong>The only signal that the order is over.</strong> <code className="bg-card-muted px-1 rounded">fill_status</code> alone is not &mdash; a <code className="bg-card-muted px-1 rounded">pending_cancel</code> order may still fill a last slice.</td></tr>
+ <tr className="border-b"><td className="px-4 py-2 font-mono text-xs">fill_status</td><td className="px-4 py-2">Matching state: <code className="bg-card-muted px-1 rounded">awaiting_deposit</code>, <code className="bg-card-muted px-1 rounded">open</code>, <code className="bg-card-muted px-1 rounded">partially_filled</code>, <code className="bg-card-muted px-1 rounded">filled</code>, <code className="bg-card-muted px-1 rounded">pending_cancel</code>, <code className="bg-card-muted px-1 rounded">canceled</code>, <code className="bg-card-muted px-1 rounded">expired</code>.</td></tr>
+ <tr className="border-b"><td className="px-4 py-2 font-mono text-xs">partial_fills</td><td className="px-4 py-2">The fills so far, while the order is <code className="bg-card-muted px-1 rounded">partially_filled</code>.</td></tr>
+ <tr className="border-b"><td className="px-4 py-2 font-mono text-xs">payouts</td><td className="px-4 py-2">The withdrawal and refund legs, once there are any.</td></tr>
+ <tr className="border-b"><td className="px-4 py-2 font-mono text-xs">app_fees</td><td className="px-4 py-2">1Click&apos;s own fee, taken from the input, in basis points. OutLayer does not set it.</td></tr>
+ <tr><td className="px-4 py-2 font-mono text-xs">transfer_intent_hash</td><td className="px-4 py-2">The intents transfer that funded the order.</td></tr>
+            </tbody>
+          </table>
+        </div>
+ <p className="text-foreground mb-6">
+          The unfilled remainder always comes back to this wallet. If 1Click&apos;s own figures are worse
+          than the terms the policy authorised, the still-unfunded order is cancelled and nothing is sent.
+        </p>
+
+ <h3 className="text-xl font-semibold text-foreground mt-8 mb-3">Policy</h3>
+ <p className="text-foreground mb-6">
+ <strong>Default-deny.</strong> Under a policy an order needs both the <code className="bg-card-muted px-1 rounded">limit_order</code>{' '}
+          capability and the <code className="bg-card-muted px-1 rounded">limit_order</code> transaction type &mdash; the policy form&apos;s single
+          switch sets both. <code className="bg-card-muted px-1 rounded">swap</code> and <code className="bg-card-muted px-1 rounded">cross_chain_withdraw</code> neither imply it
+          nor stand in for it. The address rules apply to <code className="bg-card-muted px-1 rounded">recipient</code>, the amount limits to what
+          the wallet sends. On a multisig wallet, approvers sign the order&apos;s exact terms &mdash; what is
+          sent, and the least it must return.
+        </p>
+
+ <details className="border border-border rounded-lg p-4 mb-4">
+ <summary className="font-semibold cursor-pointer text-foreground">
+            Example: rest an order, read it, cancel it (curl)
+          </summary>
+ <p className="text-sm text-foreground mt-3 mb-3">
+            Three steps. <strong>1</strong> rests a sell of 1 wNEAR at 5 USDC per NEAR and keeps the{' '}
+ <code className="bg-card-muted px-1 rounded">order_id</code> it answers with; the order comes back{' '}
+ <code className="bg-card-muted px-1 rounded">awaiting_deposit</code> and turns <code className="bg-card-muted px-1 rounded">open</code> within seconds, once 1Click sees
+            the funding transfer OutLayer already sent. <strong>2</strong> reads it back. <strong>3</strong> cancels
+            it &mdash; first that one order, then everything still resting, which is what you call after a freeze.
+          </p>
+          <SyntaxHighlighter language="bash" style={vscDarkPlus} customStyle={{ borderRadius: '0.5rem', fontSize: '0.875rem' }}>
+{`API=https://api.outlayer.ai/wallet/v1/limit-orders
+
+# 1. Rest the order.
+#    quantity = base asset, smallest units, digits only
+#    price    = quote per one WHOLE base
+ORDER=$(curl -s -X POST "$API" \\
   -H "Authorization: Bearer $API_KEY" \\
+  -H "Content-Type: application/json" \\
   -H "Idempotency-Key: $(uuidgen)" \\
-  -d '{"base_asset":"nep141:wrap.near","quote_asset":"nep141:17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1","side":"sell","quantity":"1000000000000000000000000","price":"5"}' \\
-  "https://api.outlayer.ai/wallet/v1/limit-orders"
-# -> 1Click's order as created, plus the funding transfer:
-#    { "order_id": "order_…", "fill_status": "awaiting_deposit", "is_payout_status_final": false,
-#      "app_fees": [...], "transfer_intent_hash": "…", ... }   (it turns "open" within seconds)
+  -d '{"base_asset": "nep141:wrap.near",
+       "quote_asset": "nep141:17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1",
+       "side": "sell",
+       "quantity": "1000000000000000000000000",
+       "price": "5"}')
+ORDER_ID=$(echo "$ORDER" | jq -r .order_id)
 
-# Read it (poll in minutes, not seconds — an order can rest for days)
-curl -s -H "Authorization: Bearer $API_KEY" "https://api.outlayer.ai/wallet/v1/limit-orders/$ORDER_ID"
+# 2. Read it back. Poll in minutes, not seconds: an order can rest for days.
+#    It is over only when is_payout_status_final is true.
+curl -s "$API/$ORDER_ID" -H "Authorization: Bearer $API_KEY"
 
-# Cancel one order, or every unfinished order of THIS wallet. Never policy-gated; works on a frozen
-# wallet with the same API key. Asynchronous: what already filled is still paid out, the rest is
-# refunded to the wallet's intents balance; an order is over when is_payout_status_final is true.
-# cancel-all → { "known": 2, "cancelled": 2, "failed": 0, "complete": true }  (complete:false → call again)
-curl -s -X POST -H "Authorization: Bearer $API_KEY" "https://api.outlayer.ai/wallet/v1/limit-orders/$ORDER_ID/cancel"
-curl -s -X POST -H "Authorization: Bearer $API_KEY" "https://api.outlayer.ai/wallet/v1/limit-orders/cancel-all"`}
-        </SyntaxHighlighter>
-
- <ul className="list-disc list-inside text-sm text-foreground mt-3 space-y-1">
-          <li>The answer is 1Click&apos;s own order: field names in snake_case, enumerated values in lower case,
-            nothing renamed. <code className="bg-card-muted px-1 rounded">is_payout_status_final</code> is the only signal
-            that an order is over &mdash; <code className="bg-card-muted px-1 rounded">fill_status</code> alone is not, and a{' '}
-            <code className="bg-card-muted px-1 rounded">pending_cancel</code> order may still fill a last slice.</li>
-          <li>Filled output goes to <code className="bg-card-muted px-1 rounded">recipient</code> (your own intents balance when omitted;{' '}
-            <code className="bg-card-muted px-1 rounded">recipient_type: &quot;destination_chain&quot;</code> pays an address on the
-            output asset&apos;s own chain, <code className="bg-card-muted px-1 rounded">&quot;confidential_intents&quot;</code> the
-            confidential shard, which the policy must also permit through the <code className="bg-card-muted px-1 rounded">confidential</code> capability).
-            The unfilled remainder always comes back to the wallet.</li>
-          <li>While an order is <code className="bg-card-muted px-1 rounded">partially_filled</code>,{' '}
-            <code className="bg-card-muted px-1 rounded">partial_fills</code> lists the fills so far;{' '}
-            <code className="bg-card-muted px-1 rounded">payouts</code> carries the withdrawal and refund legs once there are any;{' '}
-            <code className="bg-card-muted px-1 rounded">estimated_withdraw_fee</code> /{' '}
-            <code className="bg-card-muted px-1 rounded">estimated_refund_fee</code> are 1Click&apos;s own cost estimates, passed
-            through as given. Every attribute of 1Click&apos;s order is passed through; only{' '}
-            <code className="bg-card-muted px-1 rounded">transfer_intent_hash</code> and{' '}
-            <code className="bg-card-muted px-1 rounded">request_id</code> are OutLayer&apos;s.</li>
-          <li>If 1Click&apos;s own figures for the order are worse than the terms the policy authorised, the
-            still-unfunded order is cancelled and nothing is sent.</li>
-          <li>1Click takes its own fee from the input and reports it as{' '}
-            <code className="bg-card-muted px-1 rounded">app_fees</code> (basis points); OutLayer does not set it.
-            Minimum order value is 0.1 USD.</li>
-        </ul>
+# 3. Cancel this one, then everything still resting.
+#    Never policy-gated, and works on a frozen wallet with the same key.
+curl -s -X POST "$API/$ORDER_ID/cancel" -H "Authorization: Bearer $API_KEY"
+curl -s -X POST "$API/cancel-all" -H "Authorization: Bearer $API_KEY"
+# -> {"known":2,"cancelled":2,"failed":0,"remaining":0,"complete":true}
+#    complete:false -> some are still resting, call it again`}
+          </SyntaxHighlighter>
+ <p className="text-sm text-muted-foreground">
+            Cancelling is asynchronous: what already filled is still paid out, the rest is refunded to the
+            wallet&apos;s intents balance.
+          </p>
+        </details>
       </section>
 
       {/* Confidential Intents */}

@@ -16,13 +16,36 @@ import { InfoHint } from '@/components/ui/info-hint';
  * It also has to exist for anyone reviewing the integration from outside, who
  * will not write an HTTP request to see the feature.
  *
+ * Two ways to pay for the call, because the owner has one or the other and
+ * should not have to go and get the missing one:
+ *
+ * * **A payment key.** An HTTPS call. Nothing is published, the answer is
+ *   immediate, and checking the connection costs nothing.
+ * * **A wallet transaction.** Needs nothing but the wallet already connected —
+ *   but the arguments of a transaction are public on the blockchain for ever,
+ *   and that includes the recipient and the text of the message. The page says
+ *   so before the button, because nobody expects a test message to be
+ *   published.
+ *
  * The payment key is a credential and is treated as one: a password field, held
  * in state for the length of the visit, sent in a header, never in the URL,
  * never stored, never logged.
+ *
+ * Nothing here opens a wallet by itself: `walletSend` runs from the button's
+ * own click, under a label that says what the transaction does.
  */
 
 /** `owner:nonce:secret` — the shape `create-payment-key` returns. */
 const KEY_SHAPE = /^[^:\s]+:\d+:[0-9a-fA-F]{64}$/;
+
+/** `<word>: <sentence>` — the word is the contract, and for a policy refusal the
+ *  sentence names the rule that stopped it. */
+function refusalOf(message: string): Outcome {
+  const colon = message.indexOf(': ');
+  return colon > 0
+    ? { kind: 'refused', word: message.slice(0, colon), sentence: message.slice(colon + 2) }
+    : { kind: 'refused', word: message, sentence: '' };
+}
 
 type Outcome =
   | { kind: 'sent'; detail: string }
@@ -35,13 +58,23 @@ export function TrySending({
   projectId,
   profile,
   accountId,
+  walletSend,
+  walletOutcome,
 }: {
   coordinatorUrl: string;
   projectId: string;
   profile: string;
   /** The account the row is stored under — what `secrets_ref` names. */
   accountId: string;
+  /** Runs the send as one transaction from this page's wallet. It resolves with
+   *  what the connector answered — or never resolves, because a wallet that
+   *  signs on its own page navigates away and the answer arrives as
+   *  `walletOutcome` after the return. */
+  walletSend?: (input: Record<string, unknown>) => Promise<{ messageId?: string; refusal?: string }>;
+  /** What a wallet that signed on its own page answered, once the page is back. */
+  walletOutcome?: { messageId?: string; refusal?: string; error?: string } | null;
 }) {
+  const [how, setHow] = useState<'wallet' | 'key'>(walletSend ? 'wallet' : 'key');
   const [paymentKey, setPaymentKey] = useState('');
   const [to, setTo] = useState('');
   const [subject, setSubject] = useState('A test from OutLayer');
@@ -51,6 +84,32 @@ export function TrySending({
 
   const keyGiven = paymentKey.trim().length > 0;
   const keyLooksRight = KEY_SHAPE.test(paymentKey.trim());
+  // A wallet that signed on its own page: the page has reloaded and this is the
+  // only trace of what happened, so it wins over whatever state is left here.
+  const shown: Outcome | null = walletOutcome
+    ? walletOutcome.error
+      ? { kind: 'error', detail: walletOutcome.error }
+      : walletOutcome.refusal
+        ? refusalOf(walletOutcome.refusal)
+        : { kind: 'sent', detail: walletOutcome.messageId ? `Gmail accepted it as message ${walletOutcome.messageId}.` : 'Gmail accepted it.' }
+    : outcome;
+
+  const sendWithWallet = async () => {
+    setBusy('send');
+    setOutcome(null);
+    try {
+      const answer = await walletSend!({ operation: 'send', to: [to.trim()], subject, body });
+      setOutcome(
+        answer.refusal
+          ? refusalOf(answer.refusal)
+          : { kind: 'sent', detail: answer.messageId ? `Gmail accepted it as message ${answer.messageId}.` : 'Gmail accepted it.' },
+      );
+    } catch (e) {
+      setOutcome({ kind: 'error', detail: (e as Error).message });
+    } finally {
+      setBusy(null);
+    }
+  };
 
   const call = async (what: 'status' | 'send') => {
     setBusy(what);
@@ -100,15 +159,7 @@ export function TrySending({
         return;
       }
       if (envelope.success === false) {
-        // `<word>: <sentence>` — the word is the contract, and for a policy
-        // refusal the sentence names the rule that stopped it.
-        const message = String(envelope.error ?? 'refused');
-        const colon = message.indexOf(': ');
-        setOutcome(
-          colon > 0
-            ? { kind: 'refused', word: message.slice(0, colon), sentence: message.slice(colon + 2) }
-            : { kind: 'refused', word: message, sentence: '' },
-        );
+        setOutcome(refusalOf(String(envelope.error ?? 'refused')));
         return;
       }
       if (what === 'status') {
@@ -158,7 +209,34 @@ export function TrySending({
         Optional, and the only way to see the credential work before an agent uses it.
       </p>
 
-      <label className="block">
+      {walletSend && (
+        <div className="flex flex-wrap gap-4">
+          {(['wallet', 'key'] as const).map((choice) => (
+            <label key={choice} className="flex items-center gap-2">
+              <input
+                type="radio"
+                name="try-sending-how"
+                checked={how === choice}
+                onChange={() => {
+                  setHow(choice);
+                  setOutcome(null);
+                }}
+              />
+              <span>{choice === 'wallet' ? 'Pay with a wallet transaction' : 'Pay with a payment key'}</span>
+            </label>
+          ))}
+        </div>
+      )}
+
+      {how === 'wallet' && (
+        <p className="rounded border border-amber-400 bg-amber-50 px-3 py-2 text-amber-900">
+          A transaction&rsquo;s arguments are public on the blockchain and stay readable for ever — and the
+          message is one of them. Send yourself something you would not mind publishing. A payment key
+          keeps the message between you and Gmail, and costs a fraction of this.
+        </p>
+      )}
+
+      <label className={how === 'key' ? 'block' : 'hidden'}>
         <span className="text-xs font-medium text-foreground">Payment key</span>
         <input
           type="password"
@@ -217,50 +295,63 @@ export function TrySending({
       <div className="flex flex-wrap items-center gap-3">
         <button
           type="button"
-          disabled={busy !== null || !keyLooksRight || to.trim().length === 0}
-          onClick={() => call('send')}
+          disabled={busy !== null || to.trim().length === 0 || (how === 'key' && !keyLooksRight)}
+          onClick={() => (how === 'wallet' ? void sendWithWallet() : void call('send'))}
           className="rounded bg-[#cc6600] px-4 py-2 text-sm text-white disabled:opacity-50"
         >
-          {busy === 'send' ? 'Sending…' : 'Send'}
+          {busy === 'send'
+            ? how === 'wallet'
+              ? 'Waiting for your wallet…'
+              : 'Sending…'
+            : how === 'wallet'
+              ? 'Sign one transaction and send'
+              : 'Send'}
         </button>
-        <button
-          type="button"
-          disabled={busy !== null || !keyLooksRight}
-          onClick={() => call('status')}
-          className="rounded border border-border px-3 py-2 text-sm disabled:opacity-50"
-          title="A free call that fetches an access token and reads back your policy"
-        >
-          {busy === 'status' ? 'Checking…' : 'Check the connection (free)'}
-        </button>
+        {how === 'key' && (
+          <button
+            type="button"
+            disabled={busy !== null || !keyLooksRight}
+            onClick={() => void call('status')}
+            className="rounded border border-border px-3 py-2 text-sm disabled:opacity-50"
+            title="A free call that fetches an access token and reads back your policy"
+          >
+            {busy === 'status' ? 'Checking…' : 'Check the connection (free)'}
+          </button>
+        )}
+        {how === 'wallet' && (
+          <span className="text-xs text-muted-foreground">
+            Attaches 0.1 NEAR, keeps the run&rsquo;s cost — about 0.0013 NEAR — and returns the rest.
+          </span>
+        )}
       </div>
 
-      {outcome?.kind === 'sent' && (
+      {shown?.kind === 'sent' && (
         <div className="rounded border border-green-300 bg-green-50 px-3 py-2 text-green-900">
           <p className="font-medium text-green-800">Sent.</p>
           <p className="mt-1">
-            {outcome.detail} It is in the connected account&rsquo;s Sent folder, from that address.
+            {shown.detail} It is in the connected account&rsquo;s Sent folder, from that address.
           </p>
         </div>
       )}
-      {outcome?.kind === 'checked' && (
+      {shown?.kind === 'checked' && (
         <div className="rounded border border-green-300 bg-green-50 px-3 py-2 text-green-900 break-words">
-          {outcome.detail}
+          {shown.detail}
         </div>
       )}
-      {outcome?.kind === 'refused' && (
+      {shown?.kind === 'refused' && (
         <div className="rounded border border-amber-400 bg-amber-50 px-3 py-2 text-amber-900">
           <p className="font-medium">
-            Refused: <code>{outcome.word}</code>
+            Refused: <code>{shown.word}</code>
           </p>
-          {outcome.sentence && <p className="mt-1">{outcome.sentence}</p>}
+          {shown.sentence && <p className="mt-1">{shown.sentence}</p>}
           <p className="mt-1 text-xs">
             Nothing was sent. A refused send is not charged and does not count towards your daily limit.
           </p>
         </div>
       )}
-      {outcome?.kind === 'error' && (
+      {shown?.kind === 'error' && (
         <div className="rounded border border-destructive/40 bg-destructive/10 px-3 py-2 text-destructive-text break-words">
-          {outcome.detail}
+          {shown.detail}
         </div>
       )}
     </div>

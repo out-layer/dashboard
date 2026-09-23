@@ -121,6 +121,9 @@ const MODE_KEY = 'outlayer:connect:gmail:mode';
  *  removed the moment the answer is opened or the read is abandoned. */
 const REPLY_KEY = 'outlayer:connect:gmail:reply';
 const REPLY_TTL_MS = 10 * 60 * 1000;
+/** Set while a test message waits for a wallet that signs on its own page, so
+ *  the return knows the transaction was a send and not a stored row. */
+const TRY_KEY = 'outlayer:connect:gmail:try-send';
 
 /** What the keystore's NEP-413 check expects as the recipient — the same string the secrets page signs for. */
 const KEYSTORE_RECIPIENT = 'keystore.outlayer.near';
@@ -485,6 +488,58 @@ function ConnectGmail() {
     }
   }, [accountId, contractId, openAnswer, projectId, signAndSendTransaction]);
 
+  /** What a test message answered, when the wallet signed on its own page and
+   *  the answer could only be read after the return. */
+  const [triedSend, setTriedSend] = useState<{ messageId?: string; refusal?: string; error?: string } | null>(null);
+
+  /** Reads a connector's answer out of a finished transaction. A send is not
+   *  sealed: only `status` hides a policy, and there is no policy here. */
+  const answerOf = useCallback((outcome: { status?: { SuccessValue?: string } } | null | undefined) => {
+    const returned = outcome?.status?.SuccessValue;
+    if (typeof returned !== 'string') throw new Error('The transaction finished without an answer from the connector.');
+    let envelope: unknown = JSON.parse(Buffer.from(returned, 'base64').toString());
+    if (typeof envelope === 'string') envelope = JSON.parse(envelope);
+    const env = envelope as { success?: boolean; error?: string; output?: Record<string, unknown> };
+    if (!env.success) return { refusal: env.error || 'refused' };
+    return { messageId: env.output?.message_id ? String(env.output.message_id) : undefined };
+  }, []);
+
+  /** From the button's own click in the block below: one transaction sends one
+   *  message. Nothing here runs on its own — a wallet opened from an effect or
+   *  a timer fails inside the wallet with an error nobody can act on. */
+  const sendWithWallet = useCallback(
+    async (input: Record<string, unknown>) => {
+      if (!accountId) throw new Error('Connect a wallet first.');
+      setTriedSend(null);
+      sessionStorage.setItem(TRY_KEY, String(Date.now()));
+      try {
+        const result = await signAndSendTransaction({
+          receiverId: contractId,
+          actions: [
+            actionCreators.functionCall(
+              'request_execution',
+              {
+                source: { Project: { project_id: projectId, version_key: null } },
+                resource_limits: { max_instructions: 10000000000, max_memory_mb: 128, max_execution_seconds: 60 },
+                input_data: JSON.stringify(input),
+                response_format: 'Json',
+                secrets_ref: { account_id: accountId, profile: PROFILE },
+              },
+              BigInt('300000000000000'),
+              BigInt('100000000000000000000000'),
+            ),
+          ],
+        });
+        sessionStorage.removeItem(TRY_KEY);
+        return answerOf(result as { status?: { SuccessValue?: string } });
+      } catch (e) {
+        sessionStorage.removeItem(TRY_KEY);
+        throw e;
+      }
+    },
+    [accountId, answerOf, contractId, projectId, signAndSendTransaction],
+  );
+
   // Back from a wallet that signs on its own page: the transaction's hash is in
   // the address bar and the page has been reloaded. A policy read is finished
   // here with the key kept for it; any other transaction only needs the row
@@ -503,13 +558,31 @@ function ConnectGmail() {
     } catch {
       pending = null;
     }
+    const triedAt = Number(sessionStorage.getItem(TRY_KEY) ?? 0);
     sessionStorage.removeItem(REPLY_KEY);
+    sessionStorage.removeItem(TRY_KEY);
     if (errorCode) {
-      setError(errorCode === 'userRejected' ? 'The wallet refused the transaction, so nothing changed.' : `The wallet reported: ${errorCode}.`);
+      const refused = errorCode === 'userRejected';
+      if (triedAt) {
+        setTriedSend({ error: refused ? 'The wallet refused the transaction, so nothing was sent.' : `The wallet reported: ${errorCode}.` });
+        return;
+      }
+      setError(refused ? 'The wallet refused the transaction, so nothing changed.' : `The wallet reported: ${errorCode}.`);
       return;
     }
     const hash = (hashes ?? '').split(',').filter(Boolean).pop();
     if (!hash) return;
+    if (triedAt && Date.now() - triedAt <= REPLY_TTL_MS) {
+      // A test message. Its answer is in the transaction and nowhere else, so
+      // it is read here rather than by the block that asked for it.
+      waitForTransactionOutcome(hash, accountId, rpcUrl)
+        .then((outcome) => {
+          if (!outcome) throw new Error('The transaction could not be found yet. Reload in a moment.');
+          setTriedSend(answerOf(outcome as { status?: { SuccessValue?: string } }));
+        })
+        .catch((e) => setTriedSend({ error: e instanceof Error ? e.message : String(e) }));
+      return;
+    }
     if (!pending || Date.now() - pending.at > REPLY_TTL_MS) {
       // A store or an update went through the wallet's page: the row is what
       // changed, so read it again.
@@ -525,7 +598,7 @@ function ConnectGmail() {
       })
       .catch((e) => setError(e instanceof Error ? e.message : String(e)))
       .finally(() => setReading(false));
-  }, [accountId, loadRow, openAnswer, rpcUrl]);
+  }, [accountId, answerOf, loadRow, openAnswer, rpcUrl]);
 
   // ---- an existing row: merge new keys into it -----------------------------
   /** Step one, from a click: the owner signs, the keystore re-seals the row
@@ -776,7 +849,14 @@ function ConnectGmail() {
           <a href={`/secrets?project=${encodeURIComponent(projectId)}&profile=${PROFILE}&access=1`} className="inline-block rounded bg-green-600 px-4 py-2 text-sm text-white hover:bg-green-700">
             Grant an agent access
           </a>
-          <TrySending coordinatorUrl={coordinatorUrl} projectId={projectId} profile={PROFILE} accountId={accountId ?? ''} />
+          <TrySending
+            coordinatorUrl={coordinatorUrl}
+            projectId={projectId}
+            profile={PROFILE}
+            accountId={accountId ?? ''}
+            walletSend={sendWithWallet}
+            walletOutcome={triedSend}
+          />
           <More label="Where the credential lives, and what an agent names">
             <p>
               Row <code>{PROFILE}</code> under <code>{projectId}</code>, encrypted, readable by{' '}
@@ -924,6 +1004,8 @@ function ConnectGmail() {
                 projectId={projectId}
                 profile={PROFILE}
                 accountId={accountId ?? ''}
+                walletSend={sendWithWallet}
+                walletOutcome={triedSend}
               />
 
               {/* Rule 9: reconnecting is rare, so it sits last and closed —

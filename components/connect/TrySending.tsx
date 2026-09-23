@@ -60,6 +60,9 @@ export function TrySending({
   accountId,
   walletSend,
   walletOutcome,
+  walletCost,
+  walletCostUnreadable,
+  stablecoin,
 }: {
   coordinatorUrl: string;
   projectId: string;
@@ -73,6 +76,13 @@ export function TrySending({
   walletSend?: (input: Record<string, unknown>) => Promise<{ messageId?: string; refusal?: string }>;
   /** What a wallet that signed on its own page answered, once the page is back. */
   walletOutcome?: { messageId?: string; refusal?: string; error?: string } | null;
+  /** The operation's price and the caller's deposited balance, both in the
+   *  stablecoin's minimal units, read from the chain by the page. */
+  walletCost?: { price: string; balance: string } | null;
+  /** The chain could not be asked for the price, so a transaction would carry
+   *  no payment and be refused. */
+  walletCostUnreadable?: boolean;
+  stablecoin?: { symbol: string; decimals: number };
 }) {
   const [how, setHow] = useState<'wallet' | 'key'>(walletSend ? 'wallet' : 'key');
   const [paymentKey, setPaymentKey] = useState('');
@@ -84,6 +94,12 @@ export function TrySending({
 
   const keyGiven = paymentKey.trim().length > 0;
   const keyLooksRight = KEY_SHAPE.test(paymentKey.trim());
+  // On chain the price is taken from a balance deposited with the contract, and
+  // the contract refuses the call outright without it. Saying so before the
+  // button is the difference between a sentence and a wallet error.
+  const money = (units: string) =>
+    `${(Number(units) / 10 ** (stablecoin?.decimals ?? 6)).toFixed(3)} ${stablecoin?.symbol ?? 'USDC'}`;
+  const tooPoor = Boolean(walletCost && BigInt(walletCost.balance) < BigInt(walletCost.price));
   // A wallet that signed on its own page: the page has reloaded and this is the
   // only trace of what happened, so it wins over whatever state is left here.
   const shown: Outcome | null = walletOutcome
@@ -228,6 +244,25 @@ export function TrySending({
         </div>
       )}
 
+      {how === 'wallet' && walletCostUnreadable && (
+        <p className="rounded border border-amber-400 bg-amber-50 px-3 py-2 text-amber-900">
+          The price of a send could not be read from the chain just now, so a transaction would carry no
+          payment and the contract would refuse it. Reload the page, or pay with a payment key.
+        </p>
+      )}
+
+      {how === 'wallet' && tooPoor && walletCost && (
+        <p className="rounded border border-destructive/40 bg-destructive/10 px-3 py-2 text-destructive-text">
+          This send costs {money(walletCost.price)} and comes out of the balance you have deposited with the
+          contract, which holds {money(walletCost.balance)}. Top it up with &ldquo;Deposit&rdquo; on the{' '}
+          <a className="underline" href="/">
+            main page
+          </a>{' '}
+          — one transaction, and it is there for every call after this one — or pay with a payment key
+          instead.
+        </p>
+      )}
+
       {how === 'wallet' && (
         <p className="rounded border border-amber-400 bg-amber-50 px-3 py-2 text-amber-900">
           A transaction&rsquo;s arguments are public on the blockchain and stay readable for ever — and the
@@ -295,7 +330,12 @@ export function TrySending({
       <div className="flex flex-wrap items-center gap-3">
         <button
           type="button"
-          disabled={busy !== null || to.trim().length === 0 || (how === 'key' && !keyLooksRight)}
+          disabled={
+            busy !== null ||
+            to.trim().length === 0 ||
+            (how === 'key' && !keyLooksRight) ||
+            (how === 'wallet' && (tooPoor || Boolean(walletCostUnreadable)))
+          }
           onClick={() => (how === 'wallet' ? void sendWithWallet() : void call('send'))}
           className="rounded bg-[#cc6600] px-4 py-2 text-sm text-white disabled:opacity-50"
         >
@@ -320,7 +360,8 @@ export function TrySending({
         )}
         {how === 'wallet' && (
           <span className="text-xs text-muted-foreground">
-            Attaches 0.1 NEAR, keeps the run&rsquo;s cost — about 0.0013 NEAR — and returns the rest.
+            {walletCost ? `Costs ${money(walletCost.price)}, taken from your deposited balance. ` : ''}
+            Attaches 0.1 NEAR for the run, keeps about 0.0013 NEAR of it, and returns the rest.
           </span>
         )}
       </div>

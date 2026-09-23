@@ -173,7 +173,7 @@ function More({ label, children }: { label: string; children: React.ReactNode })
 }
 
 function ConnectGmail() {
-  const { accountId, signAndSendTransaction, signMessage, contractId, viewMethod, network } = useNearWallet();
+  const { accountId, signAndSendTransaction, signMessage, contractId, viewMethod, network, stablecoin } = useNearWallet();
   const params = useSearchParams();
   const coordinatorUrl = getCoordinatorApiUrl(network);
 
@@ -492,6 +492,50 @@ function ConnectGmail() {
    *  the answer could only be read after the return. */
   const [triedSend, setTriedSend] = useState<{ messageId?: string; refusal?: string; error?: string } | null>(null);
 
+  /** A priced operation paid on chain takes the price from a stablecoin balance
+   *  the caller has deposited with the contract, and the contract refuses the
+   *  call outright without it. Both numbers are read from the chain rather than
+   *  written here: a price this page believed in would be wrong the day it
+   *  moves, and the error would arrive from the contract as a panic. */
+  const [onChainCost, setOnChainCost] = useState<{ price: string; balance: string } | null>(null);
+  /** The chain could not be asked what a send costs. Worth saying: without the
+   *  price the transaction carries no payment and the contract refuses it, with
+   *  a panic that reads like a bug in this page. */
+  const [costUnreadable, setCostUnreadable] = useState(false);
+  useEffect(() => {
+    if (!accountId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const pricing = (await viewMethod({
+          contractId,
+          method: 'get_project_pricing',
+          args: { project_id: projectId },
+        })) as { operations?: Array<{ operation: string; price_usd: string }> } | null;
+        const price = pricing?.operations?.find((o) => o.operation === 'send')?.price_usd;
+        if (!price) {
+          // An unpriced project: a transaction that attaches nothing is right.
+          if (!cancelled) setCostUnreadable(false);
+          return;
+        }
+        const balance = (await viewMethod({
+          contractId,
+          method: 'get_user_stablecoin_balance',
+          args: { account_id: accountId },
+        })) as string | null;
+        if (!cancelled) {
+          setOnChainCost({ price: String(price), balance: String(balance ?? '0') });
+          setCostUnreadable(false);
+        }
+      } catch {
+        if (!cancelled) setCostUnreadable(true);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [accountId, contractId, projectId, viewMethod]);
+
   /** Reads a connector's answer out of a finished transaction. A send is not
    *  sealed: only `status` hides a policy, and there is no policy here. */
   const answerOf = useCallback((outcome: { status?: { SuccessValue?: string } } | null | undefined) => {
@@ -524,6 +568,9 @@ function ConnectGmail() {
                 input_data: JSON.stringify(input),
                 response_format: 'Json',
                 secrets_ref: { account_id: accountId, profile: PROFILE },
+                // A priced operation is refused without it. Only the price is
+                // taken at settlement; anything over comes back.
+                ...(onChainCost ? { params: { attached_usd: onChainCost.price } } : {}),
               },
               BigInt('300000000000000'),
               BigInt('100000000000000000000000'),
@@ -537,7 +584,7 @@ function ConnectGmail() {
         throw e;
       }
     },
-    [accountId, answerOf, contractId, projectId, signAndSendTransaction],
+    [accountId, answerOf, contractId, onChainCost, projectId, signAndSendTransaction],
   );
 
   // Back from a wallet that signs on its own page: the transaction's hash is in
@@ -856,6 +903,9 @@ function ConnectGmail() {
             accountId={accountId ?? ''}
             walletSend={sendWithWallet}
             walletOutcome={triedSend}
+            walletCost={onChainCost}
+            walletCostUnreadable={costUnreadable}
+            stablecoin={stablecoin}
           />
           <More label="Where the credential lives, and what an agent names">
             <p>
@@ -1006,6 +1056,9 @@ function ConnectGmail() {
                 accountId={accountId ?? ''}
                 walletSend={sendWithWallet}
                 walletOutcome={triedSend}
+                walletCost={onChainCost}
+                walletCostUnreadable={costUnreadable}
+                stablecoin={stablecoin}
               />
 
               {/* Rule 9: reconnecting is rare, so it sits last and closed —

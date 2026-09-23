@@ -7,6 +7,7 @@ import { actionCreators } from '@near-js/transactions';
 import { PageHeader } from '@/components/ui/page-header';
 import { RequireWallet } from '@/components/ui/require-wallet';
 import { PolicyEditor } from '@/components/policy/PolicyEditor';
+import { TrySending } from '@/components/connect/TrySending';
 import { useNearWallet } from '@/contexts/NearWalletContext';
 import { getCoordinatorApiUrl } from '@/lib/api';
 import { bytesToHex, eciesEncrypt, generateReplyKeypair, hexToBytes, openReply } from '@/lib/ecies';
@@ -775,6 +776,7 @@ function ConnectGmail() {
           <a href={`/secrets?project=${encodeURIComponent(projectId)}&profile=${PROFILE}&access=1`} className="inline-block rounded bg-green-600 px-4 py-2 text-sm text-white hover:bg-green-700">
             Grant an agent access
           </a>
+          <TrySending coordinatorUrl={coordinatorUrl} projectId={projectId} profile={PROFILE} accountId={accountId ?? ''} />
           <More label="Where the credential lives, and what an agent names">
             <p>
               Row <code>{PROFILE}</code> under <code>{projectId}</code>, encrypted, readable by{' '}
@@ -916,6 +918,13 @@ function ConnectGmail() {
                   </p>
                 )}
               </div>
+
+              <TrySending
+                coordinatorUrl={coordinatorUrl}
+                projectId={projectId}
+                profile={PROFILE}
+                accountId={accountId ?? ''}
+              />
 
               {/* Rule 9: reconnecting is rare, so it sits last and closed —
                   unless a new credential is already in hand, when it opens

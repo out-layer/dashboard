@@ -13,6 +13,8 @@ import { emptyValue, fromJson, toJson, validate } from '@/lib/policies/policy';
 import type { PolicySchema, PolicyValue } from '@/lib/policies/types';
 import { formatAccessCondition } from '@/app/secrets/components/utils';
 import { isImplicitAccount, shortAccount } from '@/lib/short-account';
+import { getAllWalletKeys } from '@/lib/wallet-keys';
+import { listAllUserSecrets } from '@/lib/user-secrets';
 import { shortKey } from '@/lib/short-key';
 
 /**
@@ -94,6 +96,37 @@ import { shortKey } from '@/lib/short-key';
  *     GitHub answers with `max-age=60`, and a page that re-reads "what does this
  *     credential reach" inside that minute shows the owner the answer from
  *     before they changed it.
+ *
+ * ## A pasted credential
+ *
+ * 18. **A provider with no consent flow hands the owner a token to paste, and a
+ *     pasted token is a credential like any other.** It exists in this tab's
+ *     memory from the moment it is typed until the owner's transaction (rule
+ *     15): a password field that nothing autocompletes or remembers, cleared
+ *     the moment it is taken on, never echoed back — not in a summary, not in
+ *     an error. Everything after the paste is the same flow: prepare without a
+ *     wallet, stop, sign from a click. See `PasteSpec`.
+ *
+ * ## A connector with nothing to connect
+ *
+ * 19. **A venue where the agent's key is a sub-key of its own wallet has no
+ *     credential to store — only the policy.** Such a spec has no
+ *     `credentialKey`, no consent flow and no paste: the first screen IS the
+ *     stop before the signature (intro, the policy form, one button), the row
+ *     holds the policy alone (plus `extraKeys`, a per-network flag the
+ *     connector reads next to it), and there is nothing to reconnect.
+ *
+ * ## The grant
+ *
+ * 20. **The first store may name the agent.** The row is written with an access
+ *     rule of the owner plus, if they chose one, one agent account — so the
+ *     usual case (one owner, one agent) is one transaction, not a store and a
+ *     grant. It sits behind one line, closed, and opens to the agents this
+ *     account already has — its wallets, and the accounts it granted on other
+ *     rows — as chips, plus a field for another; those lists are read when the
+ *     line is opened, never on page load (rule 6). Anything past one agent — a
+ *     second one, an expiry, taking access back — is the secrets page's, and a
+ *     connected row says so in one link rather than growing a form here.
  */
 export interface ConnectorSpec {
   /** The route segment and the connector id: `/connect/{id}`. */
@@ -106,21 +139,30 @@ export interface ConnectorSpec {
   projects: Record<'testnet' | 'mainnet', string>;
   /** The profile an agent names in `secrets_ref`. */
   profile: string;
-  /** The key the credential is stored under. */
-  credentialKey: string;
+  /** The key the credential is stored under. Absent for a connector with nothing to connect (rule 19). */
+  credentialKey?: string;
+  /** Keys stored beside the policy on a first store, per network — a flag the connector reads next to it. */
+  extraKeys?: Partial<Record<'testnet' | 'mainnet', Record<string, string>>>;
   policy: PolicySchema;
   /** Whether this deployment can start the provider's flow at all, and what to say when it cannot. */
   configured: boolean;
   notConfigured: string;
 
+  /**
+   * A provider the owner authorises on ITS pages: the four callbacks below. A
+   * provider that hands out a token to paste sets `paste` instead (rule 18);
+   * a connector has one of the two.
+   */
   /** Where the provider's consent starts. `state` comes back on the callback. */
-  consentUrl(args: { mode: 'connect' | 'reconnect'; state: string; redirectUri: string }): string;
+  consentUrl?(args: { mode: 'connect' | 'reconnect'; state: string; redirectUri: string }): string;
   /** The provider's own refusal on the callback, in the owner's words — or null when there is none. */
-  callbackRefusal(params: URLSearchParams): string | null;
+  callbackRefusal?(params: URLSearchParams): string | null;
   /** Whether the callback carries something to exchange. */
-  hasCredentialIn(params: URLSearchParams): boolean;
+  hasCredentialIn?(params: URLSearchParams): boolean;
   /** The callback's parameters into a credential. Runs with no wallet involved. */
-  exchange(params: URLSearchParams, redirectUri: string): Promise<string>;
+  exchange?(params: URLSearchParams, redirectUri: string): Promise<string>;
+  /** The credential is a token the owner pastes from the provider's settings. */
+  paste?: PasteSpec;
   /**
    * What the credential turned out to be, shown BEFORE anything is stored — who
    * it acts as, what it reaches — and a policy to start the editor from. Best
@@ -139,6 +181,7 @@ export interface ConnectorSpec {
   /** Before the first click: what the provider is about to ask, and what this connector can and cannot do. */
   intro: React.ReactNode;
   connectLabel: string;
+  /** Not read for a connector with nothing to reconnect (rule 19). */
   reconnectLabel: string;
   reconnectWhy: React.ReactNode;
   /** After "connected": what still has to happen before an agent can use it. */
@@ -154,6 +197,23 @@ export interface ConnectorSpec {
   statusView?(output: Record<string, unknown>): { list?: CredentialView['list']; manage?: CredentialView['manage'] } | null;
   /** Anything the provider needs looked after outside this page — e.g. which repositories an app reaches. */
   connectedExtra?: React.ReactNode;
+}
+
+/**
+ * A credential the owner pastes (rule 18). `problem` runs on the trimmed value
+ * before anything is fetched, so a refusal costs nothing and names what was
+ * wrong without repeating the value.
+ */
+export interface PasteSpec {
+  /** The field's label: "Mercury API token". */
+  label: string;
+  placeholder?: string;
+  /** Under the field: where the token comes from and what it must be. */
+  help: React.ReactNode;
+  /** Why this cannot be the credential, or null. Never echoes the value. */
+  problem(value: string): string | null;
+  /** The button that takes the pasted value on: "Continue with this token". */
+  continueLabel: string;
 }
 
 /** What a credential turned out to be. */
@@ -210,6 +270,19 @@ function AccessChips({ access }: { access: unknown }) {
   );
 }
 
+/**
+ * Why a typed account cannot be the agent, or null. An agent's custody wallet
+ * is an implicit account — 64 hex characters — which is what is expected;
+ * a named account is accepted too, because a grant to one is a legal row.
+ */
+function agentAccountProblem(account: string, owner: string | null): string | null {
+  if (account === owner) return 'That is your own account; you can already read the row.';
+  if (isImplicitAccount(account)) return null;
+  if (/^[0-9a-fA-F]{64}$/.test(account)) return 'An account is written in lower case.';
+  if (account.length >= 2 && account.length <= 64 && /^(([a-z\d]+[-_])*[a-z\d]+\.)*([a-z\d]+[-_])*[a-z\d]+$/.test(account)) return null;
+  return 'Not an account: an agent’s is 64 hex characters, as it reports it.';
+}
+
 /** Detail a reader may want and does not need: closed until asked for (rule 8). */
 export function More({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -217,6 +290,45 @@ export function More({ label, children }: { label: string; children: React.React
       <summary className="cursor-pointer select-none hover:text-foreground">{label}</summary>
       <div className="mt-2 space-y-2">{children}</div>
     </details>
+  );
+}
+
+/**
+ * The paste field (rule 18). The value lives in this component's state and is
+ * handed on exactly once; a password input so no browser offers to remember it.
+ */
+function PasteForm({ paste, disabled, onContinue }: { paste: PasteSpec; disabled: boolean; onContinue: (value: string) => void }) {
+  const [value, setValue] = useState('');
+  const trimmed = value.trim();
+  const problem = trimmed ? paste.problem(trimmed) : null;
+  return (
+    <div className="space-y-2">
+      <label className="block text-sm">
+        <span>{paste.label}</span>
+        <input
+          type="password"
+          autoComplete="off"
+          spellCheck={false}
+          value={value}
+          placeholder={paste.placeholder}
+          onChange={(e) => setValue(e.target.value)}
+          disabled={disabled}
+          className="mt-1 w-full max-w-md rounded border border-gray-300 px-2 py-1 font-mono text-sm disabled:opacity-50"
+        />
+      </label>
+      <div className="text-xs text-muted-foreground">{paste.help}</div>
+      {problem && <p className="text-xs text-red-600">{problem}</p>}
+      <button
+        onClick={() => {
+          onContinue(trimmed);
+          setValue('');
+        }}
+        disabled={disabled || !trimmed || problem !== null}
+        className="rounded bg-[#cc6600] px-4 py-2 text-sm text-white disabled:opacity-50"
+      >
+        {paste.continueLabel}
+      </button>
+    </div>
   );
 }
 
@@ -230,6 +342,51 @@ export function ConnectorOwnerPage({ spec }: { spec: ConnectorSpec }) {
   const REPLY_KEY = `outlayer:connect:${spec.id}:reply`;
   const { profile, credentialKey } = spec;
   const policyKey = spec.policy.envKey;
+  /** Rule 19: the row holds the policy and nothing a provider issued. */
+  const policyOnly = !credentialKey;
+  const extraKeys = useMemo(() => spec.extraKeys?.[network as 'testnet' | 'mainnet'] ?? {}, [network, spec.extraKeys]);
+  /** How many keys a connected row holds — what an update must come back with (rule 12). */
+  const rowKeyCount = (credentialKey ? 1 : 0) + 1 + Object.keys(extraKeys).length;
+  /** Rule 20: an agent named on the first store. */
+  const [grantAgent, setGrantAgent] = useState('');
+  const grantAgentTrimmed = grantAgent.trim();
+  const grantAgentProblem = grantAgentTrimmed ? agentAccountProblem(grantAgentTrimmed, accountId) : null;
+  const [grantOpen, setGrantOpen] = useState(false);
+  /** Agents this account already has: its wallets, and accounts it granted on other rows. `null` until asked for. */
+  const [knownAgents, setKnownAgents] = useState<{ account: string; label?: string; from: 'wallet' | 'row' }[] | null>(null);
+
+  /** Read once, when the line is opened (rule 6). Best effort: an empty list is not an error. */
+  const loadKnownAgents = useCallback(async () => {
+    if (!accountId) return;
+    const saved = getAllWalletKeys();
+    const found = new Map<string, { account: string; label?: string; from: 'wallet' | 'row' }>();
+    try {
+      // A wallet's NEAR account is the hex of its ed25519 key — which is how the contract spells `wallet_pubkey`.
+      const wallets = (await viewMethod({ contractId, method: 'get_wallet_policies_by_owner', args: { owner: accountId } })) as
+        | { wallet_pubkey?: string }[]
+        | null;
+      for (const w of Array.isArray(wallets) ? wallets : []) {
+        const hex = w.wallet_pubkey?.startsWith('ed25519:') ? w.wallet_pubkey.slice('ed25519:'.length) : '';
+        if (isImplicitAccount(hex)) found.set(hex, { account: hex, label: saved[w.wallet_pubkey!]?.label, from: 'wallet' });
+      }
+    } catch {
+      /* the chips are a convenience */
+    }
+    try {
+      const rows = await listAllUserSecrets<{ access?: unknown }>(viewMethod, contractId, accountId);
+      for (const r of rows) {
+        const accounts = (r.access as { Whitelist?: { accounts?: unknown } } | null)?.Whitelist?.accounts;
+        if (!Array.isArray(accounts)) continue;
+        for (const a of accounts) {
+          const acct = String(a);
+          if (acct !== accountId && !found.has(acct)) found.set(acct, { account: acct, from: 'row' });
+        }
+      }
+    } catch {
+      /* same */
+    }
+    setKnownAgents([...found.values()]);
+  }, [accountId, contractId, viewMethod]);
 
   const [error, setError] = useState<string | null>(null);
 
@@ -247,6 +404,8 @@ export function ConnectorOwnerPage({ spec }: { spec: ConnectorSpec }) {
   const [notice, setNotice] = useState<string | null>(null);
   const [rowPubkey, setRowPubkey] = useState<string | null>(null);
   const [txHash, setTxHash] = useState<string | null>(null);
+  /** The agent the first store named, for the done screen. */
+  const [grantedTo, setGrantedTo] = useState<string | null>(null);
   const attempted = useRef(false);
 
   // ---- the policy, as this page knows it ------------------------------
@@ -307,6 +466,7 @@ export function ConnectorOwnerPage({ spec }: { spec: ConnectorSpec }) {
   // ---- the provider's consent -------------------------------------------
   const consent = useCallback(
     (mode: 'connect' | 'reconnect') => {
+      if (!spec.consentUrl) return;
       const state = crypto.randomUUID();
       sessionStorage.setItem(STATE_KEY, state);
       sessionStorage.setItem(MODE_KEY, mode);
@@ -315,6 +475,22 @@ export function ConnectorOwnerPage({ spec }: { spec: ConnectorSpec }) {
     [MODE_KEY, STATE_KEY, redirectUri, spec],
   );
 
+  /** The key the row is sealed to, derived in the keystore from the accessor and the owner. */
+  const fetchRowPubkey = useCallback(async () => {
+    // The names are what the keystore checks here — a reserved one would be
+    // refused — and they do not change with the policy's content.
+    const names: Record<string, string> = { ...extraKeys, [policyKey]: '{}' };
+    if (credentialKey) names[credentialKey] = 'x';
+    const pubkeyResponse = await fetch(`${coordinatorUrl}/secrets/pubkey`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ accessor: forCoordinator, owner: accountId, secrets_json: JSON.stringify(names) }),
+    });
+    if (!pubkeyResponse.ok) throw new Error(await pubkeyResponse.text());
+    const { pubkey } = (await pubkeyResponse.json()) as { pubkey: string };
+    return pubkey;
+  }, [accountId, coordinatorUrl, credentialKey, extraKeys, forCoordinator, policyKey]);
+
   /** A first connection, step one: the row's key is fetched for a credential in
    *  hand. No wallet, no signature, nothing on chain yet. */
   const prepareWithCredential = useCallback(
@@ -322,19 +498,7 @@ export function ConnectorOwnerPage({ spec }: { spec: ConnectorSpec }) {
       setError(null);
       setStage('preparing');
       try {
-        // The names are what the keystore checks here — a reserved one would be
-        // refused — and they do not change with the policy's content.
-        const pubkeyResponse = await fetch(`${coordinatorUrl}/secrets/pubkey`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            accessor: forCoordinator,
-            owner: accountId,
-            secrets_json: JSON.stringify({ [credentialKey]: secret, [policyKey]: '{}' }),
-          }),
-        });
-        if (!pubkeyResponse.ok) throw new Error(await pubkeyResponse.text());
-        const { pubkey } = await pubkeyResponse.json();
+        const pubkey = await fetchRowPubkey();
         // What it is, before it is stored. Never a reason to fail: a provider's
         // API being slow must not cost the owner the consent they just gave.
         const seen = (await spec.inspect?.(secret).catch(() => null)) ?? null;
@@ -348,7 +512,7 @@ export function ConnectorOwnerPage({ spec }: { spec: ConnectorSpec }) {
         setStage('idle');
       }
     },
-    [accountId, coordinatorUrl, credentialKey, forCoordinator, policyKey, spec],
+    [fetchRowPubkey, spec],
   );
 
   // A reconnect whose row is gone by the time the provider answers has a
@@ -363,21 +527,27 @@ export function ConnectorOwnerPage({ spec }: { spec: ConnectorSpec }) {
 
   /** A first connection, step two, from a click: seal credential and policy, then one transaction. */
   const finish = useCallback(async () => {
-    if (!credential || !rowPubkey) return;
+    if (!policyOnly && (!credential || !rowPubkey)) return;
+    if (grantAgentProblem) return;
     setError(null);
     setStage('storing');
     try {
+      // Rule 19: nothing was prepared ahead, so the row's key is fetched now —
+      // still before the wallet, and still from this click.
+      const pubkey = rowPubkey ?? (await fetchRowPubkey());
       // Values are strings: a secret row is `HashMap<String, String>`, so the
       // policy travels as JSON text.
-      const secretsJson = JSON.stringify({ [credentialKey]: credential, [policyKey]: toJson(spec.policy, policy) });
-      const sealed = Buffer.from(eciesEncrypt(rowPubkey, new TextEncoder().encode(secretsJson))).toString('base64');
-      // Yours alone until you grant an agent. A connector row left open would
-      // let anyone who names it act as you.
+      const row: Record<string, string> = { ...extraKeys, [policyKey]: toJson(spec.policy, policy) };
+      if (credentialKey && credential) row[credentialKey] = credential;
+      const sealed = Buffer.from(eciesEncrypt(pubkey, new TextEncoder().encode(JSON.stringify(row)))).toString('base64');
+      // You, and the one agent you named (rule 20). A connector row left open
+      // would let anyone who names it act as you.
+      const accounts = grantAgentTrimmed ? [accountId, grantAgentTrimmed] : [accountId];
       const args = {
         accessor: forContract,
         profile,
         encrypted_secrets_base64: sealed,
-        access: { Whitelist: { accounts: [accountId] } },
+        access: { Whitelist: { accounts } },
         vault_id: null,
       };
       if (published === false) {
@@ -395,13 +565,35 @@ export function ConnectorOwnerPage({ spec }: { spec: ConnectorSpec }) {
       });
       setTxHash(response?.transaction?.hash ?? null);
       setCredential(null);
+      setGrantedTo(grantAgentTrimmed || null);
       setStage('done');
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
-      // Back to `ready`, not to the start (rule 3).
-      setStage('ready');
+      // Back to `ready`, not to the start (rule 3). A policy-only page has no
+      // `ready`: its first screen is the stop, so it goes back there.
+      setStage(policyOnly ? 'idle' : 'ready');
     }
-  }, [accountId, contractId, credential, credentialKey, forContract, network, policy, policyKey, profile, published, rowPubkey, signAndSendTransaction, spec, viewMethod]);
+  }, [
+    accountId,
+    contractId,
+    credential,
+    credentialKey,
+    extraKeys,
+    fetchRowPubkey,
+    forContract,
+    grantAgentProblem,
+    grantAgentTrimmed,
+    network,
+    policy,
+    policyKey,
+    policyOnly,
+    profile,
+    published,
+    rowPubkey,
+    signAndSendTransaction,
+    spec,
+    viewMethod,
+  ]);
 
   // ---- an existing row: read the policy by running the connector ----------
   const openAnswer = useCallback(
@@ -557,9 +749,10 @@ export function ConnectorOwnerPage({ spec }: { spec: ConnectorSpec }) {
         const answer = await response.json();
         const total = Number(answer?.summary?.total_keys ?? 0);
         const updated: string[] = Array.isArray(answer?.summary?.updated_keys) ? answer.summary.updated_keys : [];
-        // Rule 12. A connected row holds the credential and the policy; a
-        // result with fewer keys than that would drop one of them when stored.
-        if (total < 2) {
+        // Rule 12. A connected row holds the credential (when there is one), the
+        // policy and any flag beside it; a result with fewer keys than that
+        // would drop one of them when stored.
+        if (total < rowKeyCount) {
           throw new Error(
             `The keystore re-sealed a row with ${total} key${total === 1 ? '' : 's'}, so part of your row would not survive — nothing was stored. Try again in a moment; if it repeats, the keystore cannot see this row yet.`,
           );
@@ -573,7 +766,7 @@ export function ConnectorOwnerPage({ spec }: { spec: ConnectorSpec }) {
         setUpdate(null);
       }
     },
-    [accountId, coordinatorUrl, forCoordinator, profile, signMessage],
+    [accountId, coordinatorUrl, forCoordinator, profile, rowKeyCount, signMessage],
   );
 
   /** Step two, from a click: the re-sealed row goes on chain, under the rule it already has. */
@@ -608,7 +801,7 @@ export function ConnectorOwnerPage({ spec }: { spec: ConnectorSpec }) {
 
   // ---- back from the provider (rule 14) -----------------------------------
   useEffect(() => {
-    const refusal = spec.callbackRefusal(params);
+    const refusal = spec.callbackRefusal?.(params) ?? null;
     if (refusal) {
       setError(refusal);
       return;
@@ -628,7 +821,8 @@ export function ConnectorOwnerPage({ spec }: { spec: ConnectorSpec }) {
       else setNotice(returned.note);
       return;
     }
-    if (!spec.hasCredentialIn(params)) return;
+    if (!spec.hasCredentialIn?.(params) || !spec.exchange) return;
+    const exchange = spec.exchange;
     // Once, and only once. Without this latch a failure inside the exchange
     // puts the stage back to idle, the effect runs again with the code still in
     // the URL, and the state check — whose value the first pass consumed —
@@ -646,15 +840,13 @@ export function ConnectorOwnerPage({ spec }: { spec: ConnectorSpec }) {
     }
     setError(null);
     if (mode === 'reconnect') {
-      spec
-        .exchange(callback, redirectUri)
+      exchange(callback, redirectUri)
         .then((secret) => setReconnectCredential(secret))
         .catch((e) => setError(e instanceof Error ? e.message : String(e)));
       return;
     }
     setStage('preparing');
-    spec
-      .exchange(callback, redirectUri)
+    exchange(callback, redirectUri)
       .then((secret) => prepareWithCredential(secret))
       .catch((e) => {
         setError(e instanceof Error ? e.message : String(e));
@@ -711,21 +903,33 @@ export function ConnectorOwnerPage({ spec }: { spec: ConnectorSpec }) {
       )}
 
       {/* ---------------- a first connection ---------------- */}
-      {published !== false && row === null && stage === 'idle' && !reconnectCredential && (
+      {published !== false && row === null && stage === 'idle' && !reconnectCredential && !policyOnly && (
         <>
           <div className="text-sm space-y-2">{spec.intro}</div>
-          <button onClick={() => consent('connect')} disabled={!spec.configured} className="rounded bg-[#cc6600] px-4 py-2 text-sm text-white disabled:opacity-50">
-            {spec.connectLabel}
-          </button>
+          {spec.paste ? (
+            <PasteForm paste={spec.paste} disabled={!spec.configured} onContinue={(value) => void prepareWithCredential(value)} />
+          ) : (
+            <button onClick={() => consent('connect')} disabled={!spec.configured} className="rounded bg-[#cc6600] px-4 py-2 text-sm text-white disabled:opacity-50">
+              {spec.connectLabel}
+            </button>
+          )}
         </>
       )}
 
-      {stage === 'preparing' && <p className="text-sm">Getting the credential from {spec.provider}…</p>}
+      {stage === 'preparing' && <p className="text-sm">{spec.paste ? 'Preparing the row…' : `Getting the credential from ${spec.provider}…`}</p>}
 
-      {(stage === 'ready' || stage === 'storing') && (
+      {/* Rule 19: for a policy-only connector the first screen is this stop. */}
+      {(stage === 'ready' || stage === 'storing' || (policyOnly && stage === 'idle' && row === null && published !== false)) && (
         <>
+          {policyOnly && <div className="text-sm space-y-2">{spec.intro}</div>}
           <div className="rounded border-2 border-amber-400 bg-amber-50 p-4 text-sm space-y-2">
-            <p className="font-medium text-amber-900">{spec.provider} has granted the credential. Nothing is saved yet.</p>
+            <p className="font-medium text-amber-900">
+              {policyOnly
+                ? 'Nothing is stored yet.'
+                : spec.paste
+                  ? 'The token is in this tab and nowhere else. Nothing is saved yet.'
+                  : `${spec.provider} has granted the credential. Nothing is saved yet.`}
+            </p>
             {credentialView && <p className="text-amber-900">{credentialView.label}</p>}
             {credentialView?.list && (
               <div className="space-y-1">
@@ -754,20 +958,91 @@ export function ConnectorOwnerPage({ spec }: { spec: ConnectorSpec }) {
               </p>
             )}
             <p className="text-amber-900">
-              Choose what the agent may do, then press the button: your browser encrypts the credential and one transaction stores it
-              under <strong>{accountId}</strong>, readable by you alone.
+              Choose what the agent may do, add the agent if you know it, then press the button: your browser encrypts {policyOnly ? 'the policy' : 'the credential and the policy'}{' '}
+              and one transaction stores {policyOnly ? 'it' : 'them'} under <strong>{accountId}</strong>, readable by you and the agent you add.
             </p>
-            <More label="Who can read it, and how do I give an agent access?">
+            <More label="Who can read it?">
               <p>It is sealed to a key whose private half exists only inside the keystore enclave — not on our servers, and not in this page.</p>
               <p>
-                To let an agent use it you add its account to this row on the secrets page — the next screen offers the link — with an
-                expiry if you want the access to lapse on its own. You can take it back at any time.
+                The row&apos;s access rule names you and, if you type it below, one agent. More agents, an expiry, or taking access back: the
+                secrets page, linked from the next screen.
               </p>
             </More>
           </div>
           <PolicyEditor schema={spec.policy} value={policy} onChange={setPolicy} disabled={stage === 'storing'} defaultOpen />
-          <button onClick={finish} disabled={stage === 'storing' || policyErrors.length > 0} className="rounded bg-[#cc6600] px-4 py-2 text-sm text-white disabled:opacity-50">
-            {stage === 'storing' ? 'Waiting for your wallet…' : 'Finish: store the encrypted credential on the contract'}
+          {/* Rule 20: one line, closed; the agent chosen shows as a chip. */}
+          <div className="text-sm">
+            {grantAgentTrimmed && !grantAgentProblem ? (
+              <p className="flex flex-wrap items-center gap-2">
+                <span>Readable by you and</span>
+                <span className="inline-flex items-center gap-1 rounded bg-gray-100 px-2 py-0.5 font-mono text-xs" title={grantAgentTrimmed}>
+                  🤖 {shortAccount(grantAgentTrimmed)}
+                  <button type="button" aria-label="Remove" onClick={() => setGrantAgent('')} disabled={stage === 'storing'} className="ml-1 text-muted-foreground hover:text-foreground">
+                    ×
+                  </button>
+                </span>
+              </p>
+            ) : !grantOpen ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setGrantOpen(true);
+                  if (knownAgents === null) void loadKnownAgents();
+                }}
+                disabled={stage === 'storing'}
+                className="text-sm text-accent-text underline hover:no-underline"
+              >
+                Add the agent that will use it
+              </button>
+            ) : (
+              <div className="space-y-2 rounded border border-gray-200 p-3">
+                {knownAgents === null && <p className="text-xs text-muted-foreground">Looking up your agents…</p>}
+                {knownAgents && knownAgents.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5">
+                    {knownAgents.map((a) => (
+                      <button
+                        key={a.account}
+                        type="button"
+                        onClick={() => setGrantAgent(a.account)}
+                        title={a.account}
+                        className="rounded border border-gray-300 bg-white px-2 py-0.5 font-mono text-xs hover:border-accent"
+                      >
+                        🤖 {a.label ? `${a.label} · ` : ''}
+                        {shortAccount(a.account)}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                <label className="block">
+                  <span className="text-xs text-muted-foreground">{knownAgents && knownAgents.length > 0 ? '…or another account' : 'The agent’s account'}</span>
+                  <input
+                    type="text"
+                    autoComplete="off"
+                    spellCheck={false}
+                    value={grantAgent}
+                    placeholder="64 hex characters, as the agent reports it"
+                    onChange={(e) => setGrantAgent(e.target.value)}
+                    disabled={stage === 'storing'}
+                    className="mt-1 w-full max-w-xl rounded border border-gray-300 px-2 py-1 font-mono text-sm disabled:opacity-50"
+                  />
+                  {grantAgentProblem && <span className="mt-1 block text-xs text-red-600">{grantAgentProblem}</span>}
+                </label>
+                <button type="button" onClick={() => { setGrantOpen(false); setGrantAgent(''); }} className="text-xs text-muted-foreground underline hover:text-foreground">
+                  Grant later instead
+                </button>
+              </div>
+            )}
+          </div>
+          <button
+            onClick={finish}
+            disabled={stage === 'storing' || policyErrors.length > 0 || grantAgentProblem !== null || !accountId}
+            className="rounded bg-[#cc6600] px-4 py-2 text-sm text-white disabled:opacity-50"
+          >
+            {stage === 'storing'
+              ? 'Waiting for your wallet…'
+              : policyOnly
+                ? 'Store the encrypted policy on the contract'
+                : 'Finish: store the encrypted credential on the contract'}
           </button>
           {stage === 'storing' && <p className="text-xs text-gray-500">Approve the transaction in your wallet.</p>}
         </>
@@ -776,19 +1051,33 @@ export function ConnectorOwnerPage({ spec }: { spec: ConnectorSpec }) {
       {stage === 'done' && (
         <div className="space-y-4">
           <div className="rounded border border-green-300 bg-green-50 p-4 text-sm">
-            <p className="font-medium text-green-800">{spec.provider} connected.</p>
+            <p className="font-medium text-green-800">{policyOnly ? `${spec.provider} policy stored.` : `${spec.provider} connected.`}</p>
             <p className="mt-1 text-green-900">
-              {spec.policy.summarize(policy)} {spec.grantHint}
+              {spec.policy.summarize(policy)}{' '}
+              {grantedTo ? (
+                <>
+                  Agent <span className="font-mono" title={grantedTo}>{shortAccount(grantedTo)}</span> can use it now.
+                </>
+              ) : (
+                spec.grantHint
+              )}
             </p>
           </div>
-          <a href={grantHref} className="inline-block rounded bg-green-600 px-4 py-2 text-sm text-white hover:bg-green-700">
-            Grant an agent access
-          </a>
-          <More label="Where the credential lives, and what an agent names">
+          {grantedTo ? (
+            <a href={grantHref} className="text-xs text-muted-foreground underline hover:text-foreground">
+              Another agent, an expiry, or take access back: the secrets page
+            </a>
+          ) : (
+            <a href={grantHref} className="inline-block rounded bg-green-600 px-4 py-2 text-sm text-white hover:bg-green-700">
+              Grant an agent access
+            </a>
+          )}
+          <More label={policyOnly ? 'Where the policy lives, and what an agent names' : 'Where the credential lives, and what an agent names'}>
             <p>
-              Row <code>{profile}</code> under <code>{projectId}</code>, encrypted, readable by <strong>{accountId}</strong> alone until you add
-              someone under Access. An agent you granted names <code>{`{ account_id: "${accountId}", profile: "${profile}" }`}</code> in its
-              calls. Removing the row disconnects the account.
+              Row <code>{profile}</code> under <code>{projectId}</code>, encrypted, readable by <strong>{accountId}</strong>
+              {grantedTo ? ' and the agent you named' : ' alone until you add someone under Access'}. An agent you granted names{' '}
+              <code>{`{ account_id: "${accountId}", profile: "${profile}" }`}</code> in its calls. Removing the row{' '}
+              {policyOnly ? 'makes the connector read-only again' : 'disconnects the account'}.
             </p>
             {txHash && <p>Transaction {txHash}</p>}
           </More>
@@ -922,11 +1211,14 @@ export function ConnectorOwnerPage({ spec }: { spec: ConnectorSpec }) {
               {spec.connectedExtra && <div className="border-t border-gray-200 pt-3 text-sm">{spec.connectedExtra}</div>}
 
               {/* Rule 9: reconnecting is rare, so it sits last and closed — unless a
-                  new credential is already in hand, when it opens itself. */}
+                  new credential is already in hand, when it opens itself. A
+                  policy-only connector has nothing to reconnect (rule 19). */}
               <div className="border-t border-gray-200 pt-3 space-y-3">
-                {reconnectCredential ? (
+                {policyOnly ? null : reconnectCredential ? (
                   <div className="rounded border-2 border-amber-400 bg-amber-50 p-4 text-sm space-y-2">
-                    <p className="font-medium text-amber-900">{spec.provider} granted a new credential. It is not in your row yet.</p>
+                    <p className="font-medium text-amber-900">
+                      {spec.paste ? 'The new token is in this tab and nowhere else. It is not in your row yet.' : `${spec.provider} granted a new credential. It is not in your row yet.`}
+                    </p>
                     <button
                       onClick={() => beginUpdate({ keys: { [credentialKey]: reconnectCredential }, label: `${spec.provider} account reconnected.` })}
                       disabled={busy}
@@ -938,9 +1230,13 @@ export function ConnectorOwnerPage({ spec }: { spec: ConnectorSpec }) {
                 ) : (
                   <More label={spec.reconnectLabel}>
                     <div className="space-y-2">{spec.reconnectWhy}</div>
-                    <button onClick={() => consent('reconnect')} disabled={!spec.configured || busy} className="rounded border border-gray-300 px-3 py-1.5 text-sm text-foreground disabled:opacity-50">
-                      {spec.reconnectLabel}
-                    </button>
+                    {spec.paste ? (
+                      <PasteForm paste={spec.paste} disabled={!spec.configured || busy} onContinue={(value) => setReconnectCredential(value)} />
+                    ) : (
+                      <button onClick={() => consent('reconnect')} disabled={!spec.configured || busy} className="rounded border border-gray-300 px-3 py-1.5 text-sm text-foreground disabled:opacity-50">
+                        {spec.reconnectLabel}
+                      </button>
+                    )}
                   </More>
                 )}
                 <More label="Connection details">

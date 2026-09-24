@@ -35,6 +35,8 @@ export const APP_NAV: NavGroup[] = [
     items: [
       { href: '/wallet/manage', label: 'Wallets' },
       { href: '/wallet/approvals', label: 'Approvals', approvalsBadge: true },
+      // `/connect/<id>` are the owner pages of single connectors; they light this item too.
+      { href: '/connectors', label: 'Connectors', match: '/connect' },
       { href: '/vault', label: 'Vaults' },
       { href: '/wallet/audit', label: 'Audit log' },
     ],

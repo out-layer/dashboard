@@ -172,7 +172,9 @@ export async function fetchJobs(
   limit: number = 50,
   offset: number = 0,
   userAccountId?: string,
-  source?: 'near' | 'https'
+  source?: 'near' | 'https',
+  /** Project id (`owner/name`) or GitHub repo (`owner/repo` or full URL). */
+  project?: string
 ): Promise<JobHistoryEntry[]> {
   const params: Record<string, string | number> = { limit, offset };
   if (userAccountId) {
@@ -180,6 +182,9 @@ export async function fetchJobs(
   }
   if (source) {
     params.source = source;
+  }
+  if (project) {
+    params.project = project;
   }
   const response = await axios.get(`${apiBase()}/public/jobs`, { params });
   return response.data;

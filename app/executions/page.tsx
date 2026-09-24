@@ -1,13 +1,14 @@
 'use client';
 
 import { PageHeader } from '@/components/ui/page-header';
-import { useEffect, useState, useCallback } from 'react';
+import { Fragment, useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { fetchJobs, JobHistoryEntry, AttestationResponse, fetchAttestation, isTestnetWorkersEnabled } from '@/lib/api';
 import { getTransactionUrl } from '@/lib/explorer';
 import { useNearWallet } from '@/contexts/NearWalletContext';
 import AttestationView from '@/components/AttestationView';
 import TestnetDisabledNotice from '@/components/TestnetDisabledNotice';
-import Link from 'next/link';
+import { HashChip } from '@/components/ui/hash-chip';
+import { FilterCombo, FilterSuggestion } from '@/components/ui/filter-combo';
 
 const STORAGE_KEY = 'executions-table-settings';
 
@@ -61,8 +62,44 @@ const COLUMN_LABELS: Record<keyof TableSettings['visibleColumns'], string> = {
   created: 'Created',
 };
 
+// What a row "ran": its project, or the repo it was built from. The same string
+// is shown in the Source filter, put in the URL and sent to the API.
+const sourceOf = (job: JobHistoryEntry): string | null =>
+  job.project_id || (job.github_repo ? job.github_repo.replace(/^https?:\/\/(www\.)?github\.com\//, '') : null);
+
+// Filters live in the URL (`?user=…&source=…`) so a filtered view can be shared
+// and survives a reload. Read once, on mount: the attestation modal rewrites the
+// address bar while it is open, and the filters must not follow it there.
+const readUrlFilters = () => {
+  if (typeof window === 'undefined') return { user: '', source: '' };
+  const q = new URLSearchParams(window.location.search);
+  return { user: q.get('user')?.trim() || '', source: q.get('source')?.trim() || '' };
+};
+
+const executionsUrl = (f: { user: string; source: string }) => {
+  const q = new URLSearchParams();
+  if (f.user) q.set('user', f.user);
+  if (f.source) q.set('source', f.source);
+  const qs = q.toString();
+  return qs ? `/executions?${qs}` : '/executions';
+};
+
+// A cell whose content does not count toward the column's width: the column
+// takes its share of whatever room the table has left (the `<td>`'s percentage),
+// and the content truncates to that. Without it a long account id either pushes
+// the table past the viewport or gets cut at a fixed width while space sits idle.
+const FitCell = ({ children }: { children: React.ReactNode }) => (
+  <div className="relative h-6 min-w-[6rem]">
+    <div className="absolute inset-0 flex items-center">{children}</div>
+  </div>
+);
+
+// Most recent first, each value once, capped so the list stays a shortlist.
+const mergeRecent = (fresh: (string | null)[], prev: string[]) =>
+  Array.from(new Set([...fresh.filter((v): v is string => !!v), ...prev])).slice(0, 50);
+
 export default function JobsPage() {
-  const { network } = useNearWallet();
+  const { network, accountId } = useNearWallet();
   const [jobs, setJobs] = useState<JobHistoryEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -77,6 +114,24 @@ export default function JobsPage() {
   } | null>(null);
   const [showAttestationHelp, setShowAttestationHelp] = useState(false);
   const [showColumnSettings, setShowColumnSettings] = useState(false);
+  const [filters, setFilters] = useState(readUrlFilters);
+  // Everything seen on this page so far, so narrowing to one user does not
+  // shrink the suggestions down to that user.
+  const [seenUsers, setSeenUsers] = useState<string[]>([]);
+  const [seenSources, setSeenSources] = useState<string[]>([]);
+
+  const updateFilter = (key: 'user' | 'source', value: string) => {
+    setFilters((prev) => {
+      if (prev[key] === value) return prev; // same filter, no reload
+      const next = { ...prev, [key]: value };
+      window.history.replaceState(null, '', executionsUrl(next));
+      return next;
+    });
+  };
+
+  // Responses can arrive out of order when the filter changes quickly; only
+  // the newest request may fill the table.
+  const requestSeq = useRef(0);
 
   // Load settings from localStorage
   const [settings, setSettings] = useState<TableSettings>(() => {
@@ -119,19 +174,24 @@ export default function JobsPage() {
   const testnetDisabled = network === 'testnet' && !isTestnetWorkersEnabled();
 
   const loadJobs = useCallback(async () => {
+    const seq = ++requestSeq.current;
     setLoading(true);
     try {
       const source = getSourceFilter();
-      const data = await fetchJobs(50, 0, undefined, source);
+      const data = await fetchJobs(50, 0, filters.user || undefined, source, filters.source || undefined);
+      if (seq !== requestSeq.current) return;
+      setSeenUsers((prev) => mergeRecent(data.map((j) => j.user_account_id), prev));
+      setSeenSources((prev) => mergeRecent(data.map(sourceOf), prev));
       setJobs(data);
       setError(null);
     } catch (err) {
+      if (seq !== requestSeq.current) return;
       setError('Failed to load jobs');
       console.error(err);
     } finally {
-      setLoading(false);
+      if (seq === requestSeq.current) setLoading(false);
     }
-  }, [getSourceFilter]);
+  }, [getSourceFilter, filters]);
 
   // Load jobs when filter changes (skip when testnet workers are offline)
   useEffect(() => {
@@ -164,7 +224,7 @@ export default function JobsPage() {
   // page's URL — same content, so a copy/paste or F5 lands on the full page.
   const closeAttestationModal = () => {
     setAttestationModal(null);
-    window.history.replaceState(null, '', '/executions');
+    window.history.replaceState(null, '', executionsUrl(filters));
   };
 
   const loadAttestation = async (job: JobHistoryEntry) => {
@@ -326,6 +386,19 @@ export default function JobsPage() {
     tx: settings.visibleColumns.tx && !httpsOnly,
   };
 
+  const userSuggestions = useMemo<FilterSuggestion[]>(() => {
+    const list: FilterSuggestion[] = seenUsers.map((value) => ({ value }));
+    if (accountId) {
+      return [{ value: accountId, hint: 'you' }, ...list.filter((s) => s.value !== accountId)];
+    }
+    return list;
+  }, [seenUsers, accountId]);
+  const sourceSuggestions = useMemo<FilterSuggestion[]>(
+    () => seenSources.map((value) => ({ value })),
+    [seenSources],
+  );
+  const hasFilters = !!(filters.user || filters.source);
+
   // Count visible columns for colspan
   const visibleColumnCount = Object.values(effectiveColumns).filter(Boolean).length;
 
@@ -429,50 +502,81 @@ export default function JobsPage() {
       )}
 
       {!testnetDisabled && (
- <div className="mt-8 flex flex-col">
+        <div className="mt-6 flex flex-wrap items-center gap-2">
+          <FilterCombo
+            label="User"
+            value={filters.user}
+            onChange={(v) => updateFilter('user', v)}
+            suggestions={userSuggestions}
+            placeholder="account.near"
+          />
+          <FilterCombo
+            label="Source"
+            value={filters.source}
+            onChange={(v) => updateFilter('source', v)}
+            suggestions={sourceSuggestions}
+            placeholder="owner/project or owner/repo"
+          />
+          {hasFilters && (
+            <button
+              type="button"
+              onClick={() => {
+                setFilters({ user: '', source: '' });
+                window.history.replaceState(null, '', '/executions');
+              }}
+              className="px-2 text-sm text-muted-foreground hover:text-foreground cursor-pointer"
+            >
+              Reset
+            </button>
+          )}
+        </div>
+      )}
+
+      {!testnetDisabled && (
+ <div className="mt-3 flex flex-col">
  <div className="-my-2 -mx-4 overflow-x-auto sm:-mx-6 lg:-mx-8">
  <div className="inline-block min-w-full py-2 align-middle md:px-6 lg:px-8">
  <div className="overflow-hidden rounded-md border border-border bg-card">
- <table className="min-w-full">
+ <table className="w-full">
  <thead className="border-b border-border">
                   <tr>
                     {effectiveColumns.id && (
                       <th
- className="px-3 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-faint-foreground"
+ className="whitespace-nowrap px-2.5 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-faint-foreground"
                         title="Click an id to view its TEE attestation quote"
                       >
                         ID
                       </th>
                     )}
                     {effectiveColumns.type && (
- <th className="px-3 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-faint-foreground">Type</th>
+ <th className="whitespace-nowrap px-2.5 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-faint-foreground">Type</th>
                     )}
                     {effectiveColumns.status && (
- <th className="px-3 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-faint-foreground">Status</th>
+ <th className="whitespace-nowrap px-2.5 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-faint-foreground">Status</th>
                     )}
                     {effectiveColumns.worker && (
- <th className="px-3 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-faint-foreground">Worker</th>
+ <th className="whitespace-nowrap px-2.5 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-faint-foreground">Worker</th>
                     )}
                     {effectiveColumns.source && (
- <th className="px-3 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-faint-foreground">Source</th>
+ <th className="whitespace-nowrap px-2.5 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-faint-foreground">Source</th>
                     )}
                     {effectiveColumns.user && (
- <th className="px-3 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-faint-foreground">User</th>
+ <th className="whitespace-nowrap px-2.5 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-faint-foreground">User</th>
                     )}
                     {effectiveColumns.time && (
- <th className="px-3 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-faint-foreground">Time (ms)</th>
+ <th className="whitespace-nowrap px-2.5 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-faint-foreground">Time (ms)</th>
                     )}
                     {effectiveColumns.fuel && (
- <th className="px-3 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-faint-foreground" title="Instructions">Fuel</th>
+ <th className="whitespace-nowrap px-2.5 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-faint-foreground" title="Instructions">Fuel</th>
                     )}
                     {effectiveColumns.payment && (
- <th className="px-3 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-faint-foreground" title="In NEAR tokens">Payment</th>
+ <th className="whitespace-nowrap px-2.5 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-faint-foreground" title="In NEAR tokens">Payment</th>
                     )}
                     {effectiveColumns.tx && (
- <th className="px-3 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-faint-foreground">TX</th>
+ <th className="whitespace-nowrap px-2.5 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-faint-foreground">TX</th>
                     )}
                     {effectiveColumns.created && (
- <th className="px-3 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-faint-foreground">Created</th>
+ <th className="whitespace-nowrap px-2.5 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-faint-foreground">Created</th>
                     )}
                   </tr>
                 </thead>
@@ -488,7 +592,7 @@ export default function JobsPage() {
                   ) : jobs.length === 0 ? (
                     <tr>
  <td colSpan={visibleColumnCount} className="px-3 py-8 text-center text-sm text-muted-foreground">
-                        No jobs found
+                        {hasFilters ? 'No jobs match the filters' : 'No jobs found'}
                       </td>
                     </tr>
                   ) : (
@@ -497,10 +601,10 @@ export default function JobsPage() {
                       const hasErrorDetails = job.error_details && job.error_details.trim().length > 0;
 
                       return (
-                        <>
-                          <tr key={job.id}>
+                        <Fragment key={job.id}>
+                          <tr>
                             {effectiveColumns.id && (
- <td className="whitespace-nowrap px-3 py-4 text-sm font-mono">
+ <td className="whitespace-nowrap px-2.5 py-4 text-sm font-mono">
                                 {/* The id itself opens the attestation report. Discovery was the
                                     problem with a separate icon column: people never connected the
                                     shield to "this execution can be proven". Attached to the row's
@@ -533,7 +637,7 @@ export default function JobsPage() {
                               </td>
                             )}
                             {effectiveColumns.type && (
- <td className="whitespace-nowrap px-3 py-4 text-sm">
+ <td className="whitespace-nowrap px-2.5 py-4 text-sm">
  <div className="flex items-center gap-1">
                                   <span
  className={`inline-flex rounded-full px-2 text-xs font-semibold leading-5 ${
@@ -560,38 +664,34 @@ export default function JobsPage() {
                               </td>
                             )}
                             {effectiveColumns.status && (
-                              // No `whitespace-nowrap` here, and a width cap: the longest label
-                              // ("Insufficient Payment", "Compilation Failed") otherwise stretches
-                              // this column and squeezes every other one on the row.
- <td className="px-3 py-4 text-sm">
+                              // One line, always: a wrapped badge doubles the row height. The
+                              // User column shrinks to make room instead.
+ <td className="whitespace-nowrap px-2.5 py-4 text-sm">
                                 <span
- className={`inline-flex max-w-[7.5rem] rounded-2xl px-2 py-0.5 text-xs font-semibold leading-4 ${
+ className={`inline-flex rounded-2xl px-2 py-0.5 text-xs font-semibold leading-4 ${
                                     getStatusDisplay(job.status, job.success).color
                                   } ${hasErrorDetails ? 'cursor-pointer hover:opacity-80' : ''}`}
                                   onClick={() => hasErrorDetails && setExpandedJobId(isExpanded ? null : job.id)}
                                   title={hasErrorDetails ? 'Click to show error details' : undefined}
                                 >
- <span className="min-w-0">
-                                    {getStatusDisplay(job.status, job.success).text}
-                                    {/* Kept inside the text run so the caret wraps with the last
-                                        word instead of being stranded on a line of its own. */}
+                                  {getStatusDisplay(job.status, job.success).text}
  {hasErrorDetails && <span className="ml-1">{isExpanded ? '▼' : '▶'}</span>}
-                                  </span>
                                 </span>
                               </td>
                             )}
                             {effectiveColumns.worker && (
- <td className="px-3 py-4 text-sm text-muted-foreground font-mono">
- <div className="max-w-[100px] truncate" title={job.worker_id || 'N/A'}>
+ <td className="px-2.5 py-4 text-sm text-muted-foreground font-mono">
+ <div className="max-w-[76px] truncate" title={job.worker_id || 'N/A'}>
                                   {job.worker_id ? job.worker_id.split('-').pop() : 'N/A'}
                                 </div>
                               </td>
                             )}
                             {effectiveColumns.source && (
- <td className="px-3 py-4 text-sm text-muted-foreground">
+ <td className="w-[40%] px-2.5 py-4 text-sm text-muted-foreground">
+                                <FitCell>
                                 {job.project_id ? (
                                   <span
- className="max-w-[120px] truncate block"
+ className="truncate"
                                     title={job.project_id}
                                   >
                                     {job.project_id.split('/').pop() || job.project_id}
@@ -601,7 +701,7 @@ export default function JobsPage() {
                                     href={`${job.github_repo}/tree/${job.github_commit}`}
                                     target="_blank"
                                     rel="noopener noreferrer"
- className="text-accent-text hover:underline max-w-[120px] truncate block"
+ className="text-accent-text hover:underline truncate"
                                     title={`${job.github_repo} @ ${job.github_commit}`}
                                   >
                                     {job.github_repo.replace(/^https?:\/\/(www\.)?github\.com\//, '')}
@@ -609,17 +709,18 @@ export default function JobsPage() {
                                 ) : (
                                   '-'
                                 )}
+                                </FitCell>
                               </td>
                             )}
                             {effectiveColumns.user && (
- <td className="whitespace-nowrap px-3 py-4 text-sm text-muted-foreground font-mono">
-                                {job.user_account_id
-                                  ? job.user_account_id.substring(0, 12) + '...'
-                                  : 'N/A'}
+ <td className="w-[60%] px-2.5 py-4 text-sm text-muted-foreground">
+                                <FitCell>
+                                  {job.user_account_id ? <HashChip value={job.user_account_id} fit /> : 'N/A'}
+                                </FitCell>
                               </td>
                             )}
                             {effectiveColumns.time && (
- <td className="whitespace-nowrap px-3 py-4 text-sm">
+ <td className="whitespace-nowrap px-2.5 py-4 text-sm">
                                 {job.compile_time_ms && job.execution_time_ms
                                   ? `${job.compile_time_ms}ms + ${job.execution_time_ms}ms`
                                   : job.compile_time_ms
@@ -630,19 +731,19 @@ export default function JobsPage() {
                               </td>
                             )}
                             {effectiveColumns.fuel && (
- <td className="whitespace-nowrap px-3 py-4 text-sm">
+ <td className="whitespace-nowrap px-2.5 py-4 text-sm">
                                 {job.job_type === 'compile' ? '-' : formatInstructions(job.instructions_used)}
                               </td>
                             )}
                             {effectiveColumns.payment && (
- <td className="whitespace-nowrap px-3 py-4 text-sm">
+ <td className="whitespace-nowrap px-2.5 py-4 text-sm">
                                 {job.is_https_call
                                   ? formatUsd(job.compute_cost_usd)
                                   : formatYoctoNEAR(getDisplayPayment(job))}
                               </td>
                             )}
                             {effectiveColumns.tx && (
- <td className="whitespace-nowrap px-3 py-4 text-sm">
+ <td className="whitespace-nowrap px-2.5 py-4 text-sm">
                                 {job.transaction_hash ? (
                                   <a
                                     href={getTransactionUrl(job.transaction_hash, network)}
@@ -660,7 +761,7 @@ export default function JobsPage() {
                             )}
                             {effectiveColumns.created && (
                               <td
- className="whitespace-nowrap px-3 py-4 text-sm text-muted-foreground"
+ className="whitespace-nowrap px-2.5 py-4 text-sm text-muted-foreground"
                                 title={new Date(job.created_at).toLocaleString()}
                               >
                                 {formatTimestamp(job.created_at)}
@@ -670,7 +771,7 @@ export default function JobsPage() {
                           {/* Error details row - only shown when expanded */}
                           {isExpanded && hasErrorDetails && (
                             <tr key={`${job.id}-details`}>
- <td colSpan={visibleColumnCount} className="px-3 py-4 bg-card-muted">
+ <td colSpan={visibleColumnCount} className="px-2.5 py-4 bg-card-muted">
  <div className="text-sm">
  <span className="font-semibold">Error Details:</span>
  <pre className="mt-2 p-3 bg-background border border-border rounded text-xs overflow-x-auto text-destructive-text">
@@ -680,7 +781,7 @@ export default function JobsPage() {
                               </td>
                             </tr>
                           )}
-                        </>
+                        </Fragment>
                       );
                     })
                   )}

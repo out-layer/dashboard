@@ -254,12 +254,12 @@ export function TrySending({
       {how === 'wallet' && tooPoor && walletCost && (
         <p className="rounded border border-destructive/40 bg-destructive/10 px-3 py-2 text-destructive-text">
           This send costs {money(walletCost.price)} and comes out of the balance you have deposited with the
-          contract, which holds {money(walletCost.balance)}. Top it up with &ldquo;Deposit&rdquo; on the{' '}
+          contract, which holds {money(walletCost.balance)}. Top it up from the{' '}
           <a className="underline" href="/">
-            main page
-          </a>{' '}
-          — one transaction, and it is there for every call after this one — or pay with a payment key
-          instead.
+            &ldquo;USDC balance&rdquo; card on the main page
+          </a>
+          , signed in as this same account — one transaction, and it is there for every call after this one
+          — or pay with a payment key instead.
         </p>
       )}
 

@@ -231,7 +231,7 @@ export default function ConnectorsDocsPage() {
               on the 1st, which turns a monthly cap into a stampede.
             </li>
             <li>
-              <strong>The trial&apos;s ten calls</strong>, for a caller on a trial key. A caller who pays has no such
+              <strong>The trial&apos;s fifty calls</strong>, for a caller on a trial key. A caller who pays has no such
               count — only the operation limits above.
             </li>
             <li>

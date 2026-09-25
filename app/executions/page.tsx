@@ -68,21 +68,41 @@ const sourceOf = (job: JobHistoryEntry): string | null =>
   job.project_id || (job.github_repo ? job.github_repo.replace(/^https?:\/\/(www\.)?github\.com\//, '') : null);
 
 // Filters live in the URL (`?user=…&source=…`) so a filtered view can be shared
-// and survives a reload. Read once, on mount: the attestation modal rewrites the
-// address bar while it is open, and the filters must not follow it there.
-const readUrlFilters = () => {
-  if (typeof window === 'undefined') return { user: '', source: '' };
+// and survives a reload. Read once, after mount: the page is prerendered
+// without them, and the attestation modal rewrites the address bar while it is
+// open, so the filters must not follow the URL afterwards.
+// `key` is a payment key nonce and only means something next to `user` (its
+// owner) — `?user=<owner>&key=<nonce>` is the link an agent can hand out for
+// "everything this key paid for", with no secret in it.
+interface Filters {
+  user: string;
+  source: string;
+  key: string;
+}
+const NO_FILTERS: Filters = { user: '', source: '', key: '' };
+
+const readUrlFilters = (): Filters => {
   const q = new URLSearchParams(window.location.search);
-  return { user: q.get('user')?.trim() || '', source: q.get('source')?.trim() || '' };
+  const user = q.get('user')?.trim() || '';
+  const key = q.get('key')?.trim() || '';
+  return {
+    user,
+    source: q.get('source')?.trim() || '',
+    key: user && /^\d+$/.test(key) ? key : '',
+  };
 };
 
-const executionsUrl = (f: { user: string; source: string }) => {
+const executionsUrl = (f: Filters) => {
   const q = new URLSearchParams();
   if (f.user) q.set('user', f.user);
+  if (f.user && f.key) q.set('key', f.key);
   if (f.source) q.set('source', f.source);
   const qs = q.toString();
   return qs ? `/executions?${qs}` : '/executions';
 };
+
+// A payment key as people see it elsewhere in the app: `owner#nonce`.
+const keyLabel = (owner: string, nonce: string | number) => `${owner}#${nonce}`;
 
 // A cell whose content does not count toward the column's width: the column
 // takes its share of whatever room the table has left (the `<td>`'s percentage),
@@ -114,20 +134,41 @@ export default function JobsPage() {
   } | null>(null);
   const [showAttestationHelp, setShowAttestationHelp] = useState(false);
   const [showColumnSettings, setShowColumnSettings] = useState(false);
-  const [filters, setFilters] = useState(readUrlFilters);
+  // null until mounted: the server has no URL to read, and rendering the
+  // filters first as empty and then as set would be a hydration mismatch.
+  const [filters, setFilters] = useState<Filters | null>(null);
+  useEffect(() => setFilters(readUrlFilters()), []);
   // Everything seen on this page so far, so narrowing to one user does not
   // shrink the suggestions down to that user.
   const [seenUsers, setSeenUsers] = useState<string[]>([]);
   const [seenSources, setSeenSources] = useState<string[]>([]);
+  const [seenKeys, setSeenKeys] = useState<string[]>([]);
 
-  const updateFilter = (key: 'user' | 'source', value: string) => {
-    setFilters((prev) => {
-      if (prev[key] === value) return prev; // same filter, no reload
-      const next = { ...prev, [key]: value };
+  const applyFilters = (change: (prev: Filters) => Filters) => {
+    setFilters((current) => {
+      const prev = current ?? NO_FILTERS;
+      const next = change(prev);
+      if (next.user === prev.user && next.source === prev.source && next.key === prev.key) {
+        return prev; // same filter, no reload
+      }
       window.history.replaceState(null, '', executionsUrl(next));
       return next;
     });
   };
+  // A key belongs to its owner, so changing the user drops the key filter.
+  const setUserFilter = (user: string) => applyFilters((prev) => ({ ...prev, user, key: user === prev.user ? prev.key : '' }));
+  const setSourceFilter = (source: string) => applyFilters((prev) => ({ ...prev, source }));
+  // Accepts `owner#nonce` (from a suggestion, sets the user too) or a bare
+  // nonce for the user already chosen. A bare nonce without a user is ignored.
+  const setKeyFilter = (value: string) =>
+    applyFilters((prev) => {
+      if (!value) return { ...prev, key: '' };
+      const m = value.match(/^(?:(.+)#)?(\d+)$/);
+      if (!m) return prev;
+      const user = m[1] || prev.user;
+      if (!user) return prev;
+      return { ...prev, user, key: m[2] };
+    });
 
   // Responses can arrive out of order when the filter changes quickly; only
   // the newest request may fill the table.
@@ -174,14 +215,28 @@ export default function JobsPage() {
   const testnetDisabled = network === 'testnet' && !isTestnetWorkersEnabled();
 
   const loadJobs = useCallback(async () => {
+    if (!filters) return; // URL not read yet
     const seq = ++requestSeq.current;
     setLoading(true);
     try {
       const source = getSourceFilter();
-      const data = await fetchJobs(50, 0, filters.user || undefined, source, filters.source || undefined);
+      const data = await fetchJobs(
+        50,
+        0,
+        filters.user || undefined,
+        source,
+        filters.source || undefined,
+        filters.user && filters.key ? Number(filters.key) : undefined,
+      );
       if (seq !== requestSeq.current) return;
       setSeenUsers((prev) => mergeRecent(data.map((j) => j.user_account_id), prev));
       setSeenSources((prev) => mergeRecent(data.map(sourceOf), prev));
+      setSeenKeys((prev) =>
+        mergeRecent(
+          data.map((j) => (j.user_account_id && j.payment_key_nonce != null ? keyLabel(j.user_account_id, j.payment_key_nonce) : null)),
+          prev,
+        ),
+      );
       setJobs(data);
       setError(null);
     } catch (err) {
@@ -224,7 +279,7 @@ export default function JobsPage() {
   // page's URL — same content, so a copy/paste or F5 lands on the full page.
   const closeAttestationModal = () => {
     setAttestationModal(null);
-    window.history.replaceState(null, '', executionsUrl(filters));
+    window.history.replaceState(null, '', executionsUrl(filters ?? NO_FILTERS));
   };
 
   const loadAttestation = async (job: JobHistoryEntry) => {
@@ -397,7 +452,13 @@ export default function JobsPage() {
     () => seenSources.map((value) => ({ value })),
     [seenSources],
   );
-  const hasFilters = !!(filters.user || filters.source);
+  const activeFilters = filters ?? NO_FILTERS;
+  // With a user chosen, only that user's keys are offered.
+  const keySuggestions = useMemo<FilterSuggestion[]>(
+    () => seenKeys.filter((k) => !activeFilters.user || k.startsWith(`${activeFilters.user}#`)).map((value) => ({ value })),
+    [seenKeys, activeFilters.user],
+  );
+  const hasFilters = !!(activeFilters.user || activeFilters.source || activeFilters.key);
 
   // Count visible columns for colspan
   const visibleColumnCount = Object.values(effectiveColumns).filter(Boolean).length;
@@ -503,17 +564,25 @@ export default function JobsPage() {
 
       {!testnetDisabled && (
         <div className="mt-6 flex flex-wrap items-center gap-2">
+          <span className="mr-1 text-sm text-muted-foreground">Filter by</span>
           <FilterCombo
             label="User"
-            value={filters.user}
-            onChange={(v) => updateFilter('user', v)}
+            value={activeFilters.user}
+            onChange={setUserFilter}
             suggestions={userSuggestions}
             placeholder="account.near"
           />
           <FilterCombo
+            label="Key"
+            value={activeFilters.key ? keyLabel(activeFilters.user, activeFilters.key) : ''}
+            onChange={setKeyFilter}
+            suggestions={keySuggestions}
+            placeholder={activeFilters.user ? 'nonce' : 'owner.near#nonce'}
+          />
+          <FilterCombo
             label="Source"
-            value={filters.source}
-            onChange={(v) => updateFilter('source', v)}
+            value={activeFilters.source}
+            onChange={setSourceFilter}
             suggestions={sourceSuggestions}
             placeholder="owner/project or owner/repo"
           />
@@ -521,7 +590,7 @@ export default function JobsPage() {
             <button
               type="button"
               onClick={() => {
-                setFilters({ user: '', source: '' });
+                setFilters(NO_FILTERS);
                 window.history.replaceState(null, '', '/executions');
               }}
               className="px-2 text-sm text-muted-foreground hover:text-foreground cursor-pointer"

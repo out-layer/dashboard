@@ -92,6 +92,8 @@ export interface JobHistoryEntry {
   project_id: string | null;
   // HTTPS cost in USD (stablecoin minimal units, 6 decimals)
   compute_cost_usd: string | null;
+  /** Nonce of the payment key behind an HTTPS call (owner is `user_account_id`); null for NEAR calls. */
+  payment_key_nonce: number | null;
 }
 
 export interface ExecutionStats {
@@ -174,7 +176,9 @@ export async function fetchJobs(
   userAccountId?: string,
   source?: 'near' | 'https',
   /** Project id (`owner/name`) or GitHub repo (`owner/repo` or full URL). */
-  project?: string
+  project?: string,
+  /** Payment key nonce; the API needs `userAccountId` (the key's owner) with it. */
+  key?: number
 ): Promise<JobHistoryEntry[]> {
   const params: Record<string, string | number> = { limit, offset };
   if (userAccountId) {
@@ -185,6 +189,9 @@ export async function fetchJobs(
   }
   if (project) {
     params.project = project;
+  }
+  if (key !== undefined && userAccountId) {
+    params.key = key;
   }
   const response = await axios.get(`${apiBase()}/public/jobs`, { params });
   return response.data;

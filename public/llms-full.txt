@@ -7164,7 +7164,7 @@ EVM signing is **live**. The model is deliberately narrow: **the client builds a
 
 ### Supported chains
 
-`ethereum`, `polygon`, `base`, `arbitrum`, `optimism`, `bsc`, `avalanche`, `hyperevm`, `hood` — plus the 1Click-style aliases `eth`, `pol`, `matic`, `arb`, `op`, `avax`. **All EVM chains share ONE derived secp256k1 address** (a single EOA, seed `wallet:{id}:evm`). `GET /wallet/v1/address` serves any of these and returns that one `0x` address. `hyperevm` is Hyperliquid's EVM (chain id 999): signable like the rest, not a 1Click deposit or withdraw chain. `hood` is Robinhood Chain, an Arbitrum L2: signable, and a 1Click deposit and withdraw chain like `base` or `arbitrum`. Account delete stays NEAR-only.
+`ethereum`, `polygon`, `base`, `arbitrum`, `optimism`, `bsc`, `avalanche`, `hyperevm`, `hood` — plus the 1Click-style aliases `eth`, `pol`, `matic`, `arb`, `op`, `avax`. **All EVM chains share ONE derived secp256k1 address** (a single EOA, seed `wallet:{id}:evm`). `GET /wallet/v1/address` serves any of these and returns that one `0x` address. `hyperevm` is Hyperliquid's EVM (chain id 999): signable like the rest, not a 1Click deposit or withdraw chain. `hood` is Robinhood Chain, an Arbitrum L2: signable, and a 1Click deposit and withdraw chain like `base` or `arbitrum`. `hypercore` (Hyperliquid's L1) is the other way round: a 1Click deposit and withdraw chain (USDC, the spot HIP-1 token, 8 decimals) whose accounts are that same `0x` address, but nothing is signed on it through `/wallet/v1/evm/*` — a HyperCore action is signed as EIP-712 typed data by whoever trades there (the Hyperliquid connector does). Account delete stays NEAR-only.
 
 ### Sub-keys
 
@@ -7304,7 +7304,7 @@ Every deterministic wallet has the same capabilities as a regular wallet — all
 - **Policy engine** — spending limits, allowed actions, freeze thresholds, multisig approval
 - **Webhooks** — notifications on wallet events
 - **TEE attestation** — all wallet keys derived inside Intel TDX, verifiable on-chain
-- **Trial** — a wallet made by `POST /register` can claim ten connector calls in its first week (`POST /trial-key`), no payment setup needed
+- **Trial** — a wallet made by `POST /register` can claim fifty connector calls in its first week (`POST /trial-key`), no payment setup needed
 
 ## Architecture
 
@@ -7445,7 +7445,7 @@ RPC access key check: only when creating (rows_affected > 0). Idempotent return 
 {
   "wallet_id": "uuid-string",
   "near_account_id": "hex64-implicit-account",
-  "trial": { "available": true, "calls": 10, "days": 7, "claim_url": "POST /trial-key", "scope": "connectors.outlayer.near/*" }
+  "trial": { "available": true, "calls": 50, "days": 7, "claim_url": "POST /trial-key", "scope": "connectors.outlayer.near/*" }
 }
 ```
 
@@ -8524,7 +8524,7 @@ parent account can install full-access keys and migrate funds.
 | **Vault contract** | Per-customer NEAR sub-account holding the TEE function-call key + recovery state machine | `vault-contract/` |
 | **Keystore-DAO** | Whitelists vault WASM hashes (multisig-gated, see [F4 audit fix](#governance-fixes)), tracks `verified_vaults`, `banned_vaults`, `ceased_operations` | `keystore-dao-contract/src/lib.rs` |
 | **Vault-checker WASI** | Public open-source agent that re-verifies vault state in TEE and forwards to keystore-worker | `wasi-examples/vault-checker/` |
-| **Keystore-worker** | Multi-customer master cache with lazy MPC CKD load; `/sign-vault-verification` + `/admin/ban-vault` + `/admin/evict-customer` | `keystore-worker/src/api.rs` |
+| **Keystore-worker** | Multi-customer master cache with lazy MPC CKD load; `/sign-vault-verification` + `/admin/ban-vault` + `/admin/evict-customer` | `keystore-worker/src/api_support.rs` (cache and router in `api.rs`) |
 | **Coordinator** | `/customer/derive-tee-key` + `/customer/sign-verification` + `/customer/register` + `/internal/vault-event` proxies | `outlayer-coordinator/src/wallet/handlers.rs` (separate repo) |
 | **CLI** | `outlayer vault {init,resume,status,verify,initiate-recovery,...}` | `outlayer-cli/src/commands/vault.rs` (separate repo) |
 | **Dashboard** | `/vault` management page + `<VaultScopeToggle/>` on secrets/wallet pages | `dashboard/app/vault/page.tsx`, `dashboard/lib/vault.ts` |

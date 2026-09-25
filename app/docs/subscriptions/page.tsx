@@ -139,9 +139,9 @@ export default function SubscriptionsDocsPage() {
         </section>
 
         <section id="trial-keys">
- <AnchorHeading id="trial-keys">The trial: ten calls, in the wallet&apos;s first week</AnchorHeading>
+ <AnchorHeading id="trial-keys">The trial: fifty calls, in the wallet&apos;s first week</AnchorHeading>
  <p className="text-foreground">
-            A trial is <strong>ten connector calls, within seven days of the wallet&apos;s creation</strong>.
+            A trial is <strong>fifty connector calls, within seven days of the wallet&apos;s creation</strong>.
             That is the whole rule. The wallet claims a key with{' '}
             <code className="bg-card-muted px-1 rounded">POST /trial-key</code>, sends it as{' '}
             <code className="bg-card-muted px-1 rounded">X-Payment-Key</code>, and the answer says how many calls it
@@ -154,7 +154,7 @@ export default function SubscriptionsDocsPage() {
  </li>
  <li>A call counts once it is accepted — any operation, a free one included, and whether or not the run then succeeds. A refused attempt costs nothing.</li>
  <li>
-              The eleventh call answers <code className="bg-card-muted px-1 rounded">402 trial_exhausted</code>, and
+              The fifty-first call answers <code className="bg-card-muted px-1 rounded">402 trial_exhausted</code>, and
               any call after the week <code className="bg-card-muted px-1 rounded">402 trial_expired</code>. Both are
               final; the next step is a payment key with money on it.
  </li>

@@ -451,11 +451,12 @@ export interface ConnectorOperation {
   params: ConnectorParam[];
 }
 
+/** A cap a connector declares about itself — the coordinator's words (`operation_limits`). */
 export interface ConnectorLimit {
   operation: string;
-  window: string;
+  window: 'day' | 'week' | 'month';
   max_count: number;
-  applies?: string;
+  applies?: 'everyone' | 'unpaid' | 'covered';
 }
 
 export interface ConnectorDescription {
@@ -470,22 +471,43 @@ export interface ConnectorDescription {
 }
 
 /**
+ * A refused `describe` read: the coordinator's own sentence (`{error}`) as the
+ * message, and the HTTP status, which is what a caller branches on — 503 and
+ * 429 are reads that can be retried, 404 is a connector or a block that is not
+ * there.
+ */
+export class ConnectorDescribeError extends Error {
+  readonly status: number;
+
+  constructor(message: string, status: number) {
+    super(message);
+    this.name = 'ConnectorDescribeError';
+    this.status = status;
+  }
+}
+
+/**
  * `GET /public/connectors/{id}/describe`: the `describe` block of the active
- * version's manifest, read out of the wasm the workers run. A refusal carries
- * the coordinator's own sentence (`{error}`) — not published on this network,
- * a version without the block — and that sentence is what is thrown.
+ * version's manifest, read out of the wasm the workers run. A refusal throws
+ * `ConnectorDescribeError` carrying the coordinator's sentence — not published
+ * on this network, a version without the block — and the status.
  */
 export async function fetchConnectorDescription(id: string, network?: NetworkType): Promise<ConnectorDescription> {
   const res = await fetch(`${getCoordinatorApiUrl(network)}/public/connectors/${encodeURIComponent(id)}/describe`);
   if (!res.ok) {
     let message = `HTTP ${res.status}`;
+    // Read once as text: a refusal is JSON `{error}` from the handler, or a
+    // plain sentence from the rate limiter in front of it.
+    const raw = await res.text().catch(() => '');
     try {
-      const body = (await res.json()) as { error?: string; message?: string };
-      message = body.error || body.message || message;
+      const body = JSON.parse(raw) as { error?: unknown; message?: unknown };
+      const said = body.error ?? body.message;
+      if (typeof said === 'string' && said) message = said;
     } catch {
-      /* not JSON */
+      const text = raw.trim();
+      if (text) message = text.length > 200 ? `${text.slice(0, 200)}…` : text;
     }
-    throw new Error(message);
+    throw new ConnectorDescribeError(message, res.status);
   }
   return res.json();
 }

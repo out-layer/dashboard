@@ -67,6 +67,22 @@ function when(iso: string | null): string {
   }
 }
 
+/**
+ * Why this key cannot be bought for, or null when it can. Nonce 0 is the
+ * coordinator's own slot — the trial, or a trial a gift lifted — and has no
+ * record on chain, so a purchase naming it is refused by the contract (and by
+ * the coordinator); a trial is never offered, whatever its number.
+ */
+function notBuyable(status: SubscriptionStatus): string | null {
+  if (status.trial) {
+    return 'This is a trial key. A trial cannot be bought on — create a payment key for the agent and subscribe that one.';
+  }
+  if (status.nonce === 0) {
+    return "This is the wallet's trial key (#0), converted into a subscription. OutLayer extends it; it cannot be bought on. To buy, create a payment key (#1 or above) and subscribe that one.";
+  }
+  return null;
+}
+
 export default function SubscriptionPage() {
   return (
     <Suspense fallback={null}>
@@ -200,6 +216,13 @@ function SubscriptionPageContent() {
       setError('Paste the payment key the subscription is for.');
       return;
     }
+    // Refused here, not only by the disabled button: the wallet never opens
+    // for a payment the contract would refuse.
+    const refusal = notBuyable(status);
+    if (refusal) {
+      setError(refusal);
+      return;
+    }
 
     setBusy(true);
     setBefore(status);
@@ -239,10 +262,8 @@ function SubscriptionPageContent() {
     }
   };
 
-  // A trial key has no record on chain — nonce 0 is the coordinator's own — so
-  // a purchase naming it is refused by the contract and refunded. Never offered.
-  const isTrial = Boolean(status?.trial);
-  const canBuy = Boolean(status) && !isTrial && isConnected;
+  const refusal = status ? notBuyable(status) : null;
+  const canBuy = Boolean(status) && !refusal && isConnected;
 
   return (
  <div className="w-full">
@@ -325,10 +346,14 @@ function SubscriptionPageContent() {
               balance of its own for this.
  </p>
 
-            {isTrial && (
+            {refusal && (
  <p className="mt-4 rounded-md border border-border bg-background p-3 text-sm text-muted-foreground">
-                This is a trial key. A trial cannot carry a subscription — create a payment key for
-                the agent and subscribe that one.
+                {refusal}
+ </p>
+            )}
+            {!isConnected && (
+ <p className="mt-4 rounded-md border border-border bg-background p-3 text-sm text-muted-foreground">
+                Connect your NEAR wallet to buy — it sends the payment.
  </p>
             )}
             {plans.length === 0 ? (
@@ -436,7 +461,7 @@ function SubscriptionPageContent() {
  <dd className="font-mono">{usd(status.allowance_available_usd)}</dd>
  </div>
  <div className="flex justify-between gap-3">
- <dt className="text-muted-foreground">Allowance bought</dt>
+ <dt className="text-muted-foreground">Allowance total</dt>
  <dd className="font-mono">{usd(status.allowance_total_usd)}</dd>
  </div>
  <div className="flex justify-between gap-3">

@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { PageHeader } from '@/components/ui/page-header';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -16,6 +17,8 @@ import { CONNECTORS, CONNECTORS_LIBRARY_SKILL, skillUrl } from '@/lib/connectors
  */
 export default function ConnectorsPage() {
   const { network } = useNearWallet();
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
 
   return (
     <div className="w-full">
@@ -37,7 +40,10 @@ export default function ConnectorsPage() {
 
       <div className="grid gap-4 md:grid-cols-2">
         {CONNECTORS.map((c) => {
-          const here = c.networks.includes(network as 'mainnet' | 'testnet');
+          // Decided after mount: `network` comes from localStorage on the client
+          // and from the env on the server, and markup that depends on it would
+          // not hydrate.
+          const here = !mounted || c.networks.includes(network);
           return (
             <Card key={c.id} className="h-full">
               <CardContent className="flex h-full flex-col p-5">
@@ -78,14 +84,14 @@ export default function ConnectorsPage() {
                   <p className="mt-2 text-xs text-muted-foreground">No account to connect — the agent brings its own wallet; the policy is what turns trading on.</p>
                 )}
 
-                <div className="mt-auto flex items-center justify-between gap-3 pt-4">
+                <div className="mt-auto flex flex-wrap items-center justify-between gap-3 pt-4">
                   <a
                     href={c.connectHref}
                     className="inline-flex shrink-0 items-center rounded-lg bg-accent px-3 py-2 text-sm font-semibold text-on-accent hover:bg-accent-hover"
                   >
                     {c.owner === 'account' ? `Connect ${c.name}` : `Set the agent’s ${c.name} policy`}
                   </a>
-                  <div className="w-1/2 min-w-0">
+                  <div className="w-full min-w-0 sm:w-1/2">
                     <SkillUrlBox url={skillUrl(c.id)} compact label="Skill" />
                   </div>
                 </div>

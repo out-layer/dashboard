@@ -8,7 +8,12 @@ import { HashChip } from '@/components/ui/hash-chip';
 import { SkillUrlBox } from '@/components/ui/skill-url-box';
 import { ExampleIcon } from '@/components/ui/example-icon';
 import { useNearWallet } from '@/contexts/NearWalletContext';
-import { fetchConnectorDescription, type ConnectorDescription } from '@/lib/api';
+import {
+  ConnectorDescribeError,
+  fetchConnectorDescription,
+  type ConnectorDescription,
+  type ConnectorLimit,
+} from '@/lib/api';
 import { CONNECTORS, skillUrl } from '@/lib/connectors';
 import type { PolicySchema } from '@/lib/policies/types';
 import { gmailPolicy } from '@/lib/policies/gmail';
@@ -38,6 +43,27 @@ const POLICIES: Record<string, PolicySchema> = {
   polymarket: polymarketPolicy,
 };
 
+/** Who a declared cap binds, in the coordinator's words (`operation_limits::Applies`). */
+const APPLIES_WORDS: Record<NonNullable<ConnectorLimit['applies']>, string> = {
+  everyone: '',
+  unpaid: ' (callers without a purchased subscription: pay-as-you-go, trial and gifted keys)',
+  covered: ' (callers paying from an allowance: trial, gifted and subscription keys)',
+};
+
+/**
+ * A `describe` value as text. The block is a third party's manifest, served
+ * as it was written: a value that is not a string or a number renders as
+ * nothing rather than as a React child it cannot be.
+ */
+function shown(v: unknown): string {
+  return typeof v === 'string' || typeof v === 'number' ? String(v) : '';
+}
+
+/** A `describe` list, or none when the manifest put something else there. */
+function listed<T>(v: T[] | undefined): T[] {
+  return Array.isArray(v) ? v : [];
+}
+
 const KIND_WORD: Record<string, string> = {
   list: 'a list',
   number: 'a number',
@@ -50,27 +76,45 @@ export default function ConnectorPage() {
   const params = useParams<{ id: string }>();
   const id = params.id;
   const { network } = useNearWallet();
+  // `network` comes from localStorage on the client and from the env on the
+  // server: everything that depends on it is decided after mount, or the
+  // markup would not hydrate.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
   const entry = CONNECTORS.find((c) => c.id === id);
-  const policy = POLICIES[id];
+  // Own keys only: `/connectors/constructor` must not find Object's.
+  const policy = entry && Object.hasOwn(POLICIES, entry.id) ? POLICIES[entry.id] : undefined;
 
   const [description, setDescription] = useState<ConnectorDescription | undefined>(undefined);
-  const [error, setError] = useState<string | null>(null);
+  /** The refused read: the coordinator's sentence and the HTTP status (absent when no answer came back). */
+  const [error, setError] = useState<{ message: string; status?: number } | null>(null);
+  /** Bumped by Retry: a new value re-runs the read. */
+  const [attempt, setAttempt] = useState(0);
+  // A connector that does not run on this network has nothing to describe here,
+  // so it is not asked for.
+  const publishedHere = entry ? entry.networks.includes(network) : false;
 
   useEffect(() => {
     let cancelled = false;
     setDescription(undefined);
     setError(null);
-    fetchConnectorDescription(id, network as 'mainnet' | 'testnet')
+    if (!mounted || !entry || !publishedHere) return;
+    fetchConnectorDescription(entry.id, network)
       .then((d) => {
         if (!cancelled) setDescription(d);
       })
       .catch((e: unknown) => {
-        if (!cancelled) setError(e instanceof Error ? e.message : String(e));
+        if (cancelled) return;
+        setError(
+          e instanceof ConnectorDescribeError
+            ? { message: e.message, status: e.status }
+            : { message: e instanceof Error ? e.message : String(e) },
+        );
       });
     return () => {
       cancelled = true;
     };
-  }, [id, network]);
+  }, [mounted, entry, network, publishedHere, attempt]);
 
   if (!entry) {
     return (
@@ -83,8 +127,15 @@ export default function ConnectorPage() {
     );
   }
 
-  const reads = description?.operations.filter((o) => o.class === 'read') ?? [];
-  const writes = description?.operations.filter((o) => o.class === 'write') ?? [];
+  // 503, 429 (the per-IP limit in front of the read), or no answer at all: the
+  // read can be repeated as it is.
+  const transient =
+    error !== null && (error.status === 503 || error.status === 429 || error.status === undefined);
+
+  const operations = listed(description?.operations);
+  const reads = operations.filter((o) => o.class === 'read');
+  const writes = operations.filter((o) => o.class === 'write');
+  const limits = listed(description?.limits);
 
   return (
     <div className="w-full">
@@ -109,15 +160,15 @@ export default function ConnectorPage() {
         {description && (
           <span className="inline-flex flex-wrap items-center gap-1.5 text-[11px] text-muted-foreground">
             <span className="text-xs">Project:</span>
-            <span className="font-mono">{description.project_id}</span>
+            <span className="font-mono">{shown(description.project_id)}</span>
             <span aria-hidden="true">·</span>
             {/* The project's active version on the contract: the checksum of the
                 build that answers calls right now. Explained in the tooltip, not
                 on the page. */}
             <HashChip
-              value={description.version}
+              value={shown(description.version)}
               trim={8}
-              title={`Active version — checksum of the build serving calls now\n${description.version}`}
+              title={`Active version — checksum of the build serving calls now\n${shown(description.version)}`}
             />
           </span>
         )}
@@ -135,7 +186,7 @@ export default function ConnectorPage() {
         </a>
       </div>
 
-      <p className="mt-6 max-w-3xl text-sm text-foreground">{description?.summary ?? entry.how}</p>
+      <p className="mt-6 max-w-3xl text-sm text-foreground">{shown(description?.summary) || entry.how}</p>
 
       {/* ---- The owner's policy, from the schema the connect page edits ---- */}
       {policy && (
@@ -144,7 +195,7 @@ export default function ConnectorPage() {
           <p className="mt-1 text-xs text-muted-foreground">
             Stored as <code className="rounded bg-card-muted px-1">{policy.envKey}</code>, checked inside the enclave before any request
             leaves.
-            {policy.emptySummary ? ` ${policy.emptySummary}` : ''}
+            {policy.emptySummary ? ` With nothing stored: ${policy.emptySummary}.` : ''}
           </p>
           <div className="mt-3 space-y-4">
             {policy.groups.map((g) => (
@@ -162,7 +213,7 @@ export default function ConnectorPage() {
                         </span>
                       </dt>
                       <dd className="mt-0.5 text-xs text-muted-foreground">
-                        {f.help} <span className="italic">Empty: {f.absentMeans}</span>
+                        {f.help} <span className="italic">{f.absentMeans}</span>
                       </dd>
                     </div>
                   ))}
@@ -180,11 +231,34 @@ export default function ConnectorPage() {
           Every call names one in <code className="rounded bg-card-muted px-1">operation</code>; the other fields are the parameters
           listed under it.
         </p>
-        {description === undefined && !error && <p className="mt-3 text-sm text-muted-foreground">Reading the deployed version…</p>}
-        {error && (
+        {!mounted ? (
+          <p className="mt-3 text-sm text-muted-foreground">Reading the deployed version…</p>
+        ) : !publishedHere ? (
           <p className="mt-3 text-sm text-amber-800">
-            {error}. Until the deployed version carries a description, the skill above is the reference.
+            Not published on {network}. The skill above is the reference; switch network to read the deployed version.
           </p>
+        ) : (
+          <>
+            {description === undefined && !error && (
+              <p className="mt-3 text-sm text-muted-foreground">Reading the deployed version…</p>
+            )}
+            {error && transient && (
+              <div className="mt-3 flex flex-wrap items-center gap-3 text-sm text-amber-800">
+                <span>The description is temporarily unavailable. The skill above is the reference meanwhile.</span>
+                <button
+                  onClick={() => setAttempt((n) => n + 1)}
+                  className="rounded-md border border-border px-3 py-1 text-sm text-foreground"
+                >
+                  Retry
+                </button>
+              </div>
+            )}
+            {error && !transient && (
+              <p className="mt-3 text-sm text-amber-800">
+                {error.message}. Until the deployed version carries a description, the skill above is the reference.
+              </p>
+            )}
+          </>
         )}
         {description && (
           <div className="mt-3 space-y-6">
@@ -194,19 +268,23 @@ export default function ConnectorPage() {
         )}
       </section>
 
-      {description && description.limits.length > 0 && (
+      {description && limits.length > 0 && (
         <section className="mt-8 max-w-3xl">
           <h2 className="text-sm font-semibold text-foreground">Call caps</h2>
           <p className="mt-1 text-xs text-muted-foreground">
             Per calling wallet; on top of the owner’s policy and the platform’s own rules.
           </p>
           <ul className="mt-2 space-y-1 text-sm">
-            {description.limits.map((l, i) => (
-              <li key={i}>
-                <code className="rounded bg-card-muted px-1 text-xs">{l.operation}</code> — at most {l.max_count} a {l.window}
-                {l.applies && l.applies !== 'everyone' ? ` (${l.applies === 'covered' ? 'trial and subscription callers' : 'callers without a subscription'})` : ''}
-              </li>
-            ))}
+            {limits.map((l, i) => {
+              const applies = l.applies ?? 'everyone';
+              return (
+                <li key={i}>
+                  <code className="rounded bg-card-muted px-1 text-xs">{shown(l.operation)}</code> — at most {shown(l.max_count)} a{' '}
+                  {shown(l.window)}
+                  {Object.hasOwn(APPLIES_WORDS, applies) ? APPLIES_WORDS[applies] : ''}
+                </li>
+              );
+            })}
           </ul>
         </section>
       )}
@@ -220,23 +298,23 @@ function OperationTable({ title, ops }: { title: string; ops: ConnectorDescripti
     <div>
       <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{title}</h3>
       <div className="divide-y divide-border rounded-lg border border-border">
-        {ops.map((op) => (
-          <div key={op.name} className="p-3">
+        {ops.map((op, i) => (
+          <div key={i} className="p-3">
             <div className="flex flex-wrap items-baseline gap-2">
-              <code className="rounded bg-card-muted px-1.5 py-0.5 text-xs font-semibold text-foreground">{op.name}</code>
-              <span className="text-sm text-foreground">{op.doc}</span>
+              <code className="rounded bg-card-muted px-1.5 py-0.5 text-xs font-semibold text-foreground">{shown(op.name)}</code>
+              <span className="text-sm text-foreground">{shown(op.doc)}</span>
             </div>
-            {op.params.length > 0 && (
+            {listed(op.params).length > 0 && (
               <table className="mt-2 w-full text-xs">
                 <tbody>
-                  {op.params.map((p) => (
-                    <tr key={p.name} className="align-top">
+                  {listed(op.params).map((p, j) => (
+                    <tr key={j} className="align-top">
                       <td className="w-40 py-0.5 pr-2">
-                        <code className="text-foreground">{p.name}</code>
+                        <code className="text-foreground">{shown(p.name)}</code>
                         {p.required && <span className="ml-1 text-amber-800">required</span>}
                       </td>
-                      <td className="w-36 py-0.5 pr-2 font-mono text-muted-foreground">{p.type}</td>
-                      <td className="py-0.5 text-muted-foreground">{p.doc ?? ''}</td>
+                      <td className="w-36 py-0.5 pr-2 font-mono text-muted-foreground">{shown(p.type)}</td>
+                      <td className="py-0.5 text-muted-foreground">{shown(p.doc)}</td>
                     </tr>
                   ))}
                 </tbody>

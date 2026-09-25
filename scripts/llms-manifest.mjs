@@ -135,6 +135,12 @@ export const SECTIONS = [
           'Verifiable randomness: SDK usage, on-chain proof verification, security properties, user-side verification',
       },
       {
+        title: 'Signing Keys',
+        path: '/docs/signing-keys',
+        summary:
+          'ed25519 keys a WASI module signs with and never sees, derived in the TEE keystore per project or exact build and per caller: the manifest signing_keys declaration, project vs wasm binding, signer vs predecessor caller, the outlayer:signing-keys host interface, NEP-413 signatures from the key implicit account, security rules, refusals',
+      },
+      {
         title: 'SDK',
         path: '/docs/sdk',
         summary:

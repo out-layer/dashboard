@@ -53,6 +53,7 @@ dashboard/app/docs/
 ├── pricing/page.tsx              # Pricing model
 ├── tee-attestation/page.tsx      # TEE Attestation (from sections/TeeAttestation.tsx)
 ├── vrf/page.tsx                  # VRF (Verifiable Random Function)
+├── signing-keys/page.tsx         # Signing Keys — ed25519 keys a module signs with and never sees
 ├── examples/page.tsx             # Example Projects (all examples)
 ├── trust-verification/page.tsx   # Trust & Verification - why trust OutLayer
 ├── storage/page.tsx              # Persistent Storage
@@ -209,6 +210,7 @@ dashboard/app/docs/
 | `/docs/pricing` | `dashboard/app/docs/sections/Pricing.tsx` | - | Cost model, resource limits |
 | `/docs/tee-attestation` | `dashboard/app/docs/sections/TeeAttestation.tsx` | `TEE_ATTESTATION_FLOW.md` | TEE verification, attestation, **post-quantum worker keys (ML-DSA-65 / FIPS-204, bound to quote via SHA-256 in `report_data`)** |
 | `/docs/vrf` | `dashboard/app/docs/vrf/page.tsx` | `VRF.md`, `sdk/outlayer/src/vrf.rs` | **VRF: verifiable randomness, SDK, on-chain verification** |
+| `/docs/signing-keys` | `dashboard/app/docs/signing-keys/page.tsx` | `wasi-examples/CONNECTOR_MANIFEST.md` (`signing_keys`), `worker/wit/deps/signing-keys.wit`, `keystore-worker/src/signing_keys.rs`, `wasi-examples/signing-key-probe/`, skill reference `building-outlayer-apps/references/signing-keys.md` | **Signing keys: manifest `signing_keys` (path, ed25519, `project`/`wasm` bind, `signer`/`predecessor` caller, optional vault, max 3), `outlayer:signing-keys` host functions, NEP-413 from the implicit account, security rules, refusals** |
 | `/docs/examples` | `dashboard/app/docs/examples/page.tsx` | `wasi-examples/*/README.md` | All example projects |
 
 ## Navigation (layout.tsx)

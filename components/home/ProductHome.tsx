@@ -246,6 +246,7 @@ export default function ProductHome() {
                 { label: 'Encrypted secrets in your code', href: '/docs/secrets' },
                 { label: 'Projects, versions and storage', href: '/docs/projects' },
                 { label: 'VRF and randomness', href: '/docs/vrf' },
+                { label: 'Signing keys your code never sees', href: '/docs/signing-keys' },
               ].map((l) => (
                 <li key={l.href}>
                   <Link href={l.href} className="text-accent-text hover:underline">

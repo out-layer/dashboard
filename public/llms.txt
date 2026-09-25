@@ -33,6 +33,7 @@ Full text of every document below is available in one fetch at https://app.outla
 - [Projects](https://app.outlayer.ai/docs/projects): Project IDs, how a WASM binary is bound to a project, project environment variables, version management, storage security model
 - [Storage](https://app.outlayer.ai/docs/storage): Persistent key-value storage for agents: methods reference, atomic operations, per-user isolation, public storage and its external HTTP read API
 - [VRF](https://app.outlayer.ai/docs/vrf): Verifiable randomness: SDK usage, on-chain proof verification, security properties, user-side verification
+- [Signing Keys](https://app.outlayer.ai/docs/signing-keys): ed25519 keys a WASI module signs with and never sees, derived in the TEE keystore per project or exact build and per caller: the manifest signing_keys declaration, project vs wasm binding, signer vs predecessor caller, the outlayer:signing-keys host interface, NEP-413 signatures from the key implicit account, security rules, refusals
 - [SDK](https://app.outlayer.ai/docs/sdk): The Rust `outlayer` crate: environment module, storage module, minimal project template, API reference
 - [HTTPS API](https://app.outlayer.ai/docs/https-api): Request and response format for `POST /call/{project_owner}/{project_name}`: base URLs per network, headers, body, environment variables, error codes
 - [Payment Keys](https://app.outlayer.ai/docs/payment-keys): Creating payment keys, key format, restrictions, balance management, rate limits, security practices

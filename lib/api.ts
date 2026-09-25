@@ -471,12 +471,21 @@ export interface ConnectorDescription {
 
 /**
  * `GET /public/connectors/{id}/describe`: the `describe` block of the active
- * version's manifest, read out of the wasm the workers run. `null` when the
- * connector is not published on this network (404).
+ * version's manifest, read out of the wasm the workers run. A refusal carries
+ * the coordinator's own sentence (`{error}`) — not published on this network,
+ * a version without the block — and that sentence is what is thrown.
  */
-export async function fetchConnectorDescription(id: string, network?: NetworkType): Promise<ConnectorDescription | null> {
+export async function fetchConnectorDescription(id: string, network?: NetworkType): Promise<ConnectorDescription> {
   const res = await fetch(`${getCoordinatorApiUrl(network)}/public/connectors/${encodeURIComponent(id)}/describe`);
-  if (res.status === 404) return null;
-  if (!res.ok) throw new Error(`describe: HTTP ${res.status}`);
+  if (!res.ok) {
+    let message = `HTTP ${res.status}`;
+    try {
+      const body = (await res.json()) as { error?: string; message?: string };
+      message = body.error || body.message || message;
+    } catch {
+      /* not JSON */
+    }
+    throw new Error(message);
+  }
   return res.json();
 }

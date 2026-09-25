@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { PageHeader } from '@/components/ui/page-header';
 import { Badge } from '@/components/ui/badge';
+import { HashChip } from '@/components/ui/hash-chip';
 import { SkillUrlBox } from '@/components/ui/skill-url-box';
 import { ExampleIcon } from '@/components/ui/example-icon';
 import { useNearWallet } from '@/contexts/NearWalletContext';
@@ -52,7 +53,7 @@ export default function ConnectorPage() {
   const entry = CONNECTORS.find((c) => c.id === id);
   const policy = POLICIES[id];
 
-  const [description, setDescription] = useState<ConnectorDescription | null | undefined>(undefined);
+  const [description, setDescription] = useState<ConnectorDescription | undefined>(undefined);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -99,27 +100,34 @@ export default function ConnectorPage() {
         </div>
       </div>
 
-      <div className="mb-6 flex flex-wrap items-center gap-2">
-        <a
-          href={entry.connectHref}
-          className="inline-flex items-center rounded-lg bg-accent px-3 py-2 text-sm font-semibold text-on-accent hover:bg-accent-hover"
-        >
-          {entry.owner === 'account' ? `Connect ${entry.name}` : `Set the agent’s ${entry.name} policy`}
-        </a>
+      <div className="mb-4 flex flex-wrap items-center gap-2">
         {entry.networks.map((n) => (
           <Badge key={n} variant="outline">
             {n}
           </Badge>
         ))}
         {description && (
-          <span className="font-mono text-[11px] text-muted-foreground" title={`active version ${description.version}`}>
-            {description.project_id} · {description.version.slice(0, 8)}…
+          <span className="inline-flex flex-wrap items-center gap-1.5 text-[11px] text-muted-foreground">
+            <span className="font-mono">{description.project_id}</span>
+            <span aria-hidden="true">·</span>
+            {/* The project's active version on the contract: the checksum of the
+                build that answers calls right now. Full value on click. */}
+            <HashChip value={description.version} trim={8} title={`Active version: ${description.version}`} />
+            <span className="text-faint-foreground">active version — checksum of the build serving calls now</span>
           </span>
         )}
       </div>
 
       <div className="max-w-3xl">
         <SkillUrlBox url={skillUrl(entry.id)} compact label="Skill" />
+      </div>
+      <div className="mt-4">
+        <a
+          href={entry.connectHref}
+          className="inline-flex items-center rounded-lg bg-accent px-3 py-2 text-sm font-semibold text-on-accent hover:bg-accent-hover"
+        >
+          {entry.owner === 'account' ? `Connect ${entry.name}` : `Set the agent’s ${entry.name} policy`}
+        </a>
       </div>
 
       <p className="mt-6 max-w-3xl text-sm text-foreground">{description?.summary ?? entry.how}</p>
@@ -170,14 +178,7 @@ export default function ConnectorPage() {
         {description === undefined && !error && <p className="mt-3 text-sm text-muted-foreground">Reading the deployed version…</p>}
         {error && (
           <p className="mt-3 text-sm text-amber-800">
-            The description could not be read ({error}). The list comes from the coordinator’s{' '}
-            <code className="rounded bg-card-muted px-1">/public/connectors/{id}/describe</code>; until that endpoint answers, the skill above
-            is the reference.
-          </p>
-        )}
-        {description === null && (
-          <p className="mt-3 text-sm text-amber-800">
-            Not published on {network} — switch the network at the top, or read the skill above.
+            {error}. Until the deployed version carries a description, the skill above is the reference.
           </p>
         )}
         {description && (

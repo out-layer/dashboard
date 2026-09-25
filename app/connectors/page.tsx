@@ -4,6 +4,7 @@ import { PageHeader } from '@/components/ui/page-header';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { SkillUrlBox } from '@/components/ui/skill-url-box';
+import { ExampleIcon } from '@/components/ui/example-icon';
 import { useNearWallet } from '@/contexts/NearWalletContext';
 import { CONNECTORS, CONNECTORS_LIBRARY_SKILL, skillUrl } from '@/lib/connectors';
 
@@ -41,7 +42,12 @@ export default function ConnectorsPage() {
             <Card key={c.id} className="h-full">
               <CardContent className="flex h-full flex-col p-5">
                 <div className="flex items-center justify-between gap-2">
-                  <h2 className="text-sm font-semibold text-foreground">{c.name}</h2>
+                  <h2 className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                    <span className="inline-flex h-7 w-7 items-center justify-center rounded-md bg-card-muted text-accent-text">
+                      <ExampleIcon name={c.icon} />
+                    </span>
+                    {c.name}
+                  </h2>
                   <div className="flex gap-1">
                     {c.networks.map((n) => (
                       <Badge key={n} variant="outline">
@@ -71,9 +77,13 @@ export default function ConnectorsPage() {
                   )}
                 </div>
 
-                <div className="mt-4 border-t border-border pt-3">
-                  <p className="mb-1.5 text-xs text-muted-foreground">Skill for the agent</p>
-                  <SkillUrlBox url={skillUrl(c.id)} />
+                <div className="mt-4 flex items-center gap-3 border-t border-border pt-3">
+                  <div className="min-w-0 flex-1">
+                    <SkillUrlBox url={skillUrl(c.id)} compact label="Skill" />
+                  </div>
+                  <a href={`/connectors/${c.id}`} className="shrink-0 text-xs font-medium text-accent-text hover:underline">
+                    Operations &amp; policy →
+                  </a>
                 </div>
               </CardContent>
             </Card>

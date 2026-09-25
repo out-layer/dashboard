@@ -433,3 +433,50 @@ export async function fetchAttestation(
   }
 }
 
+// ---------------------------------------------------------------------------
+// Connectors: what one does and takes, from the wasm that is deployed
+// ---------------------------------------------------------------------------
+
+export interface ConnectorParam {
+  name: string;
+  type: string;
+  required?: boolean;
+  doc?: string;
+}
+
+export interface ConnectorOperation {
+  name: string;
+  class: 'read' | 'write';
+  doc: string;
+  params: ConnectorParam[];
+}
+
+export interface ConnectorLimit {
+  operation: string;
+  window: string;
+  max_count: number;
+  applies?: string;
+}
+
+export interface ConnectorDescription {
+  connector_id: string;
+  project_id: string;
+  network: NetworkType;
+  version: string;
+  display?: { name?: string; author?: string };
+  summary: string;
+  operations: ConnectorOperation[];
+  limits: ConnectorLimit[];
+}
+
+/**
+ * `GET /public/connectors/{id}/describe`: the `describe` block of the active
+ * version's manifest, read out of the wasm the workers run. `null` when the
+ * connector is not published on this network (404).
+ */
+export async function fetchConnectorDescription(id: string, network?: NetworkType): Promise<ConnectorDescription | null> {
+  const res = await fetch(`${getCoordinatorApiUrl(network)}/public/connectors/${encodeURIComponent(id)}/describe`);
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error(`describe: HTTP ${res.status}`);
+  return res.json();
+}

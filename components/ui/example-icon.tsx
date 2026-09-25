@@ -16,7 +16,10 @@ export type ExampleIconName =
   | 'gas'
   | 'globe'
   | 'mask'
-  | 'sliders';
+  | 'sliders'
+  | 'branch'
+  | 'bank'
+  | 'candles';
 
 const EXAMPLE_ICON_PATHS: Record<ExampleIconName, React.ReactNode> = {
   ai: <path d="M8 1.8l1.4 3.6 3.6 1.4-3.6 1.4L8 11.8 6.6 8.2 3 6.8l3.6-1.4L8 1.8zM12.8 10.6l.7 1.7 1.7.7-1.7.7-.7 1.7-.7-1.7-1.7-.7 1.7-.7.7-1.7z" />,
@@ -34,6 +37,9 @@ const EXAMPLE_ICON_PATHS: Record<ExampleIconName, React.ReactNode> = {
   globe: <path d="M13.5 8a5.5 5.5 0 11-11 0 5.5 5.5 0 0111 0zM2.5 8h11M8 2.5c1.9 2.4 1.9 8.6 0 11M8 2.5c-1.9 2.4-1.9 8.6 0 11" />,
   mask: <path d="M2.5 2.5l11 11M4.9 4.9C3.6 5.7 2.6 6.9 2 8c1.2 2.2 3.4 4 6 4 .9 0 1.8-.2 2.6-.6M6.9 3.4c.4-.1.7-.1 1.1-.1 2.6 0 4.8 1.8 6 4.7-.3.6-.7 1.2-1.2 1.7" />,
   sliders: <path d="M2.5 4.5h11M2.5 8h11M2.5 11.5h11M6.2 4.5a1.2 1.2 0 11-2.4 0 1.2 1.2 0 012.4 0zM12 8a1.2 1.2 0 11-2.4 0A1.2 1.2 0 0112 8zM7.5 11.5a1.2 1.2 0 11-2.4 0 1.2 1.2 0 012.4 0z" />,
+  branch: <path d="M4.5 3.9a1.4 1.4 0 11-2.8 0 1.4 1.4 0 012.8 0zM4.5 12.1a1.4 1.4 0 11-2.8 0 1.4 1.4 0 012.8 0zM14.3 4.4a1.4 1.4 0 11-2.8 0 1.4 1.4 0 012.8 0zM3.1 5.3v5.4M12.9 5.8c0 2.6-2.2 3.2-4.6 3.5-2 .2-3.5.7-4.3 1.7" />,
+  bank: <path d="M2.2 6.2L8 2.5l5.8 3.7H2.2zM3.6 6.2v5M6.5 6.2v5M9.5 6.2v5M12.4 6.2v5M2.2 11.2h11.6M1.8 13.5h12.4" />,
+  candles: <path d="M4.2 2.5v2M4.2 11v2.5M2.9 4.5h2.6v6.5H2.9zM8 4v1.5M8 9.5v3M6.7 5.5h2.6v4H6.7zM11.8 2.5v1M11.8 8.5v5M10.5 3.5h2.6v5h-2.6z" />,
 };
 
 export function ExampleIcon({ name }: { name: ExampleIconName }) {

@@ -4,6 +4,8 @@
 // skills repo — the one place the library is described for agents; keep the two
 // in sync when a connector is added or moves network.
 
+import type { ExampleIconName } from '@/components/ui/example-icon';
+
 export interface ConnectorEntry {
   /** The connector id: the project is `connectors.outlayer.{near,testnet}/<id>`. */
   id: string;
@@ -22,6 +24,8 @@ export interface ConnectorEntry {
   owner: 'account' | 'policy';
   /** Where it runs today. */
   networks: ('mainnet' | 'testnet')[];
+  /** The card's glyph — a stroke icon, not the service's trademark. */
+  icon: ExampleIconName;
 }
 
 export const SKILLS_BASE = 'https://skills.outlayer.ai';
@@ -41,6 +45,7 @@ export const CONNECTORS: ConnectorEntry[] = [
     connectHref: '/connect/gmail',
     owner: 'account',
     networks: ['mainnet', 'testnet'],
+    icon: 'mail',
   },
   {
     id: 'github',
@@ -49,16 +54,18 @@ export const CONNECTORS: ConnectorEntry[] = [
     how: 'You install the OutLayer app on the repositories you choose; that is the outer fence. Your policy narrows it: which actions, branches and paths, how many writes a day, and whether it may ever merge.',
     connectHref: '/connect/github',
     owner: 'account',
-    networks: ['testnet'],
+    networks: ['mainnet', 'testnet'],
+    icon: 'branch',
   },
   {
     id: 'mercury',
-    name: 'Mercury',
+    name: 'Mercury Bank',
     tagline: 'Pay a contractor, issue an invoice, read the ledger — from your business bank account, inside your limits.',
     how: 'You paste an API token from Mercury; a token alone moves nothing. Your policy sets the most per payment and per 30 days, the payees and rails, and Mercury’s own approval rules still apply on top.',
     connectHref: '/connect/mercury',
     owner: 'account',
     networks: ['mainnet', 'testnet'],
+    icon: 'bank',
   },
   {
     id: 'hyperliquid',
@@ -67,7 +74,8 @@ export const CONNECTORS: ConnectorEntry[] = [
     how: 'No account to connect: the venue key is a sub-key of the agent’s custody wallet, held in the enclave. Your caps are a policy you store for the agent; without one it is read-only.',
     connectHref: '/connect/hyperliquid',
     owner: 'policy',
-    networks: ['mainnet', 'testnet'],
+    networks: ['mainnet'],
+    icon: 'candles',
   },
   {
     id: 'polymarket',
@@ -77,5 +85,6 @@ export const CONNECTORS: ConnectorEntry[] = [
     connectHref: '/connect/polymarket',
     owner: 'policy',
     networks: ['mainnet'],
+    icon: 'dice',
   },
 ];

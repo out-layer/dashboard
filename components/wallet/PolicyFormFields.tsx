@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { PolicyForm, effectiveTransactionTypes } from '@/lib/wallet-policy';
 import { AuthorizedKeysSection } from './AuthorizedKeysSection';
+import { RefundAddressesSection } from './RefundAddressesSection';
 
 interface PolicyFormFieldsProps {
   policyForm: PolicyForm;
@@ -540,6 +541,12 @@ export function PolicyFormFields({ policyForm, onChange, apiKeyHash, knownKeyHas
           />
         </div>
       </div>
+
+      {/* Refund Addresses */}
+      <RefundAddressesSection
+        rows={policyForm.refund_addresses}
+        onChange={(rows) => update({ refund_addresses: rows })}
+      />
 
       {/* Authorized API Keys */}
       <AuthorizedKeysSection

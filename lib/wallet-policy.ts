@@ -58,6 +58,14 @@ export interface PolicyForm {
    *  whose bytes parse as a transaction — so this sub-flag cannot be walked around through
    *  the message endpoint. */
   solana_sign_raw_tx: boolean;
+  /** refund_addresses: where a failed cross-chain deposit on each chain is
+   *  refunded. One row per chain; `chain` is a canonical deposit chain name. */
+  refund_addresses: RefundAddressRow[];
+}
+
+export interface RefundAddressRow {
+  chain: string;
+  address: string;
 }
 
 export const DEFAULT_POLICY: PolicyForm = {
@@ -93,7 +101,168 @@ export const DEFAULT_POLICY: PolicyForm = {
   evm_sign_raw_tx: false,
   solana_sign_enabled: false,
   solana_sign_raw_tx: false,
+  refund_addresses: [],
 };
+
+// ============================================================================
+// Refund addresses — mirrors the coordinator's encrypt-policy checks
+// (`canonicalize_user_chain` and `validate_refund_address` in
+// outlayer-coordinator `src/wallet/cross_chain.rs`)
+// ============================================================================
+
+/** Which address rule a chain's refund address is held to. */
+export type RefundAddressFamily = 'evm' | 'solana' | 'near' | 'bitcoin' | 'other';
+
+export interface RefundChain {
+  /** Canonical name, as the coordinator stores it. */
+  id: string;
+  label: string;
+  family: RefundAddressFamily;
+}
+
+/**
+ * The chains the deposit endpoints accept, by canonical name. The family is
+ * the key the wallet's own address on the chain comes from; a chain the
+ * wallet holds no key on is `other` and gets the shape check only — the
+ * bridge is the authority on those formats.
+ */
+export const REFUND_CHAINS: readonly RefundChain[] = [
+  { id: 'near', label: 'NEAR', family: 'near' },
+  { id: 'ethereum', label: 'Ethereum', family: 'evm' },
+  { id: 'base', label: 'Base', family: 'evm' },
+  { id: 'arbitrum', label: 'Arbitrum', family: 'evm' },
+  { id: 'bsc', label: 'BNB Smart Chain', family: 'evm' },
+  { id: 'polygon', label: 'Polygon', family: 'evm' },
+  { id: 'optimism', label: 'Optimism', family: 'evm' },
+  { id: 'avalanche', label: 'Avalanche', family: 'evm' },
+  { id: 'hood', label: 'Robinhood Chain', family: 'evm' },
+  { id: 'hypercore', label: 'HyperCore', family: 'evm' },
+  { id: 'solana', label: 'Solana', family: 'solana' },
+  { id: 'bitcoin', label: 'Bitcoin', family: 'bitcoin' },
+  { id: 'zcash', label: 'Zcash', family: 'other' },
+  { id: 'dogecoin', label: 'Dogecoin', family: 'other' },
+  { id: 'litecoin', label: 'Litecoin', family: 'other' },
+  { id: 'bitcoincash', label: 'Bitcoin Cash', family: 'other' },
+  { id: 'xrp', label: 'XRP', family: 'other' },
+  { id: 'dash', label: 'Dash', family: 'other' },
+  { id: 'cardano', label: 'Cardano', family: 'other' },
+  { id: 'tron', label: 'Tron', family: 'other' },
+  { id: 'sui', label: 'Sui', family: 'other' },
+  { id: 'aptos', label: 'Aptos', family: 'other' },
+  { id: 'aleo', label: 'Aleo', family: 'other' },
+  { id: 'gnosis', label: 'Gnosis', family: 'other' },
+  { id: 'berachain', label: 'Berachain', family: 'other' },
+  { id: 'movement', label: 'Movement', family: 'other' },
+  { id: 'plasma', label: 'Plasma', family: 'other' },
+  { id: 'starknet', label: 'Starknet', family: 'other' },
+];
+
+const REFUND_CHAIN_ALIASES: Record<string, string> = {
+  sol: 'solana',
+  eth: 'ethereum',
+  arb: 'arbitrum',
+  btc: 'bitcoin',
+  pol: 'polygon',
+  op: 'optimism',
+  avax: 'avalanche',
+  zec: 'zcash',
+  doge: 'dogecoin',
+  ltc: 'litecoin',
+  bch: 'bitcoincash',
+  bera: 'berachain',
+};
+
+/** The canonical name of a chain the deposit endpoints accept (aliases and
+ *  any letter case included), or `null` for a chain they refuse. */
+export function canonicalRefundChain(name: string): string | null {
+  const lower = name.trim().toLowerCase();
+  const id = REFUND_CHAIN_ALIASES[lower] ?? lower;
+  return REFUND_CHAINS.some((c) => c.id === id) ? id : null;
+}
+
+const BASE58_ALPHABET = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
+
+/** Byte length of a base58 string, or `null` when it is not base58. */
+function base58ByteLength(s: string): number | null {
+  let zeros = 0;
+  while (zeros < s.length && s[zeros] === '1') zeros++;
+  const bytes: number[] = [];
+  for (let i = zeros; i < s.length; i++) {
+    let carry = BASE58_ALPHABET.indexOf(s[i]);
+    if (carry < 0) return null;
+    for (let j = 0; j < bytes.length; j++) {
+      carry += bytes[j] * 58;
+      bytes[j] = carry & 0xff;
+      carry >>= 8;
+    }
+    while (carry > 0) {
+      bytes.push(carry & 0xff);
+      carry >>= 8;
+    }
+  }
+  return zeros + bytes.length;
+}
+
+/** A NEAR account id: 2-64 of `a-z 0-9 _ - .`, separators never leading,
+ *  trailing or adjacent (`account_id_is_well_formed` in shared-tee-helpers). */
+function isNearAccountId(id: string): boolean {
+  return id.length >= 2 && id.length <= 64 && /^[a-z0-9]+([_.-][a-z0-9]+)*$/.test(id);
+}
+
+/**
+ * Why `address` cannot be a refund address on `chain`, or `null` when it
+ * can. The address is trimmed first, as the coordinator does.
+ */
+export function refundAddressProblem(chain: string, address: string): string | null {
+  const id = canonicalRefundChain(chain);
+  if (!id) return `'${chain}' is not a chain the deposit endpoints accept.`;
+  const addr = address.trim();
+  if (!addr || addr.length > 128 || !/^[\x21-\x7e]+$/.test(addr)) {
+    return 'An address is 1-128 printable ASCII characters without whitespace.';
+  }
+  switch (REFUND_CHAINS.find((c) => c.id === id)!.family) {
+    case 'evm':
+      return /^0x[0-9a-fA-F]{40}$/.test(addr) ? null : 'An EVM address is `0x` followed by 40 hex characters.';
+    case 'solana':
+      return base58ByteLength(addr) === 32 ? null : 'A Solana address is a base58-encoded 32-byte public key.';
+    case 'near':
+      return isNearAccountId(addr) ? null : 'A NEAR address is an account id (lowercase, 2-64 characters).';
+    case 'bitcoin': {
+      const prefixed = addr.startsWith('bc1') || addr.startsWith('1') || addr.startsWith('3');
+      return prefixed && addr.length >= 26 && addr.length <= 90 ? null : 'A Bitcoin address starts with `bc1`, `1` or `3`.';
+    }
+    case 'other':
+      return null;
+  }
+}
+
+/**
+ * Every reason the coordinator would refuse a policy's `refund_addresses`
+ * value, one message per entry; empty when it would accept it.
+ */
+export function refundAddressesProblems(value: unknown): string[] {
+  if (value === undefined) return [];
+  if (value === null || typeof value !== 'object' || Array.isArray(value)) {
+    return ['refund_addresses is an object of chain name → address.'];
+  }
+  const problems: string[] = [];
+  const seen = new Set<string>();
+  for (const [chain, address] of Object.entries(value as Record<string, unknown>)) {
+    if (typeof address !== 'string') {
+      problems.push(`refund_addresses.${chain}: the address must be a string.`);
+      continue;
+    }
+    const problem = refundAddressProblem(chain, address);
+    if (problem) {
+      problems.push(`refund_addresses.${chain}: ${problem}`);
+      continue;
+    }
+    const id = canonicalRefundChain(chain)!;
+    if (seen.has(id)) problems.push(`refund_addresses names '${id}' twice (under two spellings).`);
+    seen.add(id);
+  }
+  return problems;
+}
 
 // ============================================================================
 // NEAR ↔ yoctoNEAR conversion helpers
@@ -262,6 +431,14 @@ export function buildPolicyRules(
   }
   if (keyHashes.length > 0) policy.authorized_key_hashes = keyHashes;
 
+  // Written only when the owner lists a chain: without it, a chain refunds to
+  // the wallet's own address on it. A half-filled row is kept, so the submit
+  // check reports it instead of dropping it.
+  const refundRows = form.refund_addresses.filter((r) => r.chain || r.address.trim());
+  if (refundRows.length > 0) {
+    policy.refund_addresses = Object.fromEntries(refundRows.map((r) => [r.chain, r.address.trim()]));
+  }
+
   return policy;
 }
 
@@ -287,7 +464,14 @@ export interface ParsedPolicy {
  * `currentApiKeyHash` is excluded from additional_key_hashes (it's auto-included).
  */
 export function parsePolicyResponse(
-  data: { rules?: any; approval?: any; capabilities?: any; authorized_key_hashes?: string[]; webhook_url?: string },
+  data: {
+    rules?: any;
+    approval?: any;
+    capabilities?: any;
+    authorized_key_hashes?: string[];
+    webhook_url?: string;
+    refund_addresses?: Record<string, string>;
+  },
   currentApiKeyHash?: string,
 ): ParsedPolicy {
   const rules = data.rules || {};
@@ -356,6 +540,7 @@ export function parsePolicyResponse(
     evm_sign_raw_tx: caps.evm_sign?.raw_tx === true,
     solana_sign_enabled: caps.solana_sign?.allowed === true,
     solana_sign_raw_tx: caps.solana_sign?.raw_tx === true,
+    refund_addresses: Object.entries(data.refund_addresses || {}).map(([chain, address]) => ({ chain, address })),
   };
 
   let approval: ParsedPolicy['approval'] = null;
@@ -377,6 +562,9 @@ export function parsePolicyResponse(
   if (data.capabilities) fullJson.capabilities = data.capabilities;
   if (data.webhook_url) fullJson.webhook_url = data.webhook_url;
   if (data.authorized_key_hashes?.length) fullJson.authorized_key_hashes = data.authorized_key_hashes;
+  if (data.refund_addresses && Object.keys(data.refund_addresses).length > 0) {
+    fullJson.refund_addresses = data.refund_addresses;
+  }
 
   return { form, approval, fullJson };
 }
@@ -425,6 +613,11 @@ export async function submitPolicy(params: SubmitPolicyParams): Promise<SubmitPo
     policyData = JSON.parse(policyJsonText);
   } catch {
     throw new Error('Invalid JSON in policy editor');
+  }
+
+  const refundProblems = refundAddressesProblems(policyData.refund_addresses);
+  if (refundProblems.length > 0) {
+    throw new Error(refundProblems.join(' '));
   }
 
   // Step 1: Encrypt policy via coordinator

@@ -108,17 +108,22 @@ export default function ConnectorPage() {
         ))}
         {description && (
           <span className="inline-flex flex-wrap items-center gap-1.5 text-[11px] text-muted-foreground">
+            <span className="text-xs">Project:</span>
             <span className="font-mono">{description.project_id}</span>
             <span aria-hidden="true">·</span>
             {/* The project's active version on the contract: the checksum of the
-                build that answers calls right now. Full value on click. */}
-            <HashChip value={description.version} trim={8} title={`Active version: ${description.version}`} />
-            <span className="text-faint-foreground">active version — checksum of the build serving calls now</span>
+                build that answers calls right now. Explained in the tooltip, not
+                on the page. */}
+            <HashChip
+              value={description.version}
+              trim={8}
+              title={`Active version — checksum of the build serving calls now\n${description.version}`}
+            />
           </span>
         )}
       </div>
 
-      <div className="max-w-3xl">
+      <div className="max-w-md">
         <SkillUrlBox url={skillUrl(entry.id)} compact label="Skill" />
       </div>
       <div className="mt-4">
@@ -173,7 +178,7 @@ export default function ConnectorPage() {
         <h2 className="text-sm font-semibold text-foreground">Operations</h2>
         <p className="mt-1 text-xs text-muted-foreground">
           Every call names one in <code className="rounded bg-card-muted px-1">operation</code>; the other fields are the parameters
-          listed under it. Read from the active version’s own manifest.
+          listed under it.
         </p>
         {description === undefined && !error && <p className="mt-3 text-sm text-muted-foreground">Reading the deployed version…</p>}
         {error && (
@@ -191,7 +196,7 @@ export default function ConnectorPage() {
 
       {description && description.limits.length > 0 && (
         <section className="mt-8 max-w-3xl">
-          <h2 className="text-sm font-semibold text-foreground">Caps the connector declares about itself</h2>
+          <h2 className="text-sm font-semibold text-foreground">Call caps</h2>
           <p className="mt-1 text-xs text-muted-foreground">
             Per calling wallet; on top of the owner’s policy and the platform’s own rules.
           </p>

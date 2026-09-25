@@ -168,7 +168,13 @@ export default function ConnectorPage() {
           listed under it. Read from the active version’s own manifest.
         </p>
         {description === undefined && !error && <p className="mt-3 text-sm text-muted-foreground">Reading the deployed version…</p>}
-        {error && <p className="mt-3 text-sm text-amber-800">The description could not be read: {error}</p>}
+        {error && (
+          <p className="mt-3 text-sm text-amber-800">
+            The description could not be read ({error}). The list comes from the coordinator’s{' '}
+            <code className="rounded bg-card-muted px-1">/public/connectors/{id}/describe</code>; until that endpoint answers, the skill above
+            is the reference.
+          </p>
+        )}
         {description === null && (
           <p className="mt-3 text-sm text-amber-800">
             Not published on {network} — switch the network at the top, or read the skill above.

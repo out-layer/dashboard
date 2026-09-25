@@ -42,11 +42,20 @@ export default function ConnectorsPage() {
             <Card key={c.id} className="h-full">
               <CardContent className="flex h-full flex-col p-5">
                 <div className="flex items-center justify-between gap-2">
-                  <h2 className="flex items-center gap-2 text-sm font-semibold text-foreground">
-                    <span className="inline-flex h-7 w-7 items-center justify-center rounded-md bg-card-muted text-accent-text">
+                  <h2 className="flex min-w-0 items-center gap-2 text-sm font-semibold text-foreground">
+                    <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-card-muted text-accent-text">
                       <ExampleIcon name={c.icon} />
                     </span>
-                    {c.name}
+                    <a href={`/connectors/${c.id}`} className="truncate hover:underline">
+                      {c.name}
+                    </a>
+                    <a
+                      href={`/connectors/${c.id}`}
+                      className="shrink-0 rounded border border-border px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground hover:border-accent hover:text-foreground"
+                      title="Operations, parameters and the owner’s policy"
+                    >
+                      Specs
+                    </a>
                   </h2>
                   <div className="flex gap-1">
                     {c.networks.map((n) => (
@@ -65,25 +74,20 @@ export default function ConnectorsPage() {
                   </p>
                 )}
 
-                <div className="mt-4 flex flex-wrap items-center gap-2">
+                {c.owner === 'policy' && (
+                  <p className="mt-2 text-xs text-muted-foreground">No account to connect — the agent brings its own wallet; the policy is what turns trading on.</p>
+                )}
+
+                <div className="mt-auto flex items-center justify-between gap-3 pt-4">
                   <a
                     href={c.connectHref}
-                    className="inline-flex items-center rounded-lg bg-accent px-3 py-2 text-sm font-semibold text-on-accent hover:bg-accent-hover"
+                    className="inline-flex shrink-0 items-center rounded-lg bg-accent px-3 py-2 text-sm font-semibold text-on-accent hover:bg-accent-hover"
                   >
                     {c.owner === 'account' ? `Connect ${c.name}` : `Set the agent’s ${c.name} policy`}
                   </a>
-                  {c.owner === 'policy' && (
-                    <span className="text-xs text-muted-foreground">No account to connect — the agent brings its own wallet; the policy is what turns trading on.</span>
-                  )}
-                </div>
-
-                <div className="mt-4 flex items-center gap-3 border-t border-border pt-3">
-                  <div className="min-w-0 flex-1">
+                  <div className="w-1/2 min-w-0">
                     <SkillUrlBox url={skillUrl(c.id)} compact label="Skill" />
                   </div>
-                  <a href={`/connectors/${c.id}`} className="shrink-0 text-xs font-medium text-accent-text hover:underline">
-                    Operations &amp; policy →
-                  </a>
                 </div>
               </CardContent>
             </Card>

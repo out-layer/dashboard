@@ -15,8 +15,9 @@ function rowProblem(row: RefundAddressRow): string | null {
   return refundAddressProblem(row.chain, row.address);
 }
 
-/** Chains the wallet derives no address of its own on: a deposit from one is
- *  refused under a policy that does not list it. */
+/** Chains the wallet derives no address of its own on: under a policy that does
+ *  not list one, a deposit from it refunds to the request's `refund_address`, and
+ *  is refused without one. */
 const NO_OWN_ADDRESS = REFUND_CHAINS.filter((c) => c.family === 'bitcoin' || c.family === 'other')
   .map((c) => c.label)
   .join(', ');
@@ -32,12 +33,13 @@ export function RefundAddressesSection({ rows, onChange }: RefundAddressesSectio
  <h3 className="text-sm font-semibold text-foreground mb-1">Refund Addresses (cross-chain deposits)</h3>
  <p className="text-xs text-muted-foreground mb-2">
         A failed cross-chain deposit is refunded to the address listed here for its source chain; a
-        chain not listed refunds to this wallet&apos;s own address on it. While the wallet has a
-        policy, the agent cannot pick a refund address of its own.
+        chain not listed refunds to this wallet&apos;s own address on it, and a refund address the
+        agent names is ignored.
       </p>
  <p className="text-xs text-faint-foreground mb-2">
-        The wallet has no address of its own on {NO_OWN_ADDRESS}: a deposit from one of these is
-        refused until the chain is listed here.
+        The wallet has no address of its own on {NO_OWN_ADDRESS}: from one of these that is not
+        listed here, a deposit refunds to the address the agent names in the request, and is
+        refused if it names none. List the chain to decide the address yourself.
       </p>
  <p className="text-xs text-destructive-text mb-3">
          Each address must be yours ON THE CHAIN NEXT TO IT. The format check cannot tell networks

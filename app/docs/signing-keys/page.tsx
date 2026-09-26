@@ -5,7 +5,7 @@ import { CodeBlock } from '@/components/ui/code-block';
 import { AnchorHeading, useHashNavigation } from '../sections/utils';
 
 /**
- * Signing keys: ed25519 keys a WASI module signs with and never sees.
+ * Signing keys: ed25519 and secp256k1 keys a WASI module signs with and never sees.
  *
  * Sourced from the out-layer/outlayer repo: `wasi-examples/CONNECTOR_MANIFEST.md`
  * (section `signing_keys`), `worker/wit/deps/signing-keys.wit`,
@@ -19,22 +19,37 @@ const PROBE_MAIN = `${REPO}/blob/main/wasi-examples/signing-key-probe/src/main.r
 const PROBE_README = `${REPO}/blob/main/wasi-examples/signing-key-probe/README.md`;
 const MANIFEST_DOC = `${REPO}/blob/main/wasi-examples/CONNECTOR_MANIFEST.md`;
 const WIT_FILE = `${REPO}/blob/main/worker/wit/deps/signing-keys.wit`;
+const PROBE_SECP_MANIFEST = `${REPO}/blob/main/wasi-examples/signing-key-probe/manifests/project-secp.json`;
 
 const MANIFEST_EXAMPLE = `"signing_keys": [
   {"path": "records", "type": "ed25519"},
   {"path": "votes", "type": "ed25519", "caller": "predecessor"},
-  {"path": "payouts", "type": "ed25519", "vault": "vault.alice.near"}
+  {"path": "payouts", "type": "secp256k1", "vault": "vault.alice.near"}
 ]`;
 
 const WIT = `package outlayer:signing-keys@0.1.0;
 
 interface api {
+    /// A NEP-413 signature in the shape a NEAR wallet's \`signMessage\` answers.
+    record nep413-signature {
+        /// The key's NEAR implicit account: its 32-byte public key, lowercase hex.
+        account-id: string,
+        /// \`ed25519:\` followed by the base58 of the 32-byte public key.
+        public-key: string,
+        /// The 64-byte ed25519 signature, standard base64 with padding.
+        signature: string,
+    }
+
     /// ed25519: the 32-byte public key.
+    /// secp256k1: 64 bytes, x ‖ y — the uncompressed SEC1 point without its 0x04 prefix.
     public-key: func(path: string, vault: option<string>) -> result<list<u8>, string>;
 
-    /// ed25519 (RFC 8032) over the raw message bytes: no prehash, no prefix.
-    /// 64-byte signature. At most 65536 bytes of message; sign a digest to cover more.
+    /// ed25519: RFC 8032 over the raw message bytes, at most 65536; 64 bytes out.
+    /// secp256k1: exactly a 32-byte prehash, signed as it is; 65 bytes out, r ‖ s ‖ v.
     sign: func(path: string, vault: option<string>, message: list<u8>) -> result<list<u8>, string>;
+
+    /// NEP-413 (NEAR signMessage) with an ed25519 key; the host builds the signed bytes.
+    sign-nep413: func(path: string, vault: option<string>, message: string, recipient: string, nonce: list<u8>, callback-url: option<string>) -> result<nep413-signature, string>;
 }
 
 world signing-keys-host {
@@ -124,32 +139,131 @@ wasm-tools print $W | grep -c 'outlayer.manifest'                       # must b
 const VERIFY_PY = `from nacl.signing import VerifyKey   # pip install pynacl
 VerifyKey(bytes.fromhex(public_key)).verify(b"order #1", bytes.fromhex(signature))  # raises on a bad signature`;
 
-const NEP413_RS = `// Cargo.toml adds: borsh = { version = "1", features = ["derive"] }, sha2 = "0.10"
-
-/// NEP-413's prefix, borsh-serialized as a little-endian u32 before the payload.
-const NEP413_TAG: u32 = (1 << 31) + 413;
-
-/// Field order is part of the format: borsh encodes in declaration order.
-#[derive(borsh::BorshSerialize)]
-struct Nep413Payload {
-    message: String,
-    nonce: [u8; 32], // the verifier's: it picks it and refuses one it has seen
-    recipient: String,
-    callback_url: Option<String>,
-}
-
-fn nep413_hash(payload: &Nep413Payload) -> [u8; 32] {
-    use sha2::{Digest, Sha256};
-    let mut bytes = borsh::to_vec(&NEP413_TAG).expect("a u32 serializes");
-    bytes.extend(borsh::to_vec(payload).expect("the payload serializes"));
-    Sha256::digest(&bytes).into()
-}
-
-fn sign_nep413(path: &str, payload: &Nep413Payload) -> Result<(String, Vec<u8>), String> {
-    let signature = signing_keys::sign(path, None, &nep413_hash(payload))?;
-    let account_id = hex::encode(signing_keys::public_key(path, None)?); // the implicit account
-    Ok((account_id, signature))
+const PROOF_MANIFEST_JSON = `{
+  "signing_keys": [
+    {"path": "identity", "type": "ed25519"}
+  ]
 }`;
+
+const PROOF_RS = `use serde::{Deserialize, Serialize};
+use std::io::{self, Read, Write};
+
+// Bindings and the manifest section exactly as in the minimal module above.
+mod signing_keys_host {
+    wit_bindgen::generate!({
+        world: "signing-keys-host",
+        path: "wit",
+    });
+}
+use signing_keys_host::outlayer::signing_keys::api as signing_keys;
+
+#[used]
+#[link_section = "outlayer.manifest"]
+static OUTLAYER_MANIFEST: [u8; include_bytes!("../manifest.json").len()] =
+    *include_bytes!("../manifest.json");
+
+// The module fixes what it signs; the verifier chooses only the nonce.
+const MESSAGE: &str = "my-signer key proof";
+const RECIPIENT: &str = "my-signer";
+
+#[derive(Deserialize)]
+struct Input {
+    nonce_hex: String, // 32 bytes, chosen by the verifier
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct Output {
+    account_id: String, // hex of the public key: the NEAR implicit account
+    public_key: String, // "ed25519:" + base58
+    signature: String,  // base64
+    message: &'static str,
+    recipient: &'static str,
+}
+
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let mut raw = String::new();
+    io::stdin().read_to_string(&mut raw)?;
+    let input: Input = serde_json::from_str(&raw)?;
+    let nonce = hex::decode(&input.nonce_hex)?;
+
+    // The host builds the NEP-413 bytes, hashes and signs them. An Err: a key
+    // that is not ed25519, a nonce that is not 32 bytes, an oversized field.
+    let signed = signing_keys::sign_nep413("identity", None, MESSAGE, RECIPIENT, &nonce, None)?;
+
+    let out = Output {
+        account_id: signed.account_id,
+        public_key: signed.public_key,
+        signature: signed.signature,
+        message: MESSAGE,
+        recipient: RECIPIENT,
+    };
+    print!("{}", serde_json::to_string(&out)?);
+    io::stdout().flush()?;
+    Ok(())
+}`;
+
+const PROOF_VERIFY_PY = `import base64, hashlib, struct
+import base58                          # pip install base58 pynacl
+from nacl.signing import VerifyKey
+
+def borsh_string(s): return struct.pack('<I', len(s)) + s
+
+def check_key_proof(answer, nonce):    # nonce: the 32 bytes you sent
+    public_key = base58.b58decode(answer["publicKey"].removeprefix("ed25519:"))
+    assert answer["accountId"] == public_key.hex()          # the implicit account IS the key
+    payload = (borsh_string(b"my-signer key proof") + nonce
+               + borsh_string(b"my-signer") + b"\\x00")      # callback_url: None
+    digest = hashlib.sha256(struct.pack('<I', 2**31 + 413) + payload).digest()
+    VerifyKey(public_key).verify(digest, base64.b64decode(answer["signature"]))  # raises if bad
+    return answer["accountId"]`;
+
+const EVM_MANIFEST_JSON = `{
+  "signing_keys": [
+    {"path": "evm", "type": "secp256k1"}
+  ]
+}`;
+
+const EVM_RS = `// Cargo.toml adds: sha3 = "0.10"
+use sha3::{Digest, Keccak256};
+
+/// The key's EVM address: the last 20 bytes of keccak256 of the 64-byte x ‖ y.
+fn evm_address(path: &str) -> Result<String, String> {
+    let public_key = signing_keys::public_key(path, None)?; // 64 bytes for a secp256k1 key
+    Ok(format!("0x{}", hex::encode(&Keccak256::digest(&public_key)[12..])))
+}
+
+/// EIP-191 \`personal_sign\` over a message this module composed itself.
+fn personal_sign(path: &str, message: &str) -> Result<String, String> {
+    let mut hasher = Keccak256::new();
+    hasher.update(format!("\\x19Ethereum Signed Message:\\n{}", message.len()));
+    hasher.update(message);
+    let prehash: [u8; 32] = hasher.finalize().into();
+    let mut signature = signing_keys::sign(path, None, &prehash)?; // r ‖ s ‖ v, v ∈ {0, 1}
+    signature[64] += 27; // EVM wants v + 27
+    Ok(format!("0x{}", hex::encode(signature)))
+}`;
+
+const EVM_VERIFY_PY = `import coincurve
+from Crypto.Hash import keccak         # pip install coincurve pycryptodome
+
+def keccak256(data):
+    h = keccak.new(digest_bits=256); h.update(data); return h.digest()
+
+def recover_address(message, signature_hex):
+    sig = bytes.fromhex(signature_hex.removeprefix("0x"))
+    prehash = keccak256(b"\\x19Ethereum Signed Message:\\n" + str(len(message.encode())).encode() + message.encode())
+    public_key = coincurve.PublicKey.from_signature_and_message(sig[:64] + bytes([sig[64] - 27]), prehash, hasher=None)
+    return "0x" + keccak256(public_key.format(compressed=False)[1:])[12:].hex()
+
+assert recover_address(message, signature) == address`;
+
+const VERIFY_CALL = `# An HTTPS call: the response you kept carries call_id, output and attestation_url
+curl -s "https://api.outlayer.ai/attestations/by-call/$CALL_ID"     # the attestation record
+outlayer-verify call "$CALL_ID" --input '{"nonce_hex":"…"}' --output '<the output you received>'
+
+# An on-chain run
+outlayer-verify tx <near-tx-hash>`;
 
 function C({ children }: { children: React.ReactNode }) {
   return <code className="bg-card-muted px-1 rounded">{children}</code>;
@@ -200,13 +314,17 @@ export default function SigningKeysDocsPage() {
       <h2 className="text-3xl font-bold mb-6 text-accent-text">Signing Keys</h2>
 
       <p className="text-foreground mb-6">
-        ed25519 keys a WASI module signs with, through the <C>outlayer:signing-keys</C> host
-        interface. Any project can declare them. For signing with the custody wallet&apos;s keys
+        ed25519 and secp256k1 keys a WASI module signs with, through the{' '}
+        <C>outlayer:signing-keys</C> host interface. Any project can declare them. For signing with the custody wallet&apos;s keys
         (EVM, Solana, NEP-413 over the wallet API) see{' '}
         <Link href="/docs/agent-custody#sign-message" className="text-accent-text underline">
           Agent Custody
         </Link>
-        .
+        . To seal data rather than sign it, see{' '}
+        <Link href="/docs/encryption-keys" className="text-accent-text underline">
+          Encryption Keys
+        </Link>
+        : declared and issued by the same rules, in a namespace of their own.
       </p>
 
       <div className="space-y-8">
@@ -247,6 +365,14 @@ export default function SigningKeysDocsPage() {
               Give each caller a stable ed25519 identity per project — a NEAR implicit account that can
               sign <a href="#nep413" className="text-accent-text underline">NEP-413</a> messages.
             </li>
+            <li>
+              Sign for EVM with a secp256k1 key — an EVM address, signatures <C>ecrecover</C> accepts. See{' '}
+              <a href="#evm" className="text-accent-text underline">EVM</a>.
+            </li>
+            <li>
+              Let anyone check once that a public key is this project&apos;s, derived in the TEE — see{' '}
+              <a href="#prove-key" className="text-accent-text underline">Prove a key is the project&apos;s</a>.
+            </li>
           </ul>
         </section>
 
@@ -270,7 +396,17 @@ export default function SigningKeysDocsPage() {
                   against it. Pick paths once.
                 </span>,
               ],
-              [<C key="f">type</C>, <C key="a">ed25519</C>, 'The only type.'],
+              [
+                <C key="f">type</C>,
+                <span key="a"><C>ed25519</C> | <C>secp256k1</C></span>,
+                <span key="m">
+                  The key&apos;s algorithm — see{' '}
+                  <a href="#key-types" className="text-accent-text underline">Key types</a> — and an input of
+                  its derivation (<C>signing-key:v1:{'{type}'}:{'{project|wasm}'}:…</C>), so one secret never
+                  serves two algorithms. A path is declared once whatever its type: the same path under the
+                  other type would be another key.
+                </span>,
+              ],
               [
                 <C key="f">bind</C>,
                 <span key="a"><C>project</C> (default) | <C>wasm</C></span>,
@@ -318,6 +454,46 @@ export default function SigningKeysDocsPage() {
               MPC Vaults
             </Link>
             .
+          </p>
+        </section>
+
+        <section id="key-types">
+          <AnchorHeading id="key-types">Key types</AnchorHeading>
+          <Table
+            head={['type', 'public-key', 'sign: input', 'sign: output', 'sign-nep413']}
+            rows={[
+              [
+                <C key="t">ed25519</C>,
+                '32 bytes — in hex, a NEAR implicit account; also a Solana address',
+                'the raw message bytes, at most 65536 — no prehash, no prefix; sign a digest to cover more',
+                '64 bytes, RFC 8032',
+                'yes',
+              ],
+              [
+                <C key="t">secp256k1</C>,
+                <span key="p">
+                  64 bytes <C>x ‖ y</C>: the uncompressed SEC1 point without its <C>0x04</C> prefix, as
+                  NEAR&apos;s <C>secp256k1:</C> public keys carry it. The EVM address is the last 20 bytes of
+                  keccak256 of these 64 bytes
+                </span>,
+                <span key="i">
+                  exactly a 32-byte prehash, signed as it is — no further hashing; any other length is an{' '}
+                  <C>err</C>
+                </span>,
+                <span key="o">
+                  65 bytes <C>r ‖ s ‖ v</C>: ECDSA with an RFC 6979 nonce (one key and one prehash, one
+                  signature), <C>r</C> and <C>s</C> big-endian, <C>s</C> low (in the lower half of the group
+                  order), <C>v</C> the recovery id 0 or 1 — NEAR&apos;s secp256k1 signature and the input{' '}
+                  <C>ecrecover</C> takes. EVM wants <C>v + 27</C>
+                </span>,
+                <span key="n"><C>err</C></span>,
+              ],
+            ]}
+          />
+          <p className="text-foreground">
+            The keystore hands the worker 32 bytes for either type: an RFC 8032 seed, or the secp256k1
+            secret scalar (big-endian). A scalar that is zero or not below the group order — probability
+            about 2<sup>-128</sup> — is not a key, and the run is refused rather than use it.
           </p>
         </section>
 
@@ -444,15 +620,24 @@ export default function SigningKeysDocsPage() {
               [
                 <C key="f">public-key(path, vault)</C>,
                 <span key="a">
-                  <C>ok</C>: the 32-byte ed25519 public key; <C>err</C>: the reason
+                  <C>ok</C>: the public key — 32 bytes (ed25519) or 64 bytes <C>x ‖ y</C> (secp256k1);{' '}
+                  <C>err</C>: the reason
                 </span>,
               ],
               [
                 <C key="f">sign(path, vault, message)</C>,
                 <span key="a">
-                  <C>ok</C>: a 64-byte RFC 8032 signature over the raw message bytes — no prehash, no
-                  prefix; <C>err</C>: the reason. At most 65536 bytes of message; sign a digest to cover
-                  more
+                  <C>ok</C>: ed25519 — 64 bytes over the raw message, at most 65536 bytes; secp256k1 — 65
+                  bytes <C>r ‖ s ‖ v</C> over exactly a 32-byte prehash. <C>err</C>: the reason. See{' '}
+                  <a href="#key-types" className="text-accent-text underline">Key types</a>
+                </span>,
+              ],
+              [
+                <C key="f">sign-nep413(path, vault, message, recipient, nonce, callback-url)</C>,
+                <span key="a">
+                  <C>ok</C>: <C>nep413-signature {'{'}account-id, public-key, signature{'}'}</C> from an
+                  ed25519 key; <C>err</C>: the reason. See{' '}
+                  <a href="#nep413" className="text-accent-text underline">NEP-413</a>
                 </span>,
               ],
             ]}
@@ -460,9 +645,9 @@ export default function SigningKeysDocsPage() {
           <p className="text-foreground">
             <C>vault</C> names the key&apos;s declared vault exactly: <C>none</C> for a key declared without
             one, <C>some(&quot;&lt;vault&gt;&quot;)</C> for a key declared with that vault. Any other
-            combination, an undeclared <C>path</C>, and a message over the limit are an <C>err</C> carrying
-            the reason, never a trap. A module that imports the interface and declares no key gets an{' '}
-            <C>err</C> for every path.
+            combination, an undeclared <C>path</C>, a key of a type the call does not serve, and a message
+            the key&apos;s type does not take are an <C>err</C> carrying the reason, never a trap. A module
+            that imports the interface and declares no key gets an <C>err</C> for every path.
           </p>
 
           <h3 className="text-lg font-semibold mt-4 mb-2">A minimal Rust module</h3>
@@ -488,32 +673,71 @@ export default function SigningKeysDocsPage() {
         <section id="nep413">
           <AnchorHeading id="nep413">NEP-413 (NEAR signMessage)</AnchorHeading>
           <p className="text-foreground">
-            <C>sign</C> takes raw bytes, so a module can make a NEP-413 signature with a signing key:
+            <C>sign-nep413(path, vault, message, recipient, nonce, callback-url)</C> signs a NEP-413 message
+            with the declared <strong>ed25519</strong> key at <C>path</C>. The host builds the signed bytes
+            itself: <C>sha256(borsh(2^31 + 413) ‖ borsh(payload))</C>, the payload{' '}
+            <C>{'{'}message: string, nonce: [u8; 32], recipient: string, callback_url: option&lt;string&gt;{'}'}</C>{' '}
+            in that order, and signs the 32-byte hash with ed25519. Anything that verifies a wallet&apos;s
+            NEP-413 signature verifies this one.
           </p>
-          <ol className="list-decimal list-inside space-y-2 text-foreground mt-2">
-            <li>
-              Build <C>borsh(u32 little-endian 2^31 + 413)</C> followed by{' '}
-              <C>borsh(Payload {'{'} message, nonce: [u8; 32], recipient, callback_url: Option {'}'})</C>,
-              fields in that order.
-            </li>
-            <li>Take the sha256 of those bytes.</li>
-            <li>
-              <C>sign</C> the 32-byte hash.
-            </li>
-          </ol>
-          <p className="text-foreground mt-3">
-            <strong>The public key is a NEAR implicit account</strong>: <C>accountId</C> is the lowercase
-            hex of the 32-byte public key. It is a real NEAR account and needs no registration, so a NEP-413
-            verifier checks the signature against that account like any wallet&apos;s. In NEAR&apos;s key
-            format the public key is <C>ed25519:</C> + base58 of the same 32 bytes. The <C>nonce</C> is the
-            verifier&apos;s: it chooses it, and refuses one it has seen before.
+          <Table
+            head={['nep413-signature', 'Value']}
+            rows={[
+              [
+                <C key="f">account-id</C>,
+                "the lowercase hex of the 32-byte public key (64 characters): the key's NEAR implicit account",
+              ],
+              [<C key="f">public-key</C>, <span key="v"><C>ed25519:</C> + base58 of the 32-byte public key</span>],
+              [<C key="f">signature</C>, 'the 64-byte ed25519 signature, standard base64 with padding'],
+            ]}
+          />
+          <p className="text-foreground">
+            That is the shape a NEAR wallet&apos;s <C>signMessage</C> answers (<C>accountId</C>,{' '}
+            <C>publicKey</C>, <C>signature</C>). An <C>err</C>: a key that is not ed25519, a <C>nonce</C>{' '}
+            that is not exactly 32 bytes, a <C>message</C> over 65536 bytes, a <C>recipient</C> or{' '}
+            <C>callback-url</C> over 2048 bytes. The <C>nonce</C> is the verifier&apos;s: it chooses it, and
+            refuses one it has seen before.
           </p>
-          <CodeBlock code={NEP413_RS} language="rust" className="mt-3" />
           <p className="text-foreground mt-3">
-            The full version, answering in a NEAR wallet&apos;s <C>signMessage</C> shape (<C>accountId</C>,{' '}
-            <C>publicKey</C>, base64 <C>signature</C>), with a Python verifier, is <C>sign_nep413</C> in the
-            probe&apos;s <Ext href={PROBE_MAIN}>src/main.rs</Ext> and its{' '}
-            <Ext href={PROBE_README}>README</Ext>.
+            <strong>The implicit account needs no registration.</strong> A NEP-413 signature verifies against
+            the account <C>hex(public key)</C>. A verifier that also looks the key up among the
+            account&apos;s access keys over RPC finds it only once the implicit account has been funded;
+            checking <C>account-id == hex(public key)</C> holds regardless.
+          </p>
+          <h3 className="text-lg font-semibold mt-4 mb-2">A module that proves its key</h3>
+          <p className="text-foreground">
+            The module fixes <C>message</C> and <C>recipient</C>; the verifier chooses only the nonce. Same{' '}
+            <C>Cargo.toml</C> as the minimal module.
+          </p>
+          <CodeBlock code={PROOF_MANIFEST_JSON} language="json" filename="manifest.json" className="mt-3" />
+          <CodeBlock code={PROOF_RS} language="rust" filename="src/main.rs" className="mt-3" />
+          <p className="text-foreground mt-3">Verify the answer anywhere:</p>
+          <CodeBlock code={PROOF_VERIFY_PY} language="python" className="mt-3" />
+          <p className="text-foreground mt-3">
+            The same signature built in the guest from <C>sign</C> — for when the payload must be seen — and a
+            Python verifier are <C>sign_nep413</C> in the probe&apos;s <Ext href={PROBE_MAIN}>src/main.rs</Ext>{' '}
+            and its <Ext href={PROBE_README}>README</Ext>.
+          </p>
+        </section>
+
+        <section id="evm">
+          <AnchorHeading id="evm">EVM (secp256k1)</AnchorHeading>
+          <p className="text-foreground">
+            A <C>secp256k1</C> key&apos;s EVM address is <C>0x</C> and the last 20 bytes of keccak256 of its
+            64-byte public key. <C>sign</C> takes the 32-byte prehash the module computed and answers{' '}
+            <C>r ‖ s ‖ v</C> with <C>v</C> 0 or 1; add 27 for EVM. Below, an EIP-191{' '}
+            <C>personal_sign</C> over a message the module composed itself:
+          </p>
+          <CodeBlock code={EVM_MANIFEST_JSON} language="json" filename="manifest.json" className="mt-3" />
+          <CodeBlock code={EVM_RS} language="rust" className="mt-3" />
+          <p className="text-foreground mt-3">
+            Recover the signer anywhere (<C>message</C>, <C>signature</C> and <C>address</C> from the
+            module&apos;s output):
+          </p>
+          <CodeBlock code={EVM_VERIFY_PY} language="python" className="mt-3" />
+          <p className="text-foreground mt-3">
+            The module hashes what it signs. Never hand <C>sign</C> a digest from the input — see{' '}
+            <a href="#security" className="text-accent-text underline">Security rules</a>.
           </p>
         </section>
 
@@ -522,21 +746,34 @@ export default function SigningKeysDocsPage() {
           <div className="bg-destructive/10 border-l-4 border-red-500 p-4 my-4">
             <ul className="list-disc list-inside space-y-3 text-sm text-foreground">
               <li>
-                <strong>Never sign caller-supplied bytes or digests verbatim.</strong> The key&apos;s public
-                key is a real NEAR implicit account (and a Solana address): a signature over bytes the caller
-                chose is a signature over whatever those bytes are — a transaction that empties the account,
-                an authorization, a message the account never meant. Sign only messages the module composes
-                itself, from fields it has parsed and checked, under a fixed prefix or structure of its own;
-                refuse an input that asks for a signature over raw bytes.
+                <strong>Never sign caller-supplied bytes or digests verbatim.</strong> An ed25519 key&apos;s
+                public key is a real NEAR implicit account (and a Solana address); a secp256k1 key&apos;s is an
+                EVM address. A signature over bytes the caller chose is a signature over whatever those bytes
+                are — a transaction that empties the account, an authorization, a message the account never
+                meant. Sign only messages the module composes itself, from fields it has parsed and checked,
+                under a fixed prefix or structure of its own, and compute the digest in the module from those
+                bytes; refuse an input that asks for a signature over raw bytes or a digest.
               </li>
               <li>
-                <strong>Do not hold funds on a signing key.</strong> It can sign NEAR transactions for its
-                implicit account, and Solana ones for the same public key, so funds sent there are controlled
-                only by the code, outside every wallet policy. Money goes through the{' '}
+                <strong>Never sign a caller-supplied digest with a secp256k1 key.</strong> It signs 32 bytes as
+                they are, so a caller-chosen digest is the hash of any EVM transaction, EIP-712 permit or{' '}
+                <C>personal_sign</C> message the caller likes.
+              </li>
+              <li>
+                <strong>A caller-chosen NEP-413 <C>message</C> and <C>recipient</C> is a login.</strong> The
+                NEP-413 tag keeps the bytes from being a transaction, but a signature over a message and
+                recipient the caller picked logs in, as the key&apos;s account, to whatever site the caller
+                names. Fix them in the module.
+              </li>
+              <li>
+                <strong>Do not hold funds on a signing key.</strong> An ed25519 key can sign NEAR transactions
+                for its implicit account and Solana ones for the same public key; a secp256k1 key signs EVM
+                transactions for its address. Funds sent there are controlled only by the code, outside every
+                wallet policy. Money goes through the{' '}
                 <Link href="/docs/agent-custody" className="text-accent-text underline">
                   custody wallet
                 </Link>
-                . EVM is not supported: it needs secp256k1.
+                .
               </li>
               <li>
                 <strong>
@@ -574,6 +811,74 @@ export default function SigningKeysDocsPage() {
           </p>
         </section>
 
+        <section id="prove-key">
+          <AnchorHeading id="prove-key">Prove a key is the project&apos;s</AnchorHeading>
+          <p className="text-foreground">
+            A public key alone does not say who holds its secret. The run&apos;s attestation does: every
+            OutLayer run carries an Intel TDX quote whose report data commits to the run&apos;s input, output,
+            build (<C>wasm_hash</C>), caller and project — the{' '}
+            <Link href="/docs/tee-attestation#task-hash" className="text-accent-text underline">
+              task hash
+            </Link>
+            . A module that puts its public key in its output gets that key attested with it.
+          </p>
+          <ol className="list-decimal list-inside space-y-2 text-foreground mt-3">
+            <li>
+              <strong>The module returns its key.</strong> It puts <C>public-key</C> in its output — or, for
+              freshness, a signature over a nonce the verifier chose, as the{' '}
+              <a href="#nep413" className="text-accent-text underline">key-proof module</a> does with{' '}
+              <C>sign-nep413</C> and a <C>message</C> and <C>recipient</C> it fixes itself.
+            </li>
+            <li>
+              <strong>Get the run&apos;s attestation.</strong> An HTTPS <C>/call</C> response carries{' '}
+              <C>attestation_url</C>: <C>/attestations/by-call/{'{call_id}'}</C>, relative to the API base (
+              <C>https://api.outlayer.ai</C>). It answers once the worker has uploaded the quote. For an
+              on-chain run: <C>/attestations/by-tx/{'{tx_hash}'}</C>. The same by-call path on{' '}
+              <C>app.outlayer.ai</C> opens the report with its Verify button.
+            </li>
+            <li>
+              <strong>Verify it.</strong> The quote is Intel-signed, its measurements are an approved worker
+              build, and its task hash commits to this input and this output. Keep the request and response of
+              an HTTPS call: only their hashes are stored.
+              <CodeBlock code={VERIFY_CALL} language="bash" className="mt-3" />
+              See{' '}
+              <Link href="/docs/trust-verification#outlayer-verify" className="text-accent-text underline">
+                OutLayer Verify
+              </Link>
+              .
+            </li>
+            <li>
+              <strong>Read the attested fields.</strong> <C>project_id</C> is the project; the caller —{' '}
+              <C>payment_key_owner</C> over HTTPS, <C>caller_account_id</C> on chain — is the account the key
+              belongs to; <C>wasm_hash</C> is the build that ran. Audit that build: the attestation proves what
+              ran, not that it returned the host&apos;s <C>public-key</C> unaltered.
+            </li>
+            <li>
+              <strong>From then on, a signature by that key is the project&apos;s</strong> for that caller —
+              checked against the public key alone, with no attestation per signature.
+            </li>
+          </ol>
+          <ul className="list-disc list-inside space-y-2 text-foreground mt-3">
+            <li>
+              The attestation names the project by its <C>owner/name</C> id; the key belongs to its on-chain
+              uuid. A project deleted and created again under the same name has other keys, so the proof holds
+              for the project that ran under that name in that run.
+            </li>
+            <li>
+              A <C>caller: &quot;predecessor&quot;</C> key belongs to the account that called the contract;
+              read it from the requesting transaction. Over HTTPS it is the payment key&apos;s owner.
+            </li>
+            <li>
+              A <C>bind: &quot;wasm&quot;</C> key belongs to the build and the caller: the proof is for that{' '}
+              <C>wasm_hash</C>, with no project.
+            </li>
+            <li>
+              For an ed25519 key, <C>account-id == hex(public key)</C> ties the NEP-413 answer to the implicit
+              account whether or not that account has been funded.
+            </li>
+          </ul>
+        </section>
+
         <section id="refusals">
           <AnchorHeading id="refusals">Refusals</AnchorHeading>
           <p className="text-foreground">Refused before the code runs:</p>
@@ -586,8 +891,8 @@ export default function SigningKeysDocsPage() {
               ],
               [
                 <span key="c">
-                  more than 3 keys, a bad or repeated <C>path</C>, an unknown field, a <C>type</C>,{' '}
-                  <C>bind</C> or <C>caller</C> outside its list
+                  more than 3 keys, a bad <C>path</C> or one declared twice (under any type), an unknown
+                  field, a <C>type</C>, <C>bind</C> or <C>caller</C> outside its list
                 </span>,
                 <span key="f">fix <C>manifest.json</C>, publish a new version</span>,
               ],
@@ -616,12 +921,31 @@ export default function SigningKeysDocsPage() {
                 'fix the manifest, or the vault',
               ],
               ['a run with no caller account', 'call with a payment key, or on chain'],
+              [
+                <span key="c">
+                  a <C>secp256k1</C> key whose derived scalar is zero or not below the group order
+                  (probability about 2<sup>-128</sup>)
+                </span>,
+                <span key="f">declare the key under another <C>path</C></span>,
+              ],
               ['a worker or keystore without signing-key support', 'none from your side'],
             ]}
           />
-          <p className="text-foreground">
-            Inside a run, <C>public-key</C> and <C>sign</C> answer <C>err</C> for an undeclared <C>path</C>,
-            a <C>vault</C> argument that is not the key&apos;s declared vault, or a message over 65536 bytes.
+          <p className="text-foreground">Inside a run, a call answers <C>err</C> for:</p>
+          <ul className="list-disc list-inside space-y-1 text-foreground mt-2">
+            <li>
+              an undeclared <C>path</C>, or a <C>vault</C> argument that is not the key&apos;s declared vault;
+            </li>
+            <li>
+              <C>sign</C> with an ed25519 key: a message over 65536 bytes; with a secp256k1 key: a message
+              that is not exactly 32 bytes;
+            </li>
+            <li>
+              <C>sign-nep413</C>: a key that is not ed25519, a <C>nonce</C> that is not exactly 32 bytes, a{' '}
+              <C>message</C> over 65536 bytes, a <C>recipient</C> or <C>callback-url</C> over 2048 bytes.
+            </li>
+          </ul>
+          <p className="text-foreground mt-3">
             A GitHub-sourced module whose manifest does not reach the worker runs, and every call answers{' '}
             <C>err</C>.
           </p>
@@ -632,12 +956,15 @@ export default function SigningKeysDocsPage() {
           <p className="text-foreground">
             <Ext href={PROBE_TREE}>wasi-examples/signing-key-probe</Ext> exercises every host function,
             binding and refusal, with one build per manifest (<C>bind: &quot;project&quot;</C>,{' '}
-            <C>bind: &quot;wasm&quot;</C>, and a vault key). Its <C>sign</C> operation signs whatever bytes
-            it is handed — that is what a probe is for, and exactly what a production module must not do.
+            <C>bind: &quot;wasm&quot;</C>, a vault key, and secp256k1 keys in{' '}
+            <Ext href={PROBE_SECP_MANIFEST}>project-secp</Ext> and <C>wasm-secp</C>). Its <C>sign</C>{' '}
+            operation signs whatever bytes — for a secp256k1 key, whatever 32-byte digest — it is handed: that
+            is what a probe is for, and exactly what a production module must not do.
           </p>
           <ul className="list-disc list-inside space-y-2 text-foreground mt-3">
             <li>
-              <Ext href={PROBE_MAIN}>src/main.rs</Ext> — the bindings, and <C>sign_nep413</C>
+              <Ext href={PROBE_MAIN}>src/main.rs</Ext> — the bindings, <C>sign_nep413</C> (guest-built),{' '}
+              <C>host_nep413</C> (<C>sign-nep413</C>) and <C>evm_address</C>
             </li>
             <li>
               <Ext href={PROBE_README}>README.md</Ext> — builds, operations, and the NEP-413 recipe with a

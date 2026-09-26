@@ -31,7 +31,10 @@ export default function StoragePage() {
 
  <p className="text-foreground mb-6">
         OutLayer provides encrypted persistent storage for your WASM projects. Data survives across executions and version updates,
-        with automatic user isolation and atomic operations for concurrent-safe updates.
+        with automatic user isolation and atomic operations for concurrent-safe updates. Beside the encrypted functions, the{' '}
+ <a href="#raw-storage" className="text-accent-text hover:underline">raw functions</a> store bytes your module has sealed
+        itself with an{' '}
+ <Link href="/docs/encryption-keys" className="text-accent-text hover:underline">encryption key</Link>.
       </p>
 
  <div className="bg-card-muted border-l-4 border-border p-4 mb-8">
@@ -53,7 +56,7 @@ export default function StoragePage() {
  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
  <div className="border border-border rounded-lg p-4 bg-card-muted">
  <h4 className="font-semibold text-foreground mb-2">Encrypted</h4>
- <p className="text-sm text-muted-foreground">All data encrypted with project-specific keys in TEE</p>
+ <p className="text-sm text-muted-foreground">set/get encrypt with project-specific keys in the TEE; raw records hold bytes your module sealed</p>
           </div>
  <div className="border border-border rounded-lg p-4 bg-card-muted">
  <h4 className="font-semibold text-foreground mb-2">User-Isolated</h4>
@@ -112,7 +115,7 @@ fn main() {
  <AnchorHeading id="api">Storage API</AnchorHeading>
 
  <p className="text-foreground mb-4">
- The storage interface is defined in <code>worker/wit/world.wit</code> and imported as <code>near:rpc/storage@0.1.0</code>:
+ The storage interface is defined in <code>worker/wit/deps/storage.wit</code> and imported as <code>near:storage/api@0.1.0</code>:
         </p>
 
  <SyntaxHighlighter language="text" style={vscDarkPlus} className="rounded-lg mb-4">
@@ -127,14 +130,23 @@ fn main() {
     // Conditional writes (atomic operations)
  set-if-absent: func(key: string, value: list<u8>) -> tuple<bool, string>;
  set-if-equals: func(key: string, expected: list<u8>, new-value: list<u8>) -> tuple<bool, list<u8>, string>;
+
+    // Raw storage: bytes as given, no keystore on the path (see Raw Storage)
+ set-raw: func(key: string, value: list<u8>) -> string;
+ get-raw: func(key: string) -> tuple<list<u8>, string>;
+ set-if-absent-raw: func(key: string, value: list<u8>) -> tuple<bool, string>;
+ set-if-equals-raw: func(key: string, expected: list<u8>, new-value: list<u8>) -> tuple<bool, list<u8>, string>;
+
+    // Atomic counters (encrypted records only)
  increment: func(key: string, delta: s64) -> tuple<s64, string>;
  decrement: func(key: string, delta: s64) -> tuple<s64, string>;
 
     // Worker storage (with public option for cross-project reads)
     // is-encrypted: true (default) = encrypted, false = plaintext (public)
  set-worker: func(key: string, value: list<u8>, is-encrypted: option<bool>) -> string;
-    // project-uuid: none = current project, some("p...") = read from another project
- get-worker: func(key: string, project-uuid: option<string>) -> tuple<list<u8>, string>;
+    // project: none = current project; some(project) = another project's PUBLIC data,
+    //   named "owner.near/project-name" or by its uuid "p0000000000000001"
+ get-worker: func(key: string, project: option<string>) -> tuple<list<u8>, string>;
 
     // Version migration
  get-by-version: func(key: string, wasm-hash: string) -> tuple<list<u8>, string>;
@@ -195,6 +207,26 @@ fn main() {
  <td className="px-4 py-3 text-sm text-muted-foreground">Compare-and-swap (atomic update)</td>
  <td className="px-4 py-3 text-sm text-muted-foreground">(success, current, error)</td>
               </tr>
+ <tr>
+ <td className="px-4 py-3 text-sm font-mono">set-raw(key, value)</td>
+ <td className="px-4 py-3 text-sm text-muted-foreground">Store bytes as given (raw record)</td>
+ <td className="px-4 py-3 text-sm text-muted-foreground">Error string (empty on success)</td>
+              </tr>
+              <tr>
+ <td className="px-4 py-3 text-sm font-mono">get-raw(key)</td>
+ <td className="px-4 py-3 text-sm text-muted-foreground">Read the bytes of a raw record</td>
+ <td className="px-4 py-3 text-sm text-muted-foreground">(data, error)</td>
+              </tr>
+              <tr>
+ <td className="px-4 py-3 text-sm font-mono">set-if-absent-raw(key, value)</td>
+ <td className="px-4 py-3 text-sm text-muted-foreground">Store bytes only if the key holds no record, in either mode</td>
+ <td className="px-4 py-3 text-sm text-muted-foreground">(inserted: bool, error)</td>
+              </tr>
+              <tr>
+ <td className="px-4 py-3 text-sm font-mono">set-if-equals-raw(key, expected, new)</td>
+ <td className="px-4 py-3 text-sm text-muted-foreground">Compare-and-swap on the stored bytes</td>
+ <td className="px-4 py-3 text-sm text-muted-foreground">(success, current, error)</td>
+              </tr>
  <tr className="bg-card-muted">
  <td className="px-4 py-3 text-sm font-mono">increment(key, delta)</td>
  <td className="px-4 py-3 text-sm text-muted-foreground">Atomic increment (i64)</td>
@@ -211,8 +243,8 @@ fn main() {
  <td className="px-4 py-3 text-sm text-muted-foreground">Error string</td>
               </tr>
               <tr>
- <td className="px-4 py-3 text-sm font-mono">get-worker(key, project_uuid)</td>
- <td className="px-4 py-3 text-sm text-muted-foreground">Get worker data (cross-project if project_uuid set)</td>
+ <td className="px-4 py-3 text-sm font-mono">get-worker(key, project)</td>
+ <td className="px-4 py-3 text-sm text-muted-foreground">Get worker data (another project&apos;s public data if <code>project</code> names one, by name or uuid)</td>
  <td className="px-4 py-3 text-sm text-muted-foreground">(data, error)</td>
               </tr>
             </tbody>
@@ -278,6 +310,60 @@ match storage::set_if_equals("balance", &current, &new_balance.to_le_bytes())? {
         </div>
       </section>
 
+      {/* Raw Storage */}
+ <section className="mb-12">
+ <AnchorHeading id="raw-storage">Raw Storage</AnchorHeading>
+
+ <p className="text-foreground mb-4">
+ <code>set-raw</code>, <code>get-raw</code>, <code>set-if-absent-raw</code> and <code>set-if-equals-raw</code> store the
+          bytes as given, in the same storage as <code>set</code>/<code>get</code> — the same{' '}
+ <a href="#whose-cell" className="text-accent-text hover:underline">account&apos;s cell</a>, the same project, the same
+          key namespace — and make no keystore call.
+        </p>
+
+ <div className="bg-destructive/10 border-l-4 border-destructive/50 p-4 mb-6">
+ <p className="text-sm text-destructive-text">
+ <strong>The operator can read raw records.</strong> The key name and the value are stored as given. Encrypt the value
+            first, with an{' '}
+ <Link href="/docs/encryption-keys" className="underline">encryption key</Link>, and keep secrets out of key names.
+          </p>
+        </div>
+
+ <ul className="list-disc list-inside text-foreground space-y-2 mb-6">
+ <li><strong>One key, one record, one mode.</strong> <code>get-raw</code> on a record written with <code>set</code>, or{' '}
+ <code>get</code> on one written with <code>set-raw</code>, is an error; so is a write in the other mode. No write converts
+            a record from one mode to the other: delete it first.</li>
+ <li><code>has</code>, <code>delete</code> and <code>list-keys</code> work on records of both modes.</li>
+ <li><code>increment</code> and <code>decrement</code> work on encrypted records only; on a raw record they are an error.</li>
+ <li><code>set-if-absent-raw</code> inserts only when the key holds no record in either mode.</li>
+ <li><code>set-if-equals-raw</code> replaces the value only when the stored bytes equal <code>expected</code> exactly; on
+            failure <code>current</code> holds the stored bytes (empty when the key holds no record).</li>
+ <li><code>get-raw</code> answers an empty value when the key holds no record.</li>
+        </ul>
+
+ <AnchorHeading id="sealed-records" level={3}>Sealed records</AnchorHeading>
+
+ <p className="text-foreground mb-4">
+          The pattern the raw functions exist for — records only your module can open, under names only your module can read:
+        </p>
+
+ <ul className="list-disc list-inside text-foreground space-y-2 mb-6">
+ <li><strong>Storage key</strong>: <code>mac(path, vault, name)</code> in hex, not <code>name</code>.</li>
+ <li><strong>Value</strong>: <code>encrypt(path, vault, value, aad = name)</code> — a ciphertext moved onto another record
+            then fails to open.</li>
+ <li><strong>Reads and writes</strong>: the raw functions. A compare-and-swap compares the stored ciphertext bytes: pass the
+            ciphertext you read as <code>expected</code>.</li>
+        </ul>
+
+ <p className="text-foreground mb-4">
+          The Rust SDK provides helpers for this pattern. A complete module built on the host functions directly:{' '}
+ <Link href="/docs/encryption-keys#sealed-storage" className="text-accent-text hover:underline">
+            Encryption Keys — Sealed storage
+          </Link>
+          .
+        </p>
+      </section>
+
       {/* User Data Isolation */}
  <section className="mb-12">
  <AnchorHeading id="user-isolation">User Data Isolation</AnchorHeading>
@@ -310,6 +396,54 @@ storage::get("balance")  // -> "200" (his data)
 
 // WASM code CANNOT read another user's data!`}
         </SyntaxHighlighter>
+
+ <AnchorHeading id="whose-cell" level={3}>Whose cell: <code>storage_account</code></AnchorHeading>
+
+ <p className="text-foreground mb-4">
+          Every storage function outside the <code>-worker</code> ones reads and writes one account&apos;s cell of the project.
+          The worker fixes that account before the run starts, from the project&apos;s manifest and the job. Your code never
+          names an account, and no storage function takes one. The manifest field <code>storage_account</code> picks which
+          account it is:
+        </p>
+
+ <div className="overflow-x-auto mb-4">
+ <table className="min-w-full border border-border">
+ <thead className="bg-card-muted">
+              <tr>
+ <th className="px-4 py-2 text-left text-sm font-semibold">Value</th>
+ <th className="px-4 py-2 text-left text-sm font-semibold">On chain</th>
+ <th className="px-4 py-2 text-left text-sm font-semibold">Over HTTPS</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+ <td className="px-4 py-2 text-sm font-mono">&quot;signer&quot; (default)</td>
+ <td className="px-4 py-2 text-sm text-muted-foreground">the transaction&apos;s signer</td>
+ <td className="px-4 py-2 text-sm text-muted-foreground">the payment key&apos;s owner</td>
+              </tr>
+ <tr className="bg-card-muted">
+ <td className="px-4 py-2 text-sm font-mono">&quot;predecessor&quot;</td>
+ <td className="px-4 py-2 text-sm text-muted-foreground">the account that called the contract — a relaying contract, not the user who signed</td>
+ <td className="px-4 py-2 text-sm text-muted-foreground">the payment key&apos;s owner</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+ <SyntaxHighlighter language="json" style={vscDarkPlus} className="rounded-lg mb-4">
+          {`{
+  "storage_account": "predecessor"
+}`}
+        </SyntaxHighlighter>
+
+ <ul className="list-disc list-inside text-foreground space-y-2 mb-6">
+ <li>A run that carries no predecessor, under <code>&quot;predecessor&quot;</code>, is refused before it executes — it never falls back to the signer&apos;s cell.</li>
+ <li>Any other value makes the manifest unreadable, and the run is refused.</li>
+ <li><code>@worker</code> storage (<code>set-worker</code>, <code>get-worker</code>) is the project&apos;s own and is not affected.</li>
+ <li>A module that seals records under a <code>caller: &quot;predecessor&quot;</code>{' '}
+ <Link href="/docs/encryption-keys" className="text-accent-text hover:underline">encryption key</Link> declares{' '}
+ <code>storage_account: &quot;predecessor&quot;</code> too, so the key and the cell belong to the same account.</li>
+        </ul>
       </section>
 
       {/* Worker Storage */}
@@ -372,11 +506,15 @@ storage::set_worker_with_options(
 // Read from current project (works for both public and private)
 let data = storage::get_worker("oracle:ETH")?;
 
-// Read PUBLIC data from ANOTHER project by UUID
+// Read PUBLIC data from ANOTHER project, by its name...
 let price = storage::get_worker_from_project(
     "oracle:ETH",
-    Some("p0000000000000001")  // Target project UUID
-)?;`}
+    Some("oracle.near/price-feed")
+)?;
+// ...or by its uuid (OUTLAYER_PROJECT_UUID in that project's runs)
+let price = storage::get_worker_from_project("oracle:ETH", Some("p0000000000000001"))?;
+// Ok(None): no such key, or no such project
+// Err: the key is stored encrypted, or the project is in neither form`}
         </SyntaxHighlighter>
 
  <AnchorHeading id="public-http-api" level={3}>External HTTP API</AnchorHeading>
@@ -387,13 +525,26 @@ let price = storage::get_worker_from_project(
 
  <SyntaxHighlighter language="bash" style={vscDarkPlus} className="rounded-lg mb-4">
           {`# JSON format (default) - value is base64-encoded
-curl "https://api.outlayer.ai/public/storage/get?project_uuid=p0000000000000001&key=oracle:ETH"
+curl "https://api.outlayer.ai/public/storage/get?project=oracle.near/price-feed&key=oracle:ETH"
 # {"exists":true,"value":"eyJwcmljZSI6IjM1MDAuMDAifQ=="}
 
-# Raw format - returns raw bytes directly
-curl "https://api.outlayer.ai/public/storage/get?project_uuid=p0000000000000001&key=oracle:ETH&format=raw"
-# {"price":"3500.00"}`}
+# The same project by uuid; raw format returns the bytes directly
+curl "https://api.outlayer.ai/public/storage/get?project=p0000000000000001&key=oracle:ETH&format=raw"
+# {"price":"3500.00"}
+
+# Up to 50 keys at once
+curl -X POST https://api.outlayer.ai/public/storage/batch \
+  -H "Content-Type: application/json" \
+  -d '{"project":"oracle.near/price-feed","keys":["oracle:ETH","oracle:BTC"]}'
+# {"results":{"oracle:ETH":{"exists":true,"value":"..."},"oracle:BTC":{"exists":false}}}`}
         </SyntaxHighlighter>
+
+ <ul className="list-disc list-inside text-foreground space-y-2 mb-6">
+ <li><code>project</code> takes the project&apos;s name (<code>owner.near/project-name</code>) or its uuid; <code>project_uuid</code> is accepted as an alias, in either form.</li>
+ <li>An unknown project reads like a missing key: <code>{'{'}&quot;exists&quot;:false{'}'}</code> (404 with <code>format=raw</code>).</li>
+ <li>An encrypted key is denied: 403 from <code>/public/storage/get</code>; in a batch, that key answers <code>{'{'}&quot;exists&quot;:true,&quot;error&quot;:&quot;encrypted&quot;{'}'}</code>.</li>
+ <li>A <code>project</code> in neither form is a 400 naming both.</li>
+        </ul>
 
  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
  <div className="border border-border rounded-lg p-4 bg-card-muted">
@@ -419,7 +570,8 @@ curl "https://api.outlayer.ai/public/storage/get?project_uuid=p0000000000000001&
  <AnchorHeading id="security">Security</AnchorHeading>
 
  <ul className="list-disc list-inside text-foreground space-y-2 mb-6">
- <li>All data is encrypted using keystore TEE before storage</li>
+ <li>Records written with <code>set</code>, the conditional writes and the counters are encrypted by the keystore TEE before storage</li>
+ <li>Raw records (<code>set-raw</code> and the other <code>-raw</code> functions) are stored as given: encrypt them first</li>
  <li>Encryption key derived from: <code>storage:{'{'}project_uuid{'}'}:{'{'}account_id{'}'}</code></li>
  <li>Worker-private storage uses <code>@worker</code> as account_id</li>
  <li>Data is automatically deleted when project is deleted</li>

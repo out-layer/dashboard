@@ -126,7 +126,7 @@ export const SECTIONS = [
         title: 'Storage',
         path: '/docs/storage',
         summary:
-          'Persistent key-value storage for agents: methods reference, atomic operations, per-user isolation, public storage and its external HTTP read API',
+          'Persistent key-value storage for agents: methods reference, atomic operations, raw storage for records the module encrypts itself, per-user isolation, public storage and its external HTTP read API',
       },
       {
         title: 'VRF',
@@ -139,6 +139,12 @@ export const SECTIONS = [
         path: '/docs/signing-keys',
         summary:
           'ed25519 keys a WASI module signs with and never sees, derived in the TEE keystore per project or exact build and per caller: the manifest signing_keys declaration, project vs wasm binding, signer vs predecessor caller, the outlayer:signing-keys host interface, NEP-413 signatures from the key implicit account, security rules, refusals',
+      },
+      {
+        title: 'Encryption Keys',
+        path: '/docs/encryption-keys',
+        summary:
+          'Symmetric keys a WASI module seals data with and never sees, derived in the TEE keystore like signing keys: the manifest encryption_keys declaration, the outlayer:encryption-keys host interface (encrypt, decrypt, mac), the ciphertext format, sealed storage with the raw storage functions, security rules, refusals',
       },
       {
         title: 'SDK',

@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { SyntaxHighlighter, vscDarkPlus } from '@/components/ui/syntax';
 
 function AnchorHeading({ id, children, level = 2 }: { id: string; children: React.ReactNode; level?: 2 | 3 | 4 }) {
@@ -188,6 +189,9 @@ let api_key = std::env::var("OPENAI_API_KEY").ok();`}
  <p className="text-foreground mb-4">
           Persistent encrypted key-value storage that survives across executions.
  Storage is automatically isolated per caller — <code>alice.near</code> cannot read <code>bob.near</code>&apos;s data.
+          Which account of the run owns the cell — the signer (default) or the calling contract — is set by the manifest&apos;s{' '}
+ <Link href="/docs/storage#whose-cell" className="text-accent-text hover:underline"><code>storage_account</code></Link>; no
+          function takes an account.
         </p>
 
  <AnchorHeading id="storage-basic" level={3}>Basic Operations</AnchorHeading>
@@ -254,11 +258,10 @@ let cached = storage::get_worker("cache:key")?;
 // Public (unencrypted) worker storage — readable by other projects
 storage::set_worker_with_options("oracle:ETH", &price, Some(false))?;
 
-// Read public data from another project
-let price = storage::get_worker_from_project(
-    "oracle:ETH",
-    Some("p0000000000000042"),  // target project UUID
-)?;`}
+// Read public data from another project, named "owner.near/project-name" or by its uuid
+let price = storage::get_worker_from_project("oracle:ETH", Some("oracle.near/price-feed"))?;
+let same = storage::get_worker_from_project("oracle:ETH", Some("p0000000000000042"))?;
+// Ok(None): no such key or no such project; Err: the key is encrypted, or the project is in neither form`}
         </SyntaxHighlighter>
 
  <AnchorHeading id="storage-migration" level={3}>Version Migration</AnchorHeading>
@@ -459,7 +462,7 @@ cargo build --target wasm32-wasip2 --release
  <tr className="bg-card-muted"><td className="px-4 py-2 font-mono text-xs">set_worker(key, value)</td><td className="px-4 py-2 text-xs text-muted-foreground">Encrypted shared storage</td></tr>
  <tr><td className="px-4 py-2 font-mono text-xs">get_worker(key)</td><td className="px-4 py-2 text-xs text-muted-foreground">Read shared storage</td></tr>
  <tr className="bg-card-muted"><td className="px-4 py-2 font-mono text-xs">set_worker_with_options(key, val, encrypted)</td><td className="px-4 py-2 text-xs text-muted-foreground">Shared storage with encryption toggle</td></tr>
- <tr><td className="px-4 py-2 font-mono text-xs">get_worker_from_project(key, uuid)</td><td className="px-4 py-2 text-xs text-muted-foreground">Cross-project public data read</td></tr>
+ <tr><td className="px-4 py-2 font-mono text-xs">get_worker_from_project(key, project)</td><td className="px-4 py-2 text-xs text-muted-foreground">Cross-project public data read; <code>project</code> is a name or a uuid</td></tr>
  <tr className="bg-card-muted"><td className="px-4 py-2 font-mono text-xs">get_by_version(key, hash)</td><td className="px-4 py-2 text-xs text-muted-foreground">Read data from previous WASM version</td></tr>
  <tr><td className="px-4 py-2 font-mono text-xs">clear_all()</td><td className="px-4 py-2 text-xs text-muted-foreground">Delete all data for current caller</td></tr>
  <tr className="bg-card-muted"><td className="px-4 py-2 font-mono text-xs">clear_version(hash)</td><td className="px-4 py-2 text-xs text-muted-foreground">Clean up old version data</td></tr>

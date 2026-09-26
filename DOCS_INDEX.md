@@ -53,7 +53,8 @@ dashboard/app/docs/
 ├── pricing/page.tsx              # Pricing model
 ├── tee-attestation/page.tsx      # TEE Attestation (from sections/TeeAttestation.tsx)
 ├── vrf/page.tsx                  # VRF (Verifiable Random Function)
-├── signing-keys/page.tsx         # Signing Keys — ed25519 keys a module signs with and never sees
+├── signing-keys/page.tsx         # Signing Keys — ed25519 and secp256k1 keys a module signs with and never sees
+├── encryption-keys/page.tsx      # Encryption Keys — symmetric keys a module seals data with and never sees; sealed storage
 ├── examples/page.tsx             # Example Projects (all examples)
 ├── trust-verification/page.tsx   # Trust & Verification - why trust OutLayer
 ├── storage/page.tsx              # Persistent Storage
@@ -210,7 +211,8 @@ dashboard/app/docs/
 | `/docs/pricing` | `dashboard/app/docs/sections/Pricing.tsx` | - | Cost model, resource limits |
 | `/docs/tee-attestation` | `dashboard/app/docs/sections/TeeAttestation.tsx` | `TEE_ATTESTATION_FLOW.md` | TEE verification, attestation, **post-quantum worker keys (ML-DSA-65 / FIPS-204, bound to quote via SHA-256 in `report_data`)** |
 | `/docs/vrf` | `dashboard/app/docs/vrf/page.tsx` | `VRF.md`, `sdk/outlayer/src/vrf.rs` | **VRF: verifiable randomness, SDK, on-chain verification** |
-| `/docs/signing-keys` | `dashboard/app/docs/signing-keys/page.tsx` | `wasi-examples/CONNECTOR_MANIFEST.md` (`signing_keys`), `worker/wit/deps/signing-keys.wit`, `keystore-worker/src/signing_keys.rs`, `wasi-examples/signing-key-probe/`, skill reference `building-outlayer-apps/references/signing-keys.md` | **Signing keys: manifest `signing_keys` (path, ed25519, `project`/`wasm` bind, `signer`/`predecessor` caller, optional vault, max 3), `outlayer:signing-keys` host functions, NEP-413 from the implicit account, security rules, refusals** |
+| `/docs/signing-keys` | `dashboard/app/docs/signing-keys/page.tsx` | `wasi-examples/CONNECTOR_MANIFEST.md` (`signing_keys`), `worker/wit/deps/signing-keys.wit`, `keystore-worker/src/signing_keys.rs`, `wasi-examples/signing-key-probe/`, skill reference `building-outlayer-apps/references/signing-keys.md` | **Signing keys: manifest `signing_keys` (path, `ed25519`/`secp256k1` type, `project`/`wasm` bind, `signer`/`predecessor` caller, optional vault, max 3), key types, `outlayer:signing-keys` host functions (`public-key`, `sign`, `sign-nep413`), NEP-413 from the implicit account, EVM address and `personal_sign`, security rules, proving a key is the project's from the run's attestation, refusals** |
+| `/docs/encryption-keys` | `dashboard/app/docs/encryption-keys/page.tsx` | `wasi-examples/CONNECTOR_MANIFEST.md` (`encryption_keys`), `worker/wit/deps/encryption-keys.wit`, `worker/wit/deps/storage.wit` (raw functions), `keystore-worker/src/encryption_keys.rs`, `wasi-examples/signing-key-probe/` (encryption builds), skill reference `building-outlayer-apps/references/encryption-keys.md` | **Encryption keys: manifest `encryption_keys` (path, `project`/`wasm` bind, `signer`/`predecessor` caller, optional vault, no `type`, max 3 apart from signing keys), derivation `encryption-key:v1:…`, `outlayer:encryption-keys` host functions (`encrypt`, `decrypt`, `mac`), ciphertext format `0x01 ‖ nonce ‖ ciphertext ‖ tag`, sealed storage with the raw storage functions, security rules, refusals** |
 | `/docs/examples` | `dashboard/app/docs/examples/page.tsx` | `wasi-examples/*/README.md` | All example projects |
 
 ## Navigation (layout.tsx)
@@ -432,10 +434,11 @@ interface api {
 
     // Worker storage (with public option for cross-project reads)
     // is-encrypted: true (default) = encrypted, only this project can read
-    //               false = plaintext, other projects can read via get-worker with project-uuid
+    //               false = plaintext, other projects can read via get-worker with project
     set-worker: func(key: string, value: list<u8>, is-encrypted: option<bool>) -> string;
-    // project-uuid: none = current project, some("p0000000000000001") = read from another project
-    get-worker: func(key: string, project-uuid: option<string>) -> tuple<list<u8>, string>;
+    // project: none = current project; some("owner.near/name") or some("p0000000000000001")
+    //          = another project's public data, by name or by uuid
+    get-worker: func(key: string, project: option<string>) -> tuple<list<u8>, string>;
 
     // Version migration
     get-by-version: func(key: string, wasm-hash: string) -> tuple<list<u8>, string>;
@@ -517,14 +520,15 @@ storage::set_worker_with_options("oracle:ETH", price_json.as_bytes(), Some(false
 // Read from current project
 let data = storage::get_worker("oracle:ETH")?;
 
-// Read from another project by UUID (public data only)
+// Read from another project, by name or by uuid (public data only)
+let data = storage::get_worker_from_project("oracle:ETH", Some("oracle.near/price-feed"))?;
 let data = storage::get_worker_from_project("oracle:ETH", Some("p0000000000000001"))?;
 ```
 
 **External HTTP API:**
 ```bash
 # JSON format (default) - base64 encoded value
-curl "https://api.outlayer.ai/public/storage/get?project_uuid=p0000000000000001&key=oracle:ETH"
+curl "https://api.outlayer.ai/public/storage/get?project=oracle.near/price-feed&key=oracle:ETH"
 # {"exists":true,"value":"<base64-encoded-value>"}
 
 # Raw format - returns raw bytes directly
@@ -533,7 +537,8 @@ curl "https://api.outlayer.ai/public/storage/get?...&format=raw"
 
 **Key points:**
 - `is_encrypted=false` makes data readable by other projects
-- Other projects read via `project_uuid` (e.g., `p0000000000000001`)
+- Other projects read it by the project's name (`oracle.near/price-feed`) or uuid (`p0000000000000001`); the HTTP `project` parameter takes either form, `project_uuid` is an alias
+- An unknown project reads like a missing key
 - External clients read via HTTP endpoint (returns base64-encoded value)
 - Encrypted (default) worker data is NOT accessible cross-project
 

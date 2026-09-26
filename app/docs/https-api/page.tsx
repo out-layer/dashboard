@@ -308,17 +308,17 @@ curl -X POST https://api.outlayer.ai/call/alice.near/my-assistant \\
   "status": "completed",
   "output": "Here's the weather forecast for...",
   "compute_cost": "45000",
-  "job_id": 12345,
-  "attestation_url": "https://app.outlayer.ai/attestations/12345"
+  "instructions": 1234567,
+  "time_ms": 850,
+  "attestation_url": "/attestations/by-call/550e8400-e29b-41d4-a716-446655440000"
 }
 
-// Failure
+// Failure (no attestation_url: a failed call has no attestation)
 {
   "call_id": "550e8400-e29b-41d4-a716-446655440000",
   "status": "failed",
   "error": "Execution timeout after 60 seconds",
-  "compute_cost": "100000",
-  "job_id": 12345
+  "compute_cost": "100000"
 }`}
         </SyntaxHighlighter>
 
@@ -333,7 +333,8 @@ curl -X POST https://api.outlayer.ai/call/alice.near/my-assistant \\
 {
   "call_id": "550e8400-e29b-41d4-a716-446655440000",
   "status": "pending",
-  "poll_url": "https://api.outlayer.ai/calls/550e8400-e29b-41d4-a716-446655440000"
+  "poll_url": "/calls/550e8400-e29b-41d4-a716-446655440000",
+  "attestation_url": "/attestations/by-call/550e8400-e29b-41d4-a716-446655440000"
 }`}
         </SyntaxHighlighter>
 
@@ -387,14 +388,30 @@ curl -X POST https://api.outlayer.ai/call/alice.near/my-assistant \\
                 </td>
               </tr>
               <tr>
- <td className="px-4 py-3 text-sm font-mono">job_id</td>
+ <td className="px-4 py-3 text-sm font-mono">instructions</td>
  <td className="px-4 py-3 text-sm">number</td>
- <td className="px-4 py-3 text-sm text-muted-foreground">Internal job ID for attestation lookup</td>
+ <td className="px-4 py-3 text-sm text-muted-foreground">WASM instructions executed (once the call has finished)</td>
+              </tr>
+              <tr>
+ <td className="px-4 py-3 text-sm font-mono">time_ms</td>
+ <td className="px-4 py-3 text-sm">number</td>
+ <td className="px-4 py-3 text-sm text-muted-foreground">Execution time in milliseconds (once the call has finished)</td>
+              </tr>
+              <tr>
+ <td className="px-4 py-3 text-sm font-mono">poll_url</td>
+ <td className="px-4 py-3 text-sm">string</td>
+ <td className="px-4 py-3 text-sm text-muted-foreground">
+ <code>/calls/{'{call_id}'}</code>, relative to the API base (async initial response only)
+                </td>
               </tr>
               <tr>
  <td className="px-4 py-3 text-sm font-mono">attestation_url</td>
  <td className="px-4 py-3 text-sm">string</td>
- <td className="px-4 py-3 text-sm text-muted-foreground">Link to TEE attestation (completed only)</td>
+ <td className="px-4 py-3 text-sm text-muted-foreground">
+ <code>/attestations/by-call/{'{call_id}'}</code>, relative to the API base (<code>https://api.outlayer.ai</code>):
+                  the call&apos;s TEE attestation record. Returned for a pending or completed call, never for a failed one;
+                  answers 404 until the worker has uploaded the quote
+                </td>
               </tr>
             </tbody>
           </table>
@@ -652,7 +669,12 @@ let db_url = std::env::var("DATABASE_URL")
               <tr>
  <td className="px-4 py-3 text-sm font-mono">404</td>
  <td className="px-4 py-3 text-sm">Not Found</td>
- <td className="px-4 py-3 text-sm text-muted-foreground">Project does not exist</td>
+ <td className="px-4 py-3 text-sm text-muted-foreground">Project does not exist, or <code>GET /calls/{'{call_id}'}</code> names no call (<code>call_not_found</code>)</td>
+              </tr>
+              <tr>
+ <td className="px-4 py-3 text-sm font-mono">408</td>
+ <td className="px-4 py-3 text-sm">Request Timeout</td>
+ <td className="px-4 py-3 text-sm text-muted-foreground">A call without <code>async</code> did not finish inside the synchronous window (<code>timeout</code>) and was settled as failed; the body carries <code>call_id</code> and <code>poll_url</code>. Send long work with <code>async: true</code></td>
               </tr>
               <tr>
  <td className="px-4 py-3 text-sm font-mono">429</td>
@@ -662,12 +684,12 @@ let db_url = std::env::var("DATABASE_URL")
               <tr>
  <td className="px-4 py-3 text-sm font-mono">500</td>
  <td className="px-4 py-3 text-sm">Internal Error</td>
- <td className="px-4 py-3 text-sm text-muted-foreground">Server error during execution</td>
+ <td className="px-4 py-3 text-sm text-muted-foreground">Server fault (<code>internal_error</code>). A call without <code>async</code> may already be queued and still run and be charged: do not resend it blindly, a resend runs and pays a second call</td>
               </tr>
               <tr>
- <td className="px-4 py-3 text-sm font-mono">504</td>
- <td className="px-4 py-3 text-sm">Gateway Timeout</td>
- <td className="px-4 py-3 text-sm text-muted-foreground">Execution timeout (300s max)</td>
+ <td className="px-4 py-3 text-sm font-mono">503</td>
+ <td className="px-4 py-3 text-sm">Service Unavailable</td>
+ <td className="px-4 py-3 text-sm text-muted-foreground">Temporary (<code>upstream_unavailable</code>), before the call was queued — nothing ran, nothing was charged: wait the <code>Retry-After</code> seconds and send the same request again</td>
               </tr>
             </tbody>
           </table>

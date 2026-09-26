@@ -2,8 +2,8 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: "Storage",
-  description: "Persistent key-value storage for agents: methods reference, atomic operations, raw storage for records the module encrypts itself, per-user isolation…",
+  title: "Encryption Keys",
+  description: "Symmetric keys a WASI module seals data with and never sees, derived in the TEE keystore like signing keys: the manifest encryption_keys declaration, the…",
 };
 
 export default function Layout({ children }: { children: React.ReactNode }) {

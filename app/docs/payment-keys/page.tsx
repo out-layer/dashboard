@@ -281,6 +281,21 @@ near call usdt.tether-token.near ft_transfer_call '{
  <p className="text-foreground mb-4">
           This prevents an attacker from spending $90 with a $1 balance by launching many parallel requests.
         </p>
+
+ <AnchorHeading id="deleting-keys" level={3}>Deleting a Key</AnchorHeading>
+
+ <p className="text-foreground mb-4">
+ <code>outlayer keys delete &lt;nonce&gt;</code> (or the delete button on the dashboard) calls the
+          contract&apos;s <code>delete_payment_key</code>. Once the coordinator has removed the key, the
+          contract deletes it on chain and returns its NEAR storage deposit.
+        </p>
+
+ <ul className="list-disc list-inside text-foreground space-y-2 mb-6">
+ <li><strong>The remaining balance is forfeited.</strong> Whatever the key had not spent is not refunded
+            and does not move to another key. Spend it or keep the key.</li>
+ <li><strong>Deleting a key does not free its nonce.</strong> The contract refuses a new key at a deleted
+            key&apos;s nonce; <code>get_next_payment_key_nonce</code> answers the next one to use.</li>
+        </ul>
       </section>
 
       {/* Data Storage */}

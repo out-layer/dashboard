@@ -38,7 +38,7 @@ export default function SdkPage() {
 
  <SyntaxHighlighter language="toml" style={vscDarkPlus} className="rounded-lg mb-4">
           {`[dependencies]
-outlayer = "0.1"
+outlayer = "0.2"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"`}
         </SyntaxHighlighter>
@@ -212,8 +212,8 @@ storage::set("data", &bytes)?;
 let data = storage::get("data")?;
 
 // Check existence and delete
-if storage::has("key") {
-    storage::delete("key");
+if storage::has("key")? {
+    storage::delete("key")?;
 }
 
 // List keys by prefix
@@ -339,7 +339,7 @@ name = "my-outlayer-app"
 path = "src/main.rs"
 
 [dependencies]
-outlayer = "0.1"
+outlayer = "0.2"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 

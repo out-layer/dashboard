@@ -159,7 +159,7 @@ export function PaymentKeyCard({
             <button
               onClick={onDelete}
               className="inline-flex h-8 items-center rounded-md border border-destructive/40 px-2.5 text-xs font-semibold text-destructive-text hover:bg-destructive/10"
-              title="Delete Payment Key. WARNING: Remaining balance will be lost! Refunds are not yet implemented."
+              title="Delete Payment Key. Its remaining balance is forfeited — it is not refunded and does not move to another key. The storage deposit is returned."
             >
               <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2" aria-hidden="true">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />

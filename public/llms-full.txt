@@ -1134,7 +1134,7 @@ Payment keys are required for HTTPS API calls.
 | `outlayer keys list` | List keys with balances |
 | `outlayer keys balance <nonce>` | Check key balance |
 | `outlayer keys topup <nonce> <amount>` | Top up with NEAR (mainnet, auto-swaps to USDC) |
-| `outlayer keys delete <nonce>` | Delete key (refunds storage deposit) |
+| `outlayer keys delete <nonce>` | Delete key: the storage deposit is refunded, the remaining balance is forfeited |
 
 ```bash
 outlayer keys create
@@ -1147,6 +1147,11 @@ outlayer keys balance 1
 outlayer keys topup 1 0.5       # top up key nonce 1 with 0.5 NEAR
 outlayer keys delete 2
 ```
+
+A deleted key's unspent balance is not refunded and does not move to another
+key. Deleting it does not free its nonce: the contract refuses a new key there,
+and `keys create` takes the next nonce from the contract
+(`get_next_payment_key_nonce`).
 
 ### Upload (FastFS)
 
@@ -1854,7 +1859,7 @@ The `outlayer` crate provides access to OutLayer-specific features for WASI P2 m
 
 ```toml
 [dependencies]
-outlayer = "0.1"
+outlayer = "0.2"
 ```
 
 ### Getting the Caller's NEAR Account
@@ -1999,7 +2004,7 @@ getrandom = { version = "0.2", features = ["custom"] }
 wasi-http-client = "0.2"
 
 # OutLayer SDK (persistent storage, env access) - WASI P2 only:
-outlayer = "0.1"
+outlayer = "0.2"
 
 # For WASI P1 with NEAR contracts embedded (advanced):
 borsh = { version = "1.5", features = ["derive"] }
@@ -3357,7 +3362,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 ```toml
 [dependencies]
-outlayer = "0.1"  # OutLayer SDK for WASI P2
+outlayer = "0.2"  # OutLayer SDK for WASI P2
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 ```
@@ -4972,10 +4977,10 @@ whoever asks. An on-chain answer is public besides. A module decides from what
 it has checked who may read what it opens.
 
 **Bind a ciphertext to its record.** A ciphertext opens under an `aad` only if
-it was sealed under the same `aad`. Pass the name of the record the ciphertext
-is stored under as `aad`: a ciphertext copied onto another record by whoever
-holds the storage then fails to decrypt instead of being read as that record's
-data.
+it was sealed under the same `aad`. Pass the record's plain name — not the
+`mac` of it the record is stored under — as `aad`: a ciphertext copied onto
+another record by whoever holds the storage then fails to decrypt instead of
+being read as that record's data.
 
 **Hide what the records are called.** Storage keys are visible to the
 storage's operator. Store a record under `mac(path, vault, name)` (hex or base64
@@ -6235,6 +6240,26 @@ near view outlayer.testnet list_user_secrets '{
 
 `limit` is capped at 500. Both arguments may be omitted.
 
+#### Payment key nonces
+A payment key is a secret under the `System: PaymentKey` accessor whose profile
+is its nonce. A nonce is handed out to an owner once: `store_secrets` refuses a
+payment key at or below the owner's floor — the highest nonce the contract has
+seen them create or delete — with "has already been used". The coordinator
+keeps a deleted key's row under `(owner, nonce)`, and a new key there would
+bring it back with the old balance and grants.
+
+- `get_next_payment_key_nonce({account_id})` — the lowest nonce a new key may
+  take: one above both the live keys and the floor.
+- `get_payment_key_nonce_floor({account_id})` — the floor; 0 when none is
+  recorded.
+
+The floor is raised when a key is created and when one is deleted, so it holds
+every nonce the contract has seen come or go; a key older than the owner's
+floor entry is recorded when it is deleted. Its entry is
+paid once, by the owner's first key (included in `estimate_storage_cost`), and
+is not refunded: it outlives every key. `delete_payment_key` refunds the key's
+storage deposit; its unspent balance is forfeited.
+
 ## Events
 
 ### `execution_requested`
@@ -6358,14 +6383,14 @@ Rust SDK for building WASM applications on [OutLayer](https://app.outlayer.ai) -
 
 ```toml
 [dependencies]
-outlayer = "0.1"
+outlayer = "0.2"
 ```
 
 Signing keys and encryption keys (with sealed storage) are opt-in features:
 
 ```toml
 [dependencies]
-outlayer = { version = "0.1.2", features = ["signing-keys", "encryption-keys"] }
+outlayer = { version = "0.2.0", features = ["signing-keys", "encryption-keys"] }
 ```
 
 | Feature | Adds | Host interface |
@@ -6446,8 +6471,8 @@ use outlayer::storage;
 // Basic operations
 storage::set("key", b"value")?;
 let data = storage::get("key")?;
-let exists = storage::has("key");
-storage::delete("key");
+let exists = storage::has("key")?;
+storage::delete("key")?;
 let keys = storage::list_keys("prefix:")?;
 
 // Convenience methods
@@ -6560,9 +6585,8 @@ sealed::has("records", None, "init")?;
 sealed::delete("records", None, "init")?;
 ```
 
-`has` and `delete` answer `false` both for no record and for a failed storage
-call (the host returns a plain `bool`), so `false` is not proof of absence;
-`get` returns a failed call as `Err`.
+`has` and `delete` return a failed storage call as `Err`, never as `false`
+(host functions `has-checked` and `delete-checked`).
 
 Encryption is randomized, so compare-and-swap compares the stored ciphertext,
 never a plaintext: `get` returns a `Sealed` holding both, and it is the
@@ -6598,7 +6622,7 @@ name = "my-outlayer-app"
 path = "src/main.rs"
 
 [dependencies]
-outlayer = "0.1"
+outlayer = "0.2"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 

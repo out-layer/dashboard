@@ -79,7 +79,7 @@ export default function StoragePage() {
 
  <SyntaxHighlighter language="toml" style={vscDarkPlus} className="rounded-lg mb-4">
           {`[dependencies]
-outlayer = "0.1"`}
+outlayer = "0.2"`}
         </SyntaxHighlighter>
 
  <SyntaxHighlighter language="rust" style={vscDarkPlus} className="rounded-lg mb-4">

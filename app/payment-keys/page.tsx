@@ -38,6 +38,10 @@ export default function PaymentKeysPage() {
 
   // Payment keys list
   const [paymentKeys, setPaymentKeys] = useState<PaymentKeyData[]>([]);
+  // The nonce the next key must take, as the contract answers it. Not derived
+  // from the list: a deleted key's nonce is never handed out again, and the
+  // list no longer shows it.
+  const [nextNonce, setNextNonce] = useState<number | null>(null);
   const [balances, setBalances] = useState<Map<number, PaymentKeyBalance>>(new Map());
   const [loading, setLoading] = useState(false);
 
@@ -89,6 +93,13 @@ export default function PaymentKeysPage() {
       // Sort by nonce
       keys.sort((a, b) => a.nonce - b.nonce);
       setPaymentKeys(keys);
+
+      const next = await viewMethod({
+        contractId,
+        method: 'get_next_payment_key_nonce',
+        args: { account_id: accountId },
+      });
+      setNextNonce(Number(next));
 
       // Load balances from coordinator
       await loadBalances(keys);
@@ -216,13 +227,6 @@ export default function PaymentKeysPage() {
       return () => clearTimeout(timer);
     }
   }, [error, success]);
-
-  // Get next available nonce (starting from 1, not 0)
-  const getNextNonce = useCallback((): number => {
-    if (paymentKeys.length === 0) return 1;
-    const maxNonce = Math.max(...paymentKeys.map((k) => k.nonce));
-    return maxNonce + 1;
-  }, [paymentKeys]);
 
   // Handle creation complete (first transaction done, TopUp still needed)
   const handleCreationComplete = useCallback((generatedKey: string, nonce: number) => {
@@ -444,12 +448,12 @@ export default function PaymentKeysPage() {
       )}
 
       {/* Create form modal */}
-      {showCreateForm && (
+      {showCreateForm && nextNonce !== null && (
         <CreateKeyForm
           accountId={accountId!}
           contractId={contractId}
           stablecoin={stablecoin}
-          nextNonce={getNextNonce()}
+          nextNonce={nextNonce}
           coordinatorUrl={coordinatorUrl}
           signAndSendTransaction={signAndSendTransaction}
           onComplete={handleCreationComplete}

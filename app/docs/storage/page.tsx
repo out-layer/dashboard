@@ -123,8 +123,8 @@ fn main() {
     // Basic operations
     set: func(key: string, value: list<u8>) -> string;
  get: func(key: string) -> tuple<list<u8>, string>;
-    has: func(key: string) -> bool;
-    delete: func(key: string) -> bool;
+    has: func(key: string) -> tuple<bool, string>;
+    delete: func(key: string) -> tuple<bool, string>;
  list-keys: func(prefix: string) -> tuple<string, string>;
 
     // Conditional writes (atomic operations)
@@ -185,12 +185,12 @@ fn main() {
               <tr>
  <td className="px-4 py-3 text-sm font-mono">has(key)</td>
  <td className="px-4 py-3 text-sm text-muted-foreground">Check if key exists</td>
- <td className="px-4 py-3 text-sm text-muted-foreground">bool</td>
+ <td className="px-4 py-3 text-sm text-muted-foreground">(exists, error)</td>
               </tr>
               <tr>
  <td className="px-4 py-3 text-sm font-mono">delete(key)</td>
  <td className="px-4 py-3 text-sm text-muted-foreground">Delete a key</td>
- <td className="px-4 py-3 text-sm text-muted-foreground">bool (true if existed)</td>
+ <td className="px-4 py-3 text-sm text-muted-foreground">(deleted, error): deleted if it existed</td>
               </tr>
               <tr>
  <td className="px-4 py-3 text-sm font-mono">list-keys(prefix)</td>

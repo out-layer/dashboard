@@ -450,8 +450,8 @@ cargo build --target wasm32-wasip2 --release
  <tbody className="bg-card divide-y divide-border">
  <tr><td className="px-4 py-2 font-mono text-xs">set(key, value)</td><td className="px-4 py-2 text-xs text-muted-foreground">Store bytes (user-isolated)</td></tr>
  <tr className="bg-card-muted"><td className="px-4 py-2 font-mono text-xs">get(key)</td><td className="px-4 py-2 text-xs text-muted-foreground">Read bytes</td></tr>
- <tr><td className="px-4 py-2 font-mono text-xs">has(key)</td><td className="px-4 py-2 text-xs text-muted-foreground">Check existence</td></tr>
- <tr className="bg-card-muted"><td className="px-4 py-2 font-mono text-xs">delete(key)</td><td className="px-4 py-2 text-xs text-muted-foreground">Delete key</td></tr>
+ <tr><td className="px-4 py-2 font-mono text-xs">has(key)</td><td className="px-4 py-2 text-xs text-muted-foreground">Check existence; Err when the storage call fails</td></tr>
+ <tr className="bg-card-muted"><td className="px-4 py-2 font-mono text-xs">delete(key)</td><td className="px-4 py-2 text-xs text-muted-foreground">Delete key; true if it existed, Err when the call fails</td></tr>
  <tr><td className="px-4 py-2 font-mono text-xs">list_keys(prefix)</td><td className="px-4 py-2 text-xs text-muted-foreground">List keys by prefix</td></tr>
  <tr className="bg-card-muted"><td className="px-4 py-2 font-mono text-xs">set_string / get_string</td><td className="px-4 py-2 text-xs text-muted-foreground">String convenience methods</td></tr>
  <tr><td className="px-4 py-2 font-mono text-xs">set_json / get_json</td><td className="px-4 py-2 text-xs text-muted-foreground">JSON convenience methods</td></tr>

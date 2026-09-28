@@ -102,6 +102,15 @@ test('a recipient id is one token', () => {
   assert.match(recipientIdProblem(''), /not a recipient id/);
 });
 
+test('the budget counts the agent’s own payments unless every payment is ticked', () => {
+  assert.equal(toJson(mercuryPolicy, { count_all_outgoing: false }), '{}');
+  assert.equal(toJson(mercuryPolicy, { count_all_outgoing: true }), '{"count_all_outgoing":true}');
+  assert.equal(fromJson(mercuryPolicy, '{"count_all_outgoing":true}').value.count_all_outgoing, true);
+  const base = { max_payment_usd: 50, max_spend_usd_month: 300 };
+  assert.doesNotMatch(mercuryPolicy.summarize(base), /every payment/);
+  assert.match(mercuryPolicy.summarize({ ...base, count_all_outgoing: true }), /the 30-day budget counts every payment from the account/);
+});
+
 test('the sandbox switch is off unless ticked, reaches the JSON only when on, and the sentence says no real money moves', () => {
   assert.equal(toJson(mercuryPolicy, { sandbox: false }), '{}');
   assert.equal(toJson(mercuryPolicy, { sandbox: true }), '{"sandbox":true}');

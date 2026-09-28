@@ -15,11 +15,6 @@ import type { Choice, PolicySchema, PolicyValue } from './types';
  *
  * Amounts are whole dollars: the connector compares in cents and accepts
  * fractions, but a spending cap is not a place for them.
- *
- * `count_all_outgoing` is deliberately not a field. Its default (`true`, every
- * outgoing transaction on the account counts toward the budget) is the safe
- * reading, and the other value is chosen by hand only after an owner has
- * checked something on their own account — a checkbox would invite it.
  */
 
 const READ = 'Read';
@@ -98,7 +93,7 @@ export const mercuryPolicy: PolicySchema = {
           label: 'Budget per 30 days',
           kind: 'number',
           unit: 'USD, rolling 30 days',
-          help: 'Everything paid or queued for approval in the last 30 days, counted from Mercury’s own ledger — every outgoing transaction on the account, yours included, so a busy month leaves the agent less. A payment that would cross it is refused.',
+          help: 'What the agent paid in the last 30 days, counted from Mercury’s own ledger, plus payments waiting for approval. Only the agent’s own payments count, unless you tick "Count every payment from the account" below. A payment that would cross it is refused.',
           absentMeans: 'Empty: no payments at all.',
           min: 1,
         },
@@ -159,6 +154,13 @@ export const mercuryPolicy: PolicySchema = {
           help: 'send_invoice creates a real Mercury invoice and Mercury emails it to the customer under your company’s name; cancel_invoice cannot be undone. Rendering an invoice document needs no switch.',
           absentMeans: 'Off: the agent can read invoices and render a document, and cannot send or cancel one.',
           link: { key: 'allowed_operations', through: ['send_invoice', 'cancel_invoice'], ticks: ['send_invoice', 'cancel_invoice'], onlyWith: ['send_invoice', 'cancel_invoice'] },
+        },
+        {
+          key: 'count_all_outgoing',
+          label: 'Count every payment from the account',
+          kind: 'toggle',
+          help: 'Off, the 30-day budget counts only the payments the agent made. On, it counts every payment leaving the account, the ones you and your team make included, so a busy month leaves the agent less.',
+          absentMeans: 'Off: only the agent’s own payments count toward the budget.',
         },
         {
           key: 'sandbox',
@@ -250,6 +252,9 @@ export const mercuryPolicy: PolicySchema = {
             : 'it cannot issue or cancel invoices',
     );
     if (ops.length > 0) parts.push(`only ${ops.length} operation${ops.length === 1 ? '' : 's'} ${ops.length === 1 ? 'is' : 'are'} allowed at all`);
+    if (value.count_all_outgoing === true && perPayment !== undefined && perMonth !== undefined) {
+      parts.push('the 30-day budget counts every payment from the account');
+    }
     const sentence = `${parts.join('; ')}.`;
     return value.sandbox === true ? `Mercury sandbox — no real money moves. ${sentence}` : sentence;
   },

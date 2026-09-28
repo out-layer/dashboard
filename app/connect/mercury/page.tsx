@@ -3,7 +3,7 @@
 import React, { Suspense } from 'react';
 import { RequireWallet } from '@/components/ui/require-wallet';
 import { ConnectorOwnerPage, More, type ConnectorSpec, type CredentialView } from '@/components/connect/ConnectorOwnerPage';
-import { mercuryPolicy, mercuryStartingPolicy } from '@/lib/policies/mercury';
+import { mercuryAccountLabel, mercuryPolicy, mercuryStartingPolicy } from '@/lib/policies/mercury';
 
 /**
  * Connecting a Mercury business bank account. Everything a connector's owner
@@ -64,6 +64,7 @@ interface MercuryAccount {
   legalBusinessName?: string;
   kind?: string;
   status?: string;
+  accountNumber?: string;
 }
 
 async function accountsAt(base: string, token: string): Promise<MercuryAccount[] | null> {
@@ -101,12 +102,13 @@ async function inspect(token: string): Promise<CredentialView | null> {
   return {
     label: one
       ? `${where}The token reaches one account${business ? ` of ${business}` : ''}; the policy below pins it.`
-      : `${where}The token reaches ${accounts.length} accounts${business ? ` of ${business}` : ''}. Payments are refused until one is named under "Account" below.`,
+      : `${where}The token reaches ${accounts.length} accounts${business ? ` of ${business}` : ''}. Payments are refused until you choose one under "Account" in the policy below.`,
     list: {
       heading: 'Accounts:',
-      values: accounts.map((a) => `${a.nickname || a.name || 'account'} · ${a.id}`),
+      values: accounts.map(mercuryAccountLabel),
     },
     starting: mercuryStartingPolicy(one ? one.id : null, sandbox),
+    suggestions: { account_id: accounts.map((a) => ({ value: a.id, label: mercuryAccountLabel(a) })) },
   };
 }
 

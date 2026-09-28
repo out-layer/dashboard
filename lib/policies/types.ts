@@ -85,6 +85,13 @@ export interface PolicyGroup {
   fields: PolicyField[];
 }
 
+/**
+ * Values the page already knows for a text field — the accounts a token
+ * reaches — keyed by the field's key. With them the field is a choice among
+ * names the owner recognises; the value stored is still the field's own.
+ */
+export type PolicySuggestions = Record<string, { value: string; label: string }[]>;
+
 /** A field's value as the editor holds it: lists as arrays, numbers as numbers, text as strings. Absent = empty. */
 export type PolicyValue = Record<string, string[] | number | string | boolean | undefined>;
 

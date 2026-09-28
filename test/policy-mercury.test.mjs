@@ -6,7 +6,7 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mercuryPolicy, recipientIdProblem, mercuryStartingPolicy } from '../lib/policies/mercury.ts';
+import { mercuryPolicy, recipientIdProblem, mercuryStartingPolicy, mercuryAccountLabel } from '../lib/policies/mercury.ts';
 import { toJson, fromJson, validate, isUnrestricted, emptyValue, change } from '../lib/policies/policy.ts';
 
 test('an empty policy is {} and is described as read-only, not as no limits', () => {
@@ -140,4 +140,11 @@ test('the sentence claims only what the operations list lets run', () => {
   const v = { max_payment_usd: 100, max_spend_usd_month: 500, allow_invoicing: true, allowed_operations: ['accounts', 'send_invoice'] };
   assert.equal(mercuryPolicy.summarize(v), 'The agent cannot pay; it may issue invoices and cannot cancel one; only 2 operations are allowed at all.');
   assert.match(validate(mercuryPolicy, { allow_invoicing: true, allowed_operations: ['accounts'] }).join('\n'), /"Issue and cancel invoices" is on/);
+});
+
+test('an account is shown by its name and the last four digits of its number, never by its id', () => {
+  assert.equal(mercuryAccountLabel({ id: 'e74e08d4', name: 'Mercury Checking', accountNumber: '73175638798' }), 'Mercury Checking ••8798');
+  assert.equal(mercuryAccountLabel({ id: 'e74e08d4', name: 'Mercury Checking', nickname: 'Ops', accountNumber: '73175638798' }), 'Ops ••8798');
+  assert.equal(mercuryAccountLabel({ id: 'e74e08d4', name: 'Savings' }), 'Savings');
+  assert.equal(mercuryAccountLabel({ id: 'e74e08d4' }), 'Account');
 });

@@ -10,7 +10,7 @@ import { getCoordinatorApiUrl } from '@/lib/api';
 import { bytesToHex, eciesEncrypt, generateReplyKeypair, hexToBytes, openReply } from '@/lib/ecies';
 import { waitForTransactionOutcome } from '@/lib/near-rpc';
 import { emptyValue, fromJson, toJson, validate } from '@/lib/policies/policy';
-import type { PolicySchema, PolicyValue } from '@/lib/policies/types';
+import type { PolicySchema, PolicyValue, PolicySuggestions } from '@/lib/policies/types';
 import { formatAccessCondition } from '@/app/secrets/components/utils';
 import { isImplicitAccount, shortAccount } from '@/lib/short-account';
 import { getAllWalletKeys } from '@/lib/wallet-keys';
@@ -229,6 +229,8 @@ export interface CredentialView {
    *  time the list is right, saying how to change it is noise. */
   manage?: { href: string; label: string };
   starting?: PolicyValue;
+  /** What the credential reaches, offered as choices in the policy's text fields, by field key. */
+  suggestions?: PolicySuggestions;
   /**
    * Something the owner must do on the provider's own pages before any of this
    * works — no repository chosen at all. The provider brings them back
@@ -969,7 +971,14 @@ export function ConnectorOwnerPage({ spec }: { spec: ConnectorSpec }) {
               </p>
             </More>
           </div>
-          <PolicyEditor schema={spec.policy} value={policy} onChange={setPolicy} disabled={stage === 'storing'} defaultOpen />
+          <PolicyEditor
+            schema={spec.policy}
+            value={policy}
+            onChange={setPolicy}
+            disabled={stage === 'storing'}
+            defaultOpen
+            suggestions={credentialView?.suggestions}
+          />
           {/* Rule 20: one line, closed; the agent chosen shows as a chip. */}
           <div className="text-sm">
             {grantAgentTrimmed && !grantAgentProblem ? (
@@ -1154,6 +1163,7 @@ export function ConnectorOwnerPage({ spec }: { spec: ConnectorSpec }) {
                   onChange={setPolicy}
                   disabled={busy}
                   defaultOpen={!!policyRead}
+                  suggestions={credentialView?.suggestions}
                   headline={policyRead ? undefined : 'not loaded — what you save replaces what is stored'}
                 />
 

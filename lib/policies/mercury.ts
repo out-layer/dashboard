@@ -143,9 +143,9 @@ export const mercuryPolicy: PolicySchema = {
           key: 'account_id',
           label: 'Account',
           kind: 'text',
-          help: 'The Mercury account id everything runs against. With several accounts on the login, payments are refused until one is named here: the agent is not allowed to choose which account it draws from.',
+          help: 'The account payments are drawn from. With several accounts on the login, payments are refused until one is named here: the agent is not allowed to choose which account it draws from. Typed by hand, it is the full account number as Mercury shows it, or Mercury’s own account id.',
           absentMeans: 'Empty: the login’s only account. With more than one account, reads still work and no payment runs.',
-          placeholder: 'account id from Mercury',
+          placeholder: 'full account number',
         },
       ],
     },
@@ -262,6 +262,13 @@ export const mercuryPolicy: PolicySchema = {
  * with the sandbox switch on, since it works nowhere else. A starting point the
  * owner edits, never a default applied behind them.
  */
+/** An account as the owner knows it: its name and the last four digits of its number. */
+export function mercuryAccountLabel(account: { id: string; name?: string; nickname?: string; accountNumber?: string }): string {
+  const name = account.nickname || account.name || 'Account';
+  const digits = (account.accountNumber ?? '').replace(/\D/g, '');
+  return digits.length >= 4 ? `${name} ••${digits.slice(-4)}` : name;
+}
+
 export function mercuryStartingPolicy(accountId: string | null, sandbox = false): PolicyValue {
   return { ...(accountId ? { account_id: accountId } : {}), ...(sandbox ? { sandbox: true } : {}) };
 }

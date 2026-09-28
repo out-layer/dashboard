@@ -118,36 +118,41 @@ function Field({
   onChange: (v: PolicyValue[string]) => void;
   disabled: boolean;
 }) {
+  const hint = (
+    <InfoHint
+      text={
+        <>
+          <span className="block">{field.help}</span>
+          <span className="mt-2 block border-t border-border pt-2">
+            <strong className="font-medium">Left empty:</strong> {field.absentMeans}
+          </span>
+        </>
+      }
+    />
+  );
+  // A switch is one line: the box, its name, the (i) — the tick says allowed or not.
+  if (field.kind === 'toggle') {
+    return (
+      <div className="flex items-center gap-1.5 text-sm">
+        <label className="flex items-center gap-2">
+          <input type="checkbox" checked={value === true} onChange={(e) => onChange(e.target.checked ? true : undefined)} disabled={disabled} />
+          <span>{field.label}</span>
+        </label>
+        {hint}
+      </div>
+    );
+  }
   return (
     <div className="space-y-1">
       <label className="flex items-center gap-1.5 text-sm">
         <span>{field.label}</span>
-        <InfoHint
-          text={
-            <>
-              <span className="block">{field.help}</span>
-              <span className="mt-2 block border-t border-border pt-2">
-                <strong className="font-medium">Left empty:</strong> {field.absentMeans}
-              </span>
-            </>
-          }
-        />
+        {hint}
         {field.unit && field.kind === 'number' && <span className="text-xs text-muted-foreground">({field.unit})</span>}
       </label>
       {field.kind === 'list' ? (
         <ListInput field={field} entries={Array.isArray(value) ? value : []} onChange={onChange} disabled={disabled} />
       ) : field.kind === 'choices' ? (
         <ChoicesInput field={field} chosen={Array.isArray(value) ? value : []} onChange={onChange} disabled={disabled} />
-      ) : field.kind === 'toggle' ? (
-        <label className="flex items-center gap-2 text-sm">
-          <input
-            type="checkbox"
-            checked={value === true}
-            onChange={(e) => onChange(e.target.checked ? true : undefined)}
-            disabled={disabled}
-          />
-          <span className="text-muted-foreground">{value === true ? 'allowed' : 'not allowed'}</span>
-        </label>
       ) : field.kind === 'number' ? (
         <div className="flex items-center gap-2">
           <input

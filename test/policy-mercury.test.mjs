@@ -6,7 +6,7 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mercuryPolicy, recipientIdProblem, mercuryStartingPolicy, mercuryAccountLabel } from '../lib/policies/mercury.ts';
+import { mercuryPolicy, recipientIdProblem } from '../lib/policies/mercury.ts';
 import { toJson, fromJson, validate, isUnrestricted, emptyValue, change } from '../lib/policies/policy.ts';
 
 test('an empty policy is {} and is described as read-only, not as no limits', () => {
@@ -102,12 +102,6 @@ test('a recipient id is one token', () => {
   assert.match(recipientIdProblem(''), /not a recipient id/);
 });
 
-test('the starting policy spends nothing and pins the one account it was given', () => {
-  assert.deepEqual(mercuryStartingPolicy(null), {});
-  assert.deepEqual(mercuryStartingPolicy('acc-1'), { account_id: 'acc-1' });
-  assert.equal(toJson(mercuryPolicy, mercuryStartingPolicy('acc-1')), '{"account_id":"acc-1"}');
-});
-
 test('the sandbox switch is off unless ticked, reaches the JSON only when on, and the sentence says no real money moves', () => {
   assert.equal(toJson(mercuryPolicy, { sandbox: false }), '{}');
   assert.equal(toJson(mercuryPolicy, { sandbox: true }), '{"sandbox":true}');
@@ -115,8 +109,6 @@ test('the sandbox switch is off unless ticked, reaches the JSON only when on, an
   assert.deepEqual(validate(mercuryPolicy, { sandbox: true, max_payment_usd: 50, max_spend_usd_month: 100 }), []);
   assert.match(mercuryPolicy.summarize({ sandbox: true }), /^Mercury sandbox — no real money moves\. The agent cannot pay/);
   assert.doesNotMatch(mercuryPolicy.summarize({ max_payment_usd: 50, max_spend_usd_month: 100 }), /sandbox/i);
-  assert.deepEqual(mercuryStartingPolicy('acc-1', true), { account_id: 'acc-1', sandbox: true });
-  assert.deepEqual(mercuryStartingPolicy(null, true), { sandbox: true });
 });
 
 // Nothing ticked under Operations means EVERY operation, so a switch never
@@ -140,11 +132,4 @@ test('the sentence claims only what the operations list lets run', () => {
   const v = { max_payment_usd: 100, max_spend_usd_month: 500, allow_invoicing: true, allowed_operations: ['accounts', 'send_invoice'] };
   assert.equal(mercuryPolicy.summarize(v), 'The agent cannot pay; it may issue invoices and cannot cancel one; only 2 operations are allowed at all.');
   assert.match(validate(mercuryPolicy, { allow_invoicing: true, allowed_operations: ['accounts'] }).join('\n'), /"Issue and cancel invoices" is on/);
-});
-
-test('an account is shown by its name and the last four digits of its number, never by its id', () => {
-  assert.equal(mercuryAccountLabel({ id: 'e74e08d4', name: 'Mercury Checking', accountNumber: '73175638798' }), 'Mercury Checking ••8798');
-  assert.equal(mercuryAccountLabel({ id: 'e74e08d4', name: 'Mercury Checking', nickname: 'Ops', accountNumber: '73175638798' }), 'Ops ••8798');
-  assert.equal(mercuryAccountLabel({ id: 'e74e08d4', name: 'Savings' }), 'Savings');
-  assert.equal(mercuryAccountLabel({ id: 'e74e08d4' }), 'Account');
 });

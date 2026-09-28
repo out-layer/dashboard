@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { InfoHint } from '@/components/ui/info-hint';
-import type { PolicyField, PolicySchema, PolicyValue, PolicySuggestions } from '@/lib/policies/types';
+import type { PolicyField, PolicySchema, PolicyValue } from '@/lib/policies/types';
 import { change, isUnrestricted, validate } from '@/lib/policies/policy';
 
 /**
@@ -44,7 +44,6 @@ export function PolicyEditor({
   disabled = false,
   defaultOpen = false,
   headline,
-  suggestions,
 }: {
   schema: PolicySchema;
   value: PolicyValue;
@@ -54,8 +53,6 @@ export function PolicyEditor({
   /** Shown instead of the summary while the value is not the stored one — a
    *  page that has not loaded the policy must not describe it. */
   headline?: string;
-  /** Known values for text fields, by key: the field becomes a choice among them. */
-  suggestions?: PolicySuggestions;
 }) {
   const [open, setOpen] = useState(defaultOpen);
   const summary = schema.summarize(value);
@@ -92,14 +89,7 @@ export function PolicyEditor({
             <fieldset key={group.question} className="space-y-2">
               <legend className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{group.question}</legend>
               {group.fields.map((field) => (
-                <Field
-                  key={field.key}
-                  field={field}
-                  value={value[field.key]}
-                  onChange={(v) => set(field.key, v)}
-                  disabled={disabled}
-                  known={suggestions?.[field.key]}
-                />
+                <Field key={field.key} field={field} value={value[field.key]} onChange={(v) => set(field.key, v)} disabled={disabled} />
               ))}
             </fieldset>
           ))}
@@ -122,13 +112,11 @@ function Field({
   value,
   onChange,
   disabled,
-  known,
 }: {
   field: PolicyField;
   value: PolicyValue[string];
   onChange: (v: PolicyValue[string]) => void;
   disabled: boolean;
-  known?: { value: string; label: string }[];
 }) {
   const hint = (
     <InfoHint
@@ -177,21 +165,6 @@ function Field({
             className="w-28 rounded border border-gray-300 px-2 py-1 text-sm disabled:opacity-50"
           />
         </div>
-      ) : known && known.length > 0 ? (
-        <select
-          value={typeof value === 'string' ? value : ''}
-          onChange={(e) => onChange(e.target.value === '' ? undefined : e.target.value)}
-          disabled={disabled}
-          className="w-full max-w-xs rounded border border-gray-300 px-2 py-1 text-sm disabled:opacity-50"
-        >
-          <option value="">Not chosen</option>
-          {typeof value === 'string' && value !== '' && !known.some((k) => k.value === value) && <option value={value}>{value}</option>}
-          {known.map((k) => (
-            <option key={k.value} value={k.value}>
-              {k.label}
-            </option>
-          ))}
-        </select>
       ) : (
         <input
           type="text"

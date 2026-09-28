@@ -2,8 +2,8 @@
 
 import React, { Suspense } from 'react';
 import { RequireWallet } from '@/components/ui/require-wallet';
-import { ConnectorOwnerPage, More, type ConnectorSpec, type CredentialView } from '@/components/connect/ConnectorOwnerPage';
-import { mercuryAccountLabel, mercuryPolicy, mercuryStartingPolicy } from '@/lib/policies/mercury';
+import { ConnectorOwnerPage, More, type ConnectorSpec } from '@/components/connect/ConnectorOwnerPage';
+import { mercuryPolicy } from '@/lib/policies/mercury';
 
 /**
  * Connecting a Mercury business bank account. Everything a connector's owner
@@ -40,12 +40,10 @@ import { mercuryAccountLabel, mercuryPolicy, mercuryStartingPolicy } from '@/lib
  * connector's calls to the sandbox API and changes nothing else. It is off by
  * default and explained in one collapsed note.
  *
- * **`inspect` asks Mercury which accounts the token reaches**, from the owner's
- * own browser to Mercury and nowhere else, and pins the account in the starting
- * policy when there is exactly one — with several, payments are refused until
- * the owner names one, and the page says that instead of guessing. Best effort:
- * a token with an IP allowlist answers the browser with a refusal, and that is
- * not a reason to stop the connection.
+ * **The token never leaves this page except sealed.** The page does not call
+ * Mercury: the account is named in the policy by its number, as the owner's
+ * Mercury dashboard shows it, and the connector finds it among the accounts
+ * the token reaches.
  */
 
 const PROJECTS = {
@@ -53,64 +51,7 @@ const PROJECTS = {
   mainnet: 'connectors.outlayer.near/mercury',
 } as const;
 
-const MERCURY_API = 'https://api.mercury.com/api/v1';
-const MERCURY_SANDBOX_API = 'https://api-sandbox.mercury.com/api/v1';
 const TOKEN_PREFIX = 'secret-token:';
-
-interface MercuryAccount {
-  id: string;
-  name?: string;
-  nickname?: string;
-  legalBusinessName?: string;
-  kind?: string;
-  status?: string;
-  accountNumber?: string;
-}
-
-async function accountsAt(base: string, token: string): Promise<MercuryAccount[] | null> {
-  const response = await fetch(`${base}/accounts`, {
-    headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
-    cache: 'no-store',
-  });
-  if (!response.ok) return null;
-  const body = (await response.json()) as { accounts?: MercuryAccount[] };
-  return Array.isArray(body.accounts) ? body.accounts : [];
-}
-
-/**
- * What the token reaches, asked of Mercury from this browser (rule 17: uncached).
- * Production first; a token production does not know is asked of the sandbox,
- * and one the sandbox accepts starts with the policy's sandbox switch on.
- */
-async function inspect(token: string): Promise<CredentialView | null> {
-  let sandbox = false;
-  let accounts = await accountsAt(MERCURY_API, token).catch(() => null);
-  if (accounts === null) {
-    accounts = await accountsAt(MERCURY_SANDBOX_API, token).catch(() => null);
-    sandbox = accounts !== null;
-  }
-  if (accounts === null) return null;
-  const where = sandbox ? 'This is a sandbox token: no real money moves, and the policy below has "Sandbox token" ticked. ' : '';
-  if (accounts.length === 0) {
-    return {
-      label: `${where}The token works, but reaches no account. Reads will answer; no payment can run.`,
-      starting: mercuryStartingPolicy(null, sandbox),
-    };
-  }
-  const business = accounts.find((a) => a.legalBusinessName)?.legalBusinessName;
-  const one = accounts.length === 1 ? accounts[0] : null;
-  return {
-    label: one
-      ? `${where}The token reaches one account${business ? ` of ${business}` : ''}; the policy below pins it.`
-      : `${where}The token reaches ${accounts.length} accounts${business ? ` of ${business}` : ''}. Payments are refused until you choose one under "Account" in the policy below.`,
-    list: {
-      heading: 'Accounts:',
-      values: accounts.map(mercuryAccountLabel),
-    },
-    starting: mercuryStartingPolicy(one ? one.id : null, sandbox),
-    suggestions: { account_id: accounts.map((a) => ({ value: a.id, label: mercuryAccountLabel(a) })) },
-  };
-}
 
 const spec: ConnectorSpec = {
   id: 'mercury',
@@ -140,8 +81,6 @@ const spec: ConnectorSpec = {
       return null;
     },
   },
-
-  inspect,
 
   intro: (
     <>

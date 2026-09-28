@@ -187,6 +187,7 @@ export const githubPolicy: PolicySchema = {
           kind: 'toggle',
           help: 'A merge puts the agent’s work into a branch nobody re-read. GitHub would let it; only this switch stops it.',
           absentMeans: 'Off: the agent opens pull requests and you merge them.',
+          link: { key: 'actions', through: ['pr_merge'], ticks: ['pr_merge'], onlyWith: ['pr_merge'] },
         },
         {
           key: 'allow_approve',
@@ -194,6 +195,7 @@ export const githubPolicy: PolicySchema = {
           kind: 'toggle',
           help: 'An approval under your name can satisfy a branch protection rule. Without this a review can still comment or request changes.',
           absentMeans: 'Off: a review comments or requests changes, and never approves.',
+          link: { key: 'actions', through: ['pr_review'], ticks: ['pr_review'] },
         },
         {
           key: 'allow_public_gists',
@@ -201,6 +203,7 @@ export const githubPolicy: PolicySchema = {
           kind: 'toggle',
           help: 'A public gist is readable by anyone and indexed by search engines, and cannot be made secret again.',
           absentMeans: 'Off: every gist the agent creates is secret.',
+          link: { key: 'actions', through: ['gist_create'], ticks: ['gist_create'] },
         },
       ],
     },
@@ -258,10 +261,11 @@ export const githubPolicy: PolicySchema = {
       }
       if (typeof value.max_writes_per_day === 'number') parts.push(`at most ${value.max_writes_per_day} writes a day`);
     }
+    // What it can do takes the switch AND the operation it qualifies.
     const never: string[] = [];
-    if (value.allow_merge !== true) never.push('merge');
-    if (value.allow_approve !== true) never.push('approve');
-    if (value.allow_public_gists !== true) never.push('publish a gist');
+    if (value.allow_merge !== true || !actions.includes('pr_merge')) never.push('merge');
+    if (value.allow_approve !== true || !actions.includes('pr_review')) never.push('approve');
+    if (value.allow_public_gists !== true || !actions.includes('gist_create')) never.push('publish a gist');
     const tail = never.length > 0 ? ` It can never ${joinAnd(never)}, or touch .github/.` : ' It can never touch .github/.';
     return `${parts.join(', ')}.${tail}`;
   },

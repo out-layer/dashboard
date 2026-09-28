@@ -119,11 +119,6 @@ const spec: ConnectorSpec = {
 
   intro: (
     <>
-      <p>
-        Two locks sit on every payment and neither can waive the other: the policy you set on this page, enforced inside the enclave
-        before anything reaches the bank, and Mercury&apos;s own approval rules. A token alone moves nothing — until a policy names a
-        budget, the agent can only read.
-      </p>
       <div className="rounded border border-gray-200 p-3 space-y-2">
         <p className="font-medium">Create the token first, in Mercury: Settings → API Tokens → Custom.</p>
         <p>
@@ -144,6 +139,13 @@ const spec: ConnectorSpec = {
           </li>
         </ul>
       </div>
+      <More label="How you keep the agent in check">
+        <p>
+          Two controls, both yours. The policy below sets limits — how much per payment and per 30 days, to which payees, by which
+          rails, whether it may send invoices. And with an Approval token, every payment waits for a person to confirm it in
+          Mercury&apos;s app. With an empty policy the agent can only read.
+        </p>
+      </More>
       <More label="For queued payments to ever clear, two things on Mercury’s side">
         <p>
           The person who approves must be a different Mercury user from the one who created the token — a one-person organisation

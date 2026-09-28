@@ -3,13 +3,13 @@
 import { useState } from 'react';
 import { InfoHint } from '@/components/ui/info-hint';
 import type { PolicyField, PolicySchema, PolicyValue } from '@/lib/policies/types';
-import { isUnrestricted, validate } from '@/lib/policies/policy';
+import { change, isUnrestricted, validate } from '@/lib/policies/policy';
 
 /**
  * One editor for every connector's policy, driven by its schema.
  *
  * A policy names what an agent may do with somebody's bank, mailbox or trading
- * account, and the person setting it is not reading a reference manual. Four
+ * account, and the person setting it is not reading a reference manual. Six
  * decisions follow from that, and a new connector's schema inherits them for
  * free — write `lib/policies/<connector>.ts` and this renders it.
  *
@@ -32,6 +32,10 @@ import { isUnrestricted, validate } from '@/lib/policies/policy';
  *    policies narrow a consent, so empty means everything; a connector that
  *    fails closed sets `emptySummary`, and the closed line says "nothing is
  *    allowed yet" instead of the opposite.
+ * 6. **A switch and the operations it qualifies move together.** Every change
+ *    goes through `change`, so "public gists" on ticks "create a gist", and
+ *    unticking the operation turns the switch off — never a switch that reads
+ *    as allowed and does nothing.
  */
 export function PolicyEditor({
   schema,
@@ -54,7 +58,7 @@ export function PolicyEditor({
   const summary = schema.summarize(value);
   const errors = validate(schema, value);
 
-  const set = (key: string, v: PolicyValue[string]) => onChange({ ...value, [key]: v });
+  const set = (key: string, v: PolicyValue[string]) => onChange(change(schema, value, key, v));
 
   return (
     <div className="rounded border border-gray-200 text-sm">

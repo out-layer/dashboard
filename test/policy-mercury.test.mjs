@@ -7,7 +7,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { mercuryPolicy, recipientIdProblem, mercuryStartingPolicy } from '../lib/policies/mercury.ts';
-import { toJson, fromJson, validate, isUnrestricted, emptyValue } from '../lib/policies/policy.ts';
+import { toJson, fromJson, validate, isUnrestricted, emptyValue, change } from '../lib/policies/policy.ts';
 
 test('an empty policy is {} and is described as read-only, not as no limits', () => {
   assert.equal(toJson(mercuryPolicy, emptyValue()), '{}');
@@ -105,4 +105,27 @@ test('the starting policy spends nothing and pins the one account it was given',
   assert.deepEqual(mercuryStartingPolicy(null), {});
   assert.deepEqual(mercuryStartingPolicy('acc-1'), { account_id: 'acc-1' });
   assert.equal(toJson(mercuryPolicy, mercuryStartingPolicy('acc-1')), '{"account_id":"acc-1"}');
+});
+
+// Nothing ticked under Operations means EVERY operation, so a switch never
+// narrows the list from empty — that would take everything else away.
+test('a switch keeps step with Operations only when Operations names a list', () => {
+  assert.deepEqual(change(mercuryPolicy, {}, 'allow_invoicing', true), { allow_invoicing: true });
+  const on = change(mercuryPolicy, { allowed_operations: ['accounts'] }, 'allow_invoicing', true);
+  assert.deepEqual(on.allowed_operations, ['accounts', 'send_invoice', 'cancel_invoice']);
+  assert.deepEqual(change(mercuryPolicy, on, 'allow_invoicing', undefined).allowed_operations, ['accounts']);
+  assert.equal(change(mercuryPolicy, on, 'allowed_operations', ['accounts']).allow_invoicing, undefined);
+  // Paying an inline payee is the other thing "Add new payees" acts through.
+  const payees = change(mercuryPolicy, { allowed_operations: ['pay_invoice'] }, 'allow_new_recipients', true);
+  assert.deepEqual(payees.allowed_operations, ['pay_invoice']);
+  // Unticking the last one would leave "every operation": the list stays, and the form says why.
+  const last = change(mercuryPolicy, { allowed_operations: ['add_recipient'], allow_new_recipients: true }, 'allow_new_recipients', undefined);
+  assert.deepEqual(last.allowed_operations, ['add_recipient']);
+  assert.match(validate(mercuryPolicy, last).join('\n'), /add_recipient is ticked/);
+});
+
+test('the sentence claims only what the operations list lets run', () => {
+  const v = { max_payment_usd: 100, max_spend_usd_month: 500, allow_invoicing: true, allowed_operations: ['accounts', 'send_invoice'] };
+  assert.equal(mercuryPolicy.summarize(v), 'The agent cannot pay; it may issue invoices and cannot cancel one; only 2 operations are allowed at all.');
+  assert.match(validate(mercuryPolicy, { allow_invoicing: true, allowed_operations: ['accounts'] }).join('\n'), /"Issue and cancel invoices" is on/);
 });

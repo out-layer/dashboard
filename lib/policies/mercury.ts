@@ -123,6 +123,7 @@ export const mercuryPolicy: PolicySchema = {
           kind: 'toggle',
           help: 'Lets the agent save a payee from account and routing numbers it was given, and pay it. Off, it pays only payees already saved in Mercury by you.',
           absentMeans: 'Off: only payees already saved in Mercury.',
+          link: { key: 'allowed_operations', through: ['add_recipient', 'pay_invoice'], ticks: ['add_recipient'], onlyWith: ['add_recipient'] },
         },
       ],
     },
@@ -157,6 +158,7 @@ export const mercuryPolicy: PolicySchema = {
           kind: 'toggle',
           help: 'send_invoice creates a real Mercury invoice and Mercury emails it to the customer under your company’s name; cancel_invoice cannot be undone. Rendering an invoice document needs no switch.',
           absentMeans: 'Off: the agent can read invoices and render a document, and cannot send or cancel one.',
+          link: { key: 'allowed_operations', through: ['send_invoice', 'cancel_invoice'], ticks: ['send_invoice', 'cancel_invoice'], onlyWith: ['send_invoice', 'cancel_invoice'] },
         },
       ],
     },
@@ -170,6 +172,7 @@ export const mercuryPolicy: PolicySchema = {
           help: 'When anything is ticked, the agent may run only that — reads included — and status always answers. An operation added to the connector later is NOT included until you tick it.',
           absentMeans: 'Nothing ticked: every operation, subject to the rules above.',
           options: MERCURY_OPERATIONS,
+          emptyMeansAll: true,
           presets: [
             { label: 'Read only', values: reads },
             { label: 'Read, and pay saved payees', values: [...reads, 'pay_invoice'] },
@@ -213,8 +216,11 @@ export const mercuryPolicy: PolicySchema = {
     const rails = methods.length === 0 ? 'ACH' : joinAnd(methods.map((m) => MERCURY_METHODS.find((o) => o.value === m)?.label ?? m));
     const account = typeof value.account_id === 'string' && value.account_id.trim() ? ` from account ${value.account_id.trim()}` : '';
 
+    // A switch or an amount does something only when the operation it governs is allowed too.
+    const ops = list(value.allowed_operations);
+    const runs = (op: string) => ops.length === 0 || ops.includes(op);
     const parts: string[] = [];
-    if (perPayment !== undefined && perMonth !== undefined) {
+    if (perPayment !== undefined && perMonth !== undefined && runs('pay_invoice')) {
       const payees =
         pinned.length > 0
           ? `${pinned.length} pinned payee${pinned.length === 1 ? '' : 's'}`
@@ -225,8 +231,17 @@ export const mercuryPolicy: PolicySchema = {
     } else {
       parts.push('The agent cannot pay');
     }
-    parts.push(value.allow_invoicing === true ? 'it may issue and cancel invoices' : 'it cannot issue or cancel invoices');
-    const ops = list(value.allowed_operations);
+    const issue = value.allow_invoicing === true && runs('send_invoice');
+    const cancel = value.allow_invoicing === true && runs('cancel_invoice');
+    parts.push(
+      issue && cancel
+        ? 'it may issue and cancel invoices'
+        : issue
+          ? 'it may issue invoices and cannot cancel one'
+          : cancel
+            ? 'it may cancel invoices and cannot issue one'
+            : 'it cannot issue or cancel invoices',
+    );
     if (ops.length > 0) parts.push(`only ${ops.length} operation${ops.length === 1 ? '' : 's'} ${ops.length === 1 ? 'is' : 'are'} allowed at all`);
     return `${parts.join('; ')}.`;
   },

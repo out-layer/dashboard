@@ -55,6 +55,28 @@ export interface PolicyField {
   /** For choices: the vocabulary, and the selections offered as one click. */
   options?: Choice[];
   presets?: ChoicePreset[];
+  /** For choices: nothing ticked allows every choice, rather than none. */
+  emptyMeansAll?: boolean;
+  /** For toggles: the choices the switch acts through, when it qualifies operations rather than standing alone. */
+  link?: SwitchLink;
+}
+
+/**
+ * A switch that only means something through certain choices — "public gists"
+ * is a property of creating a gist, "approve" one of a review. Held as two
+ * fields they drift apart: the switch on and the operation it qualifies not
+ * ticked reads as allowed and does nothing. The editor keeps them together
+ * (`change` in `policy.ts`) and a stored policy that has them apart is flagged.
+ */
+export interface SwitchLink {
+  /** The choices field the switch is read together with. */
+  key: string;
+  /** Choices the switch acts through: with none of them allowed it changes nothing. */
+  through: string[];
+  /** What turning the switch on ticks when none of `through` is allowed. */
+  ticks: string[];
+  /** Choices that do nothing without the switch, so they and the switch are one decision: ticking one turns the switch on, turning the switch off unticks them. */
+  onlyWith?: string[];
 }
 
 export interface PolicyGroup {

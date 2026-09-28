@@ -9,7 +9,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { githubPolicy, GITHUB_ACTIONS, githubStartingPolicy, repoProblem, branchProblem, pathProblem } from '../lib/policies/github.ts';
-import { toJson, fromJson, validate, isUnrestricted, emptyValue } from '../lib/policies/policy.ts';
+import { toJson, fromJson, validate, isUnrestricted, emptyValue, change } from '../lib/policies/policy.ts';
 
 test('an empty policy allows nothing, and the editor says so', () => {
   assert.equal(toJson(githubPolicy, emptyValue()), '{}');
@@ -77,4 +77,33 @@ test('a first connection starts from work that cannot damage a repository', () =
   assert.deepEqual(githubStartingPolicy('alice', Array.from({ length: 30 }, (_, i) => `alice/r${i}`)).repos, ['alice/*']);
   // Nothing reachable and nobody known: no repository is guessed.
   assert.equal(githubStartingPolicy(null, []).repos, undefined);
+});
+
+// A switch qualifies an operation: "public gists" is a property of creating a
+// gist. Held apart, the switch reads as allowed and does nothing.
+test('a switch and the operation it qualifies move together', () => {
+  const on = change(githubPolicy, { actions: ['issue_get'] }, 'allow_public_gists', true);
+  assert.deepEqual(on.actions, ['issue_get', 'gist_create'], 'turning it on ticks create a gist, in the vocabulary’s order');
+  const off = change(githubPolicy, on, 'actions', ['issue_get']);
+  assert.equal(off.allow_public_gists, undefined, 'unticking create a gist turns the switch off');
+  assert.deepEqual(change(githubPolicy, on, 'allow_public_gists', undefined).actions, ['issue_get', 'gist_create'], 'secret gists stay allowed');
+  // A preset or clear that drops the operation drops the switch too.
+  assert.equal(change(githubPolicy, on, 'actions', ['repo_list']).allow_public_gists, undefined);
+  assert.equal(change(githubPolicy, on, 'actions', undefined).allow_public_gists, undefined);
+  assert.deepEqual(change(githubPolicy, {}, 'allow_approve', true).actions, ['pr_review']);
+  // Merge is one decision: the operation does nothing without the switch.
+  const merge = change(githubPolicy, { actions: ['pr_get'] }, 'actions', ['pr_get', 'pr_merge']);
+  assert.equal(merge.allow_merge, true, 'ticking merge turns its switch on');
+  assert.deepEqual(change(githubPolicy, merge, 'allow_merge', undefined).actions, ['pr_get'], 'and turning it off unticks merge');
+});
+
+test('a stored switch with nothing to act on is flagged, and the sentence does not claim it', () => {
+  const apart = { actions: ['issue_get'], repos: ['a/b'], allow_public_gists: true, allow_approve: true };
+  const errors = validate(githubPolicy, apart).join(' | ');
+  assert.match(errors, /"Public gists" is on, but "create a gist" is not ticked/);
+  assert.match(errors, /"Approve pull requests in your name" is on, but "review" is not ticked/);
+  assert.match(githubPolicy.summarize(apart), /never merge, approve and publish a gist/);
+  const together = { actions: ['gist_create'], max_writes_per_day: 5, allow_public_gists: true };
+  assert.deepEqual(validate(githubPolicy, together), []);
+  assert.match(githubPolicy.summarize(together), /never merge and approve,/);
 });

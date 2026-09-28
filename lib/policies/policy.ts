@@ -1,4 +1,4 @@
-import type { PolicyField, PolicySchema, PolicyValue } from './types';
+import type { PolicyField, PolicySchema, PolicyValue, SwitchLink } from './types';
 
 /** Every field of the schema, flat. */
 export function fields(schema: PolicySchema): PolicyField[] {
@@ -69,6 +69,61 @@ export function fromJson(
   return { value, unknownKeys };
 }
 
+function chosen(v: PolicyValue[string]): string[] {
+  return Array.isArray(v) ? v : [];
+}
+
+/** The toggles that act through a choices field, each with that field. */
+function links(schema: PolicySchema): { toggle: PolicyField; link: SwitchLink; choices: PolicyField }[] {
+  const all = fields(schema);
+  return all.flatMap((toggle) => {
+    const link = toggle.kind === 'toggle' ? toggle.link : undefined;
+    const choices = link && all.find((f) => f.key === link.key && f.kind === 'choices');
+    return link && choices ? [{ toggle, link, choices }] : [];
+  });
+}
+
+/** Whether `values` allows at least one of `wanted`, given what an empty field means. */
+function allowsAny(choices: PolicyField, values: string[], wanted: string[]): boolean {
+  if (values.length === 0) return choices.emptyMeansAll === true;
+  return wanted.some((w) => values.includes(w));
+}
+
+/**
+ * `value` with `key` set to `v`, and every switch kept in step with the choices
+ * it acts through (see `SwitchLink`):
+ *
+ * - a switch turned on while none of its operations is allowed ticks them;
+ * - a switch turned off unticks the operations that do nothing without it —
+ *   unless that would leave a field whose empty means "everything" empty;
+ * - an operation that does nothing without its switch, newly ticked, turns the
+ *   switch on;
+ * - choices that no longer allow any of a switch's operations (unticked, a
+ *   preset, cleared) turn the switch off.
+ */
+export function change(schema: PolicySchema, value: PolicyValue, key: string, v: PolicyValue[string]): PolicyValue {
+  const next: PolicyValue = { ...value, [key]: v };
+  for (const { toggle, link, choices } of links(schema)) {
+    const order = (choices.options ?? []).map((o) => o.value);
+    const now = chosen(next[link.key]);
+    const only = link.onlyWith ?? [];
+    if (key === toggle.key) {
+      if (v === true && !allowsAny(choices, now, link.through)) {
+        next[link.key] = order.filter((o) => now.includes(o) || link.ticks.includes(o));
+      } else if (v !== true && now.some((c) => only.includes(c))) {
+        const kept = now.filter((c) => !only.includes(c));
+        if (kept.length > 0) next[link.key] = kept;
+        else if (!choices.emptyMeansAll) next[link.key] = undefined;
+      }
+    } else if (key === link.key) {
+      const before = chosen(value[link.key]);
+      if (!allowsAny(choices, now, link.through)) next[toggle.key] = undefined;
+      else if (now.some((c) => only.includes(c) && !before.includes(c))) next[toggle.key] = true;
+    }
+  }
+  return next;
+}
+
 /** Everything wrong with a value, in the owner's words. Empty when it can be saved. */
 export function validate(schema: PolicySchema, value: PolicyValue): string[] {
   const errors: string[] = [];
@@ -88,6 +143,13 @@ export function validate(schema: PolicySchema, value: PolicyValue): string[] {
       const known = new Set((f.options ?? []).map((o) => o.value));
       for (const entry of v) if (!known.has(entry)) errors.push(`${f.label}: "${entry}" is not something this connector does`);
     }
+  }
+  for (const { toggle, link, choices } of links(schema)) {
+    if (value[toggle.key] !== true || allowsAny(choices, chosen(value[link.key]), link.through)) continue;
+    const names = link.through.map((c) => choices.options?.find((o) => o.value === c)?.label.replace(/ \(.*\)$/, '') ?? c);
+    errors.push(
+      `"${toggle.label}" is on, but ${names.map((n) => `"${n}"`).join(' or ')} is not ticked under ${choices.label} — the switch does nothing until it is`,
+    );
   }
   errors.push(...(schema.check?.(value) ?? []));
   return errors;

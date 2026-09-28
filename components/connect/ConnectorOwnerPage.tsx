@@ -304,7 +304,7 @@ function PasteForm({ paste, disabled, onContinue }: { paste: PasteSpec; disabled
   return (
     <div className="space-y-2">
       <label className="block text-sm">
-        <span>{paste.label}</span>
+        <span className="block">{paste.label}</span>
         <input
           type="password"
           autoComplete="off"
@@ -313,7 +313,7 @@ function PasteForm({ paste, disabled, onContinue }: { paste: PasteSpec; disabled
           placeholder={paste.placeholder}
           onChange={(e) => setValue(e.target.value)}
           disabled={disabled}
-          className="mt-1 w-full max-w-md rounded border border-gray-300 px-2 py-1 font-mono text-sm disabled:opacity-50"
+          className="mt-1.5 block w-full max-w-md rounded border border-gray-300 px-2 py-1 font-mono text-sm disabled:opacity-50"
         />
       </label>
       <div className="text-xs text-muted-foreground">{paste.help}</div>
@@ -1014,7 +1014,7 @@ export function ConnectorOwnerPage({ spec }: { spec: ConnectorSpec }) {
                   </div>
                 )}
                 <label className="block">
-                  <span className="text-xs text-muted-foreground">{knownAgents && knownAgents.length > 0 ? '…or another account' : 'The agent’s account'}</span>
+                  <span className="block text-xs text-muted-foreground">{knownAgents && knownAgents.length > 0 ? '…or another account' : 'The agent’s account'}</span>
                   <input
                     type="text"
                     autoComplete="off"
@@ -1023,7 +1023,7 @@ export function ConnectorOwnerPage({ spec }: { spec: ConnectorSpec }) {
                     placeholder="64 hex characters, as the agent reports it"
                     onChange={(e) => setGrantAgent(e.target.value)}
                     disabled={stage === 'storing'}
-                    className="mt-1 w-full max-w-xl rounded border border-gray-300 px-2 py-1 font-mono text-sm disabled:opacity-50"
+                    className="mt-1.5 block w-full max-w-xl rounded border border-gray-300 px-2 py-1 font-mono text-sm disabled:opacity-50"
                   />
                   {grantAgentProblem && <span className="mt-1 block text-xs text-red-600">{grantAgentProblem}</span>}
                 </label>

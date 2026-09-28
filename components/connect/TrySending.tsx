@@ -272,14 +272,14 @@ export function TrySending({
       )}
 
       <label className={how === 'key' ? 'block' : 'hidden'}>
-        <span className="text-xs font-medium text-foreground">Payment key</span>
+        <span className="block text-xs font-medium text-foreground">Payment key</span>
         <input
           type="password"
           // Not "off": browsers ignore that on a password field and offer to
           // SAVE it. This value is what they leave alone.
           autoComplete="one-time-code"
           spellCheck={false}
-          className="mt-1 w-full rounded-md border border-border bg-background px-3 py-2 font-mono text-sm"
+          className="mt-1.5 block w-full rounded-md border border-border bg-background px-3 py-2 font-mono text-sm"
           placeholder="owner:nonce:secret"
           value={paymentKey}
           onChange={(e) => setPaymentKey(e.target.value)}
@@ -293,10 +293,10 @@ export function TrySending({
 
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="block">
-          <span className="text-xs font-medium text-foreground">To</span>
+          <span className="block text-xs font-medium text-foreground">To</span>
           <input
             type="email"
-            className="mt-1 w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+            className="mt-1.5 block w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
             placeholder="your own address"
             value={to}
             onChange={(e) => setTo(e.target.value)}
@@ -309,19 +309,19 @@ export function TrySending({
           </span>
         </label>
         <label className="block">
-          <span className="text-xs font-medium text-foreground">Subject</span>
+          <span className="block text-xs font-medium text-foreground">Subject</span>
           <input
-            className="mt-1 w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+            className="mt-1.5 block w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
             value={subject}
             onChange={(e) => setSubject(e.target.value)}
           />
         </label>
       </div>
       <label className="block">
-        <span className="text-xs font-medium text-foreground">Message</span>
+        <span className="block text-xs font-medium text-foreground">Message</span>
         <textarea
           rows={3}
-          className="mt-1 w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+          className="mt-1.5 block w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
           value={body}
           onChange={(e) => setBody(e.target.value)}
         />

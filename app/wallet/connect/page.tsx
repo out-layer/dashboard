@@ -246,12 +246,12 @@ function Inner() {
       />
 
       <label className="mt-6 block">
-        <span className="text-sm text-muted">The agent&apos;s key (from the link it gave you)</span>
+        <span className="block text-sm text-muted">The agent&apos;s key (from the link it gave you)</span>
         <input
           value={apiKey}
           onChange={(e) => setApiKey(e.target.value.trim())}
           placeholder="wk_…"
-          className="mt-1 w-full rounded border border-card-border bg-card px-3 py-2 font-mono text-sm"
+          className="mt-1.5 block w-full rounded border border-card-border bg-card px-3 py-2 font-mono text-sm"
         />
       </label>
 

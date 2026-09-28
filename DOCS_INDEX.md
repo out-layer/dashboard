@@ -422,13 +422,21 @@ interface api {
     // Basic operations
     set: func(key: string, value: list<u8>) -> string;
     get: func(key: string) -> tuple<list<u8>, string>;
-    has: func(key: string) -> bool;
-    delete: func(key: string) -> bool;
+    // (exists, error) / (deleted, error): a failed storage call is an error, never "no"
+    has: func(key: string) -> tuple<bool, string>;
+    delete: func(key: string) -> tuple<bool, string>;
     list-keys: func(prefix: string) -> tuple<string, string>;
 
     // Conditional writes (atomic operations)
     set-if-absent: func(key: string, value: list<u8>) -> tuple<bool, string>;
     set-if-equals: func(key: string, expected: list<u8>, new-value: list<u8>) -> tuple<bool, list<u8>, string>;
+
+    // Raw records: bytes stored as given, no keystore on the path (sealed storage encrypts in the guest)
+    set-raw: func(key: string, value: list<u8>) -> string;
+    get-raw: func(key: string) -> tuple<list<u8>, string>;
+    set-if-absent-raw: func(key: string, value: list<u8>) -> tuple<bool, string>;
+    set-if-equals-raw: func(key: string, expected: list<u8>, new-value: list<u8>) -> tuple<bool, list<u8>, string>;
+
     increment: func(key: string, delta: s64) -> tuple<s64, string>;
     decrement: func(key: string, delta: s64) -> tuple<s64, string>;
 

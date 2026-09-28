@@ -3,6 +3,8 @@
 import React, { Suspense } from 'react';
 import { RequireWallet } from '@/components/ui/require-wallet';
 import { ConnectorOwnerPage, More, type ConnectorSpec } from '@/components/connect/ConnectorOwnerPage';
+import { VenueEligibility } from '@/components/connect/VenueEligibility';
+import { CONNECTORS } from '@/lib/connectors';
 import { hyperliquidPolicy } from '@/lib/policies/hyperliquid';
 
 /**
@@ -30,6 +32,9 @@ const spec: ConnectorSpec = {
   notConfigured: '',
   intro: (
     <>
+      <VenueEligibility entry={CONNECTORS.find((c) => c.id === 'hyperliquid')!}>
+        Storing this policy confirms that you, and the agent you grant, are allowed to trade on Hyperliquid.
+      </VenueEligibility>
       <p>
         Nothing to connect here: the agent trades from a key of its own wallet, and Hyperliquid sees an ordinary account. What you store
         is the fence around it. <strong>Without a policy the agent can read markets and positions, and place nothing.</strong> Orders

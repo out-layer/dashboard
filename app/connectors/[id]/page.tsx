@@ -15,6 +15,7 @@ import {
   type ConnectorLimit,
 } from '@/lib/api';
 import { CONNECTORS, skillUrl } from '@/lib/connectors';
+import { VenueEligibility } from '@/components/connect/VenueEligibility';
 import type { PolicySchema } from '@/lib/policies/types';
 import { gmailPolicy } from '@/lib/policies/gmail';
 import { githubPolicy } from '@/lib/policies/github';
@@ -173,6 +174,12 @@ export default function ConnectorPage() {
           </span>
         )}
       </div>
+
+      {entry.venueTerms && (
+        <div className="mb-4 max-w-3xl">
+          <VenueEligibility entry={entry} />
+        </div>
+      )}
 
       <div className="max-w-md">
         <SkillUrlBox url={skillUrl(entry.id)} compact label="Skill" />

@@ -8,6 +8,7 @@ import { SkillUrlBox } from '@/components/ui/skill-url-box';
 import { ExampleIcon } from '@/components/ui/example-icon';
 import { useNearWallet } from '@/contexts/NearWalletContext';
 import { CONNECTORS, CONNECTORS_LIBRARY_SKILL, skillUrl } from '@/lib/connectors';
+import { VenueEligibility } from '@/components/connect/VenueEligibility';
 
 /**
  * The connector library, for a person: what each connector lets an agent do,
@@ -82,6 +83,12 @@ export default function ConnectorsPage() {
 
                 {c.owner === 'policy' && (
                   <p className="mt-2 text-xs text-muted-foreground">No account to connect — the agent brings its own wallet; the policy is what turns trading on.</p>
+                )}
+
+                {c.venueTerms && (
+                  <div className="mt-2">
+                    <VenueEligibility entry={c} compact />
+                  </div>
                 )}
 
                 <div className="mt-auto flex flex-wrap items-center justify-between gap-3 pt-4">

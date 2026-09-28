@@ -26,7 +26,17 @@ export interface ConnectorEntry {
   networks: ('mainnet' | 'testnet')[];
   /** The card's glyph — a stroke icon, not the service's trademark. */
   icon: ExampleIconName;
+  /**
+   * A venue that restricts who may use it by residence or location: its own
+   * pages that say so. The pages render the eligibility notice with these
+   * links; the venue's pages are the source, never a list copied here.
+   */
+  venueTerms?: { label: string; href: string }[];
 }
+
+/** The eligibility notice shown with a connector that has `venueTerms`. */
+export const ELIGIBILITY_NOTICE =
+  'restricts who may use it by where they live, are located or are organised. OutLayer does not check your eligibility: you alone are responsible for being allowed to use it, for complying with the laws that apply to you, and for any loss.';
 
 export const SKILLS_BASE = 'https://skills.outlayer.ai';
 /** How any connector is called and paid — the skill every connector's skill leans on. */
@@ -76,6 +86,7 @@ export const CONNECTORS: ConnectorEntry[] = [
     owner: 'policy',
     networks: ['mainnet'],
     icon: 'candles',
+    venueTerms: [{ label: 'Hyperliquid Terms of Use', href: 'https://app.hyperliquid.xyz/terms' }],
   },
   {
     id: 'polymarket',
@@ -86,5 +97,9 @@ export const CONNECTORS: ConnectorEntry[] = [
     owner: 'policy',
     networks: ['mainnet'],
     icon: 'dice',
+    venueTerms: [
+      { label: 'Polymarket Terms of Use', href: 'https://polymarket.com/tos' },
+      { label: 'restricted jurisdictions', href: 'https://docs.polymarket.com/api-reference/geoblock' },
+    ],
   },
 ];

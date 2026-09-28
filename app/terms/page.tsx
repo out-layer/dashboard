@@ -6,8 +6,9 @@ export const metadata: Metadata = {
   description: 'The terms that govern the use of OutLayer.',
 };
 
-const EFFECTIVE = '11 September 2026';
+const EFFECTIVE = '28 September 2026';
 const CONTACT = 'security@outlayer.ai';
+const COMPLAINTS = 'complaints@outlayer.ai';
 
 function Section({ id, title, children }: { id: string; title: string; children: React.ReactNode }) {
   return (
@@ -40,7 +41,9 @@ export default function TermsPage() {
             You must be at least 18 years old and able to form a binding contract. You may not use the Services
             if you are located in, or a resident of, a jurisdiction subject to comprehensive sanctions, or if you
             are a person with whom dealings are prohibited under applicable sanctions laws. You are responsible
-            for complying with the laws that apply to you.
+            for complying with the laws that apply to you. Third-party services reached through the Services set
+            their own eligibility rules, which may exclude you where these Terms do not; see{' '}
+            <a href="#third-party">Third-party services and venues</a>.
           </p>
         </Section>
 
@@ -49,6 +52,23 @@ export default function TermsPage() {
             The Services provide verifiable computation and custody tools for software agents, including
             priced integrations with third-party services. The Services are under active development and may
             change, be suspended or be discontinued at any time, in whole or in part, without notice.
+          </p>
+        </Section>
+
+        <Section id="projects" title="Projects published by others">
+          <p>
+            Anyone can publish a project &mdash; code that runs on OutLayer &mdash; and anyone can call a published
+            project, including through an agent. We do not write, review, audit or endorse projects published by
+            others, and we do not control what they do. A project may be defective, may not do what its
+            description says, and may contain malicious code, including code designed to take funds, collect data,
+            misuse the secrets or permissions you give it, or harm other systems. An attestation shows which code
+            ran; it does not show that the code is safe, honest or lawful.
+          </p>
+          <p>
+            Before you call a project, give it a secret, fund it or let an agent use it, satisfy yourself that you
+            trust it. You use projects published by others at your own risk. We are not responsible for them, for
+            their output or for any loss they cause. The person who publishes a project is responsible for it,
+            including for its compliance with the law and with these Terms.
           </p>
         </Section>
 
@@ -78,18 +98,39 @@ export default function TermsPage() {
               access any service, market or product you are not permitted to use in your jurisdiction, or evade
               restrictions that apply to you;
             </li>
+            <li>publish or distribute malicious code, or a project designed to deceive the people who use it;</li>
             <li>interfere with, disrupt, attack or probe the Services or other users without authorisation; or</li>
             <li>breach the terms of any third-party service you connect.</li>
           </ul>
           <p>We may investigate and take action, including suspending access, for violations of these Terms.</p>
         </Section>
 
-        <Section id="third-party" title="Third-party services">
+        <Section id="third-party" title="Third-party services and venues">
           <p>
             The Services may interact with third-party services, including email providers, financial
             institutions, blockchains and trading venues. Your use of them is governed by their own terms. We do
             not control and are not responsible for third-party services, their availability, their actions or
             any losses they cause.
+          </p>
+          <p>
+            Connectors act on third-party services on your instructions and within the policy you set &mdash;
+            among them email and code-hosting providers, a business banking provider, a perpetual futures venue
+            and a prediction market. Each service decides who may use it, and some prohibit use by persons who
+            reside in, are located in or are organised in particular countries or regions, or by anyone acting for
+            them. You alone are responsible for determining whether you, and any agent acting for you, may use a
+            service, and whether that use is lawful where you are, and for complying with that service&apos;s
+            terms and with the laws that apply to you. We do not check your eligibility. That a connector is
+            offered, or that a service accepts a request, does not mean your use is permitted.
+          </p>
+          <p>
+            By connecting an account, or by storing a policy that lets an agent act on a third-party service, you
+            confirm that you and that agent are permitted to use that service.
+          </p>
+          <p>
+            Any trade, position, payment, message or other action taken through a connector is taken at your own
+            risk. We are not a party to it, and we are not responsible for a service&apos;s decisions, including
+            refusing, reversing or restricting a transaction or an account, for funds held on a third-party
+            service, or for the consequences of your use of it.
           </p>
         </Section>
 
@@ -102,10 +143,21 @@ export default function TermsPage() {
 
         <Section id="no-advice" title="No advice; risks">
           <p>
-            Nothing in the Services is financial, investment, legal or tax advice. Digital assets, trading and
-            prediction markets involve significant risk, including the loss of all funds. Software, smart
+            Nothing in the Services is financial, investment, legal or tax advice. Digital assets, trading
+            &mdash; leveraged trading of perpetual futures in particular &mdash; and prediction markets involve
+            significant risk, including the loss of all funds. Software, smart
             contracts, cryptographic systems and third-party services may contain errors or be compromised. You
             use the Services at your own risk.
+          </p>
+        </Section>
+
+        <Section id="complaints" title="Reporting abuse">
+          <p>
+            To report a project, a connector, an agent or any use of the Services that you believe is malicious,
+            unlawful or infringes your rights, write to <a href={`mailto:${COMPLAINTS}`}>{COMPLAINTS}</a>. Say
+            what you are reporting &mdash; for example a project identifier, an account or a transaction &mdash;
+            why, and how to reach you. We review reports and may act on them, including by suspending access to a
+            project or an account. We are not obliged to monitor the Services or to act on any particular report.
           </p>
         </Section>
 
@@ -165,7 +217,8 @@ export default function TermsPage() {
 
         <Section id="contact" title="Contact">
           <p>
-            Questions about these Terms: <a href={`mailto:${CONTACT}`}>{CONTACT}</a>.
+            Questions about these Terms: <a href={`mailto:${CONTACT}`}>{CONTACT}</a>. Reports of abuse:{' '}
+            <a href={`mailto:${COMPLAINTS}`}>{COMPLAINTS}</a>.
           </p>
         </Section>
       </div>

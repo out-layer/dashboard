@@ -35,6 +35,11 @@ import { mercuryPolicy, mercuryStartingPolicy } from '@/lib/policies/mercury';
  * **Mercury deletes a token unused for 45 days.** The connector's `status` is
  * a use; the connected view says so where the owner reads what to do next.
  *
+ * **A sandbox token is a policy switch, nothing more.** Mercury's sandbox is a
+ * separate organisation with its own tokens; `sandbox` in the policy sends the
+ * connector's calls to the sandbox API and changes nothing else. It is off by
+ * default and explained in one collapsed note.
+ *
  * **`inspect` asks Mercury which accounts the token reaches**, from the owner's
  * own browser to Mercury and nowhere else, and pins the account in the starting
  * policy when there is exactly one — with several, payments are refused until
@@ -49,6 +54,7 @@ const PROJECTS = {
 } as const;
 
 const MERCURY_API = 'https://api.mercury.com/api/v1';
+const MERCURY_SANDBOX_API = 'https://api-sandbox.mercury.com/api/v1';
 const TOKEN_PREFIX = 'secret-token:';
 
 interface MercuryAccount {
@@ -60,29 +66,47 @@ interface MercuryAccount {
   status?: string;
 }
 
-/** What the token reaches, asked of Mercury from this browser (rule 17: uncached). */
-async function inspect(token: string): Promise<CredentialView | null> {
-  const response = await fetch(`${MERCURY_API}/accounts`, {
+async function accountsAt(base: string, token: string): Promise<MercuryAccount[] | null> {
+  const response = await fetch(`${base}/accounts`, {
     headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
     cache: 'no-store',
   });
   if (!response.ok) return null;
   const body = (await response.json()) as { accounts?: MercuryAccount[] };
-  const accounts = Array.isArray(body.accounts) ? body.accounts : [];
+  return Array.isArray(body.accounts) ? body.accounts : [];
+}
+
+/**
+ * What the token reaches, asked of Mercury from this browser (rule 17: uncached).
+ * Production first; a token production does not know is asked of the sandbox,
+ * and one the sandbox accepts starts with the policy's sandbox switch on.
+ */
+async function inspect(token: string): Promise<CredentialView | null> {
+  let sandbox = false;
+  let accounts = await accountsAt(MERCURY_API, token).catch(() => null);
+  if (accounts === null) {
+    accounts = await accountsAt(MERCURY_SANDBOX_API, token).catch(() => null);
+    sandbox = accounts !== null;
+  }
+  if (accounts === null) return null;
+  const where = sandbox ? 'This is a sandbox token: no real money moves, and the policy below has "Sandbox token" ticked. ' : '';
   if (accounts.length === 0) {
-    return { label: 'The token works, but reaches no account. Reads will answer; no payment can run.' };
+    return {
+      label: `${where}The token works, but reaches no account. Reads will answer; no payment can run.`,
+      starting: mercuryStartingPolicy(null, sandbox),
+    };
   }
   const business = accounts.find((a) => a.legalBusinessName)?.legalBusinessName;
   const one = accounts.length === 1 ? accounts[0] : null;
   return {
     label: one
-      ? `The token reaches one account${business ? ` of ${business}` : ''}; the policy below pins it.`
-      : `The token reaches ${accounts.length} accounts${business ? ` of ${business}` : ''}. Payments are refused until one is named under "Account" below.`,
+      ? `${where}The token reaches one account${business ? ` of ${business}` : ''}; the policy below pins it.`
+      : `${where}The token reaches ${accounts.length} accounts${business ? ` of ${business}` : ''}. Payments are refused until one is named under "Account" below.`,
     list: {
       heading: 'Accounts:',
       values: accounts.map((a) => `${a.nickname || a.name || 'account'} · ${a.id}`),
     },
-    starting: mercuryStartingPolicy(one ? one.id : null),
+    starting: mercuryStartingPolicy(one ? one.id : null, sandbox),
   };
 }
 
@@ -157,6 +181,18 @@ const spec: ConnectorSpec = {
           token&apos;s own user as a required approver, or Mercury refuses the request at once.
         </p>
       </More>
+      <More label="Test in the sandbox, without real money">
+        <p>
+          Mercury has a test bank at <strong>sandbox.mercury.com</strong>: a separate sign-up, its own users and tokens, simulated
+          money. Create the token there the same way, paste it here, and tick <strong>Sandbox token</strong> in the policy. The
+          connector then calls Mercury&apos;s sandbox API; everything else — your limits, the payees, the approvals — works as it
+          does with a real account.
+        </p>
+        <p>
+          A sandbox token works only with the switch on, and a production token only with it off; Mercury answers the wrong pair
+          with 401. To move from testing to the real account, replace the token and untick the switch.
+        </p>
+      </More>
       <More label="What the connector can never do">
         <p>
           Reach any host but Mercury&apos;s API — the allowlist is fixed inside the module. Show anyone the token, you included, once it
@@ -201,7 +237,8 @@ const spec: ConnectorSpec = {
       values.push(`$${budget.spent_or_pending_usd ?? 0} spent or queued in the last 30 days`);
       values.push(`$${budget.remaining_usd ?? 0} left of $${budget.monthly_limit_usd}`);
     }
-    const reach = count === null ? 'The token works.' : `The token works and reaches ${count === 1 ? 'one account' : `${count} accounts`}.`;
+    const works = count === null ? 'The token works.' : `The token works and reaches ${count === 1 ? 'one account' : `${count} accounts`}.`;
+    const reach = output.sandbox === true ? `Mercury sandbox — no real money moves. ${works}` : works;
     return { list: { heading: values.length > 0 ? `${reach} Budget:` : reach, values } };
   },
 

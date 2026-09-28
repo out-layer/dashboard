@@ -63,6 +63,7 @@ test('what the connector reports — nulls for absent fields, present for the ro
     allow_new_recipients: false,
     allow_invoicing: false,
     account_id: null,
+    sandbox: false,
   };
   const { value, unknownKeys } = fromJson(mercuryPolicy, reported);
   assert.ok(isUnrestricted(value));
@@ -105,6 +106,17 @@ test('the starting policy spends nothing and pins the one account it was given',
   assert.deepEqual(mercuryStartingPolicy(null), {});
   assert.deepEqual(mercuryStartingPolicy('acc-1'), { account_id: 'acc-1' });
   assert.equal(toJson(mercuryPolicy, mercuryStartingPolicy('acc-1')), '{"account_id":"acc-1"}');
+});
+
+test('the sandbox switch is off unless ticked, reaches the JSON only when on, and the sentence says no real money moves', () => {
+  assert.equal(toJson(mercuryPolicy, { sandbox: false }), '{}');
+  assert.equal(toJson(mercuryPolicy, { sandbox: true }), '{"sandbox":true}');
+  assert.deepEqual(fromJson(mercuryPolicy, '{"sandbox":true}').value.sandbox, true);
+  assert.deepEqual(validate(mercuryPolicy, { sandbox: true, max_payment_usd: 50, max_spend_usd_month: 100 }), []);
+  assert.match(mercuryPolicy.summarize({ sandbox: true }), /^Mercury sandbox — no real money moves\. The agent cannot pay/);
+  assert.doesNotMatch(mercuryPolicy.summarize({ max_payment_usd: 50, max_spend_usd_month: 100 }), /sandbox/i);
+  assert.deepEqual(mercuryStartingPolicy('acc-1', true), { account_id: 'acc-1', sandbox: true });
+  assert.deepEqual(mercuryStartingPolicy(null, true), { sandbox: true });
 });
 
 // Nothing ticked under Operations means EVERY operation, so a switch never

@@ -160,6 +160,13 @@ export const mercuryPolicy: PolicySchema = {
           absentMeans: 'Off: the agent can read invoices and render a document, and cannot send or cancel one.',
           link: { key: 'allowed_operations', through: ['send_invoice', 'cancel_invoice'], ticks: ['send_invoice', 'cancel_invoice'], onlyWith: ['send_invoice', 'cancel_invoice'] },
         },
+        {
+          key: 'sandbox',
+          label: 'Sandbox token',
+          kind: 'toggle',
+          help: 'Tick it when the token was created at sandbox.mercury.com — Mercury’s test bank, with its own login and simulated money. Calls then go to Mercury’s sandbox API. Nothing else changes: the limits above are checked the same way. A token and this switch that disagree are answered by Mercury with 401.',
+          absentMeans: 'Off: the token is a production one, and payments move real money.',
+        },
       ],
     },
     {
@@ -243,16 +250,18 @@ export const mercuryPolicy: PolicySchema = {
             : 'it cannot issue or cancel invoices',
     );
     if (ops.length > 0) parts.push(`only ${ops.length} operation${ops.length === 1 ? '' : 's'} ${ops.length === 1 ? 'is' : 'are'} allowed at all`);
-    return `${parts.join('; ')}.`;
+    const sentence = `${parts.join('; ')}.`;
+    return value.sandbox === true ? `Mercury sandbox — no real money moves. ${sentence}` : sentence;
   },
 };
 
 /**
  * Where a first connection starts: nothing spent, the account pinned when the
  * token reaches exactly one — so the owner sees what they are about to allow
- * before they allow anything. A starting point the owner edits, never a default
- * applied behind them.
+ * before they allow anything. A token that Mercury's sandbox accepted starts
+ * with the sandbox switch on, since it works nowhere else. A starting point the
+ * owner edits, never a default applied behind them.
  */
-export function mercuryStartingPolicy(accountId: string | null): PolicyValue {
-  return accountId ? { account_id: accountId } : {};
+export function mercuryStartingPolicy(accountId: string | null, sandbox = false): PolicyValue {
+  return { ...(accountId ? { account_id: accountId } : {}), ...(sandbox ? { sandbox: true } : {}) };
 }

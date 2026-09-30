@@ -397,8 +397,8 @@ export default function EncryptionKeysDocsPage() {
               field.
             </li>
             <li>
-              <strong>At most 3 encryption keys</strong>, counted apart from signing keys: a manifest may
-              declare 3 of each. A key with an unknown field is refused, not read with the field dropped; a{' '}
+              <strong>At most 5 encryption keys</strong>, counted apart from signing keys: a manifest may
+              declare 3 signing keys and 5 encryption keys. A key with an unknown field is refused, not read with the field dropped; a{' '}
               <C>bind</C> or <C>caller</C> value outside its list is refused the same way.
             </li>
             <li>

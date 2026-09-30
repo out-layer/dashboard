@@ -27,6 +27,9 @@ interface AttestationViewProps {
   showHelp?: boolean;
   onToggleHelp?: () => void;
   isModal?: boolean;
+  /** What the run was asked, when the opener holds it: checked against the
+   *  attested `input_hash` on arrival, as an input carried in the link is. */
+  knownInput?: string;
   /** What the run answered, when the opener holds it: checked against the
    *  attested hash on arrival, as an output carried in the link is. */
   knownOutput?: string;
@@ -39,6 +42,7 @@ export default function AttestationView({
   showHelp = false,
   onToggleHelp,
   isModal = false,
+  knownInput,
   knownOutput,
 }: AttestationViewProps) {
   // Validation states
@@ -88,7 +92,7 @@ export default function AttestationView({
         return '';
       }
     };
-    const inputData = decode(q.get('input'));
+    const inputData = knownInput ?? decode(q.get('input'));
     const outputData = knownOutput ?? decode(q.get('output'));
     if (!inputData && !outputData) return;
     (async () => {
@@ -111,7 +115,7 @@ export default function AttestationView({
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [attestation.task_id, knownOutput]);
+  }, [attestation.task_id, knownInput, knownOutput]);
 
   // Helper functions
   const formatRtmr3 = (rtmr3: string): string => {

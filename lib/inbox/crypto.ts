@@ -350,6 +350,8 @@ export type Listed = {
 
 export type Read = {
   envelope: Envelope;
+  /** The envelope's document as it opened: the exact text whose UTF-8 bytes `hash` is of. */
+  document: string;
   hash: string;
   /** The task's content key, in this page's memory only: what opens its files. */
   contentKey: Uint8Array;
@@ -364,9 +366,11 @@ export async function readTask(device: Device, task: Listed, owner: string): Pro
   if (task.device_copy === null || task.content === null) throw new Error('the task is locked in this browser');
   const contentKey = await openFrom(device, 'device-copy', task.id, fromBase64(task.device_copy));
   const document = await openContent(contentKey, task.id, fromBase64(task.content));
+  let text: string;
   let envelope: unknown;
   try {
-    envelope = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(document));
+    text = new TextDecoder('utf-8', { fatal: true }).decode(document);
+    envelope = JSON.parse(text);
   } catch {
     throw new Error('what opened is not a task');
   }
@@ -378,7 +382,7 @@ export async function readTask(device: Device, task: Listed, owner: string): Pro
     envelope.preparer === task.preparer;
   if (!same) throw new Error('the task that opened is not the task listed');
   const hash = toHex(new Uint8Array(await subtle().digest('SHA-256', document as BufferSource)));
-  return { envelope, hash, contentKey };
+  return { envelope, document: text, hash, contentKey };
 }
 
 /** What the owner supplies with an answer, or the reason of a rejection. */

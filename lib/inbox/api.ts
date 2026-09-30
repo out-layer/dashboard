@@ -257,12 +257,16 @@ export async function taskFile(base: string, token: string, id: string, at: numb
   return answer.ciphertext;
 }
 
-/** The run that made a task of the owner's, and what it answered. */
+/**
+ * The run that made a task of the owner's: what it was asked (`input`, the
+ * bytes whose SHA-256 is the attestation's `input_hash`; `null` for a run on
+ * chain, asked in its transaction) and what it answered.
+ */
 export function taskOrigin(
   base: string,
   token: string,
   id: string,
-): Promise<{ run: string; door: 'https' | 'chain'; call_id?: string; request_id?: number; output: string | null }> {
+): Promise<{ run: string; door: 'https' | 'chain'; call_id?: string; request_id?: number; input: string | null; output: string | null }> {
   return ask(base, `/inbox/tasks/${encodeURIComponent(id)}/origin`, { token });
 }
 

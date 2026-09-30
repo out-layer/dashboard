@@ -127,6 +127,9 @@ test('a task is read whole, and the hash is of the bytes that opened', async () 
   const read = await readTask(device, await listed(device, document), 'owner.near');
   assert.equal(read.envelope.display.title, 'Send an email');
   assert.equal(read.hash, toHex(new Uint8Array(await subtle.digest('SHA-256', document))));
+  // The document is held as it opened: its bytes, and no re-serialization, are what the hash is of.
+  assert.equal(read.document, new TextDecoder().decode(document));
+  assert.equal(toHex(new Uint8Array(await subtle.digest('SHA-256', new TextEncoder().encode(read.document)))), read.hash);
   const changed = await readTask(
     device,
     await listed(device, bytes(envelope({ display: { title: 'Send an email', fields: [{ kind: 'address', label: 'To', values: ['bob@example.con'], written_by: 'agent' }] } }))),

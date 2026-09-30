@@ -1,14 +1,17 @@
 /**
  * The proof that a task was made by a published build of its project.
  *
- * Four facts, each held by somebody else than the platform's database:
+ * Five facts, each held by somebody else than the platform's database:
  *
  *   1. the attestation of the run that made the task is a quote Intel signed,
  *      from an enclave whose measurements are approved on chain, and it
  *      commits to the fields it is published with (`lib/attestation-verify`);
  *   2. the build that ran is a version of the task's project on the contract;
- *   3. what the run answered hashes to the attestation's `output_hash`;
- *   4. that answer names this task and the hash of what this page opened.
+ *   3. what the run was asked hashes to the attestation's `input_hash`, when
+ *      the API keeps it (a run on chain is asked in its transaction, which
+ *      the attestation window reads);
+ *   4. what the run answered hashes to the attestation's `output_hash`;
+ *   5. that answer names this task and the hash of what this page opened.
  *
  * So what is shown is what a published build of the project made, and not
  * something written into the store. The steps are reported one by one: a step
@@ -22,12 +25,15 @@ export type Origin = {
   door: 'https' | 'chain';
   call_id?: string;
   request_id?: number;
+  /** What the run was asked, as the exact bytes; `null` for a run on chain, whose input is in its transaction. */
+  input: string | null;
   output: string | null;
 };
 
 /** What the proof reads of an attestation. */
 export type Attested = {
   task_id: number;
+  input_hash?: string;
   output_hash: string;
   project_id?: string;
   executed_wasm_sha256?: string;
@@ -45,7 +51,7 @@ export type Verified = {
   binding: { ok: boolean; checked: boolean };
 };
 
-export type StepName = 'attestation' | 'enclave' | 'run' | 'build' | 'answer' | 'task';
+export type StepName = 'attestation' | 'enclave' | 'run' | 'build' | 'input' | 'answer' | 'task';
 
 export type Step = {
   name: StepName;
@@ -61,6 +67,8 @@ export type Proof<A extends Attested = Attested> = {
   unchecked: boolean;
   steps: Step[];
   attestation: A | null;
+  /** What the run was asked, when the API keeps it. */
+  input: string | null;
   /** The run's answer, when it was read. */
   output: string | null;
 };
@@ -120,11 +128,14 @@ export const ONCE_READABLE = 'Checked once the task is readable in this browser.
  */
 export async function prove<A extends Attested>(task: Task, hash: string | null, deps: Deps<A>): Promise<Proof<A>> {
   const steps: Step[] = [];
-  const done = (attestation: A | null, output: string | null): Proof<A> => ({
-    holds: steps.length === 6 && steps.every((s) => s.ok === true),
-    unchecked: !steps.some((s) => s.ok === false) && (steps.some((s) => s.ok === null) || steps.length < 6),
+  /** The last step is the task's; a proof that stopped short of it is not whole. */
+  const whole = () => steps.at(-1)?.name === 'task';
+  const done = (attestation: A | null, input: string | null, output: string | null): Proof<A> => ({
+    holds: whole() && steps.every((s) => s.ok === true),
+    unchecked: !steps.some((s) => s.ok === false) && (steps.some((s) => s.ok === null) || !whole()),
     steps,
     attestation,
+    input,
     output,
   });
 
@@ -135,11 +146,12 @@ export async function prove<A extends Attested>(task: Task, hash: string | null,
     attestation = await deps.attestation(origin);
   } catch (e) {
     steps.push({ name: 'attestation', ok: null, said: `The run's attestation could not be read: ${message(e)}` });
-    return done(null, null);
+    return done(null, null, null);
   }
+  const input = typeof origin.input === 'string' ? origin.input : null;
   if (!attestation) {
     steps.push({ name: 'attestation', ok: false, said: `The run ${origin.run} that made this task has no attestation.` });
-    return done(null, origin.output);
+    return done(null, input, origin.output);
   }
   steps.push({ name: 'attestation', ok: true, said: `The run ${origin.run} is attested.` });
 
@@ -200,18 +212,33 @@ export async function prove<A extends Attested>(task: Task, hash: string | null,
     }
   }
 
+  // A run on chain carries no input here: it is in the transaction, which the
+  // attestation window reads. Only an input the API keeps is held.
+  if (input !== null) {
+    if (!attestation.input_hash) {
+      steps.push({ name: 'input', ok: false, said: 'The attestation does not name the hash of what the run was asked.' });
+    } else {
+      const asked = (await deps.sha256(input)) === attestation.input_hash;
+      steps.push({
+        name: 'input',
+        ok: asked,
+        said: asked ? "The run's input hashes to the attested input_hash." : "The run's input does not hash to the attested input_hash.",
+      });
+    }
+  }
+
   let output = origin.output;
   if (output === null && origin.door === 'chain') {
     try {
       output = await deps.chainOutput(attestation);
     } catch (e) {
       steps.push({ name: 'answer', ok: null, said: `The run's transaction could not be read: ${message(e)}` });
-      return done(attestation, null);
+      return done(attestation, input, null);
     }
   }
   if (output === null) {
     steps.push({ name: 'answer', ok: false, said: 'What the run answered is not kept, so it cannot be held to the attestation.' });
-    return done(attestation, null);
+    return done(attestation, input, null);
   }
   const answered = (await deps.sha256(output)) === attestation.output_hash;
   steps.push({
@@ -222,7 +249,7 @@ export async function prove<A extends Attested>(task: Task, hash: string | null,
 
   if (hash === null) {
     steps.push({ name: 'task', ok: null, said: ONCE_READABLE });
-    return done(attestation, output);
+    return done(attestation, input, output);
   }
   const named = namesTask(output, task.id, hash);
   steps.push({
@@ -232,7 +259,7 @@ export async function prove<A extends Attested>(task: Task, hash: string | null,
       ? 'That answer names this task, with the hash of exactly what is shown here.'
       : 'That answer does not name this task with the hash of what is shown here.',
   });
-  return done(attestation, output);
+  return done(attestation, input, output);
 }
 
 /** The proof in one line. */
@@ -242,7 +269,7 @@ export function verdict(proof: Proof): string {
   if (failed) return `The proof does not hold. ${failed.said}`;
   const unread = proof.steps.find((s) => s.ok === null);
   // Every step but the last holds, and the last waits for the task to be readable here.
-  if (unread?.said === ONCE_READABLE && proof.steps.length === 6 && proof.steps.filter((s) => s.ok === true).length === 5) {
+  if (unread?.said === ONCE_READABLE && proof.steps.at(-1) === unread && proof.steps.filter((s) => s.ok === true).length === proof.steps.length - 1) {
     return 'Made by a published build of the project, in an approved enclave. Whether it is this task is checked once the task is readable in this browser.';
   }
   return `The proof could not be checked. ${unread?.said ?? ''}`.trim();

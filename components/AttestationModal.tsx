@@ -18,6 +18,7 @@ export default function AttestationModal({
   loading = false,
   error = null,
   network,
+  knownInput,
   knownOutput,
   onClose,
 }: {
@@ -28,6 +29,8 @@ export default function AttestationModal({
   loading?: boolean;
   error?: string | null;
   network: NetworkType;
+  /** What the run was asked, when the opener holds it: the view checks it against the attested `input_hash`. */
+  knownInput?: string;
   /** What the run answered, when the opener holds it: the view checks it against the attested hash. */
   knownOutput?: string;
   onClose: () => void;
@@ -80,6 +83,7 @@ export default function AttestationModal({
               showHelp={showHelp}
               onToggleHelp={() => setShowHelp(!showHelp)}
               isModal={true}
+              knownInput={knownInput}
               knownOutput={knownOutput}
             />
           )}

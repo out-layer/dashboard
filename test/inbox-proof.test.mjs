@@ -31,7 +31,7 @@ async function world(over = {}) {
   return {
     asked,
     deps: {
-      origin: async () => ({ run: CALL, door: 'https', call_id: CALL, output: OUTPUT, ...over.origin }),
+      origin: async () => ({ run: CALL, door: 'https', call_id: CALL, input: null, output: OUTPUT, ...over.origin }),
       attestation: async () => ('none' in over ? null : attestation),
       verify: async () => ({
         authenticity: { ok: true, status: 'UpToDate' },
@@ -306,7 +306,7 @@ test('a run on chain made by another account is not the run of the task', async 
 });
 
 test('a proof with nothing in it is not a proof', () => {
-  assert.equal(verdict({ holds: false, unchecked: true, steps: [], attestation: null, output: null }), 'The proof could not be checked.');
+  assert.equal(verdict({ holds: false, unchecked: true, steps: [], attestation: null, input: null, output: null }), 'The proof could not be checked.');
 });
 
 test('a task not readable in this browser is proven up to its hash, which waits', async () => {
@@ -347,4 +347,67 @@ test('a task names the build that made it, and an attestation of another build i
   // Not open on this device yet: the build is not held, the rest is.
   const unread = await prove({ ...TASK, build: null }, HASH, (await world()).deps);
   assert.equal(unread.steps.find((s) => s.name === 'build').ok, true);
+});
+
+test('what the run was asked is held to the attested input hash, and carried', async () => {
+  const INPUT = JSON.stringify({ operation: 'send', to: 'bob@example.com' });
+  const asked = await world({ origin: { input: INPUT }, attestation: { input_hash: await sha256(INPUT) } });
+  const proof = await prove(TASK, HASH, asked.deps);
+  assert.equal(proof.holds, true);
+  assert.deepEqual(proof.steps.map((s) => [s.name, s.ok]), [
+    ['attestation', true], ['enclave', true], ['run', true], ['build', true], ['input', true], ['answer', true], ['task', true],
+  ]);
+  assert.equal(proof.steps[4].said, "The run's input hashes to the attested input_hash.");
+  assert.equal(proof.input, INPUT, 'what the run was asked is carried');
+  assert.equal(proof.output, OUTPUT);
+  assert.equal(verdict(proof), 'Made by a published build of the project, in an approved enclave.');
+
+  const other = await world({ origin: { input: INPUT }, attestation: { input_hash: '00'.repeat(32) } });
+  const wrong = await prove(TASK, HASH, other.deps);
+  assert.equal(wrong.holds, false);
+  assert.deepEqual(failed(wrong), ['input']);
+  assert.equal(wrong.steps[4].said, "The run's input does not hash to the attested input_hash.");
+  assert.equal(wrong.input, INPUT, 'carried all the same');
+  assert.match(verdict(wrong), /^The proof does not hold\. The run's input does not hash/);
+
+  const unnamed = await world({ origin: { input: INPUT }, attestation: { input_hash: undefined } });
+  const nameless = await prove(TASK, HASH, unnamed.deps);
+  assert.deepEqual(failed(nameless), ['input']);
+  assert.match(nameless.steps[4].said, /does not name the hash of what the run was asked/);
+
+  // The input is carried even where the proof stops short of its step.
+  const none = await world({ none: true, origin: { input: INPUT } });
+  const without = await prove(TASK, HASH, none.deps);
+  assert.deepEqual(without.steps.map((s) => s.name), ['attestation']);
+  assert.equal(without.input, INPUT);
+  const down = await world({ deps: { origin: async () => { throw new Error('the API did not answer'); } } });
+  assert.equal((await prove(TASK, HASH, down.deps)).input, null);
+});
+
+test('a run asked on chain has no input step: its input is in the transaction', async () => {
+  const chain = {
+    origin: { door: 'chain', run: 'req-7', call_id: undefined, request_id: 7, input: null, output: OUTPUT },
+    attestation: { call_id: undefined, payment_key_owner: undefined, request_id: 7, caller_account_id: 'agent.near', input_hash: 'ab'.repeat(32) },
+  };
+  const { deps } = await world(chain);
+  const proof = await prove(TASK, HASH, deps);
+  assert.deepEqual(proof.steps.map((s) => s.name), ['attestation', 'enclave', 'run', 'build', 'answer', 'task']);
+  assert.equal(proof.input, null);
+  assert.equal(proof.holds, true);
+  // An origin without the field at all is read the same way.
+  const older = await world({ origin: { input: undefined } });
+  const read = await prove(TASK, HASH, older.deps);
+  assert.ok(!read.steps.some((s) => s.name === 'input'));
+  assert.equal(read.input, null);
+  assert.equal(read.holds, true);
+});
+
+test('with the input step the task that waits is still the one step that waits', async () => {
+  const INPUT = '{"x":1}';
+  const { deps } = await world({ origin: { input: INPUT }, attestation: { input_hash: await sha256(INPUT) } });
+  const proof = await prove({ ...TASK, build: null }, null, deps);
+  assert.equal(proof.steps.length, 7);
+  assert.deepEqual(unread(proof), ['task']);
+  assert.match(verdict(proof), /Whether it is this task is checked once the task is readable in this browser\.$/);
+  assert.equal(proof.input, INPUT);
 });

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { answerInput, callOf, readAnswer, unlockCall, waits } from '../lib/inbox/act.ts';
+import { answerInput, asks, callOf, closedHeading, made, madeBy, readAnswer, unlockCall, waits } from '../lib/inbox/act.ts';
 
 const envelope = { id: 'run-0', answer_by: { operation: 'confirm', supplies: 'nothing' } };
 const outcome = (value) => ({ status: { SuccessValue: btoa(typeof value === 'string' ? value : JSON.stringify(value)) } });
@@ -52,6 +52,17 @@ test('how long a task waits is said in words', () => {
   assert.equal(waits(1000 + 30, 1000), '1 min left');
   assert.equal(waits(1000 + 1800, 1000), '30 min left');
   assert.equal(waits(1000 + 7200, 1000), '2 h left');
+});
+
+test('the form is headed by what the task asks, by its kind', () => {
+  assert.equal(asks('confirm'), 'What the agent asks you to approve');
+  assert.equal(asks('input'), 'What the agent asks you for');
+});
+
+test('when a task was made is said in the browser\'s own words', () => {
+  const at = 1_700_000_000;
+  assert.equal(made(at), `made ${new Date(at * 1000).toLocaleString()}`);
+  assert.match(made(at), /^made \S/);
 });
 
 const encoded = (text) => ({ status: { SuccessValue: Buffer.from(text, 'utf8').toString('base64') } });
@@ -119,4 +130,27 @@ test('a task waits in minutes under an hour and in hours from it, and never less
   assert.equal(waits(1000 + 3599, 1000), '60 min left');
   assert.equal(waits(1000 + 3600, 1000), '1 h left');
   assert.equal(waits(1000 + 86400, 1000), '24 h left');
+});
+
+test('a task that is no longer open is headed by what became of it', () => {
+  assert.equal(closedHeading('done'), 'A task carried out');
+  assert.equal(closedHeading('rejected'), 'A task you rejected');
+  assert.equal(closedHeading('cancelled'), 'A task the agent cancelled');
+  assert.equal(closedHeading('expired'), 'A task that expired');
+  assert.equal(closedHeading('failed'), 'A task whose run failed');
+  assert.equal(closedHeading('void'), 'A task voided by a newer build');
+  assert.equal(closedHeading('answering'), 'A task being carried out');
+  // A state this build does not know is closed, and said no closer than that.
+  assert.equal(closedHeading('unknown'), 'A closed task');
+});
+
+test('the door of a run is read off its id as the coordinator reads it', () => {
+  assert.deepEqual(madeBy('req-7'), { door: 'chain', request_id: 7 });
+  assert.deepEqual(madeBy('req-2008'), { door: 'chain', request_id: 2008 });
+  assert.deepEqual(madeBy('7c1d0f2e-1b4e-4c0a-9f4d-3a2b1c0d9e8f'), { door: 'https', call_id: '7c1d0f2e-1b4e-4c0a-9f4d-3a2b1c0d9e8f' });
+  // `req-` and no number names no request; an empty id names nothing.
+  assert.equal(madeBy('req-x'), null);
+  assert.equal(madeBy('req-'), null);
+  assert.equal(madeBy('req--1'), null);
+  assert.equal(madeBy(''), null);
 });

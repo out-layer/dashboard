@@ -8,6 +8,7 @@
  * what happens; the host refuses the answer in a run of another build.
  */
 
+import type { TaskState } from './api';
 import type { Envelope } from './crypto';
 
 /** The gas and the deposit of one call of a project from the owner's wallet. */
@@ -87,10 +88,63 @@ export function readAnswer(outcome: { status?: { SuccessValue?: string; Failure?
   return { ok: true, output: parsed.output ?? null };
 }
 
+/** What the framed form asks of the owner, by the task's kind. */
+export function asks(kind: Envelope['kind']): string {
+  return kind === 'confirm' ? 'What the agent asks you to approve' : 'What the agent asks you for';
+}
+
+/** When a task was made, in the browser's own words. */
+export function made(createdAt: number): string {
+  return `made ${new Date(createdAt * 1000).toLocaleString()}`;
+}
+
 /** How long a task still waits, in words. */
 export function waits(expiresAt: number, now: number): string {
   const left = expiresAt - now;
   if (left <= 0) return 'past its life';
   if (left < 3600) return `${Math.max(1, Math.round(left / 60))} min left`;
   return `${Math.round(left / 3600)} h left`;
+}
+
+/** The heading of a task that is no longer open: what became of it, by its state. */
+export function closedHeading(state: Exclude<TaskState, 'open'> | 'unknown'): string {
+  switch (state) {
+    case 'answering':
+      return 'A task being carried out';
+    case 'done':
+      return 'A task carried out';
+    case 'rejected':
+      return 'A task you rejected';
+    case 'cancelled':
+      return 'A task the agent cancelled';
+    case 'expired':
+      return 'A task that expired';
+    case 'failed':
+      return 'A task whose run failed';
+    case 'void':
+      return 'A task voided by a newer build';
+    case 'unknown':
+      return 'A closed task';
+    default: {
+      const unmet: never = state;
+      return unmet;
+    }
+  }
+}
+
+/** The door a run came through, read off its id, as the coordinator reads it: `req-<n>` for a request on chain, the call's id otherwise. */
+export type RunDoor = { door: 'chain'; request_id: number } | { door: 'https'; call_id: string };
+
+/**
+ * `madeBy(run)`: the door of the run named `run`, or `null` for an id that
+ * names neither a request on chain nor a call. The check is the coordinator's
+ * own: `req-` and a number is a request; anything else is asked for as a
+ * call, and the coordinator says whether one exists.
+ */
+export function madeBy(run: string): RunDoor | null {
+  if (run.startsWith('req-')) {
+    const number = run.slice(4);
+    return /^\d+$/.test(number) && Number.isSafeInteger(Number(number)) ? { door: 'chain', request_id: Number(number) } : null;
+  }
+  return run === '' ? null : { door: 'https', call_id: run };
 }

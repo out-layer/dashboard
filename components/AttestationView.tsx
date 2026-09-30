@@ -27,6 +27,9 @@ interface AttestationViewProps {
   showHelp?: boolean;
   onToggleHelp?: () => void;
   isModal?: boolean;
+  /** What the run answered, when the opener holds it: checked against the
+   *  attested hash on arrival, as an output carried in the link is. */
+  knownOutput?: string;
 }
 
 export default function AttestationView({
@@ -35,7 +38,8 @@ export default function AttestationView({
   initialJob = null,
   showHelp = false,
   onToggleHelp,
-  isModal = false
+  isModal = false,
+  knownOutput,
 }: AttestationViewProps) {
   // Validation states
   const [ioValidation, setIoValidation] = useState<{
@@ -85,7 +89,7 @@ export default function AttestationView({
       }
     };
     const inputData = decode(q.get('input'));
-    const outputData = decode(q.get('output'));
+    const outputData = knownOutput ?? decode(q.get('output'));
     if (!inputData && !outputData) return;
     (async () => {
       const { sha256 } = await import('@/lib/near-rpc');
@@ -107,7 +111,7 @@ export default function AttestationView({
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [attestation.task_id]);
+  }, [attestation.task_id, knownOutput]);
 
   // Helper functions
   const formatRtmr3 = (rtmr3: string): string => {

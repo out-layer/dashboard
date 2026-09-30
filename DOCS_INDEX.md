@@ -55,6 +55,7 @@ dashboard/app/docs/
 ├── vrf/page.tsx                  # VRF (Verifiable Random Function)
 ├── signing-keys/page.tsx         # Signing Keys — ed25519 and secp256k1 keys a module signs with and never sees
 ├── encryption-keys/page.tsx      # Encryption Keys — symmetric keys a module seals data with and never sees; sealed storage
+├── tasks/page.tsx                # Tasks — an agent prepares, the owner reads in the inbox and acts with a call of their own
 ├── examples/page.tsx             # Example Projects (all examples)
 ├── trust-verification/page.tsx   # Trust & Verification - why trust OutLayer
 ├── storage/page.tsx              # Persistent Storage
@@ -213,6 +214,7 @@ dashboard/app/docs/
 | `/docs/vrf` | `dashboard/app/docs/vrf/page.tsx` | `VRF.md`, `sdk/outlayer/src/vrf.rs` | **VRF: verifiable randomness, SDK, on-chain verification** |
 | `/docs/signing-keys` | `dashboard/app/docs/signing-keys/page.tsx` | `wasi-examples/CONNECTOR_MANIFEST.md` (`signing_keys`), `worker/wit/deps/signing-keys.wit`, `keystore-worker/src/signing_keys.rs`, `wasi-examples/signing-key-probe/`, skill reference `building-outlayer-apps/references/signing-keys.md` | **Signing keys: manifest `signing_keys` (path, `ed25519`/`secp256k1` type, `project`/`wasm` bind, `signer`/`predecessor` caller, optional vault, max 3), key types, `outlayer:signing-keys` host functions (`public-key`, `sign`, `sign-nep413`), NEP-413 from the implicit account, EVM address and `personal_sign`, security rules, proving a key is the project's from the run's attestation, refusals** |
 | `/docs/encryption-keys` | `dashboard/app/docs/encryption-keys/page.tsx` | `wasi-examples/CONNECTOR_MANIFEST.md` (`encryption_keys`), `worker/wit/deps/encryption-keys.wit`, `worker/wit/deps/storage.wit` (raw functions), `keystore-worker/src/encryption_keys.rs`, `wasi-examples/signing-key-probe/` (encryption builds), skill reference `building-outlayer-apps/references/encryption-keys.md` | **Encryption keys: manifest `encryption_keys` (path, `project`/`wasm` bind, `signer`/`predecessor` caller, optional vault, no `type`, max 3 apart from signing keys), derivation `encryption-key:v1:…`, `outlayer:encryption-keys` host functions (`encrypt`, `decrypt`, `mac`), ciphertext format `0x01 ‖ nonce ‖ ciphertext ‖ tag`, sealed storage with the raw storage functions, security rules, refusals** |
+| `/docs/tasks` | `dashboard/app/docs/tasks/page.tsx` | `docs/TASKS.md`, `worker/wit/deps/tasks.wit`, `sdk/outlayer/src/tasks.rs`, `wasi-examples/CONNECTOR_MANIFEST.md` (`tasks`), `connectors/tasks-probe/`, skill reference `outlayer-connectors/references/owner-tasks.md` | **Tasks between an agent and its owner: manifest `tasks`, `outlayer:tasks` host functions and the SDK dispatcher, `awaiting_owner`, who may open and answer (granted by name), the display structure and its bounds, the eight states, limits, the two sealed copies and the key derivation, the owner's session statement and devices, refusal codes** |
 | `/docs/examples` | `dashboard/app/docs/examples/page.tsx` | `wasi-examples/*/README.md` | All example projects |
 
 ## Navigation (layout.tsx)

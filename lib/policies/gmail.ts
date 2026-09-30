@@ -1,4 +1,4 @@
-import type { PolicySchema, PolicyValue } from './types';
+import type { Choice, PolicySchema, PolicyValue } from './types';
 
 /**
  * The Gmail connector's policy — the owner's rule for mail an agent sends from
@@ -56,6 +56,9 @@ function plural(n: number, one: string, many: string): string {
   return `${n} ${n === 1 ? one : many}`;
 }
 
+/** The operations the owner may ask to confirm, in the manifest's order. */
+export const GMAIL_CONFIRMABLE: Choice[] = [{ value: 'send', label: 'Send a message', group: 'Writes' }];
+
 export const gmailPolicy: PolicySchema = {
   connector: 'gmail',
   envKey: 'GMAIL_POLICY',
@@ -92,7 +95,7 @@ export const gmailPolicy: PolicySchema = {
           key: 'max_per_day',
           label: 'Messages a day',
           kind: 'number',
-          help: 'Counted per calling agent, in UTC days, and only for mail that actually left — a refused message gives its place back. The platform separately caps every wallet at 400 a day.',
+          help: 'Counted per agent, in UTC days, and only for mail that actually left — a refused message gives its place back. What an agent sends itself and what you confirm for it are counted apart, each against this number. The platform has a limit of its own beside it.',
           absentMeans: 'Empty: as many as it likes.',
           unit: 'a day',
           min: 1,
@@ -130,6 +133,19 @@ export const gmailPolicy: PolicySchema = {
         },
       ],
     },
+    {
+      question: 'Ask me before…',
+      fields: [
+        {
+          key: 'confirm',
+          label: 'Ask me before',
+          kind: 'choices',
+          help: 'An operation ticked here is prepared by the agent and waits for you: the message is checked against the rules above, you read it in your inbox, and it is sent by your own call — one transaction from your wallet. You are shown the whole message and given every attachment to open.',
+          absentMeans: 'Nothing ticked: the agent sends within the rules above without asking.',
+          options: GMAIL_CONFIRMABLE,
+        },
+      ],
+    },
   ],
   summarize(value) {
     const domains = list(value, 'recipient_domains').filter((d) => d.toLowerCase() !== 'any');
@@ -154,6 +170,7 @@ export const gmailPolicy: PolicySchema = {
       perMessage === undefined ? 'any number of recipients per message' : `${plural(perMessage, 'recipient', 'recipients')} per message`,
       kb === undefined ? 'no attachments' : `attachments up to ${kb} KB`,
     ];
-    return `${clauses.join(', ')}${prefix ? `; subjects get “${prefix}”` : ''}.`;
+    const asks = list(value, 'confirm').includes('send') ? '; every message waits for your confirmation' : '';
+    return `${clauses.join(', ')}${prefix ? `; subjects get “${prefix}”` : ''}${asks}.`;
   },
 };

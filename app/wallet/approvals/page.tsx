@@ -10,6 +10,9 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { CodeBlock } from '@/components/ui/code-block';
 import { HashChip } from '@/components/ui/hash-chip';
 import { getCoordinatorApiUrl } from '@/lib/api';
+import { useInbox } from '@/contexts/InboxContext';
+import { SignInPrompt } from '@/components/inbox/SignInPrompt';
+import * as inbox from '@/lib/inbox/api';
 import { checkOpAgainstHash, type OpCheck } from '@/lib/approval-hash';
 import Link from 'next/link';
 import { findKeyForWallets, saveWalletKey } from '@/lib/wallet-keys';
@@ -32,14 +35,7 @@ interface PendingApproval {
   wallet_pubkey?: string;
 }
 
-/**
- * Auto-refresh interval (ms). Drives the visible countdown only —
- * the actual coordinator fetch is run by a single leader elected
- * via `navigator.locks` in `app/layout.tsx::PendingApprovalsBadge`.
- * This page subscribes to that leader's broadcasts and resets its
- * countdown whenever an update arrives. Keep this in sync with the
- * layout's `POLL_INTERVAL_MS`.
- */
+/** How often the page asks again, and what the countdown counts. */
 const REFRESH_INTERVAL = 60_000;
 
 export default function WalletApprovalsPage() {
@@ -53,6 +49,8 @@ export default function WalletApprovalsPage() {
 function WalletApprovalsContent() {
   const { accountId, isConnected, network, contractId, viewMethod, signMessage } = useNearWallet();
   const coordinatorUrl = getCoordinatorApiUrl(network);
+  // What waits is told to a signed-in owner only.
+  const { session, token } = useInbox();
   const searchParams = useSearchParams();
   const router = useRouter();
   // Stable ref for viewMethod to avoid re-triggering useEffect on every render
@@ -69,10 +67,6 @@ function WalletApprovalsContent() {
   const [nextRefreshIn, setNextRefreshIn] = useState<number | null>(null);
   // Cached wallet pubkeys (loaded once from contract, reused for polling)
   const walletPubkeysRef = useRef<string[]>([]);
-  // BroadcastChannel shared by all open tabs of this page: the leader tab
-  // (elected via Web Locks API) publishes fresh fetch results here so the
-  // followers update their UI without each hitting the coordinator.
-  const broadcastRef = useRef<BroadcastChannel | null>(null);
 
   // API key for approve action
   const [apiKey, setApiKey] = useState<string>('');
@@ -101,33 +95,33 @@ function WalletApprovalsContent() {
   }, [approvals, apiKey]);
 
   // Fetch pending approvals for cached wallet pubkeys (coordinator only, no RPC).
-  // Always broadcasts fresh results so other tabs of this page can update
-  // their UI without re-fetching.
+  // A wallet that could not be asked about is said so: what is listed is
+  // then not everything, and the page must not look as if it were.
   const fetchPendingApprovals = useCallback(async (pubkeys: string[]) => {
+    if (!token) return;
     const allApprovals: PendingApproval[] = [];
+    const unasked: string[] = [];
     for (const pubkey of pubkeys) {
       try {
-        const resp = await fetch(
-          `${coordinatorUrl}/wallet/v1/pending_approvals_by_pubkey?near_pubkey=${encodeURIComponent(pubkey)}`
-        );
-        if (!resp.ok) continue;
-        const data = await resp.json();
-        if (data.pending_approvals) {
-          for (const pa of data.pending_approvals) {
-            // Checked when loaded, not when clicked: the signature has to follow the
-            // click with nothing awaited in between, and the page has to be able to
-            // say "do not sign this" before anyone reaches for the button.
-            const op_check = await checkOpAgainstHash(pa.op_canonical, pa.request_hash);
-            allApprovals.push({ ...pa, wallet_pubkey: pubkey, op_check });
-          }
+        for (const row of await inbox.pendingApprovals(coordinatorUrl, token, pubkey)) {
+          const pa = row as unknown as PendingApproval;
+          // Checked when loaded, not when clicked: the signature has to follow the
+          // click with nothing awaited in between, and the page has to be able to
+          // say "do not sign this" before anyone reaches for the button.
+          const op_check = await checkOpAgainstHash(pa.op_canonical, pa.request_hash);
+          allApprovals.push({ ...pa, wallet_pubkey: pubkey, op_check });
         }
-      } catch {
-        // skip individual wallet errors
+      } catch (e) {
+        unasked.push(e instanceof Error ? e.message : String(e));
       }
     }
     setApprovals(allApprovals);
-    broadcastRef.current?.postMessage({ type: 'approvals-update', approvals: allApprovals });
-  }, [coordinatorUrl]);
+    setError(
+      unasked.length > 0
+        ? `${unasked.length} of ${pubkeys.length} wallets could not be asked about, so this list may be incomplete: ${unasked[0]}`
+        : null,
+    );
+  }, [coordinatorUrl, token]);
 
   // Initial load: get wallet pubkeys from contract (once), then fetch approvals
   const loadApprovals = useCallback(async () => {
@@ -159,63 +153,31 @@ function WalletApprovalsContent() {
     }
   }, [accountId, contractId, fetchPendingApprovals]);
 
-  // Initial load when connected
+  // Initial load when connected and signed in
   useEffect(() => {
-    if (isConnected && accountId) {
+    if (isConnected && accountId && token) {
       loadApprovals();
     }
-  }, [isConnected, accountId, loadApprovals]);
+  }, [isConnected, accountId, token, loadApprovals]);
 
-  // Auto-refresh — passive listener.
-  //
-  // The single global poller lives in the layout badge
-  // (PendingApprovalsBadge), elected across all tabs and all pages
-  // via navigator.locks. This page just subscribes to the broadcast
-  // channel and updates its UI when the leader publishes a fresh
-  // fetch. The 1-second tick drives the visible "next refresh in X"
-  // countdown; it resets whenever a broadcast lands.
-  //
-  // On mount we still trigger one synchronous fetch (via
-  // fetchPendingApprovals → /pending_approvals_by_pubkey) so the
-  // page shows data immediately rather than waiting up to a minute
-  // for the next leader tick. fetchPendingApprovals also broadcasts
-  // its result, so any open badge / other tab gets the update too.
+  // Asked again once a minute, inside the session.
   useEffect(() => {
-    if (!hasPolicies || !isConnected) {
+    if (!hasPolicies || !isConnected || !token) {
       setNextRefreshIn(null);
       return;
     }
-
-    const channel =
-      typeof BroadcastChannel !== 'undefined'
-        ? new BroadcastChannel('outlayer-approvals-results')
-        : null;
-    broadcastRef.current = channel;
-
     let countdown = REFRESH_INTERVAL / 1000;
     setNextRefreshIn(countdown);
-
     const tick = setInterval(() => {
-      countdown = Math.max(0, countdown - 1);
+      countdown -= 1;
+      if (countdown <= 0) {
+        countdown = REFRESH_INTERVAL / 1000;
+        void fetchPendingApprovals(walletPubkeysRef.current);
+      }
       setNextRefreshIn(countdown);
     }, 1000);
-
-    if (channel) {
-      channel.onmessage = (event) => {
-        if (event.data?.type === 'approvals-update' && Array.isArray(event.data.approvals)) {
-          setApprovals(event.data.approvals as PendingApproval[]);
-          countdown = REFRESH_INTERVAL / 1000;
-          setNextRefreshIn(countdown);
-        }
-      };
-    }
-
-    return () => {
-      clearInterval(tick);
-      channel?.close();
-      broadcastRef.current = null;
-    };
-  }, [hasPolicies, isConnected]);
+    return () => clearInterval(tick);
+  }, [hasPolicies, isConnected, token, fetchPendingApprovals]);
 
   // Approve a pending request (requires NEAR wallet signature, not API key)
   const handleApprove = async (approvalId: string) => {
@@ -350,6 +312,16 @@ function WalletApprovalsContent() {
  <div className="w-full">
         <PageHeader title="Approvals" />
         <RequireWallet subject="pending approvals for your AI wallets" />
+      </div>
+    );
+  }
+
+  // Connected, not signed in — nothing is asked, and nothing is listed.
+  if (session !== 'active') {
+    return (
+      <div className="w-full">
+        <PageHeader title="Approvals" description="Operations from your AI wallets waiting for your signature." />
+        <SignInPrompt />
       </div>
     );
   }

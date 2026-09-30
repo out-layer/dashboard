@@ -19,6 +19,19 @@ test('an empty policy is {} — the widest there is — and says so', () => {
   );
 });
 
+test('asking before a send is one key naming the operation, and the sentence says so', () => {
+  const value = { confirm: ['send'] };
+  assert.deepEqual(JSON.parse(toJson(gmailPolicy, value)), { confirm: ['send'] });
+  assert.deepEqual(fromJson(gmailPolicy, '{"confirm":["send"]}').value, value);
+  assert.deepEqual(validate(gmailPolicy, value), []);
+  assert.ok(gmailPolicy.summarize(value).endsWith('; every message waits for your confirmation.'));
+  assert.ok(!gmailPolicy.summarize(emptyValue()).includes('confirmation'));
+  // An operation that cannot be confirmed makes the policy unreadable to the
+  // connector, so the editor does not write one.
+  assert.notDeepEqual(validate(gmailPolicy, { confirm: ['status'] }), []);
+  assert.equal(toJson(gmailPolicy, { confirm: [] }), '{}');
+});
+
 test('only set fields reach the JSON, and they round-trip', () => {
   const value = { recipient_domains: ['example.com'], max_per_day: 20, subject_prefix: '[agent]', recipients: [], max_recipients: undefined };
   const json = toJson(gmailPolicy, value);
@@ -34,6 +47,18 @@ test('what the connector reports — nulls for absent fields — reads back as e
   assert.ok(isUnrestricted(value));
   // `present` is the connector's word about the row, not a policy field.
   assert.deepEqual(unknownKeys, ['present']);
+});
+
+test('what the connector reports keeps `confirm`, so a policy rewritten from it still asks', () => {
+  const reported = { present: true, recipient_domains: ['example.com'], recipients: null, max_per_day: 20, max_recipients: null, max_attachment_kb: null, subject_prefix: null, confirm: ['send'] };
+  const { value, unknownKeys } = fromJson(gmailPolicy, reported);
+  assert.deepEqual(value, { recipient_domains: ['example.com'], max_per_day: 20, confirm: ['send'] });
+  assert.deepEqual(unknownKeys, ['present']);
+  assert.deepEqual(JSON.parse(toJson(gmailPolicy, value)), { recipient_domains: ['example.com'], max_per_day: 20, confirm: ['send'] });
+  // A policy with none is reported without the member, and reads back without it.
+  const none = fromJson(gmailPolicy, { present: true, max_per_day: 20 });
+  assert.deepEqual(none.value, { max_per_day: 20 });
+  assert.equal(toJson(gmailPolicy, none.value), '{"max_per_day":20}');
 });
 
 test('a key the schema does not know is reported, not dropped in silence', () => {

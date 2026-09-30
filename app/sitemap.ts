@@ -11,7 +11,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     // named here to be found at all.
     '/privacy',
     '/terms',
-  ].filter((href) => href === '/' || !href.startsWith('/wallet') || href === '/wallet/manage');
+  ].filter((href) => href === '/' || (!href.startsWith('/wallet') && href !== '/inbox') || href === '/wallet/manage');
 
   const docPaths = DOCS_NAV.flatMap((g) => g.pages.map((p) => p.href));
 

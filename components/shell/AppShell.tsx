@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { APP_NAV, FOOTER_NAV, isNavActive, type NavItem } from '@/lib/nav';
 import PendingApprovalsBadge from '@/components/PendingApprovalsBadge';
+import { InboxBell } from '@/components/inbox/InboxBell';
 import TestnetDisabledNotice from '@/components/TestnetDisabledNotice';
 import ThemeToggle from '@/components/shell/ThemeToggle';
 import AccountChip from '@/components/shell/AccountChip';
@@ -135,18 +136,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
  <div className="flex-1" />
 
-          <Link
-            href="/wallet/approvals"
-            aria-label="Pending approvals"
- className="relative inline-flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-card text-muted-foreground transition-colors hover:text-foreground"
-          >
- <svg className="h-4 w-4" fill="none" viewBox="0 0 16 16" stroke="currentColor" strokeWidth="1.5">
-              <path d="M8 2a4 4 0 0 0-4 4c0 3-1.2 4-1.2 4h10.4S12 9 12 6a4 4 0 0 0-4-4zM6.6 13a1.5 1.5 0 0 0 2.8 0" />
-            </svg>
- <span className="absolute -right-1.5 -top-1.5">
-              <PendingApprovalsBadge />
-            </span>
-          </Link>
+          <InboxBell />
 
           <ThemeToggle />
           <AccountChip />

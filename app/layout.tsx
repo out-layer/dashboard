@@ -3,6 +3,7 @@ import { Inter } from 'next/font/google';
 import { ThemeProvider } from 'next-themes';
 import './globals.css';
 import { NearWalletProvider } from '@/contexts/NearWalletContext';
+import { InboxProvider } from '@/contexts/InboxContext';
 import AppShell from '@/components/shell/AppShell';
 import { SITE_ORIGIN } from '@/lib/site';
 
@@ -42,7 +43,9 @@ export default function RootLayout({
  <body className={`${inter.variable} font-sans antialiased`}>
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
           <NearWalletProvider>
- <AppShell>{children}</AppShell>
+            <InboxProvider>
+              <AppShell>{children}</AppShell>
+            </InboxProvider>
           </NearWalletProvider>
         </ThemeProvider>
       </body>

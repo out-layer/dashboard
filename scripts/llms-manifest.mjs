@@ -147,6 +147,12 @@ export const SECTIONS = [
           'Symmetric keys a WASI module seals data with and never sees, derived in the TEE keystore like signing keys: the manifest encryption_keys declaration, the outlayer:encryption-keys host interface (encrypt, decrypt, mac), the ciphertext format, sealed storage with the raw storage functions, security rules, refusals',
       },
       {
+        title: 'Tasks',
+        path: '/docs/tasks',
+        summary:
+          'Tasks between an agent and its owner: an agent run leaves the owner of a secret row an action to confirm or an input to supply, the owner reads it in the inbox with no run and acts with a call of their own; the manifest tasks declaration, the outlayer:tasks host interface and the SDK, who may open and answer, what the owner is shown, states and limits, what is sealed, the owner session and devices, refusals',
+      },
+      {
         title: 'SDK',
         path: '/docs/sdk',
         summary:
@@ -295,6 +301,7 @@ export const FULL_TEXT_SOURCES = [
   { path: 'wasi-examples/PROXY_CONTRACTS_TUTORIAL.md', title: 'Proxy Contracts Tutorial' },
   { path: 'wasi-examples/CONNECTOR_MANIFEST.md', title: 'The Project Manifest' },
   { path: 'docs/CONNECTORS.md', title: 'Building a Connector' },
+  { path: 'docs/TASKS.md', title: 'Tasks between an agent and its owner' },
 
   { path: 'contract/README.md', title: 'Smart Contract API' },
   { path: 'sdk/outlayer/README.md', title: 'Rust SDK' },

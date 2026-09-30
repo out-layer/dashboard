@@ -36,6 +36,7 @@ const APP_PAGES = [
 
 // Utility pages that carry secrets in the URL: keep them out of indexes.
 const NOINDEX_PAGES = [
+  ['app/inbox', 'Inbox'],
   ['app/wallet', 'Wallet handoff'],
   ['app/wallet/fund', 'Fund wallet'],
 ]

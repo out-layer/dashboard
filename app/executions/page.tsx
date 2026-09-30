@@ -5,7 +5,7 @@ import { Fragment, useEffect, useRef, useState, useCallback, useMemo } from 'rea
 import { fetchJobs, JobHistoryEntry, AttestationResponse, fetchAttestation, isTestnetWorkersEnabled } from '@/lib/api';
 import { getTransactionUrl } from '@/lib/explorer';
 import { useNearWallet } from '@/contexts/NearWalletContext';
-import AttestationView from '@/components/AttestationView';
+import AttestationModal from '@/components/AttestationModal';
 import TestnetDisabledNotice from '@/components/TestnetDisabledNotice';
 import { HashChip } from '@/components/ui/hash-chip';
 import { FilterCombo, FilterSuggestion } from '@/components/ui/filter-combo';
@@ -132,7 +132,6 @@ export default function JobsPage() {
     loading: boolean;
     error: string | null
   } | null>(null);
-  const [showAttestationHelp, setShowAttestationHelp] = useState(false);
   const [showColumnSettings, setShowColumnSettings] = useState(false);
   // null until mounted: the server has no URL to read, and rendering the
   // filters first as empty and then as set would be a hydration mismatch.
@@ -864,71 +863,16 @@ export default function JobsPage() {
 
       {/* Attestation Modal */}
       {attestationModal && (
-        <div
- className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-50 p-4"
-          onClick={() => {
-            closeAttestationModal();
-            setShowAttestationHelp(false);
-          }}
-        >
-          <div
- className="bg-card border border-border rounded-lg shadow-2xl max-w-6xl w-full max-h-[90vh] overflow-y-auto"
-            onClick={(e) => e.stopPropagation()}
-          >
- <div className="p-6">
- <div className="flex justify-between items-center mb-4">
- <div className="flex items-center gap-3">
- <h2 className="text-xl font-bold">
-                    TEE Attestation - {attestationModal.isHttpsCall ? 'HTTPS' : 'NEAR'} Job #{attestationModal.jobId}
-                  </h2>
-                  <span
- className={`inline-flex rounded-full px-2 text-xs font-semibold leading-5 border ${
-                      attestationModal.isHttpsCall
-                        ? 'border-border-strong text-muted-foreground'
-                        : 'border-success/40 text-success-text'
-                    }`}
-                  >
-                    {attestationModal.isHttpsCall ? 'HTTPS' : 'NEAR'}
-                  </span>
-                </div>
-                <button
-                  onClick={() => {
-                    closeAttestationModal();
-                    setShowAttestationHelp(false);
-                  }}
- className="text-faint-foreground hover:text-foreground"
-                >
- <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
-
-              {attestationModal.loading && (
- <div className="flex justify-center items-center py-12">
- <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-accent"></div>
-                </div>
-              )}
-
-              {attestationModal.error && (
- <div className="rounded-md border border-destructive/30 bg-destructive/10 p-4 mb-4">
- <p className="text-sm text-destructive-text">{attestationModal.error}</p>
-                </div>
-              )}
-
-              {attestationModal.attestation && (
-                <AttestationView
-                  attestation={attestationModal.attestation}
-                  initialJob={attestationModal.job}
-                  network={network}
-                  showHelp={showAttestationHelp}
-                  onToggleHelp={() => setShowAttestationHelp(!showAttestationHelp)}
-                  isModal={true}
-                />
-              )}
-            </div>
-          </div>
-        </div>
+        <AttestationModal
+          jobId={attestationModal.jobId}
+          isHttpsCall={attestationModal.isHttpsCall}
+          attestation={attestationModal.attestation}
+          job={attestationModal.job}
+          loading={attestationModal.loading}
+          error={attestationModal.error}
+          network={network}
+          onClose={closeAttestationModal}
+        />
       )}
     </div>
   );

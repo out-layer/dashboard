@@ -15,24 +15,30 @@
  * what is shown. A proof that does not hold, or could not be checked, is said
  * in its place, and the owner answers past it only by saying so.
  *
- * The framed panel shows the task three ways: its fields as drawn, the exact
- * bytes of the task with their hash, and the exact bytes the run that made it
- * was asked with, hashed here to the attestation's `input_hash`.
+ * The framed panel shows the task three ways: as the form the project
+ * prepared from the agent's request, each field a control the owner reads
+ * but cannot edit, marked by who wrote it; as the exact bytes of the form
+ * with their hash; and as the exact bytes the run that made it was asked
+ * with, hashed here to the attestation's `input_hash`.
  *
  * A task made before this browser signed in is `locked`: it holds no copy
- * for this browser, so nothing of it is shown and nothing can be answered.
- * The proof still runs, up to the hash. The inbox page offers, per project,
- * the one transaction that makes such tasks readable here.
+ * for this browser, so the preview says so in place of the form, only the
+ * run's input can be shown, and nothing can be answered. The proof still
+ * runs, up to the hash. The inbox page offers, per project, the one
+ * transaction that makes such tasks readable here.
  *
- * A task that is no longer open holds no content: its heading says what
- * became of it, and the run that carried it out (`run`) offers its own
- * attestation, fetched from a click and shown as it is.
+ * A task that is no longer open holds no content: it is headed by the first
+ * characters of its id, its badge says what became of it, and two runs offer
+ * their attestations, each fetched from a click and shown as it is: the run
+ * that made the task, and the run that carried it out (`run`), when there is
+ * one. A task rejected, withdrawn or expired was carried out by nobody, and
+ * still has the run that made it.
  */
 
 import { useEffect, useState } from 'react';
 import AttestationModal from '@/components/AttestationModal';
 import type { AttestationResponse } from '@/lib/api';
-import { prove, verdict, type Proof } from '@/lib/inbox/proof';
+import { prove, verdict, type Origin, type Proof } from '@/lib/inbox/proof';
 import { actionCreators } from '@near-js/transactions';
 import { Badge } from '@/components/ui/badge';
 import { AgentChip } from '@/components/ui/agent-chip';
@@ -41,7 +47,7 @@ import { HashChip } from '@/components/ui/hash-chip';
 import { useNearWallet } from '@/contexts/NearWalletContext';
 import { useInbox, type ShownTask } from '@/contexts/InboxContext';
 import * as api from '@/lib/inbox/api';
-import { CALL_DEPOSIT, CALL_GAS, answerInput, asks, callOf, closedHeading, made, madeBy, readAnswer, waits } from '@/lib/inbox/act';
+import { CALL_DEPOSIT, CALL_GAS, PROVENANCE_LEGEND, answerInput, asks, callOf, linesOf, made, madeBy, provenance, readAnswer, rowsOf, shortTaskId, waits } from '@/lib/inbox/act';
 import { MOST_REPLY_BYTES, fromBase64, openFile, replyBytes, saveName, toBase64, writeReply, type TaskField } from '@/lib/inbox/crypto';
 
 const STATE_WORDS: Record<ShownTask['state'], string> = {
@@ -56,43 +62,48 @@ const STATE_WORDS: Record<ShownTask['state'], string> = {
   unknown: 'In a state this page does not know',
 };
 
-/** One field of the form: its label, who wrote it, and its value below. */
+/** The look of a field's control: a form field the owner reads, with room at its right edge for the mark. */
+const CONTROL =
+  'w-full min-w-0 cursor-default rounded-md border border-border bg-background py-1.5 pl-3 pr-9 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-accent';
+
+/**
+ * One field of the form: its label above, its value in a control the owner
+ * cannot edit but can select and copy, and inside the control's right edge
+ * the mark of who wrote it. A long text and a list are a text area sized to
+ * their lines; everything else is one line.
+ */
 function Field({ field }: { field: TaskField }) {
-  const byAgent = field.written_by === 'agent';
+  const { mark, title } = provenance(field.written_by);
+  const value = field.kind === 'list' ? field.values.join('\n') : (field.values[0] ?? '');
+  const tall = field.kind === 'list' || field.kind === 'long_text';
   return (
-    <div className="min-w-0">
-      <dt className="flex flex-wrap items-center text-sm text-muted-foreground">
-        <span className="break-words">{field.label}</span>
-        <Badge variant="outline" className="ml-2 text-[10px] font-normal">
-          {byAgent ? 'written by the agent' : 'from the project'}
-        </Badge>
-      </dt>
-      <dd className="mt-1 min-w-0 text-sm text-foreground">
-        {field.kind === 'list' ? (
-          <ul className="list-disc space-y-0.5 pl-5">
-            {field.values.map((value, at) => (
-              <li key={at} className="whitespace-pre-wrap break-words">
-                {value}
-              </li>
-            ))}
-          </ul>
+    <label className="block min-w-0">
+      <span className="block break-words text-xs text-muted-foreground">{field.label}</span>
+      <span className="relative mt-1 block">
+        {tall ? (
+          <textarea
+            readOnly
+            value={value}
+            rows={field.kind === 'list' ? rowsOf(field.values.length, 1) : rowsOf(linesOf(value))}
+            spellCheck={false}
+            className={`${CONTROL} resize-y whitespace-pre-wrap break-words`}
+          />
         ) : (
-          <span
-            className={
-              field.kind === 'long_text'
-                ? 'block max-h-96 overflow-y-auto whitespace-pre-wrap break-words rounded-md border border-border bg-card-muted p-3'
-                : field.kind === 'money'
-                  ? 'whitespace-pre-wrap break-words font-semibold tabular-nums'
-                  : field.kind === 'account' || field.kind === 'address'
-                    ? 'whitespace-pre-wrap break-all font-mono'
-                    : 'whitespace-pre-wrap break-words'
-            }
-          >
-            {field.values[0] ?? ''}
-          </span>
+          <input
+            readOnly
+            value={value}
+            onFocus={(e) => e.currentTarget.select()}
+            spellCheck={false}
+            className={`${CONTROL} ${
+              field.kind === 'account' || field.kind === 'address' ? 'font-mono' : field.kind === 'money' ? 'font-semibold tabular-nums' : ''
+            }`}
+          />
         )}
-      </dd>
-    </div>
+        <span role="img" aria-label={title} title={title} className="absolute right-2.5 top-1.5 select-none text-xs leading-5 text-muted-foreground">
+          {mark}
+        </span>
+      </span>
+    </label>
   );
 }
 
@@ -102,8 +113,13 @@ function Field({ field }: { field: TaskField }) {
  */
 type View = 'preview' | 'task' | 'input';
 
-/** `readable`: the task is open in this browser; without it only the run's input can be shown. */
-function ViewSwitch({ view, readable, onChange }: { view: View; readable: boolean; onChange: (view: View) => void }) {
+/**
+ * `readable`: the task is open in this browser, so its form and its bytes
+ * can be shown. `locked`: it is not, because it arrived before this browser
+ * signed in; the preview then holds the notice that says so. The run's input
+ * does not depend on the task's content and is always available.
+ */
+function ViewSwitch({ view, readable, locked, onChange }: { view: View; readable: boolean; locked: boolean; onChange: (view: View) => void }) {
   const choice = (value: View, label: string, enabled = true) => (
     <button
       type="button"
@@ -124,15 +140,15 @@ function ViewSwitch({ view, readable, onChange }: { view: View; readable: boolea
   );
   return (
     <div role="group" aria-label="View" className="inline-flex shrink-0 gap-0.5 rounded-md border border-border bg-card-muted p-0.5">
-      {choice('preview', 'Preview', readable)}
-      {choice('task', 'Task raw', readable)}
-      {choice('input', 'Input raw')}
+      {choice('preview', 'Preview', readable || locked)}
+      {choice('task', 'RAW form', readable)}
+      {choice('input', 'RAW request')}
     </div>
   );
 }
 
-/** Exact bytes, to copy, and their hash under the line that says what the hash is. */
-function RawBytes({ text, hash, says }: { text: string; hash: string | null; says: string }) {
+/** Exact bytes under the line that says what they are, to copy, and their hash under the line that says what the hash is. */
+function RawBytes({ about, text, hash, says }: { about: string; text: string; hash: string | null; says: string }) {
   const [copied, setCopied] = useState(false);
   const copy = async () => {
     try {
@@ -145,6 +161,7 @@ function RawBytes({ text, hash, says }: { text: string; hash: string | null; say
   };
   return (
     <div className="space-y-2">
+      <p className="text-xs text-muted-foreground">{about}</p>
       <pre className="overflow-x-auto whitespace-pre-wrap break-all rounded-md border border-border bg-card-muted p-3 font-mono text-xs text-foreground">
         {text}
       </pre>
@@ -188,6 +205,7 @@ function RawInput({ proof }: { proof: Proof<AttestationResponse> | null }) {
   }
   return (
     <RawBytes
+      about="The agent's request to the connector, as the run's attestation hashes it."
       text={input}
       hash={hashed?.of === input ? hashed.hash : null}
       says="SHA-256 of these bytes, the input_hash of the run's attestation:"
@@ -205,13 +223,18 @@ export function TaskCard({ task }: { task: ShownTask }) {
   const [rejecting, setRejecting] = useState(false);
   const [reason, setReason] = useState('');
   const [proof, setProof] = useState<Proof<AttestationResponse> | null>(null);
-  const [showAttestation, setShowAttestation] = useState(false);
   const [pastTheProof, setPastTheProof] = useState(false);
   const [view, setView] = useState<View>('preview');
-  /** The attestation of the run that carried the task out, asked for from a click. */
-  const [runAttestation, setRunAttestation] = useState<
-    { is: 'loading' } | { is: 'shown'; attestation: AttestationResponse } | { is: 'failed'; said: string } | null
-  >(null);
+  /** The attestation the modal is open over, with what the run was asked and answered when they are held. */
+  const [shownAttestation, setShownAttestation] = useState<{ attestation: AttestationResponse; knownInput?: string; knownOutput?: string } | null>(
+    null,
+  );
+  /** The lookup of the attestation of the run that carried the task out, asked for from a click. */
+  const [runAsked, setRunAsked] = useState<{ is: 'loading' } | { is: 'failed'; said: string } | null>(null);
+  /** The run that made a closed task, once it was fetched from a click; the proof reads it for an open task. */
+  const [origin, setOrigin] = useState<Origin | null>(null);
+  /** The lookup of the attestation of the run that made the task, asked for from a click. */
+  const [originAsked, setOriginAsked] = useState<{ is: 'loading' } | { is: 'failed'; said: string } | null>(null);
 
   const read = task.read;
   const open = task.state === 'open';
@@ -351,18 +374,55 @@ export function TaskCard({ task }: { task: ShownTask }) {
 
   /** From a click: the attestation of the run named by `task.run`, then the modal over it. */
   const showRun = async (run: string) => {
-    setRunAttestation({ is: 'loading' });
+    setRunAsked({ is: 'loading' });
     const door = madeBy(run);
     if (!door) {
-      setRunAttestation({ is: 'failed', said: 'no attestation for this run yet' });
+      setRunAsked({ is: 'failed', said: 'no attestation for this run yet' });
       return;
     }
     try {
       const found = await api.attestationOf<AttestationResponse>(coordinatorUrl, door);
-      setRunAttestation(found ? { is: 'shown', attestation: found } : { is: 'failed', said: 'no attestation for this run yet' });
+      if (!found) {
+        setRunAsked({ is: 'failed', said: 'no attestation for this run yet' });
+        return;
+      }
+      setRunAsked(null);
+      setShownAttestation({ attestation: found });
     } catch (e) {
-      setRunAttestation({ is: 'failed', said: e instanceof Error ? e.message : String(e) });
+      setRunAsked({ is: 'failed', said: e instanceof Error ? e.message : String(e) });
     }
+  };
+
+  /**
+   * From a click: the run that made the task, as the API names it, then its
+   * attestation, then the modal over it with what the run was asked and
+   * answered. The same lookup the proof makes for an open task.
+   */
+  const showOrigin = async () => {
+    if (!token) {
+      setOriginAsked({ is: 'failed', said: 'sign in first' });
+      return;
+    }
+    setOriginAsked({ is: 'loading' });
+    try {
+      const made = origin ?? (await api.taskOrigin(coordinatorUrl, token, task.id));
+      setOrigin(made);
+      const found = await api.attestationOf<AttestationResponse>(coordinatorUrl, made);
+      if (!found) {
+        setOriginAsked({ is: 'failed', said: 'no attestation for the run that made it' });
+        return;
+      }
+      setOriginAsked(null);
+      setShownAttestation({ attestation: found, knownInput: made.input ?? undefined, knownOutput: made.output ?? undefined });
+    } catch (e) {
+      setOriginAsked({ is: 'failed', said: e instanceof Error ? e.message : String(e) });
+    }
+  };
+
+  /** From a click: the modal over the attestation the proof read, with what the run was asked and answered. */
+  const showProof = () => {
+    if (!proof?.attestation) return;
+    setShownAttestation({ attestation: proof.attestation, knownInput: proof.input ?? undefined, knownOutput: proof.output ?? undefined });
   };
 
   const size = (bytes: number) =>
@@ -374,8 +434,10 @@ export function TaskCard({ task }: { task: ShownTask }) {
   const operation = read?.envelope.answer_by.operation;
   /** The call that carried the task out, once there is one. */
   const run = task.run ?? null;
-  /** Without a copy for this browser there is no preview and no task bytes: only the run's input. */
-  const shown: View = read ? view : 'input';
+  /** Open, and without a copy for this browser because it arrived before this browser signed in. */
+  const locked = !read && open && task.locked;
+  /** A task that did not open here for another reason has no preview and no task bytes: only the run's input. */
+  const shown: View = read || locked ? view : 'input';
 
   return (
     <article className={`rounded-lg border bg-card p-5 ${open ? 'border-accent/50' : 'border-border'}`}>
@@ -387,7 +449,7 @@ export function TaskCard({ task }: { task: ShownTask }) {
               ? task.locked
                 ? 'A task waiting for you'
                 : 'A task this page could not read'
-              : closedHeading(task.state)}
+              : `Task ${shortTaskId(task.id)}`}
         </h2>
         <Badge variant={open ? 'default' : 'outline'}>{STATE_WORDS[task.state]}</Badge>
       </header>
@@ -403,43 +465,93 @@ export function TaskCard({ task }: { task: ShownTask }) {
         <span aria-hidden="true">·</span>
         <span title={open ? waits(task.expires_at, now) : undefined}>{made(task.created_at)}</span>
       </div>
+      {!open && (
+        <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
+          <span>
+            {origin ? (
+              <>
+                Made by run <span className="break-all font-mono text-foreground">{origin.run}</span>
+              </>
+            ) : (
+              'Made by a run'
+            )}
+          </span>
+          <span aria-hidden="true">·</span>
+          <Button
+            variant="link"
+            size="sm"
+            className="h-auto p-0 text-xs"
+            onClick={() => void showOrigin()}
+            disabled={originAsked?.is === 'loading'}
+          >
+            {originAsked?.is === 'loading' ? 'attestation…' : 'attestation'}
+          </Button>
+          {originAsked?.is === 'failed' && <span className="text-muted-foreground">{originAsked.said}</span>}
+        </div>
+      )}
       {run && (
         <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
           <span>
             Carried out by call <span className="break-all font-mono text-foreground">{run}</span>
           </span>
+          <span aria-hidden="true">·</span>
           <Button
             variant="link"
             size="sm"
             className="h-auto p-0 text-xs"
             onClick={() => void showRun(run)}
-            disabled={runAttestation?.is === 'loading'}
+            disabled={runAsked?.is === 'loading'}
           >
-            {runAttestation?.is === 'loading' ? 'attestation…' : 'attestation'}
+            {runAsked?.is === 'loading' ? 'attestation…' : 'attestation'}
           </Button>
-          {runAttestation?.is === 'failed' && <span className="text-muted-foreground">{runAttestation.said}</span>}
+          {runAsked?.is === 'failed' && <span className="text-muted-foreground">{runAsked.said}</span>}
         </div>
-      )}
-
-      {!read && task.locked && open && (
-        <p className="mt-2 text-sm text-muted-foreground">Arrived before you signed in here. Make it readable with the button above.</p>
       )}
 
       {(read || open) && (
         <section className="mt-4 rounded-md border border-accent/40 bg-accent/5 p-4">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <h3 className="text-sm font-semibold text-foreground">{read ? asks(read.envelope.kind) : 'The run that made it'}</h3>
-            <ViewSwitch view={shown} readable={read !== null} onChange={setView} />
+          <div className="flex flex-wrap items-start justify-between gap-2">
+            <div className="min-w-0">
+              <h3 className="text-sm font-semibold text-foreground">
+                {read ? (
+                  <>
+                    Prepared by <span className="break-all font-mono">{task.project_id}</span> from what agent{' '}
+                    <AgentChip account={task.preparer} className="font-normal" /> {asks(read.envelope.kind)}
+                  </>
+                ) : locked ? (
+                  <>
+                    Prepared by <span className="break-all font-mono">{task.project_id}</span> for you
+                  </>
+                ) : (
+                  'The run that made it'
+                )}
+              </h3>
+              {read && <p className="mt-1 text-xs text-muted-foreground">{PROVENANCE_LEGEND}</p>}
+            </div>
+            <ViewSwitch view={shown} readable={read !== null} locked={locked} onChange={setView} />
           </div>
           {shown === 'preview' && read ? (
-            <dl className="mt-3 space-y-3">
+            <div className="mt-3 space-y-3">
               {read.envelope.display.fields.map((field, at) => (
                 <Field key={at} field={field} />
               ))}
-            </dl>
+            </div>
+          ) : shown === 'preview' && locked ? (
+            <div role="alert" className="mt-3 space-y-1 rounded-md border border-destructive/40 bg-destructive/10 p-4 text-sm text-foreground">
+              <p className="font-semibold text-destructive-text">Not readable in this browser yet</p>
+              <p>
+                This task arrived before you signed in here, so it is encrypted for other browsers only. Use &ldquo;Make it
+                readable here&rdquo; at the top of the inbox: one transaction, then the task opens.
+              </p>
+            </div>
           ) : shown === 'task' && read ? (
             <div className="mt-3">
-              <RawBytes text={read.document} hash={read.hash} says="SHA-256 of these bytes, the hash your answer names:" />
+              <RawBytes
+                about="The form exactly as its hash covers it."
+                text={read.document}
+                hash={read.hash}
+                says="SHA-256 of these bytes, the hash your answer names:"
+              />
             </div>
           ) : (
             <div className="mt-3">
@@ -499,7 +611,7 @@ export function TaskCard({ task }: { task: ShownTask }) {
             </details>
           )}
           {proof?.attestation && (
-            <Button variant="outline" size="sm" className="mt-2" onClick={() => setShowAttestation(true)}>
+            <Button variant="outline" size="sm" className="mt-2" onClick={showProof}>
               Show the attestation
             </Button>
           )}
@@ -508,32 +620,22 @@ export function TaskCard({ task }: { task: ShownTask }) {
               <input type="checkbox" checked={pastTheProof} onChange={(e) => setPastTheProof(e.target.checked)} className="mt-0.5" />
               <span>
                 Answer without the proof. The project still refuses an answer to a task it did not make: what it
-                acts on is the task sealed in the enclave, and the hash shown under Task raw above must be that task&apos;s.
+                acts on is the task sealed in the enclave, and the hash shown under RAW form above must be that task&apos;s.
               </span>
             </label>
           )}
         </div>
       )}
 
-      {showAttestation && proof?.attestation && (
+      {shownAttestation && (
         <AttestationModal
-          jobId={proof.attestation.task_id}
-          isHttpsCall={Boolean(proof.attestation.call_id)}
-          attestation={proof.attestation}
+          jobId={shownAttestation.attestation.task_id}
+          isHttpsCall={Boolean(shownAttestation.attestation.call_id)}
+          attestation={shownAttestation.attestation}
           network={network}
-          knownInput={proof.input ?? undefined}
-          knownOutput={proof.output ?? undefined}
-          onClose={() => setShowAttestation(false)}
-        />
-      )}
-
-      {runAttestation?.is === 'shown' && (
-        <AttestationModal
-          jobId={runAttestation.attestation.task_id}
-          isHttpsCall={Boolean(runAttestation.attestation.call_id)}
-          attestation={runAttestation.attestation}
-          network={network}
-          onClose={() => setRunAttestation(null)}
+          knownInput={shownAttestation.knownInput}
+          knownOutput={shownAttestation.knownOutput}
+          onClose={() => setShownAttestation(null)}
         />
       )}
 

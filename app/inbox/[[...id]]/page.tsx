@@ -131,14 +131,17 @@ function LockedBanner({ locked }: { locked: LockedOfProject }) {
   };
 
   return (
-    <div className="max-w-3xl space-y-3 rounded-md border border-info/30 bg-info/10 p-4 text-sm text-foreground">
-      <p>
-        {one ? '1 task' : `${locked.count} tasks`} from <span className="break-all font-mono">{locked.project_id}</span> arrived
-        before you signed in here, so {one ? 'it is' : 'they are'} encrypted for other browsers only. Make {one ? 'it' : 'them'}{' '}
-        readable in this browser: one transaction to <span className="break-all font-mono">{locked.project_id}</span>, 0.1 NEAR
-        attached and returned less the run&apos;s cost, about 0.0013 NEAR. It sends nothing and changes nothing.
+    <div role="alert" className="max-w-3xl space-y-3 rounded-md border border-destructive/40 bg-destructive/10 p-4 text-sm text-foreground">
+      <p className="text-base font-semibold text-destructive-text">
+        {one ? '1 task is' : `${locked.count} tasks are`} not readable in this browser
       </p>
-      <Button onClick={() => void open()} disabled={busy}>
+      <p>
+        {one ? 'It' : 'They'} came from <span className="break-all font-mono">{locked.project_id}</span> before you signed in here,
+        so {one ? 'it is' : 'they are'} encrypted for other browsers only. Make {one ? 'it' : 'them'} readable in this browser:
+        one transaction to <span className="break-all font-mono">{locked.project_id}</span>, 0.1 NEAR attached and returned less
+        the run&apos;s cost, about 0.0013 NEAR. It sends nothing and changes nothing.
+      </p>
+      <Button variant="default" onClick={() => void open()} disabled={busy}>
         {busy ? 'Waiting for the wallet…' : one ? 'Make it readable here' : 'Make them readable here'}
       </Button>
       {error && (

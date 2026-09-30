@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { answerInput, asks, callOf, closedHeading, made, madeBy, readAnswer, unlockCall, waits } from '../lib/inbox/act.ts';
+import { PROVENANCE_LEGEND, answerInput, asks, callOf, linesOf, made, madeBy, provenance, readAnswer, rowsOf, shortTaskId, unlockCall, waits } from '../lib/inbox/act.ts';
 
 const envelope = { id: 'run-0', answer_by: { operation: 'confirm', supplies: 'nothing' } };
 const outcome = (value) => ({ status: { SuccessValue: btoa(typeof value === 'string' ? value : JSON.stringify(value)) } });
@@ -54,9 +54,31 @@ test('how long a task waits is said in words', () => {
   assert.equal(waits(1000 + 7200, 1000), '2 h left');
 });
 
-test('the form is headed by what the task asks, by its kind', () => {
-  assert.equal(asks('confirm'), 'What the agent asks you to approve');
-  assert.equal(asks('input'), 'What the agent asks you for');
+test('the form is headed by who prepared it from what the agent asked, by the task\'s kind', () => {
+  // `Prepared by <project> from what agent <preparer> …`
+  assert.equal(asks('confirm'), 'asked');
+  assert.equal(asks('input'), 'asks you for');
+});
+
+test('a field is marked by who wrote it, and the legend names both marks', () => {
+  assert.deepEqual(provenance('agent'), { mark: '🤖', title: 'written by the agent' });
+  assert.deepEqual(provenance('project'), { mark: '⚙', title: 'filled in by the connector' });
+  assert.equal(PROVENANCE_LEGEND, '🤖 written by the agent · ⚙ filled in by the connector');
+});
+
+test('a text area is sized to its lines, between its least and twelve', () => {
+  assert.equal(rowsOf(0), 3);
+  assert.equal(rowsOf(3), 3);
+  assert.equal(rowsOf(7), 7);
+  assert.equal(rowsOf(12), 12);
+  assert.equal(rowsOf(40), 12);
+  // A list is as tall as its values, and one row when it has none.
+  assert.equal(rowsOf(0, 1), 1);
+  assert.equal(rowsOf(2, 1), 2);
+  assert.equal(rowsOf(30, 1), 12);
+  assert.equal(linesOf(''), 1);
+  assert.equal(linesOf('one'), 1);
+  assert.equal(linesOf('one\ntwo\n'), 3);
 });
 
 test('when a task was made is said in the browser\'s own words', () => {
@@ -132,16 +154,10 @@ test('a task waits in minutes under an hour and in hours from it, and never less
   assert.equal(waits(1000 + 86400, 1000), '24 h left');
 });
 
-test('a task that is no longer open is headed by what became of it', () => {
-  assert.equal(closedHeading('done'), 'A task carried out');
-  assert.equal(closedHeading('rejected'), 'A task you rejected');
-  assert.equal(closedHeading('cancelled'), 'A task the agent cancelled');
-  assert.equal(closedHeading('expired'), 'A task that expired');
-  assert.equal(closedHeading('failed'), 'A task whose run failed');
-  assert.equal(closedHeading('void'), 'A task voided by a newer build');
-  assert.equal(closedHeading('answering'), 'A task being carried out');
-  // A state this build does not know is closed, and said no closer than that.
-  assert.equal(closedHeading('unknown'), 'A closed task');
+test('a task is named by the first eight characters of its id', () => {
+  assert.equal(shortTaskId('7c1d0f2e-1b4e-4c0a-9f4d-3a2b1c0d9e8f'), '7c1d0f2e');
+  assert.equal(shortTaskId('run-0'), 'run-0');
+  assert.equal(shortTaskId(''), '');
 });
 
 test('the door of a run is read off its id as the coordinator reads it', () => {

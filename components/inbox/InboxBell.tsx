@@ -10,7 +10,7 @@ import { SignInPrompt } from '@/components/inbox/SignInPrompt';
  * The bell. With a session it counts what waits and leads to the inbox.
  * Without one it is crossed out and says nothing of what waits — not a
  * count: it offers the signature. When a session ends, the offer opens by
- * itself once — and says so when this device was signed out because the
+ * itself once — and says so when this browser was signed out because the
  * account signed in on one too many; the wallet still opens only from the click
  * inside it.
  */

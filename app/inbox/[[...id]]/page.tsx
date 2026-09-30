@@ -7,11 +7,17 @@
  * `/inbox/<task id>` — the link an agent hands its owner — shows that one
  * task first. Nothing is listed without a session; a failure to ask is said
  * as a failure, never drawn as an empty inbox.
+ *
+ * A task is encrypted for the browsers signed in when it was made, so one
+ * made before this browser signed in is listed locked. Above the list, one
+ * banner per project with such tasks offers the one transaction that makes
+ * them readable here (`unlock` of the inbox); the wallet opens from its
+ * button and from nothing else.
  */
 
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { PageHeader } from '@/components/ui/page-header';
@@ -45,19 +51,19 @@ function Closed() {
       <div className="flex items-center gap-3">
         <h2 className="text-sm font-semibold text-foreground">Closed</h2>
         <Button variant="outline" size="sm" onClick={() => void load()}>
-          {shown === null ? 'Show the outcomes kept' : 'Refresh'}
+          {shown === null ? 'Show closed tasks' : 'Refresh'}
         </Button>
       </div>
       <p className="text-sm text-muted-foreground">
-        What a closed task showed is deleted with it. Its outcome is kept 30 days.
+        Closed tasks keep only their outcome, for 30 days. What they showed is deleted.
       </p>
       {error && (
         <p className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive-text">{error}</p>
       )}
-      {shown !== null && shown.length === 0 && <p className="text-sm text-muted-foreground">No outcomes are kept.</p>}
+      {shown !== null && shown.length === 0 && <p className="text-sm text-muted-foreground">No closed tasks in the last 30 days.</p>}
       {shown !== null &&
         shown.map((task) => <TaskCard key={task.id} task={{ ...task, read: null, unread: null } satisfies ShownTask} />)}
-      {more && <p className="text-sm text-muted-foreground">These are the newest. Older outcomes are kept and not listed.</p>}
+      {more && <p className="text-sm text-muted-foreground">The newest are shown. Older closed tasks are kept and not listed.</p>}
     </section>
   );
 }
@@ -97,12 +103,70 @@ function WebhookNamedElsewhere() {
   );
 }
 
+/** The waiting tasks of one project that this browser holds no copy of. */
+type LockedOfProject = { project_id: string; profile: string; count: number };
+
+/**
+ * One project's tasks that arrived before this browser signed in, and the
+ * button that makes them readable here: one transaction of the project's
+ * `tasks_unlock`, from this click and from nothing else. The list is read
+ * again once it is through.
+ */
+function LockedBanner({ locked }: { locked: LockedOfProject }) {
+  const { unlock } = useInbox();
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const one = locked.count === 1;
+
+  const open = async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      await unlock(locked.project_id, locked.profile);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="max-w-3xl space-y-3 rounded-md border border-info/30 bg-info/10 p-4 text-sm text-foreground">
+      <p>
+        {one ? '1 task' : `${locked.count} tasks`} from <span className="break-all font-mono">{locked.project_id}</span> arrived
+        before you signed in here, so {one ? 'it is' : 'they are'} encrypted for other browsers only. Make {one ? 'it' : 'them'}{' '}
+        readable in this browser: one transaction to <span className="break-all font-mono">{locked.project_id}</span>, 0.1 NEAR
+        attached and returned less the run&apos;s cost, about 0.0013 NEAR. It sends nothing and changes nothing.
+      </p>
+      <Button onClick={() => void open()} disabled={busy}>
+        {busy ? 'Waiting for the wallet…' : one ? 'Make it readable here' : 'Make them readable here'}
+      </Button>
+      {error && (
+        <p className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive-text">{error}</p>
+      )}
+    </div>
+  );
+}
+
 function Inbox() {
   const params = useParams<{ id?: string[] }>();
   const wanted = params?.id?.[0] ?? null;
   const { session, loading, tasks, more, approvals, error, refresh, signOut } = useInbox();
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
+
+  // The waiting tasks this browser holds no copy of, by project, in the list's order.
+  const locked = useMemo(() => {
+    const found = new Map<string, LockedOfProject>();
+    for (const task of tasks) {
+      if (task.state === 'open' && task.locked) {
+        const had = found.get(task.project_id);
+        if (had) had.count += 1;
+        else found.set(task.project_id, { project_id: task.project_id, profile: task.profile, count: 1 });
+      }
+    }
+    return [...found.values()];
+  }, [tasks]);
 
   if (!mounted) return null;
   if (session !== 'active') return <SignInPrompt />;
@@ -134,6 +198,10 @@ function Inbox() {
           answered, withdrawn or deleted, it expired, or it was addressed to another account.
         </p>
       )}
+
+      {locked.map((of) => (
+        <LockedBanner key={of.project_id} locked={of} />
+      ))}
 
       <div className="max-w-3xl space-y-4">
         {first.map((task) => (
@@ -179,10 +247,10 @@ function Inbox() {
           href="/inbox/settings"
           className="inline-flex h-8 items-center rounded-md border border-border-strong px-3 text-xs font-semibold text-foreground transition-colors hover:border-accent hover:text-accent-text"
         >
-          Muted agents, devices, webhook
+          Muted agents, browsers, webhook
         </Link>
         <Button variant="ghost" size="sm" onClick={() => void signOut()}>
-          Sign out of this device
+          Sign out of this browser
         </Button>
       </div>
     </div>

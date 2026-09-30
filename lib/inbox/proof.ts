@@ -65,7 +65,7 @@ export type Proof<A extends Attested = Attested> = {
   output: string | null;
 };
 
-/** `build`: the build the envelope names, `null` while the task is not open on this device. */
+/** `build`: the build the envelope names, `null` while the task is not readable in this browser. */
 export type Task = { id: string; project_id: string; preparer: string; build: string | null };
 
 export type Deps<A extends Attested> = {
@@ -108,8 +108,17 @@ export function namesTask(output: string, id: string, hash: string): boolean {
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
-/** Run the proof. Never throws: what could not be asked is a step not checked. */
-export async function prove<A extends Attested>(task: Task, hash: string, deps: Deps<A>): Promise<Proof<A>> {
+/** What a step says while the task is not readable in this browser. */
+export const ONCE_READABLE = 'Checked once the task is readable in this browser.';
+
+/**
+ * Run the proof. Never throws: what could not be asked is a step not checked.
+ *
+ * `hash` is the hash of what this page opened, or `null` while the task is not
+ * readable in this browser: the run, its enclave, its build and its answer are
+ * held all the same, and the step that needs what was opened waits.
+ */
+export async function prove<A extends Attested>(task: Task, hash: string | null, deps: Deps<A>): Promise<Proof<A>> {
   const steps: Step[] = [];
   const done = (attestation: A | null, output: string | null): Proof<A> => ({
     holds: steps.length === 6 && steps.every((s) => s.ok === true),
@@ -211,6 +220,10 @@ export async function prove<A extends Attested>(task: Task, hash: string, deps: 
     said: answered ? "What the run answered is what the enclave signed for." : "What the run answered does not hash to the attestation's output hash.",
   });
 
+  if (hash === null) {
+    steps.push({ name: 'task', ok: null, said: ONCE_READABLE });
+    return done(attestation, output);
+  }
   const named = namesTask(output, task.id, hash);
   steps.push({
     name: 'task',
@@ -228,5 +241,9 @@ export function verdict(proof: Proof): string {
   const failed = proof.steps.find((s) => s.ok === false);
   if (failed) return `The proof does not hold. ${failed.said}`;
   const unread = proof.steps.find((s) => s.ok === null);
+  // Every step but the last holds, and the last waits for the task to be readable here.
+  if (unread?.said === ONCE_READABLE && proof.steps.length === 6 && proof.steps.filter((s) => s.ok === true).length === 5) {
+    return 'Made by a published build of the project, in an approved enclave. Whether it is this task is checked once the task is readable in this browser.';
+  }
   return `The proof could not be checked. ${unread?.said ?? ''}`.trim();
 }

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { answerInput, callOf, readAnswer, waits } from '../lib/inbox/act.ts';
+import { answerInput, callOf, readAnswer, unlockCall, waits } from '../lib/inbox/act.ts';
 
 const envelope = { id: 'run-0', answer_by: { operation: 'confirm', supplies: 'nothing' } };
 const outcome = (value) => ({ status: { SuccessValue: btoa(typeof value === 'string' ? value : JSON.stringify(value)) } });
@@ -22,6 +22,15 @@ test('the call is of the project that made the task, on the owner\'s own row', (
   assert.equal(call.input_data, '{"operation":"confirm"}');
 });
 
+test('opening the tasks of a project for this browser is one call of its active version', () => {
+  const call = unlockCall('connectors.outlayer.near/gmail', 'owner.near', 'gmail');
+  // No version named: the tasks are the project's, whatever build made each.
+  assert.deepEqual(call.source, { Project: { project_id: 'connectors.outlayer.near/gmail' } });
+  assert.deepEqual(call.secrets_ref, { account_id: 'owner.near', profile: 'gmail' });
+  assert.equal(call.input_data, '{"operation":"tasks_unlock"}');
+  assert.deepEqual(call.resource_limits, callOf('p', 'o', 'r', 'b', {}).resource_limits);
+});
+
 test('the project\'s answer is a result or a refusal, never a guess', () => {
   assert.deepEqual(readAnswer(outcome({ success: true, output: { status: 'done' }, error: null })), {
     ok: true,
@@ -40,9 +49,9 @@ test('the project\'s answer is a result or a refusal, never a guess', () => {
 
 test('how long a task waits is said in words', () => {
   assert.equal(waits(1000, 1000), 'past its life');
-  assert.equal(waits(1000 + 30, 1000), 'waits 1 min more');
-  assert.equal(waits(1000 + 1800, 1000), 'waits 30 min more');
-  assert.equal(waits(1000 + 7200, 1000), 'waits 2 h more');
+  assert.equal(waits(1000 + 30, 1000), '1 min left');
+  assert.equal(waits(1000 + 1800, 1000), '30 min left');
+  assert.equal(waits(1000 + 7200, 1000), '2 h left');
 });
 
 const encoded = (text) => ({ status: { SuccessValue: Buffer.from(text, 'utf8').toString('base64') } });
@@ -104,10 +113,10 @@ test('the call names the build the task was made by, asks for JSON and holds the
 
 test('a task waits in minutes under an hour and in hours from it, and never less than a minute', () => {
   assert.equal(waits(1000, 2000), 'past its life');
-  assert.equal(waits(1001, 1000), 'waits 1 min more');
-  assert.equal(waits(1000 + 89, 1000), 'waits 1 min more');
-  assert.equal(waits(1000 + 90, 1000), 'waits 2 min more');
-  assert.equal(waits(1000 + 3599, 1000), 'waits 60 min more');
-  assert.equal(waits(1000 + 3600, 1000), 'waits 1 h more');
-  assert.equal(waits(1000 + 86400, 1000), 'waits 24 h more');
+  assert.equal(waits(1001, 1000), '1 min left');
+  assert.equal(waits(1000 + 89, 1000), '1 min left');
+  assert.equal(waits(1000 + 90, 1000), '2 min left');
+  assert.equal(waits(1000 + 3599, 1000), '60 min left');
+  assert.equal(waits(1000 + 3600, 1000), '1 h left');
+  assert.equal(waits(1000 + 86400, 1000), '24 h left');
 });

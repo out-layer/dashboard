@@ -7,6 +7,7 @@ import { actionCreators } from '@near-js/transactions';
 import { PageHeader } from '@/components/ui/page-header';
 import { RequireWallet } from '@/components/ui/require-wallet';
 import { PolicyEditor } from '@/components/policy/PolicyEditor';
+import { ConfirmNeedsInbox } from '@/components/inbox/ConfirmNeedsInbox';
 import { TrySending } from '@/components/connect/TrySending';
 import { useNearWallet } from '@/contexts/NearWalletContext';
 import { getCoordinatorApiUrl } from '@/lib/api';
@@ -235,6 +236,10 @@ function ConnectGmail() {
   const policyErrors = validate(gmailPolicy, policy);
   /** The row's fields, or null while loading, unknown, or absent. */
   const loaded: Row | null = typeof row === 'object' ? row : null;
+  // "Ask me before" makes the agent leave tasks in the inbox. Known once the
+  // policy is loaded or saved; until then it may be on.
+  const confirmOn = Array.isArray(policy.confirm) && policy.confirm.length > 0;
+  const mayAsk = policyRead === null ? true : confirmOn;
 
   // ---- read the row -----------------------------------------------------
   const loadRow = useCallback(async () => {
@@ -893,6 +898,7 @@ function ConnectGmail() {
               {gmailPolicy.summarize(policy)} Nobody can send until you grant an agent.
             </p>
           </div>
+          {confirmOn && <ConfirmNeedsInbox />}
           <a href={`/secrets?project=${encodeURIComponent(projectId)}&profile=${PROFILE}&access=1`} className="inline-block rounded bg-green-600 px-4 py-2 text-sm text-white hover:bg-green-700">
             Grant an agent access
           </a>
@@ -931,6 +937,8 @@ function ConnectGmail() {
           </div>
 
           {saved && <div className="rounded border border-green-300 bg-green-50 px-4 py-3 text-sm text-green-900">✓ {saved}</div>}
+
+          {mayAsk && <ConfirmNeedsInbox />}
 
           {/* Rule 4: while a signed change waits for its transaction, this block
               IS the page. The policy editor and everything else are not

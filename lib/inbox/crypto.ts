@@ -356,12 +356,12 @@ export type Read = {
 };
 
 /**
- * Read a task of the inbox on this device. Throws when the task does not
+ * Read a task of the inbox in this browser. Throws when the task does not
  * open, or when what opened is not the task the inbox says it is — another
  * id, another owner, another project or another preparer than the row's.
  */
 export async function readTask(device: Device, task: Listed, owner: string): Promise<Read> {
-  if (task.device_copy === null || task.content === null) throw new Error('the task is locked on this device');
+  if (task.device_copy === null || task.content === null) throw new Error('the task is locked in this browser');
   const contentKey = await openFrom(device, 'device-copy', task.id, fromBase64(task.device_copy));
   const document = await openContent(contentKey, task.id, fromBase64(task.content));
   let envelope: unknown;

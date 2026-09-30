@@ -5,14 +5,18 @@
  * the approvals of the wallets they own.
  *
  * Nothing is asked of the API without a session, and nothing is shown of one
- * that is not there: no count, no list. An account is signed in on several
- * devices at a time, each with a session and a key of its own; one device
- * more than an account may have signs out the one signed in longest ago,
- * which is then said in so many words (`replaced`). The session is opened by
- * ONE message
- * the wallet signs, and only from the owner's click (`signIn`): the device's
- * key pair is made ahead of the click, so nothing slow stands between the
- * click and the wallet.
+ * that is not there: no count, no list. An account is signed in in several
+ * browsers at a time, each with a session and a device key of its own; one
+ * browser more than an account may have signs out the one signed in longest
+ * ago, which is then said in so many words (`replaced`). The session is
+ * opened by ONE message the wallet signs, and only from the owner's click
+ * (`signIn`): the device's key pair is made ahead of the click, so nothing
+ * slow stands between the click and the wallet.
+ *
+ * A task is encrypted for the browsers signed in when it was made. One that
+ * came before this browser signed in is listed `locked`, and is made readable
+ * here by one transaction of its project (`unlock`) — again only from the
+ * owner's click.
  *
  * One tab polls, once a minute, and tells the others what it found — which
  * is ciphertext and the rows as the API gave them. Each tab reads the tasks
@@ -20,8 +24,10 @@
  */
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { actionCreators } from '@near-js/transactions';
 import { useNearWallet } from '@/contexts/NearWalletContext';
 import { getCoordinatorApiUrl } from '@/lib/api';
+import { CALL_DEPOSIT, CALL_GAS, readAnswer, unlockCall } from '@/lib/inbox/act';
 import * as api from '@/lib/inbox/api';
 import { newDevice, readTask, statement, toBase64, type Device, type Read } from '@/lib/inbox/crypto';
 import { clearSession, deleteDevice, loadDevice, loadSession, saveDevice, saveSession, type StoredSession } from '@/lib/inbox/store';
@@ -58,6 +64,13 @@ type Inbox = {
   signIn: () => Promise<void>;
   signOut: () => Promise<void>;
   refresh: () => Promise<void>;
+  /**
+   * From a click only: one transaction of the project's `tasks_unlock` on the
+   * owner's row `profile`, which writes the copies of every task of the project
+   * that waits for the owner for the browsers signed in now; then the list is
+   * read again. Throws with the project's refusal, or the wallet's.
+   */
+  unlock: (projectId: string, profile: string) => Promise<void>;
   /** The session's token, for the calls a page makes itself. */
   token: string | null;
   coordinatorUrl: string;
@@ -75,6 +88,7 @@ type Polled = { tasks: api.InboxTask[]; approvals: ShownApproval[] };
 
 export function InboxProvider({ children }: { children: ReactNode }) {
   const { accountId, isConnected, network, contractId, viewMethod, signMessage } = useNearWallet();
+  const { signAndSendTransaction } = useNearWallet();
   const coordinatorUrl = getCoordinatorApiUrl(network);
 
   const [stored, setStored] = useState<StoredSession | null>(null);
@@ -328,6 +342,20 @@ export function InboxProvider({ children }: { children: ReactNode }) {
     prepared.current = await newDevice().catch(() => null);
   }, [stored, accountId, coordinatorUrl, network]);
 
+  const unlock = useCallback(
+    async (projectId: string, profile: string) => {
+      if (!accountId) throw new Error('The wallet is not connected.');
+      const outcome = await signAndSendTransaction({
+        receiverId: contractId,
+        actions: [actionCreators.functionCall('request_execution', unlockCall(projectId, accountId, profile), CALL_GAS, CALL_DEPOSIT)],
+      });
+      const answer = readAnswer(outcome as { status?: { SuccessValue?: string } });
+      if (!answer.ok) throw new Error(answer.refusal);
+      await refresh();
+    },
+    [accountId, contractId, signAndSendTransaction, refresh],
+  );
+
   const value = useMemo<Inbox>(() => {
     const session: SessionState = stored ? 'active' : ended || 'none';
     const waiting = tasks.filter((t) => t.state === 'open').length + approvals.length;
@@ -343,10 +371,11 @@ export function InboxProvider({ children }: { children: ReactNode }) {
       signIn,
       signOut,
       refresh,
+      unlock,
       token: stored?.token ?? null,
       coordinatorUrl,
     };
-  }, [stored, ended, tasks, more, approvals, loading, error, signingIn, signIn, signOut, refresh, coordinatorUrl]);
+  }, [stored, ended, tasks, more, approvals, loading, error, signingIn, signIn, signOut, refresh, unlock, coordinatorUrl]);
 
   return <InboxContext.Provider value={value}>{children}</InboxContext.Provider>;
 }

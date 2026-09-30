@@ -9,11 +9,16 @@
  * call of the project that made the task, signed by the owner's wallet from
  * the button that says what the call does.
  *
- * Before the button is offered the page checks the proof (`lib/inbox/proof`):
- * that the task was made by a published build of its project, in an approved
+ * For every open task the page checks the proof (`lib/inbox/proof`): that
+ * the task was made by a published build of its project, in an approved
  * enclave, and that what that run answered names this task with the hash of
  * what is shown. A proof that does not hold, or could not be checked, is said
  * in its place, and the owner answers past it only by saying so.
+ *
+ * A task made before this browser signed in is `locked`: it holds no copy
+ * for this browser, so nothing of it is shown and nothing can be answered.
+ * The proof still runs, up to the hash. The inbox page offers, per project,
+ * the one transaction that makes such tasks readable here.
  */
 
 import { useEffect, useState } from 'react';
@@ -22,19 +27,17 @@ import type { AttestationResponse } from '@/lib/api';
 import { prove, verdict, type Proof } from '@/lib/inbox/proof';
 import { actionCreators } from '@near-js/transactions';
 import { Badge } from '@/components/ui/badge';
+import { AgentChip } from '@/components/ui/agent-chip';
 import { Button } from '@/components/ui/button';
 import { HashChip } from '@/components/ui/hash-chip';
 import { useNearWallet } from '@/contexts/NearWalletContext';
 import { useInbox, type ShownTask } from '@/contexts/InboxContext';
 import * as api from '@/lib/inbox/api';
-import { answerInput, callOf, readAnswer, waits } from '@/lib/inbox/act';
+import { CALL_DEPOSIT, CALL_GAS, answerInput, callOf, readAnswer, waits } from '@/lib/inbox/act';
 import { MOST_REPLY_BYTES, fromBase64, openFile, replyBytes, saveName, toBase64, writeReply, type TaskField } from '@/lib/inbox/crypto';
 
-const GAS = BigInt('300000000000000');
-const DEPOSIT = BigInt('100000000000000000000000');
-
 const STATE_WORDS: Record<ShownTask['state'], string> = {
-  open: 'Waits for you',
+  open: 'Needs your answer',
   answering: 'Being acted on',
   done: 'Done',
   failed: 'Failed',
@@ -99,11 +102,13 @@ export function TaskCard({ task }: { task: ShownTask }) {
   const open = task.state === 'open';
   const now = Date.now() / 1000;
 
+  // The proof runs for every open task; without a copy for this browser the
+  // hash is not held, and the step that needs it waits.
   const shownHash = read?.hash ?? null;
   useEffect(() => {
     setProof(null);
     setPastTheProof(false);
-    if (!shownHash || !open || !token) return;
+    if (!open || !token) return;
     let cancelled = false;
     void prove<AttestationResponse>(
       { id: task.id, project_id: task.project_id, preparer: task.preparer, build: read?.envelope.build ?? null },
@@ -157,15 +162,15 @@ export function TaskCard({ task }: { task: ShownTask }) {
   /** One call of the project, signed by the wallet. */
   const call = async (input: Record<string, unknown>) => {
     if (!accountId) throw new Error('The wallet is not connected.');
-    if (!read) throw new Error('The task is not open on this device.');
+    if (!read) throw new Error('Not readable in this browser yet.');
     const outcome = await signAndSendTransaction({
       receiverId: contractId,
       actions: [
         actionCreators.functionCall(
           'request_execution',
           callOf(task.project_id, accountId, task.profile, read.envelope.build, input),
-          GAS,
-          DEPOSIT,
+          CALL_GAS,
+          CALL_DEPOSIT,
         ),
       ],
     });
@@ -176,7 +181,7 @@ export function TaskCard({ task }: { task: ShownTask }) {
 
   const act = () =>
     within('act', async () => {
-      if (!read) throw new Error('The task is not open on this device.');
+      if (!read) throw new Error('Not readable in this browser yet.');
       const supplies = read.envelope.answer_by.supplies;
       let sealed: string | null = null;
       if (supplies !== 'nothing') {
@@ -186,12 +191,6 @@ export function TaskCard({ task }: { task: ShownTask }) {
       }
       await call(answerInput(read.envelope, read.hash, sealed));
       return 'The project acted on your answer.';
-    });
-
-  const unlock = () =>
-    within('unlock', async () => {
-      await call({ operation: 'tasks_unlock' });
-      return 'Opened for this device.';
     });
 
   const reject = () =>
@@ -221,7 +220,7 @@ export function TaskCard({ task }: { task: ShownTask }) {
   /** From a click: one file, opened in this page and handed over as a download. */
   const download = (at: number) =>
     within(`file-${at}`, async () => {
-      if (!token || !read) throw new Error('The task is not open on this device.');
+      if (!token || !read) throw new Error('Not readable in this browser yet.');
       const note = read.envelope.files[at];
       const blob = fromBase64(await api.taskFile(coordinatorUrl, token, task.id, at));
       const bytes = await openFile(read.contentKey, task.id, at, note, blob);
@@ -247,25 +246,29 @@ export function TaskCard({ task }: { task: ShownTask }) {
     <article className={`rounded-lg border bg-card p-5 ${open ? 'border-accent/50' : 'border-border'}`}>
       <header className="flex flex-wrap items-center gap-2">
         <h2 className="mr-auto min-w-0 break-words text-base font-semibold text-foreground">
-          {read ? read.envelope.display.title : task.locked ? 'A task locked on this device' : 'A task this page cannot read'}
+          {read ? read.envelope.display.title : task.locked ? 'A task waiting for you' : 'A task this page could not read'}
         </h2>
         <Badge variant={open ? 'default' : 'outline'}>{STATE_WORDS[task.state]}</Badge>
       </header>
 
       <dl className="mt-2 grid gap-x-6 gap-y-1 text-xs text-muted-foreground sm:grid-cols-2">
-        <div>
-          Asked by <span className="break-all font-mono text-foreground">{task.preparer}</span>
+        <div className="flex flex-wrap items-center gap-1">
+          From agent <AgentChip account={task.preparer} />
         </div>
         <div>
-          Through <span className="break-all font-mono text-foreground">{task.project_id}</span>
+          Via <span className="break-all font-mono text-foreground">{task.project_id}</span>
         </div>
         <div>{open ? waits(task.expires_at, now) : new Date(task.created_at * 1000).toLocaleString()}</div>
         {task.run && (
           <div>
-            Acted on by the call <span className="break-all font-mono text-foreground">{task.run}</span>
+            Carried out by call <span className="break-all font-mono text-foreground">{task.run}</span>
           </div>
         )}
       </dl>
+
+      {!read && task.locked && open && (
+        <p className="mt-2 text-sm text-muted-foreground">Arrived before you signed in here. Make it readable with the button above.</p>
+      )}
 
       {read && (
         <dl className="mt-4 space-y-3 border-t border-border pt-4">
@@ -278,7 +281,7 @@ export function TaskCard({ task }: { task: ShownTask }) {
       {read && read.envelope.files.length > 0 && (
         <div className="mt-4 space-y-2 border-t border-border pt-4">
           <p className="text-sm text-muted-foreground">
-            Files that go with it. Each is saved to your device for you to open; this page opens none of them.
+            Files that go with it. Each is handed over as a download for you to open; this page opens none of them.
           </p>
           <ul className="space-y-2">
             {read.envelope.files.map((file, at) => (
@@ -305,7 +308,7 @@ export function TaskCard({ task }: { task: ShownTask }) {
         </p>
       )}
 
-      {read && open && (
+      {open && (
         <div
           className={`mt-4 rounded-md border p-3 text-sm ${
             proof === null
@@ -336,7 +339,7 @@ export function TaskCard({ task }: { task: ShownTask }) {
               Show the attestation
             </Button>
           )}
-          {proof !== null && !proven && (
+          {read && proof !== null && !proven && (
             <label className="mt-3 flex items-start gap-2 text-xs">
               <input type="checkbox" checked={pastTheProof} onChange={(e) => setPastTheProof(e.target.checked)} className="mt-0.5" />
               <span>
@@ -357,20 +360,6 @@ export function TaskCard({ task }: { task: ShownTask }) {
           knownOutput={proof.output ?? undefined}
           onClose={() => setShowAttestation(false)}
         />
-      )}
-
-      {!read && task.locked && open && (
-        <div className="mt-4 space-y-3 border-t border-border pt-4 text-sm text-muted-foreground">
-          <p>
-            This task was made before this device signed in, so it holds no copy for it. One call of{' '}
-            <span className="font-mono text-foreground">{task.project_id}</span> from your account writes the copies of
-            its waiting tasks for this device: one transaction, 0.1 NEAR attached and refunded less the run&apos;s
-            cost. It reads and changes nothing else.
-          </p>
-          <Button onClick={() => void unlock()} disabled={busy !== null}>
-            {busy === 'unlock' ? 'Waiting for the wallet…' : 'Open its tasks on this device'}
-          </Button>
-        </div>
       )}
 
       {!read && !task.locked && task.unread && (

@@ -10,6 +10,12 @@
 
 import type { Envelope } from './crypto';
 
+/** The gas and the deposit of one call of a project from the owner's wallet. */
+export const CALL_GAS = BigInt('300000000000000');
+export const CALL_DEPOSIT = BigInt('100000000000000000000000');
+
+const LIMITS = { max_instructions: 10000000000, max_memory_mb: 128, max_execution_seconds: 60 };
+
 /**
  * The arguments of `request_execution` for one call of a project's operation
  * on the owner's row. `build` names the version to run: the one the task was
@@ -18,8 +24,26 @@ import type { Envelope } from './crypto';
 export function callOf(projectId: string, owner: string, profile: string, build: string, input: Record<string, unknown>) {
   return {
     source: { Project: { project_id: projectId, version_key: build } },
-    resource_limits: { max_instructions: 10000000000, max_memory_mb: 128, max_execution_seconds: 60 },
+    resource_limits: LIMITS,
     input_data: JSON.stringify(input),
+    response_format: 'Json',
+    secrets_ref: { account_id: owner, profile },
+  };
+}
+
+/**
+ * The arguments of `request_execution` for one call of a project's
+ * `tasks_unlock` on the owner's row: it writes, for the browsers signed in to
+ * the inbox now, the copies of every task of the project that waits for the
+ * owner, and nothing else. It runs the project's active version: the tasks it
+ * opens belong to the project, not to the build that made each, and every
+ * build serves the operation.
+ */
+export function unlockCall(projectId: string, owner: string, profile: string) {
+  return {
+    source: { Project: { project_id: projectId } },
+    resource_limits: LIMITS,
+    input_data: JSON.stringify({ operation: 'tasks_unlock' }),
     response_format: 'Json',
     secrets_ref: { account_id: owner, profile },
   };
@@ -67,6 +91,6 @@ export function readAnswer(outcome: { status?: { SuccessValue?: string; Failure?
 export function waits(expiresAt: number, now: number): string {
   const left = expiresAt - now;
   if (left <= 0) return 'past its life';
-  if (left < 3600) return `waits ${Math.max(1, Math.round(left / 60))} min more`;
-  return `waits ${Math.round(left / 3600)} h more`;
+  if (left < 3600) return `${Math.max(1, Math.round(left / 60))} min left`;
+  return `${Math.round(left / 3600)} h left`;
 }

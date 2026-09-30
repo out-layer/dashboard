@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { namesTask, prove, verdict } from '../lib/inbox/proof.ts';
+import { ONCE_READABLE, namesTask, prove, verdict } from '../lib/inbox/proof.ts';
 
 const ID = '0b9c1a52-7c1e-4a53-9c58-2f0c8f6f3b11-0';
 const CALL = '0b9c1a52-7c1e-4a53-9c58-2f0c8f6f3b11';
@@ -307,6 +307,35 @@ test('a run on chain made by another account is not the run of the task', async 
 
 test('a proof with nothing in it is not a proof', () => {
   assert.equal(verdict({ holds: false, unchecked: true, steps: [], attestation: null, output: null }), 'The proof could not be checked.');
+});
+
+test('a task not readable in this browser is proven up to its hash, which waits', async () => {
+  // Nothing opened here: no build and no hash. The run, its enclave, its
+  // build and its answer are held; whether the answer names THIS task waits.
+  const { deps, asked } = await world();
+  const proof = await prove({ ...TASK, build: null }, null, deps);
+  assert.equal(proof.holds, false);
+  assert.equal(proof.unchecked, true);
+  assert.deepEqual(proof.steps.map((s) => [s.name, s.ok]), [
+    ['attestation', true], ['enclave', true], ['run', true], ['build', true], ['answer', true], ['task', null],
+  ]);
+  assert.equal(proof.steps.at(-1).said, ONCE_READABLE);
+  assert.deepEqual(asked, [[TASK.project_id, WASM]], 'the contract is still asked about the build');
+  assert.equal(proof.attestation.output_hash, await sha256(OUTPUT));
+  assert.equal(proof.output, OUTPUT);
+  assert.match(verdict(proof), /^Made by a published build of the project, in an approved enclave\. Whether it is this task is checked once the task is readable in this browser\.$/);
+
+  // What is wrong before the hash still fails, hash or no hash.
+  const other = await prove({ ...TASK, build: null }, null, (await world({ published: false })).deps);
+  assert.deepEqual(failed(other), ['build']);
+  assert.match(verdict(other), /^The proof does not hold\./);
+  const unanswered = await prove({ ...TASK, build: null }, null, (await world({ origin: { output: null } })).deps);
+  assert.deepEqual(unanswered.steps.map((s) => s.name), ['attestation', 'enclave', 'run', 'build', 'answer']);
+  assert.deepEqual(failed(unanswered), ['answer']);
+  // A step that could not be run beside the waiting hash is what the verdict says.
+  const down = await prove({ ...TASK, build: null }, null, (await world({ deps: { published: async () => { throw new Error('rpc'); } } })).deps);
+  assert.deepEqual(unread(down), ['build', 'task']);
+  assert.match(verdict(down), /^The proof could not be checked\. The contract could not be asked/);
 });
 
 test('a task names the build that made it, and an attestation of another build is not its proof', async () => {

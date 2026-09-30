@@ -5,11 +5,13 @@ import { useSearchParams } from 'next/navigation';
 import { actionCreators } from '@near-js/transactions';
 import { PageHeader } from '@/components/ui/page-header';
 import { PolicyEditor } from '@/components/policy/PolicyEditor';
+import { ConfirmNeedsInbox } from '@/components/inbox/ConfirmNeedsInbox';
+import { AgentChip } from '@/components/ui/agent-chip';
 import { useNearWallet } from '@/contexts/NearWalletContext';
 import { getCoordinatorApiUrl } from '@/lib/api';
 import { bytesToHex, eciesEncrypt, generateReplyKeypair, hexToBytes, openReply } from '@/lib/ecies';
 import { waitForTransactionOutcome } from '@/lib/near-rpc';
-import { emptyValue, fromJson, toJson, validate } from '@/lib/policies/policy';
+import { emptyValue, fields, fromJson, toJson, validate } from '@/lib/policies/policy';
 import type { PolicySchema, PolicyValue } from '@/lib/policies/types';
 import { formatAccessCondition } from '@/app/secrets/components/utils';
 import { isImplicitAccount, shortAccount } from '@/lib/short-account';
@@ -261,10 +263,7 @@ function AccessChips({ access }: { access: unknown }) {
   return (
     <span className="inline-flex flex-wrap gap-1 align-middle">
       {accounts.map((a) => (
-        <span key={String(a)} title={String(a)} className="rounded bg-white/70 px-1.5 py-0.5 font-mono text-xs">
-          {isImplicitAccount(String(a)) ? '🤖 ' : ''}
-          {shortAccount(String(a))}
-        </span>
+        <AgentChip key={String(a)} account={String(a)} copy={false} className="rounded bg-white/70 px-1.5 py-0.5 font-mono text-xs" />
       ))}
     </span>
   );
@@ -438,6 +437,11 @@ export function ConnectorOwnerPage({ spec }: { spec: ConnectorSpec }) {
 
   const policyErrors = validate(spec.policy, policy);
   const loaded: Row | null = typeof row === 'object' ? row : null;
+  // A policy that asks the owner before an operation makes the agent leave
+  // tasks in the inbox. Known once the policy is loaded or saved; until then a
+  // connector that can ask may be asking.
+  const confirmOn = Array.isArray(policy.confirm) && policy.confirm.length > 0;
+  const mayAsk = fields(spec.policy).some((f) => f.key === 'confirm') && (policyRead === null ? true : confirmOn);
 
   // ---- read the row -----------------------------------------------------
   const loadRow = useCallback(async () => {
@@ -1063,6 +1067,7 @@ export function ConnectorOwnerPage({ spec }: { spec: ConnectorSpec }) {
               )}
             </p>
           </div>
+          {confirmOn && <ConfirmNeedsInbox />}
           {grantedTo ? (
             <a href={grantHref} className="text-xs text-muted-foreground underline hover:text-foreground">
               Another agent, an expiry, or take access back: the secrets page
@@ -1095,6 +1100,8 @@ export function ConnectorOwnerPage({ spec }: { spec: ConnectorSpec }) {
           </div>
 
           {saved && <div className="rounded border border-green-300 bg-green-50 px-4 py-3 text-sm text-green-900">✓ {saved}</div>}
+
+          {mayAsk && <ConfirmNeedsInbox />}
 
           {/* Rule 4: while a signed change waits for its transaction, this block IS the page. */}
           {updateStage === 'ready-to-store' || updateStage === 'storing' ? (

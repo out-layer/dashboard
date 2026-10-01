@@ -246,10 +246,10 @@ export function TaskCard({ task }: { task: ShownTask }) {
   useEffect(() => {
     setProof(null);
     setPastTheProof(false);
-    if (!open || !token) return;
+    if (!open || !token || !accountId) return;
     let cancelled = false;
     void prove<AttestationResponse>(
-      { id: task.id, project_id: task.project_id, preparer: task.preparer, build: read?.envelope.build ?? null },
+      { id: task.id, project_id: task.project_id, preparer: task.preparer, owner: accountId, build: read?.envelope.build ?? null },
       shownHash,
       {
       origin: () => api.taskOrigin(coordinatorUrl, token, task.id),
@@ -279,7 +279,7 @@ export function TaskCard({ task }: { task: ShownTask }) {
     };
     // viewMethod is a new function on every render of the wallet's context.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [task.id, task.project_id, task.preparer, shownHash, open, token, coordinatorUrl, network, contractId]);
+  }, [task.id, task.project_id, task.preparer, accountId, shownHash, open, token, coordinatorUrl, network, contractId]);
 
   const proven = proof?.holds === true;
   const mayAct = proven || pastTheProof;

@@ -9,8 +9,9 @@ import { AnchorHeading, useHashNavigation } from '../sections/utils';
  *
  * Sourced from the out-layer/outlayer repo: `docs/TASKS.md`,
  * `worker/wit/deps/tasks.wit`, `sdk/outlayer/src/tasks.rs`,
- * `wasi-examples/CONNECTOR_MANIFEST.md` (section `tasks`) and
- * `connectors/tasks-probe/`. Where this page and those files disagree, those
+ * `wasi-examples/CONNECTOR_MANIFEST.md` (section `tasks`), `docs/CONNECTOR_TASKS.md`,
+ * `connectors/tasks-probe/`, `connectors/connector-probe/` (the guessing game)
+ * and the Gmail and GitHub connectors' READMEs. Where this page and those files disagree, those
  * files are the original.
  */
 
@@ -19,6 +20,8 @@ const TASKS_DOC = `${REPO}/blob/main/docs/TASKS.md`;
 const WIT_FILE = `${REPO}/blob/main/worker/wit/deps/tasks.wit`;
 const PROBE_TREE = `${REPO}/tree/main/connectors/tasks-probe`;
 const MANIFEST_DOC = `${REPO}/blob/main/wasi-examples/CONNECTOR_MANIFEST.md`;
+const CONNECTOR_TASKS_DOC = `${REPO}/blob/main/docs/CONNECTOR_TASKS.md`;
+const PROBE_GAME = `${REPO}/tree/main/connectors/connector-probe#the-guessing-game`;
 
 const MANIFEST = `"tasks": true`;
 
@@ -68,6 +71,22 @@ const AWAITING = `{
     "link": "https://app.outlayer.ai/inbox/0b9c1a52-7c1e-4a53-9c58-2f0c8f6f3b11-0"
   }
 }`;
+
+const POLICY_CONFIRM = `{
+  "actions": ["pr_get", "pr_review", "pr_merge", "commit"],
+  "repos": ["alice/site"],
+  "branches": ["agent/*"],
+  "max_writes_per_day": 20,
+  "allow_merge": true,
+  "confirm": ["pr_merge", "pr_review", "commit"]
+}`;
+
+const GUESS_START = `{"operation": "guess_start", "max": 100}`;
+
+const TURN = `// Ask for text instead of a yes; the answering operation is "supply".
+let opened = tasks::input(display, "supply", Supplies::Text, &state, &policy)
+    .open()
+    .map_err(|e| e.refusal())?;`;
 
 const STATEMENT = `Sign in to OutLayer as alice.near. Device key: p256:BFFcPW65…. Valid until 2026-10-29T12:00:00Z.`;
 
@@ -167,6 +186,87 @@ export default function TasksDocsPage() {
           </ul>
         </section>
 
+        <section id="asks-first">
+          <AnchorHeading id="asks-first">Connectors that ask first</AnchorHeading>
+          <p className="text-foreground">
+            A connector can hold a write until its owner approves it. The owner chooses which writes, and the default is
+            none: a policy that names none acts at once, as it always did.
+          </p>
+          <Table
+            head={['Connector', 'What can wait for the owner']}
+            rows={[
+              ['Gmail', <C key="a">send</C>],
+              [
+                'GitHub',
+                <>
+                  every write: <C>branch_create</C>, <C>file_put</C>, <C>commit</C>, <C>issue_create</C>, <C>issue_comment</C>,{' '}
+                  <C>issue_update</C>, <C>pr_create</C>, <C>pr_review</C>, <C>pr_merge</C>, <C>gist_create</C>, <C>gist_update</C>,{' '}
+                  <C>repo_star</C>, <C>repo_unstar</C>
+                </>,
+              ],
+            ]}
+          />
+          <p className="text-foreground">
+            <strong>Turning it on.</strong> On the connector&apos;s page —{' '}
+            <Link href="/connect/gmail" className="text-accent-text underline">
+              Gmail
+            </Link>
+            ,{' '}
+            <Link href="/connect/github" className="text-accent-text underline">
+              GitHub
+            </Link>{' '}
+            — the policy editor has a group &ldquo;Ask me before&rdquo;: one box per write. What is ticked is stored in the
+            policy as <C>confirm</C>:
+          </p>
+          <CodeBlock language="json" code={POLICY_CONFIRM} />
+          <p className="text-foreground mt-3">
+            A name that is not one of the connector&apos;s writes — a read, a misspelling, another case — makes the policy
+            unreadable, and an unreadable policy refuses the connector&apos;s writes. Asking before a write allows nothing by
+            itself: on GitHub the write must also be in <C>actions</C>.
+          </p>
+          <p className="text-foreground mt-3">
+            <strong>What the agent gets.</strong> Its call is checked exactly as it would be before the write — every rule of
+            the policy — and instead of writing, the connector leaves a task for the owner and answers:
+          </p>
+          <CodeBlock language="json" code={AWAITING} />
+          <p className="text-foreground mt-3">
+            That is a success: the agent did its part and paid the operation&apos;s price. It learns the outcome with{' '}
+            <C>task_status</C> and the <C>task_id</C>: <C>done</C> with the write&apos;s result, <C>rejected</C> with the
+            owner&apos;s reason if they gave one, or <C>failed</C>, <C>expired</C>, <C>void</C>.
+          </p>
+          <p className="text-foreground mt-3">
+            <strong>What the owner sees.</strong> The task waits in the{' '}
+            <Link href="/inbox" className="text-accent-text underline">
+              inbox
+            </Link>{' '}
+            as the prepared form, in three views: <em>Preview</em> — every value the write will use, each marked as the
+            agent&apos;s words or the connector&apos;s; <em>RAW form</em> — the exact bytes the task&apos;s hash covers;{' '}
+            <em>RAW request</em> — what the agent&apos;s run was called with. Beside it, <a href="#proof" className="text-accent-text underline">the proof</a>{' '}
+            that a published build of the connector made the task, with the run&apos;s attestation on request. What a field
+            cannot hold — a Gmail attachment, a file&apos;s content on GitHub — is handed over as a download. Approving is one
+            call of the connector&apos;s <C>confirm</C>, signed by the owner&apos;s wallet: one transaction, and{' '}
+            <C>confirm</C> is priced at zero.
+          </p>
+          <p className="text-foreground mt-3">
+            <strong>Carried out exactly as shown.</strong> <C>confirm</C> acts on the write sealed in the task and on nothing
+            else: it takes no value from its own call and re-reads nothing the write was built from. It checks the policy and
+            the day&apos;s count again as they are at that moment; a policy changed since the task was made makes the task{' '}
+            <C>void</C>. On GitHub the owner&apos;s yes is bound to the commit they were shown: a merge is made with that head
+            commit, so GitHub refuses it if the pull request moved, and an approval of any other head is refused. A confirmed
+            write counts against the owner&apos;s daily number for the agent that prepared it.
+          </p>
+          <p className="text-foreground mt-3">
+            <strong>Saying no.</strong> <em>Reject</em> in the inbox takes an optional reason, encrypted in the page for the
+            connector; nothing is written, and the agent reads the reason with <C>task_status</C> the next time it asks. A
+            write refused after the owner&apos;s answer ends the task <C>failed</C>, and its sentence says whether the write
+            happened, so a write that was made is not prepared twice.
+          </p>
+          <p className="text-foreground mt-3">
+            How a connector builds this is in{' '}
+            <Ext href={CONNECTOR_TASKS_DOC}>CONNECTOR_TASKS.md</Ext>.
+          </p>
+        </section>
+
         <section id="using">
           <AnchorHeading id="using">Using it in a project</AnchorHeading>
           <p className="text-foreground">Declare it in the manifest, and build on the SDK with the feature:</p>
@@ -203,6 +303,40 @@ export default function TasksDocsPage() {
             task keeps its price, and nothing comes back if the owner says no. The operation that answers a
             task, and the five above, are priced at zero: an owner pays nothing to say yes.
           </p>
+        </section>
+
+        <section id="conversations">
+          <AnchorHeading id="conversations">Conversations</AnchorHeading>
+          <p className="text-foreground">
+            A task may ask the owner for text or a file instead of a yes, and the run that takes the answer may ask the next
+            question at once. The new task is the next <strong>turn</strong> of the same <C>thread</C>: it keeps the
+            conversation&apos;s preparer, so the inbox shows it from the same agent, and it counts in that agent&apos;s share and
+            under its mute.
+          </p>
+          <CodeBlock language="rust" code={TURN} />
+          <p className="text-foreground mt-3">
+            <strong>An example: a guessing game.</strong> <Ext href={PROBE_GAME}>connector-probe</Ext> plays one. The agent
+            calls <C>guess_start</C>; the run picks a number from 1 to <C>max</C> and leaves the owner a task, &ldquo;Guess my
+            number&rdquo;, answered <C>awaiting_owner</C>:
+          </p>
+          <CodeBlock language="json" code={GUESS_START} />
+          <ul className="list-disc list-inside space-y-2 text-foreground mt-3">
+            <li>
+              The owner types a guess in the inbox; their own call runs <C>guess</C>, which judges it.
+            </li>
+            <li>
+              Wrong: <C>higher</C> or <C>lower</C> arrives as the next task of the same thread, showing the guess, the answer
+              and the attempts so far. Right: the game ends and nothing more is opened.
+            </li>
+            <li>
+              The agent follows it with <C>task_status</C>: each turn&apos;s result is{' '}
+              <C>{'{attempt, guess, verdict, max, detail}'}</C>, with <C>next_task_id</C> while the game goes on.
+            </li>
+            <li>
+              The number is in the task&apos;s sealed <C>state</C>, handed from turn to turn, beside random bytes: the owner
+              holds the state&apos;s hash, and without them hashing every number would name it.
+            </li>
+          </ul>
         </section>
 
         <section id="who">
@@ -434,6 +568,9 @@ export default function TasksDocsPage() {
             </li>
             <li>
               <Ext href={MANIFEST_DOC}>CONNECTOR_MANIFEST.md</Ext> — the manifest reference, section <C>tasks</C>
+            </li>
+            <li>
+              <Ext href={CONNECTOR_TASKS_DOC}>CONNECTOR_TASKS.md</Ext> — owner confirmation in a connector
             </li>
           </ul>
         </section>

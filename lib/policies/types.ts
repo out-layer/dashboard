@@ -83,6 +83,8 @@ export interface PolicyGroup {
   /** The question the group answers, e.g. "Who can it write to?" */
   question: string;
   fields: PolicyField[];
+  /** One line under the group's fields: what choosing anything here sets in motion. */
+  note?: string;
 }
 
 /** A field's value as the editor holds it: lists as arrays, numbers as numbers, text as strings. Absent = empty. */

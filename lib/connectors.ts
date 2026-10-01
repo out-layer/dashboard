@@ -32,6 +32,8 @@ export interface ConnectorEntry {
    * links; the venue's pages are the source, never a list copied here.
    */
   venueTerms?: { label: string; href: string }[];
+  /** What the owner can ask to approve first, in their words; the page links it to `/docs/tasks`. */
+  asksFirst?: string;
 }
 
 /** The eligibility notice shown with a connector that has `venueTerms`. */
@@ -56,6 +58,8 @@ export const CONNECTORS: ConnectorEntry[] = [
     owner: 'account',
     networks: ['mainnet', 'testnet'],
     icon: 'mail',
+    asksFirst:
+      'A message can wait for you. Tick “Send a message” under “Ask me before” in the policy, and the agent’s message is checked against your rules and left in your inbox instead of being sent: you read it whole, with every attachment to open, and it goes out only when you approve it with your wallet — exactly as you read it. If you reject it, your reason goes back to the agent.',
   },
   {
     id: 'github',
@@ -66,6 +70,8 @@ export const CONNECTORS: ConnectorEntry[] = [
     owner: 'account',
     networks: ['mainnet', 'testnet'],
     icon: 'branch',
+    asksFirst:
+      'Any write can wait for you — merging, reviewing, committing, down to starring. Tick it under “Ask me before” in the policy, and the agent’s request is checked against your rules and left in your inbox with every value it will use. Nothing is written until you approve it with your wallet, and then exactly what you were shown; a merge or a review is bound to the commit you saw. If you reject it, your reason goes back to the agent.',
   },
   {
     id: 'mercury',

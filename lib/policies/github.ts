@@ -53,6 +53,31 @@ export const GITHUB_ACTIONS: Choice[] = [
   { value: 'repo_unstar', label: 'unstar', group: STARS },
 ];
 
+const ASK_CODE = 'Code and pull requests';
+const ASK_ISSUES = 'Issues';
+const ASK_OTHER = 'Gists and stars';
+
+/**
+ * The writes the owner may ask to approve first — every write, spelled as the
+ * connector's `Confirmable` spells it. The three that change the most come
+ * first: a merge, a review that may approve, a commit.
+ */
+export const GITHUB_CONFIRMABLE: Choice[] = [
+  { value: 'pr_merge', label: 'Merging a pull request', group: ASK_CODE },
+  { value: 'pr_review', label: 'Approving or reviewing a pull request', group: ASK_CODE },
+  { value: 'commit', label: 'Committing', group: ASK_CODE },
+  { value: 'file_put', label: 'Writing a file', group: ASK_CODE },
+  { value: 'branch_create', label: 'Creating a branch', group: ASK_CODE },
+  { value: 'pr_create', label: 'Opening a pull request', group: ASK_CODE },
+  { value: 'issue_create', label: 'Opening an issue', group: ASK_ISSUES },
+  { value: 'issue_comment', label: 'Commenting', group: ASK_ISSUES },
+  { value: 'issue_update', label: 'Editing an issue', group: ASK_ISSUES },
+  { value: 'gist_create', label: 'Creating a gist', group: ASK_OTHER },
+  { value: 'gist_update', label: 'Editing a gist', group: ASK_OTHER },
+  { value: 'repo_star', label: 'Starring', group: ASK_OTHER },
+  { value: 'repo_unstar', label: 'Unstarring', group: ASK_OTHER },
+];
+
 const reads = GITHUB_ACTIONS.filter((a) => a.group === READ).map((a) => a.value);
 /** What can only happen on a branch the policy names. */
 const NEEDS_BRANCH = ['branch_create', 'file_put', 'commit', 'pr_create'];
@@ -103,6 +128,14 @@ function list(v: PolicyValue[string]): string[] {
 function joinAnd(items: string[]): string {
   if (items.length <= 1) return items.join('');
   return `${items.slice(0, -1).join(', ')} and ${items[items.length - 1]}`;
+}
+
+/** What waits for the owner — only writes the policy also allows, since asking before a refused one asks nothing. */
+function asks(writes: string[], confirm: string[]): string {
+  const asked = GITHUB_CONFIRMABLE.filter((c) => confirm.includes(c.value) && writes.includes(c.value));
+  if (asked.length === 0) return '';
+  if (asked.length === writes.length) return ' Every write waits for your approval.';
+  return ` It asks you before ${joinAnd(asked.map((c) => c.label.charAt(0).toLowerCase() + c.label.slice(1)))}.`;
 }
 
 export const githubPolicy: PolicySchema = {
@@ -220,6 +253,20 @@ export const githubPolicy: PolicySchema = {
         },
       ],
     },
+    {
+      question: 'Ask me before…',
+      note: 'The agent’s request waits in your inbox; nothing happens until you approve it there.',
+      fields: [
+        {
+          key: 'confirm',
+          label: 'Ask me before',
+          kind: 'choices',
+          help: 'A write ticked here is checked against the rules above, then prepared and left for you instead of being made: you see every value it will use, and approving it takes one transaction from your wallet and makes exactly what you were shown. Ticking here allows nothing by itself — the write must also be ticked under Actions.',
+          absentMeans: 'Nothing ticked: the agent makes every write it is allowed without asking.',
+          options: GITHUB_CONFIRMABLE,
+        },
+      ],
+    },
   ],
 
   check(value: PolicyValue): string[] {
@@ -267,7 +314,7 @@ export const githubPolicy: PolicySchema = {
     if (value.allow_approve !== true || !actions.includes('pr_review')) never.push('approve');
     if (value.allow_public_gists !== true || !actions.includes('gist_create')) never.push('publish a gist');
     const tail = never.length > 0 ? ` It can never ${joinAnd(never)}, or touch .github/.` : ' It can never touch .github/.';
-    return `${parts.join(', ')}.${tail}`;
+    return `${parts.join(', ')}.${tail}${asks(writes, list(value.confirm))}`;
   },
 };
 

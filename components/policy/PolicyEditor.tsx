@@ -91,6 +91,7 @@ export function PolicyEditor({
               {group.fields.map((field) => (
                 <Field key={field.key} field={field} value={value[field.key]} onChange={(v) => set(field.key, v)} disabled={disabled} />
               ))}
+              {group.note && <p className="text-xs text-muted-foreground">{group.note}</p>}
             </fieldset>
           ))}
           {errors.length > 0 && (
@@ -259,10 +260,11 @@ function ChoicesInput({
 }) {
   const options = field.options ?? [];
   const groups = [...new Set(options.map((o) => o.group))];
-  // Closed to begin with: the presets are what most owners want, and a wall of
-  // twenty-five boxes above them reads as work. Opened by a preset, so the
-  // owner SEES what it just did — and closable again from there.
-  const [open, setOpen] = useState(false);
+  // With presets, closed to begin with: the presets are what most owners want,
+  // and a wall of twenty-five boxes above them reads as work. Opened by a
+  // preset, so the owner SEES what it just did — and closable again from there.
+  // Without presets the boxes are the only way to choose, so they show.
+  const [open, setOpen] = useState(!field.presets?.length);
   // Stored in the vocabulary's own order, whatever order it was clicked in: two
   // policies that allow the same things are then the same text.
   const put = (values: string[]) => {

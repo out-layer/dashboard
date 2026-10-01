@@ -195,6 +195,15 @@ export default function ConnectorPage() {
 
       <p className="mt-6 max-w-3xl text-sm text-foreground">{shown(description?.summary) || entry.how}</p>
 
+      {entry.asksFirst && (
+        <p className="mt-3 max-w-3xl text-sm text-foreground">
+          {entry.asksFirst}{' '}
+          <a href="/docs/tasks#asks-first" className="text-accent-text hover:underline">
+            How asking first works →
+          </a>
+        </p>
+      )}
+
       {/* ---- The owner's policy, from the schema the connect page edits ---- */}
       {policy && (
         <section className="mt-8 max-w-3xl">
@@ -225,6 +234,7 @@ export default function ConnectorPage() {
                     </div>
                   ))}
                 </dl>
+                {g.note && <p className="mt-2 text-xs text-muted-foreground">{g.note}</p>}
               </div>
             ))}
           </div>

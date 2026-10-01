@@ -73,8 +73,11 @@ export type Proof<A extends Attested = Attested> = {
   output: string | null;
 };
 
-/** `build`: the build the envelope names, `null` while the task is not readable in this browser. */
-export type Task = { id: string; project_id: string; preparer: string; build: string | null };
+/**
+ * `owner`: the signed-in account the task waits for. `build`: the build the
+ * envelope names, `null` while the task is not readable in this browser.
+ */
+export type Task = { id: string; project_id: string; preparer: string; owner: string; build: string | null };
 
 export type Deps<A extends Attested> = {
   origin: () => Promise<Origin>;
@@ -179,16 +182,24 @@ export async function prove<A extends Attested>(task: Task, hash: string | null,
     steps.push({ name: 'enclave', ok: null, said: `The quote could not be verified: ${message(e)}` });
   }
 
-  const sameRun =
-    origin.door === 'https'
-      ? attestation.call_id === origin.call_id && (attestation.payment_key_owner ?? task.preparer) === task.preparer
-      : attestation.request_id === origin.request_id && (attestation.caller_account_id ?? task.preparer) === task.preparer;
+  // The run is made by the task's preparer, or — for a turn — by the owner:
+  // their own answer to the conversation's previous task, whose answer opens
+  // this one under the agent that prepared the conversation. Either way what
+  // ties the run to this task is its answer naming the task, the last step.
+  const sameId = origin.door === 'https' ? attestation.call_id === origin.call_id : attestation.request_id === origin.request_id;
+  const madeBy = (origin.door === 'https' ? attestation.payment_key_owner : attestation.caller_account_id) ?? task.preparer;
   if (attestation.project_id !== task.project_id) {
     steps.push({ name: 'run', ok: false, said: `The attested run was of ${attestation.project_id ?? 'no project'}, not of ${task.project_id}.` });
-  } else if (!sameRun) {
-    steps.push({ name: 'run', ok: false, said: `The attested run is not the run ${origin.run} made by ${task.preparer}.` });
-  } else {
+  } else if (!sameId || (madeBy !== task.preparer && madeBy !== task.owner)) {
+    steps.push({ name: 'run', ok: false, said: `The attested run is not the run ${origin.run} made by ${task.preparer} or by you.` });
+  } else if (madeBy === task.preparer) {
     steps.push({ name: 'run', ok: true, said: `It was a run of ${task.project_id}, made by ${task.preparer}.` });
+  } else {
+    steps.push({
+      name: 'run',
+      ok: true,
+      said: "The attested run is the run that made this task: your own answer to the conversation's previous task.",
+    });
   }
 
   if (!attestation.executed_wasm_sha256) {

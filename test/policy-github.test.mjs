@@ -8,7 +8,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { githubPolicy, GITHUB_ACTIONS, githubStartingPolicy, repoProblem, branchProblem, pathProblem } from '../lib/policies/github.ts';
+import { githubPolicy, GITHUB_ACTIONS, GITHUB_CONFIRMABLE, githubStartingPolicy, repoProblem, branchProblem, pathProblem } from '../lib/policies/github.ts';
 import { toJson, fromJson, validate, isUnrestricted, emptyValue, change } from '../lib/policies/policy.ts';
 
 test('an empty policy allows nothing, and the editor says so', () => {
@@ -18,12 +18,52 @@ test('an empty policy allows nothing, and the editor says so', () => {
   assert.match(githubPolicy.summarize(emptyValue()), /only ask for the connection’s status/);
 });
 
+const manifest = JSON.parse(readFileSync(new URL('../../near-offshore/connectors/github-connector/manifest.json', import.meta.url)));
+// The task operations are the host's, answered for every connector that leaves
+// tasks; `confirm` is the owner's own call. No policy names any of them.
+const hostTasks = [...readFileSync(new URL('../../near-offshore/sdk/outlayer/src/tasks.rs', import.meta.url), 'utf8').match(/pub const OPERATIONS: &\[&str\] = &\[([^\]]*)\]/)[1].matchAll(/"([a-z_]+)"/g)].map((m) => m[1]);
+const governed = manifest.operations.filter((op) => op !== 'status' && op !== 'confirm' && !hostTasks.includes(op));
+
 // The manifest is the connector's own list; a tick-box with no operation
 // behind it, or an operation with no tick-box, is a policy nobody can write.
 test('the actions offered are the operations the connector sells', () => {
-  const manifest = JSON.parse(readFileSync(new URL('../../near-offshore/connectors/github-connector/manifest.json', import.meta.url)));
-  const sold = manifest.operations.filter((op) => op !== 'status');
-  assert.deepEqual(GITHUB_ACTIONS.map((a) => a.value), sold);
+  assert.ok(hostTasks.includes('task_status'), 'the host’s task operations were found');
+  assert.deepEqual(GITHUB_ACTIONS.map((a) => a.value), governed);
+});
+
+// `confirm` names are the connector's `Confirmable`: a name it does not parse
+// makes the whole policy unreadable, so the editor offers exactly its set.
+test('what may be asked first is every write, and only a write', () => {
+  const rust = readFileSync(new URL('../../near-offshore/connectors/github-connector/src/policy.rs', import.meta.url), 'utf8');
+  const confirmable = [...rust.slice(rust.indexOf('pub fn name(self)')).split('\n    }\n')[0].matchAll(/Self::\w+ => "([a-z_]+)"/g)].map((m) => m[1]);
+  assert.equal(confirmable.length, 13);
+  const writes = governed.filter((op) => manifest.describe.operations[op].class === 'write');
+  assert.deepEqual([...confirmable].sort(), [...writes].sort());
+  assert.deepEqual(GITHUB_CONFIRMABLE.map((c) => c.value).sort(), [...writes].sort());
+  assert.deepEqual(GITHUB_CONFIRMABLE.slice(0, 3).map((c) => c.value), ['pr_merge', 'pr_review', 'commit'], 'the heaviest first');
+});
+
+test('`confirm` is stored as named, read back, and absent when nothing is ticked', () => {
+  const value = { actions: ['issue_get', 'issue_comment', 'commit'], repos: ['a/b'], branches: ['agent/*'], max_writes_per_day: 5, confirm: ['commit'] };
+  const json = toJson(githubPolicy, value);
+  assert.deepEqual(JSON.parse(json).confirm, ['commit']);
+  assert.deepEqual(fromJson(githubPolicy, json).value, value);
+  assert.deepEqual(validate(githubPolicy, value), []);
+  assert.equal(toJson(githubPolicy, { confirm: [] }), '{}');
+  // What the connector reports holds `confirm` too; a policy rewritten from it still asks.
+  assert.deepEqual(fromJson(githubPolicy, { actions: ['pr_merge'], allow_merge: true, confirm: ['pr_merge'], marker: null }).value, { actions: ['pr_merge'], allow_merge: true, confirm: ['pr_merge'] });
+  // A read cannot be asked first — the connector would refuse the policy.
+  assert.match(validate(githubPolicy, { confirm: ['file_get'] }).join(' | '), /not something this connector does/);
+  assert.equal(githubStartingPolicy('alice', ['alice/site']).confirm, undefined, 'nothing is asked by default');
+});
+
+test('the sentence says which allowed writes wait for the owner', () => {
+  const base = { actions: ['issue_get', 'issue_comment', 'commit'], repos: ['a/b'], branches: ['agent/*'], max_writes_per_day: 5 };
+  assert.doesNotMatch(githubPolicy.summarize(base), /your approval|asks you/);
+  assert.match(githubPolicy.summarize({ ...base, confirm: ['commit'] }), /It asks you before committing\.$/);
+  assert.match(githubPolicy.summarize({ ...base, confirm: ['commit', 'issue_comment'] }), /Every write waits for your approval\.$/);
+  // Asking before a write the policy does not allow asks nothing.
+  assert.doesNotMatch(githubPolicy.summarize({ ...base, confirm: ['pr_merge'] }), /your approval|asks you/);
 });
 
 test('switches that are off are absent, and the policy round-trips', () => {

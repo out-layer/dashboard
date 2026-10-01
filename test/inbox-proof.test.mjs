@@ -6,7 +6,7 @@ const ID = '0b9c1a52-7c1e-4a53-9c58-2f0c8f6f3b11-0';
 const CALL = '0b9c1a52-7c1e-4a53-9c58-2f0c8f6f3b11';
 const HASH = 'ab'.repeat(32);
 const WASM = 'cd'.repeat(32);
-const TASK = { id: ID, project_id: 'connectors.outlayer.near/gmail', preparer: 'agent.near', build: WASM };
+const TASK = { id: ID, project_id: 'connectors.outlayer.near/gmail', preparer: 'agent.near', owner: 'owner.near', build: WASM };
 const OUTPUT = JSON.stringify({
   success: true,
   output: { status: 'awaiting_owner', task_id: ID, task_hash: HASH, link: 'https://app.outlayer.ai/inbox/x' },
@@ -303,6 +303,33 @@ test('a run on chain made by another account is not the run of the task', async 
   assert.deepEqual(failed(await prove(TASK, HASH, other.deps)), ['run']);
   const unnamed = await world(chain);
   assert.equal((await prove(TASK, HASH, unnamed.deps)).holds, true);
+});
+
+test("a turn's run, made by the owner, is the run of the task the agent prepared; a third account's is not", async () => {
+  const TURN = "The attested run is the run that made this task: your own answer to the conversation's previous task.";
+  const https = await world({ attestation: { payment_key_owner: 'owner.near' } });
+  const byOwner = await prove(TASK, HASH, https.deps);
+  assert.equal(byOwner.holds, true);
+  assert.deepEqual(byOwner.steps[2], { name: 'run', ok: true, said: TURN });
+
+  const named = JSON.stringify({ output: { task_id: ID, task_hash: HASH } });
+  const chain = {
+    origin: { door: 'chain', run: 'req-7', call_id: undefined, request_id: 7, output: named },
+    attestation: { call_id: undefined, payment_key_owner: undefined, request_id: 7, output_hash: await sha256(named) },
+  };
+  const onChain = await world({ ...chain, attestation: { ...chain.attestation, caller_account_id: 'owner.near' } });
+  const onChainByOwner = await prove(TASK, HASH, onChain.deps);
+  assert.equal(onChainByOwner.holds, true);
+  assert.equal(onChainByOwner.steps[2].said, TURN);
+
+  const third = await world({ attestation: { payment_key_owner: 'mallory.near' } });
+  const byThird = await prove(TASK, HASH, third.deps);
+  assert.deepEqual(failed(byThird), ['run']);
+  assert.equal(byThird.steps[2].said, `The attested run is not the run ${CALL} made by agent.near or by you.`);
+  const thirdOnChain = await world({ ...chain, attestation: { ...chain.attestation, caller_account_id: 'mallory.near' } });
+  assert.deepEqual(failed(await prove(TASK, HASH, thirdOnChain.deps)), ['run']);
+  // The preparer's own run still says so.
+  assert.equal((await prove(TASK, HASH, (await world()).deps)).steps[2].said, `It was a run of ${TASK.project_id}, made by agent.near.`);
 });
 
 test('a proof with nothing in it is not a proof', () => {

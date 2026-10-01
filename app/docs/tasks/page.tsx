@@ -351,9 +351,12 @@ export default function TasksDocsPage() {
             rows={[
               [
                 <>the project&apos;s, made by an account the owner&apos;s row admits <strong>by name</strong></>,
-                'open a task for that owner; read, cancel and delete the tasks it made',
+                'open a task for that owner; read, cancel and delete its tasks: those it made and the turns of its conversations',
               ],
-              ["the project's, made by the owner", 'answer the tasks of this project addressed to them; open them for a new device'],
+              [
+                "the project's, made by the owner",
+                'open the next turn of the conversation a task the run answered belongs to; read, cancel and delete a turn the run opened; answer the tasks of this project addressed to them; open them for a new device',
+              ],
               [
                 'admitted by a row open to everyone, to a pattern, or to holders of a token or a role',
                 <>run; <C>open</C> is refused <C>not-granted-by-name</C></>,

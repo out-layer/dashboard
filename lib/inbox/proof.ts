@@ -74,10 +74,18 @@ export type Proof<A extends Attested = Attested> = {
 };
 
 /**
- * `owner`: the signed-in account the task waits for. `build`: the build the
- * envelope names, `null` while the task is not readable in this browser.
+ * `owner`: the signed-in account the task waits for. `build` and `thread`: the
+ * build and the conversation the envelope names, `null` while the task is not
+ * readable in this browser.
  */
-export type Task = { id: string; project_id: string; preparer: string; owner: string; build: string | null };
+export type Task = {
+  id: string;
+  project_id: string;
+  preparer: string;
+  owner: string;
+  build: string | null;
+  thread: string | null;
+};
 
 export type Deps<A extends Attested> = {
   origin: () => Promise<Origin>;
@@ -182,10 +190,12 @@ export async function prove<A extends Attested>(task: Task, hash: string | null,
     steps.push({ name: 'enclave', ok: null, said: `The quote could not be verified: ${message(e)}` });
   }
 
-  // The run is made by the task's preparer, or — for a turn — by the owner:
-  // their own answer to the conversation's previous task, whose answer opens
-  // this one under the agent that prepared the conversation. Either way what
-  // ties the run to this task is its answer naming the task, the last step.
+  // The run is made by the task's preparer, or — for a turn only — by the
+  // owner: their own answer to the conversation's previous task, whose answer
+  // opens this one under the agent that prepared the conversation. A task
+  // that starts its conversation (`thread` is its own id) is made by its
+  // preparer's run and by no other. Either way what ties the run to this
+  // task is its answer naming the task, the last step.
   const sameId = origin.door === 'https' ? attestation.call_id === origin.call_id : attestation.request_id === origin.request_id;
   const madeBy = (origin.door === 'https' ? attestation.payment_key_owner : attestation.caller_account_id) ?? task.preparer;
   if (attestation.project_id !== task.project_id) {
@@ -194,6 +204,18 @@ export async function prove<A extends Attested>(task: Task, hash: string | null,
     steps.push({ name: 'run', ok: false, said: `The attested run is not the run ${origin.run} made by ${task.preparer} or by you.` });
   } else if (madeBy === task.preparer) {
     steps.push({ name: 'run', ok: true, said: `It was a run of ${task.project_id}, made by ${task.preparer}.` });
+  } else if (task.thread === null) {
+    steps.push({
+      name: 'run',
+      ok: null,
+      said: `The attested run is your own, and a run of yours makes only a turn of a conversation: whether this task is one is checked once the task is readable in this browser.`,
+    });
+  } else if (task.thread === task.id) {
+    steps.push({
+      name: 'run',
+      ok: false,
+      said: `The attested run is your own, and this task starts its conversation: only a run of ${task.preparer} makes such a task.`,
+    });
   } else {
     steps.push({
       name: 'run',

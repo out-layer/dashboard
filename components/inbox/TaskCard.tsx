@@ -249,7 +249,14 @@ export function TaskCard({ task }: { task: ShownTask }) {
     if (!open || !token || !accountId) return;
     let cancelled = false;
     void prove<AttestationResponse>(
-      { id: task.id, project_id: task.project_id, preparer: task.preparer, owner: accountId, build: read?.envelope.build ?? null },
+      {
+        id: task.id,
+        project_id: task.project_id,
+        preparer: task.preparer,
+        owner: accountId,
+        build: read?.envelope.build ?? null,
+        thread: read?.envelope.thread ?? null,
+      },
       shownHash,
       {
       origin: () => api.taskOrigin(coordinatorUrl, token, task.id),

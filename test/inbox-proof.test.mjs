@@ -6,7 +6,9 @@ const ID = '0b9c1a52-7c1e-4a53-9c58-2f0c8f6f3b11-0';
 const CALL = '0b9c1a52-7c1e-4a53-9c58-2f0c8f6f3b11';
 const HASH = 'ab'.repeat(32);
 const WASM = 'cd'.repeat(32);
-const TASK = { id: ID, project_id: 'connectors.outlayer.near/gmail', preparer: 'agent.near', owner: 'owner.near', build: WASM };
+const TASK = { id: ID, project_id: 'connectors.outlayer.near/gmail', preparer: 'agent.near', owner: 'owner.near', build: WASM, thread: ID };
+/** The same task as the next turn of a conversation the agent started. */
+const TURN_TASK = { ...TASK, thread: 'req-3-0' };
 const OUTPUT = JSON.stringify({
   success: true,
   output: { status: 'awaiting_owner', task_id: ID, task_hash: HASH, link: 'https://app.outlayer.ai/inbox/x' },
@@ -308,7 +310,7 @@ test('a run on chain made by another account is not the run of the task', async 
 test("a turn's run, made by the owner, is the run of the task the agent prepared; a third account's is not", async () => {
   const TURN = "The attested run is the run that made this task: your own answer to the conversation's previous task.";
   const https = await world({ attestation: { payment_key_owner: 'owner.near' } });
-  const byOwner = await prove(TASK, HASH, https.deps);
+  const byOwner = await prove(TURN_TASK, HASH, https.deps);
   assert.equal(byOwner.holds, true);
   assert.deepEqual(byOwner.steps[2], { name: 'run', ok: true, said: TURN });
 
@@ -318,18 +320,39 @@ test("a turn's run, made by the owner, is the run of the task the agent prepared
     attestation: { call_id: undefined, payment_key_owner: undefined, request_id: 7, output_hash: await sha256(named) },
   };
   const onChain = await world({ ...chain, attestation: { ...chain.attestation, caller_account_id: 'owner.near' } });
-  const onChainByOwner = await prove(TASK, HASH, onChain.deps);
+  const onChainByOwner = await prove(TURN_TASK, HASH, onChain.deps);
   assert.equal(onChainByOwner.holds, true);
   assert.equal(onChainByOwner.steps[2].said, TURN);
 
   const third = await world({ attestation: { payment_key_owner: 'mallory.near' } });
-  const byThird = await prove(TASK, HASH, third.deps);
+  const byThird = await prove(TURN_TASK, HASH, third.deps);
   assert.deepEqual(failed(byThird), ['run']);
   assert.equal(byThird.steps[2].said, `The attested run is not the run ${CALL} made by agent.near or by you.`);
   const thirdOnChain = await world({ ...chain, attestation: { ...chain.attestation, caller_account_id: 'mallory.near' } });
   assert.deepEqual(failed(await prove(TASK, HASH, thirdOnChain.deps)), ['run']);
   // The preparer's own run still says so.
   assert.equal((await prove(TASK, HASH, (await world()).deps)).steps[2].said, `It was a run of ${TASK.project_id}, made by agent.near.`);
+  assert.equal((await prove(TURN_TASK, HASH, (await world()).deps)).holds, true, "a turn made by the agent's own run");
+});
+
+test("the owner's run makes a turn only: a task that starts its conversation, made by the owner's run, does not hold", async () => {
+  const https = await world({ attestation: { payment_key_owner: 'owner.near' } });
+  const started = await prove(TASK, HASH, https.deps);
+  assert.equal(TASK.thread, TASK.id);
+  assert.equal(started.holds, false);
+  assert.deepEqual(failed(started), ['run']);
+  assert.equal(started.steps[2].said, 'The attested run is your own, and this task starts its conversation: only a run of agent.near makes such a task.');
+  assert.match(verdict(started), /^The proof does not hold\. The attested run is your own/);
+
+  // A locked card: the conversation is not known, so the owner's run is not taken as a turn's.
+  const locked = await prove({ ...TASK, thread: null, build: null }, null, https.deps);
+  assert.equal(locked.holds, false);
+  assert.equal(locked.unchecked, true);
+  assert.deepEqual(unread(locked), ['run', 'task']);
+  assert.match(locked.steps[2].said, /checked once the task is readable in this browser\.$/);
+  // The preparer's run on a locked card is held as before.
+  const lockedByAgent = await prove({ ...TASK, thread: null, build: null }, null, (await world()).deps);
+  assert.deepEqual(unread(lockedByAgent), ['task']);
 });
 
 test('a proof with nothing in it is not a proof', () => {

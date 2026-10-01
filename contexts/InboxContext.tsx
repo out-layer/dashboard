@@ -16,7 +16,8 @@
  * A task is encrypted for the browsers signed in when it was made. One that
  * came before this browser signed in is listed `locked`, and is made readable
  * here by one transaction of its project (`unlock`) — again only from the
- * owner's click.
+ * owner's click. Approving a task is the card's: one message the wallet
+ * signs, from the owner's click, and no transaction.
  *
  * One tab polls, once a minute, and tells the others what it found — which
  * is ciphertext and the rows as the API gave them. Each tab reads the tasks

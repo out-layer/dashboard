@@ -210,12 +210,24 @@ test('only a task in the state open is drawn as open or counted by the bell', ()
   assert.match(context, /const waiting = tasks\.filter\(\(t\) => t\.state === 'open'\)\.length \+ approvals\.length;/);
   assert.match(context, /count: session === 'active' \? waiting : 0,/);
   assert.match(code(CARD), /const open = task\.state === 'open';/);
+  // The card also knows `approved` — still waiting, still readable, acted on
+  // by nobody here — and nothing else: a state is `open`, `approved`, or not
+  // drawn as waiting.
+  assert.match(code(CARD), /const approved = task\.state === 'approved';/);
   for (const path of [CONTEXT, ...DRAWN]) {
     const text = code(path);
     for (const found of text.matchAll(/\.state\s*(!==?|===?)\s*('[^']*'|[\w.$]+)/g)) {
-      assert.deepEqual([found[1], found[2]], ['===', "'open'"], where(path, text, found.index));
+      const allowed = path === CARD ? ["'open'", "'approved'", "'failed'"] : ["'open'"];
+      assert.equal(found[1], '===', where(path, text, found.index));
+      assert.ok(allowed.includes(found[2]), `${where(path, text, found.index)}: compares the state to ${found[2]}`);
     }
   }
+  // `'failed'` is compared once: the approve's answer, never a listed task.
+  assert.equal([...code(CARD).matchAll(/\.state === 'failed'/g)].length, 1);
+  // What the card says of the two states the approval adds: approved is being
+  // carried out, and a failed task says why, in words.
+  assert.match(code(CARD), /approved: 'Approved: being carried out',/);
+  assert.match(code(CARD), /Failed: \{failureWords\(task\.failure_reason\)\}\./);
   assert.match(code(CARD), /unknown: 'In a state this page does not know',/);
 });
 
@@ -248,14 +260,29 @@ test('the wallet signs the statement inside signIn, and nowhere else', () => {
     ['const { accountId, isConnected, network, contractId, viewMethod, signMessage } = useNearWallet();'],
   );
   assert.match(text.slice(open, end), /\}, \[accountId, contractId, coordinatorUrl, network, signMessage\]\)$/);
-  // Of the drawn sources only the settings sign a message, for the three
-  // actions a session must not do alone, inside `useConfirmation` and from
-  // a click.
+  // Of the drawn sources only the settings and the card sign a message: the
+  // settings for the three actions a session must not do alone, inside
+  // `useConfirmation` and from a click; the card to approve a task, inside
+  // `approve` and from its button. Nothing sends a transaction to answer.
   const SETTINGS = 'app/inbox/settings/page.tsx';
   for (const path of DRAWN) {
-    if (path === SETTINGS) continue;
+    if (path === SETTINGS || path === CARD) continue;
     assert.ok(!/\bsignMessage\b/.test(code(path)), `${path} names signMessage`);
   }
+  const card = code(CARD);
+  const approve = [...card.matchAll(/const approve = \(\) =>\s*within\('approve', async \(\) => \{/g)];
+  assert.equal(approve.length, 1);
+  const approveEnd = closes(card, approve[0].index + approve[0][0].length - 1);
+  const signsInCard = [...card.matchAll(/\bsignMessage\s*\(/g)];
+  assert.equal(signsInCard.length, 1);
+  assert.ok(signsInCard[0].index > approve[0].index && signsInCard[0].index < approveEnd, 'signed inside approve');
+  assert.deepEqual(
+    [...card.matchAll(/\bsignMessage\b/g)].filter((m) => m.index < approve[0].index || m.index >= approveEnd).map((m) => card.split('\n')[lineOf(card, m.index) - 1].trim()),
+    ['const { accountId, contractId, network, viewMethod, signMessage } = useNearWallet();'],
+  );
+  assert.ok(!/\bsignAndSendTransactions?\b/.test(card), 'the card sends no transaction');
+  const approveCalls = [...card.matchAll(/(?<![\w$.])approve\s*\(/g)].filter((m) => m.index < approve[0].index || m.index >= approveEnd);
+  assert.deepEqual(approveCalls.map((m) => card.split('\n')[lineOf(card, m.index) - 1].trim()), ['<Button onClick={() => void approve()} disabled={busy !== null || !mayAct}>']);
   const settings = code(SETTINGS);
   const hook = [...settings.matchAll(/function useConfirmation\(\) \{/g)];
   assert.equal(hook.length, 1);

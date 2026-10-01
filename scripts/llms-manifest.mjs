@@ -150,7 +150,7 @@ export const SECTIONS = [
         title: 'Tasks',
         path: '/docs/tasks',
         summary:
-          'Tasks between an agent and its owner: an agent run leaves the owner of a secret row an action to confirm or an input to supply, the owner reads it in the inbox with no run and acts with a call of their own; connectors that ask first (the confirm member of a policy: Gmail send, every GitHub write); conversations in turns; the manifest tasks declaration, the outlayer:tasks host interface and the SDK, who may open and answer, what the owner is shown, states and limits, what is sealed, the owner session and devices, refusals',
+          'Tasks between an agent and its owner: an agent run leaves the owner of a secret row an action to confirm or an input to supply, the owner reads it in the inbox with no run and approves it with one signature, and a run of the agent carries it out; connectors that ask first (the confirm member of a policy: Gmail send, every GitHub write); conversations in turns; the manifest tasks declaration, the outlayer:tasks host interface and the SDK, who may open and answer, what the owner is shown, states and limits, what is sealed, the owner session and devices, refusals',
       },
       {
         title: 'SDK',

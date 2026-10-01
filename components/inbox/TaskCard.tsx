@@ -5,9 +5,11 @@
  * supplies words, and every one of them is drawn as text: nothing a task
  * carries is markup, a link, an image or an address to load.
  *
- * Reading, rejecting, deleting and muting are the session's. Acting is one
- * call of the project that made the task, signed by the owner's wallet from
- * the button that says what the call does.
+ * Reading, rejecting, deleting and muting are the session's. Approving is
+ * one message the owner's wallet signs, from the button that says what
+ * follows: the platform starts a run of the agent that prepared the task —
+ * on the agent's own payment key — which carries it out. The owner sends no
+ * transaction and pays nothing.
  *
  * For every open task the page checks the proof (`lib/inbox/proof`): that
  * the task was made by a published build of its project, in an approved
@@ -31,15 +33,15 @@
  * characters of its id, its badge says what became of it, and two runs offer
  * their attestations, each fetched from a click and shown as it is: the run
  * that made the task, and the run that carried it out (`run`), when there is
- * one. A task rejected, withdrawn or expired was carried out by nobody, and
- * still has the run that made it.
+ * one — held, when fetched, to the agent and the project (`carriedBy`). A
+ * task rejected, withdrawn or expired was carried out by nobody, and still
+ * has the run that made it. A failed one says why.
  */
 
 import { useEffect, useState } from 'react';
 import AttestationModal from '@/components/AttestationModal';
 import type { AttestationResponse } from '@/lib/api';
-import { prove, verdict, type Origin, type Proof } from '@/lib/inbox/proof';
-import { actionCreators } from '@near-js/transactions';
+import { carriedBy, prove, verdict, type Origin, type Proof, type Step } from '@/lib/inbox/proof';
 import { Badge } from '@/components/ui/badge';
 import { AgentChip } from '@/components/ui/agent-chip';
 import { Button } from '@/components/ui/button';
@@ -47,11 +49,12 @@ import { HashChip } from '@/components/ui/hash-chip';
 import { useNearWallet } from '@/contexts/NearWalletContext';
 import { useInbox, type ShownTask } from '@/contexts/InboxContext';
 import * as api from '@/lib/inbox/api';
-import { CALL_DEPOSIT, CALL_GAS, PROVENANCE_LEGEND, answerInput, asks, callOf, linesOf, made, madeBy, provenance, readAnswer, rowsOf, shortTaskId, waits } from '@/lib/inbox/act';
+import { PROVENANCE_LEGEND, approvalSentence, asks, failureWords, linesOf, made, madeBy, provenance, rowsOf, shortTaskId, supplyDigest, waits } from '@/lib/inbox/act';
 import { MOST_REPLY_BYTES, fromBase64, openFile, replyBytes, saveName, toBase64, writeReply, type TaskField } from '@/lib/inbox/crypto';
 
 const STATE_WORDS: Record<ShownTask['state'], string> = {
-  open: 'Needs your answer',
+  open: 'Waiting for you',
+  approved: 'Approved: being carried out',
   answering: 'Being acted on',
   done: 'Done',
   failed: 'Failed',
@@ -214,12 +217,14 @@ function RawInput({ proof }: { proof: Proof<AttestationResponse> | null }) {
 }
 
 export function TaskCard({ task }: { task: ShownTask }) {
-  const { accountId, contractId, network, viewMethod, signAndSendTransaction } = useNearWallet();
+  const { accountId, contractId, network, viewMethod, signMessage } = useNearWallet();
   const { token, coordinatorUrl, refresh } = useInbox();
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [supplied, setSupplied] = useState('');
+  const [note, setNote] = useState('');
   const [rejecting, setRejecting] = useState(false);
   const [reason, setReason] = useState('');
   const [proof, setProof] = useState<Proof<AttestationResponse> | null>(null);
@@ -231,6 +236,8 @@ export function TaskCard({ task }: { task: ShownTask }) {
   );
   /** The lookup of the attestation of the run that carried the task out, asked for from a click. */
   const [runAsked, setRunAsked] = useState<{ is: 'loading' } | { is: 'failed'; said: string } | null>(null);
+  /** That run held to the task, once its attestation was fetched. */
+  const [carried, setCarried] = useState<Step | null>(null);
   /** The run that made a closed task, once it was fetched from a click; the proof reads it for an open task. */
   const [origin, setOrigin] = useState<Origin | null>(null);
   /** The lookup of the attestation of the run that made the task, asked for from a click. */
@@ -238,24 +245,25 @@ export function TaskCard({ task }: { task: ShownTask }) {
 
   const read = task.read;
   const open = task.state === 'open';
+  /** Approved: the owner said yes, and the run the platform started has not taken it yet; still readable, still listed. */
+  const approved = task.state === 'approved';
   const now = Date.now() / 1000;
 
-  // The proof runs for every open task; without a copy for this browser the
-  // hash is not held, and the step that needs it waits.
+  // The proof runs for every task that still waits — open, or approved and
+  // not yet taken; without a copy for this browser the hash is not held, and
+  // the step that needs it waits.
   const shownHash = read?.hash ?? null;
   useEffect(() => {
     setProof(null);
     setPastTheProof(false);
-    if (!open || !token || !accountId) return;
+    if (!(open || approved) || !token || !accountId) return;
     let cancelled = false;
     void prove<AttestationResponse>(
       {
         id: task.id,
         project_id: task.project_id,
         preparer: task.preparer,
-        owner: accountId,
         build: read?.envelope.build ?? null,
-        thread: read?.envelope.thread ?? null,
       },
       shownHash,
       {
@@ -286,16 +294,24 @@ export function TaskCard({ task }: { task: ShownTask }) {
     };
     // viewMethod is a new function on every render of the wallet's context.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [task.id, task.project_id, task.preparer, accountId, shownHash, open, token, coordinatorUrl, network, contractId]);
+  }, [task.id, task.project_id, task.preparer, accountId, shownHash, open, approved, token, coordinatorUrl, network, contractId]);
 
   const proven = proof?.holds === true;
   const mayAct = proven || pastTheProof;
 
-  const within = async (what: string, work: () => Promise<string | null>) => {
+  /**
+   * The work of one click. A string is what was done, drawn as a success; a
+   * `notice` is what did not happen and is nobody's fault — the wallet did
+   * not sign — drawn as neither a success nor an error; `null` says nothing.
+   */
+  const within = async (what: string, work: () => Promise<string | null | { notice: string }>) => {
     setBusy(what);
     setError(null);
+    setNotice(null);
     try {
-      setDone(await work());
+      const outcome = await work();
+      if (outcome !== null && typeof outcome === 'object') setNotice(outcome.notice);
+      else setDone(outcome);
       await refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -304,28 +320,16 @@ export function TaskCard({ task }: { task: ShownTask }) {
     }
   };
 
-  /** One call of the project, signed by the wallet. */
-  const call = async (input: Record<string, unknown>) => {
-    if (!accountId) throw new Error('The wallet is not connected.');
-    if (!read) throw new Error('Not readable in this browser yet.');
-    const outcome = await signAndSendTransaction({
-      receiverId: contractId,
-      actions: [
-        actionCreators.functionCall(
-          'request_execution',
-          callOf(task.project_id, accountId, task.profile, read.envelope.build, input),
-          CALL_GAS,
-          CALL_DEPOSIT,
-        ),
-      ],
-    });
-    const answer = readAnswer(outcome as { status?: { SuccessValue?: string } });
-    if (!answer.ok) throw new Error(answer.refusal);
-    return answer.output;
-  };
-
-  const act = () =>
-    within('act', async () => {
+  /**
+   * From a click: what the owner wrote is sealed to the task's reply key,
+   * the wallet signs the approval's sentence — naming this task, the hash of
+   * what this page showed and a digest of the sealed words — and the
+   * coordinator starts the preparer's run, which carries the task out.
+   */
+  const approve = () =>
+    within('approve', async () => {
+      if (!accountId) throw new Error('The wallet is not connected.');
+      if (!token) throw new Error('Sign in first.');
       if (!read) throw new Error('Not readable in this browser yet.');
       const supplies = read.envelope.answer_by.supplies;
       let sealed: string | null = null;
@@ -334,8 +338,22 @@ export function TaskCard({ task }: { task: ShownTask }) {
         if (!words) throw new Error(supplies === 'file' ? 'Name the file: its address and its hash.' : 'Write what is asked for.');
         sealed = toBase64(await writeReply(read.envelope, 'answer', words));
       }
-      await call(answerInput(read.envelope, read.hash, sealed));
-      return 'The project acted on your answer.';
+      const noted = note.trim();
+      const sealedNote = noted ? toBase64(await writeReply(read.envelope, 'note', noted)) : null;
+      const at = Math.floor(Date.now() / 1000);
+      const nonce = toBase64(globalThis.crypto.getRandomValues(new Uint8Array(32)));
+      const digest = await supplyDigest(sealed, sealedNote);
+      const signed = await signMessage({ message: approvalSentence(accountId, task.id, read.hash, digest, at), recipient: contractId, nonce });
+      if (!signed) return { notice: 'The wallet did not sign, so nothing changed.' };
+      if (signed.accountId !== accountId) throw new Error(`The wallet signed as ${signed.accountId}, not as ${accountId}.`);
+      const moved = await api.approveTask(coordinatorUrl, token, task.id, {
+        task_hash: read.hash,
+        approval: { at, public_key: signed.publicKey, signature: signed.signature, nonce },
+        ...(sealed === null ? {} : { supplied: sealed }),
+        ...(sealedNote === null ? {} : { note: sealedNote }),
+      });
+      if (moved.state === 'failed') throw new Error(`Approved, but the run could not be started: ${failureWords(moved.failure_reason)}.`);
+      return `Approved. A run of ${task.preparer} is carrying it out${moved.run ? `: call ${moved.run}` : ''}.`;
     });
 
   const reject = () =>
@@ -379,7 +397,7 @@ export function TaskCard({ task }: { task: ShownTask }) {
       return null;
     });
 
-  /** From a click: the attestation of the run named by `task.run`, then the modal over it. */
+  /** From a click: the attestation of the run named by `task.run`, held to the task, then the modal over it. */
   const showRun = async (run: string) => {
     setRunAsked({ is: 'loading' });
     const door = madeBy(run);
@@ -394,6 +412,7 @@ export function TaskCard({ task }: { task: ShownTask }) {
         return;
       }
       setRunAsked(null);
+      setCarried(carriedBy({ id: task.id, project_id: task.project_id, preparer: task.preparer, build: read?.envelope.build ?? null }, run, found));
       setShownAttestation({ attestation: found });
     } catch (e) {
       setRunAsked({ is: 'failed', said: e instanceof Error ? e.message : String(e) });
@@ -441,8 +460,8 @@ export function TaskCard({ task }: { task: ShownTask }) {
   const operation = read?.envelope.answer_by.operation;
   /** The call that carried the task out, once there is one. */
   const run = task.run ?? null;
-  /** Open, and without a copy for this browser because it arrived before this browser signed in. */
-  const locked = !read && open && task.locked;
+  /** Waiting — open, or approved — and without a copy for this browser because it arrived before this browser signed in. */
+  const locked = !read && (open || approved) && task.locked;
   /** A task that did not open here for another reason has no preview and no task bytes: only the run's input. */
   const shown: View = read || locked ? view : 'input';
 
@@ -452,14 +471,19 @@ export function TaskCard({ task }: { task: ShownTask }) {
         <h2 className="mr-auto min-w-0 break-words text-base font-semibold text-foreground">
           {read
             ? read.envelope.display.title
-            : task.state === 'open'
+            : open || approved
               ? task.locked
-                ? 'A task waiting for you'
+                ? approved
+                  ? 'A task you approved'
+                  : 'A task waiting for you'
                 : 'A task this page could not read'
               : `Task ${shortTaskId(task.id)}`}
         </h2>
         <Badge variant={open ? 'default' : 'outline'}>{STATE_WORDS[task.state]}</Badge>
       </header>
+      {task.failure_reason !== undefined && (
+        <p className="mt-1 text-xs text-destructive-text">Failed: {failureWords(task.failure_reason)}.</p>
+      )}
 
       <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
         <span className="inline-flex items-center gap-1">
@@ -512,6 +536,12 @@ export function TaskCard({ task }: { task: ShownTask }) {
             {runAsked?.is === 'loading' ? 'attestation…' : 'attestation'}
           </Button>
           {runAsked?.is === 'failed' && <span className="text-muted-foreground">{runAsked.said}</span>}
+          {carried && (
+            <span className={carried.ok ? 'text-success-text' : 'text-destructive-text'}>
+              {carried.ok ? 'Holds. ' : 'Does not hold. '}
+              {carried.said}
+            </span>
+          )}
         </div>
       )}
 
@@ -557,7 +587,7 @@ export function TaskCard({ task }: { task: ShownTask }) {
                 about="The form exactly as its hash covers it."
                 text={read.document}
                 hash={read.hash}
-                says="SHA-256 of these bytes, the hash your answer names:"
+                says="SHA-256 of these bytes, the hash your approval names:"
               />
             </div>
           ) : (
@@ -591,7 +621,7 @@ export function TaskCard({ task }: { task: ShownTask }) {
         </div>
       )}
 
-      {open && (
+      {(open || approved) && (
         <div
           className={`mt-4 rounded-md border p-3 text-sm ${
             proof === null
@@ -622,11 +652,11 @@ export function TaskCard({ task }: { task: ShownTask }) {
               Show the attestation
             </Button>
           )}
-          {read && proof !== null && !proven && (
+          {read && open && proof !== null && !proven && (
             <label className="mt-3 flex items-start gap-2 text-xs">
               <input type="checkbox" checked={pastTheProof} onChange={(e) => setPastTheProof(e.target.checked)} className="mt-0.5" />
               <span>
-                Answer without the proof. The project still refuses an answer to a task it did not make: what it
+                Approve without the proof. The project still refuses an approval of a task it did not make: what it
                 acts on is the task sealed in the enclave, and the hash shown under RAW form above must be that task&apos;s.
               </span>
             </label>
@@ -644,6 +674,13 @@ export function TaskCard({ task }: { task: ShownTask }) {
           knownOutput={shownAttestation.knownOutput}
           onClose={() => setShownAttestation(null)}
         />
+      )}
+
+      {locked && approved && (
+        <p className="mt-4 rounded-md border border-border p-3 text-sm text-muted-foreground">
+          You approved this task from another browser, and it is being carried out. It is encrypted for other
+          browsers only; the proof and the form open here after &ldquo;Make it readable here&rdquo; at the top of the inbox.
+        </p>
       )}
 
       {!read && !task.locked && task.unread && (
@@ -670,20 +707,33 @@ export function TaskCard({ task }: { task: ShownTask }) {
               />
             </label>
           )}
+          <label className="block space-y-1 text-sm">
+            <span className="text-muted-foreground">
+              A note for the agent, if you want to give one. It is encrypted in this page; the connector reads it
+              with your approval.
+            </span>
+            <textarea
+              value={note}
+              onChange={(e) => !tooLong(e.target.value) && setNote(e.target.value)}
+              rows={2}
+              className="w-full rounded-md border border-border bg-background p-2 text-sm text-foreground"
+            />
+          </label>
           <p className="text-sm text-muted-foreground">
-            Your answer is one call of <span className="font-mono text-foreground">{operation}</span> in{' '}
-            <span className="font-mono text-foreground">{task.project_id}</span>, signed by your wallet: one
-            transaction, 0.1 NEAR attached and refunded less the run&apos;s cost. It carries this task&apos;s id and
-            hash{supplies === 'nothing' ? '' : ', and what you wrote above, encrypted for the project'}. The
-            project&apos;s code then does what the task describes, under your policy as it is now.
+            Approving signs one message with your wallet: no transaction, nothing attached. The message names this
+            task&apos;s id and hash{supplies === 'nothing' && !note.trim() ? '' : ', and what you wrote above, encrypted for the project'}.
+            A run of <AgentChip account={task.preparer} /> then carries it out, paid by the agent: one call of{' '}
+            <span className="font-mono text-foreground">{operation}</span> in{' '}
+            <span className="font-mono text-foreground">{task.project_id}</span>, which does what the task describes,
+            under your policy as it is now, and nothing else. Reject below if you do not want it done.
           </p>
           <div className="flex flex-wrap gap-2">
-            <Button onClick={() => void act()} disabled={busy !== null || !mayAct}>
-              {busy === 'act'
+            <Button onClick={() => void approve()} disabled={busy !== null || !mayAct}>
+              {busy === 'approve'
                 ? 'Waiting for the wallet…'
                 : task.kind === 'confirm'
-                  ? `Confirm: run ${operation}`
-                  : `Answer: run ${operation}`}
+                  ? `Approve: ${task.preparer} runs ${operation}`
+                  : `Answer: ${task.preparer} runs ${operation}`}
             </Button>
             <Button variant="outline" onClick={() => setRejecting((was) => !was)} disabled={busy !== null}>
               Reject
@@ -716,6 +766,9 @@ export function TaskCard({ task }: { task: ShownTask }) {
       )}
       {done && !error && (
         <p className="mt-4 rounded-md border border-success/30 bg-success/10 p-3 text-sm text-success-text">{done}</p>
+      )}
+      {notice && !error && (
+        <p className="mt-4 rounded-md border border-border p-3 text-sm text-muted-foreground">{notice}</p>
       )}
 
       <footer className="mt-4 flex flex-wrap gap-2 border-t border-border pt-3">

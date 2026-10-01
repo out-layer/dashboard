@@ -2408,6 +2408,26 @@ than picking a winner. Reserved names (`NEAR_SENDER_ID`, `PROTECTED_*`, …) are
 refused at storage time and stripped at run time, so whatever your module reads
 under a system name came from the worker.
 
+### 3d. Who may call your project
+
+A manifest's `callers` block decides which doors a run may come through —
+a direct call, a call through a contract, a NEP-366 meta-transaction, an HTTPS
+call — and the worker refuses any other before it decrypts or runs anything:
+
+```jsonc
+{ "callers": { "contract": { "only": ["game.near"] } } }   // only game.near may call it
+{ "callers": { "contract": "deny", "https": "deny" } }      // direct calls only
+{ "callers": { "direct": "deny", "contract": "deny" } }     // HTTPS only
+```
+
+No block admits every door. A block leaves open every door it does not name,
+except meta-transactions, which need `"meta_tx": "allow"`. `only` lists every
+account that may call OutLayer for the project, so it shuts HTTPS, direct
+calls and meta-transactions by itself. The rule is in the wasm, so it binds the
+version and its owner alike — and only that version: remove the versions
+published without it, or a caller pins one of them with `version_key`. The table of doors, the refusal sentences and
+the limits on `only` are in `CONNECTOR_MANIFEST.md` (`callers`).
+
 ### 4. Output Size
 
 ```rust
@@ -3119,7 +3139,7 @@ let display_name = sender_id.strip_suffix(account_suffix).unwrap_or(&sender_id);
 
 | Variable | NEAR Mode | HTTPS Mode |
 |----------|-----------|------------|
-| `NEAR_SENDER_ID` | Transaction signer account | Payment Key owner |
+| `NEAR_SENDER_ID` | Transaction signer account; for a meta-transaction, the account that signed the delegate action | Payment Key owner |
 | `NEAR_USER_ACCOUNT_ID` | Same as sender | Same as sender |
 
 Always set in both modes.
@@ -3189,7 +3209,8 @@ let usd_amount = usd_payment as f64 / 1_000_000.0;
 | `NEAR_BLOCK_TIMESTAMP` | Block timestamp (nanoseconds) | `""` |
 | `NEAR_RECEIPT_ID` | Receipt ID | `""` |
 | `NEAR_PREDECESSOR_ID` | Predecessor account | `""` |
-| `NEAR_SIGNER_PUBLIC_KEY` | Signer's public key | `""` |
+| `NEAR_SIGNER_PUBLIC_KEY` | Signer's public key; for a meta-transaction, the key that signed the delegate action | `""` |
+| `NEAR_RELAYER_ID` | The account that relayed a meta-transaction and paid its gas; `""` for every other call | `""` |
 | `NEAR_GAS_BURNT` | Gas used | `""` |
 | `NEAR_TRANSACTION_HASH` | Transaction hash | `""` |
 | `NEAR_REQUEST_ID` | Internal request ID | `""` |
@@ -3294,6 +3315,7 @@ fn main() {
 | `OUTLAYER_CALL_ID` | `""` | UUID | No |
 | `NEAR_BLOCK_HEIGHT` | Value | `""` | No |
 | `NEAR_TRANSACTION_HASH` | Value | `""` | No |
+| `NEAR_RELAYER_ID` | Relayer or `""` | `""` | No |
 | `NEAR_MAX_INSTRUCTIONS` | Yes | Yes | No |
 | `NEAR_MAX_MEMORY_MB` | Yes | Yes | No |
 | `NEAR_MAX_EXECUTION_SECONDS` | Yes | Yes | No |
@@ -4587,6 +4609,7 @@ and exactly the ones priced on chain — see the next section.
 | `encryption_keys` | **yes** | Symmetric keys the module seals data with, by `path`. Derived like signing keys — the same `bind`, `caller` and `vault` rules — but a separate namespace with its own limit; the module reaches them only through the `outlayer:encryption-keys` host functions. Any project may declare them. See `encryption_keys` below. |
 | `storage_account` | **yes** | Whose cell of the project's per-account storage the run reads and writes: `signer` (default) or `predecessor`. Any project may declare it. See `storage_account` below. |
 | `tasks` | **yes** | `true` when the module leaves tasks for the owner of the secret row a run names, through the `outlayer:tasks` host functions. Any project may declare it. See `tasks` below. |
+| `callers` | **yes** | Which doors a run may come through: a direct call, a call through a contract (any, or only the named ones), a meta-transaction, an HTTPS call. A run through a door the block does not admit is refused before anything is decrypted or run. Any project may declare it. See `callers` below. |
 | `display` | no | For the dashboard. |
 | `describe` | no | What each operation does and takes, for the developer page (`app.outlayer.ai/connectors/<id>`) — see the next section. |
 
@@ -5030,7 +5053,7 @@ account, and no storage function takes one.
 
 | Value | The cell belongs to |
 |---|---|
-| `signer` (default) | on chain, the transaction's signer; over HTTPS, the payment key's owner; `anonymous` on a run that carries neither |
+| `signer` (default) | on chain, the transaction's signer — for a meta-transaction, the account that signed the delegate action, not its relayer; over HTTPS, the payment key's owner; `anonymous` on a run that carries neither |
 | `predecessor` | on chain, the account that called the contract — a relaying contract, a DAO, a wallet contract, not the user who signed; over HTTPS, the payment key's owner. A run that carries no predecessor is refused before it executes, never served from the signer's cell or `anonymous` |
 
 Any other value — a different spelling, `null`, a number — makes the manifest
@@ -5044,8 +5067,9 @@ unreadable, and the run is refused. The `@worker` storage (`set-worker`,
 ```
 
 A module that declares it may leave the owner of the secret row a run names a
-**task** — an action prepared and waiting for the owner's own call — and take
-the owner's answer, through the `outlayer:tasks` host functions
+**task** — an action prepared and waiting for the owner's approval, which
+the platform carries out in a run of the agent that prepared it — and take
+the owner's answer in that run, through the `outlayer:tasks` host functions
 (`docs/TASKS.md`). Absent means `false`; any other value than the two does not
 parse.
 
@@ -5064,6 +5088,88 @@ Every operation the module serves for tasks — the ones a task names to answer
 it, and `task_status`, `task_cancel`, `task_delete`, `tasks`, `tasks_unlock` —
 is an operation like any other: listed in `operations`, and priced when the
 module is a connector.
+
+The run that answers a task is an HTTPS call of the agent's, started by the
+platform, and the owner opens their waiting tasks for a new device with a
+direct call of their own (`tasks_unlock`), so a manifest that declares
+`tasks` with a `callers` block that shuts the HTTPS door or the direct door
+does not parse.
+
+### `callers`: who may run it
+
+```jsonc
+"callers": {
+  "direct":   "allow" | "deny",                    // absent: allow
+  "contract": "allow" | "deny" | {"only": [...]}, // absent: allow
+  "https":    "allow" | "deny",                    // absent: allow
+  "meta_tx":  "allow" | "deny"                     // absent: deny
+}
+```
+
+A run reaches OutLayer through one of four doors. The worker tells them apart
+from facts it was handed with the job — never from the input, the guest, or
+anything the caller says about itself — and judges the door before any secret
+is decrypted, any key derived or any code run.
+
+| Door | The run | The caller named in a refusal |
+|---|---|---|
+| `direct` | on chain; the account that called OutLayer's contract signed the transaction | that account |
+| `contract` | on chain; a contract called OutLayer on the signer's behalf — a dapp, a DAO, a wallet contract, a relaying contract | the contract, and the signer |
+| `meta_tx` | on chain; a NEP-366 meta-transaction to OutLayer's contract: the user signed a delegate action and another account (the relayer) signed the transaction and paid its gas | the user, and the relayer |
+| `https` | an HTTPS call with a payment key | — |
+
+**No block, no rule.** A manifest without `callers` admits every door,
+meta-transactions included — as a wasm with no manifest does. A block admits
+meta-transactions only with `"meta_tx": "allow"`; every other door it names
+nothing about stays open.
+
+**`only` names every account that may call OutLayer for this project.** A
+run is admitted exactly when it came on chain and the account that called
+OutLayer's contract is on the list, whatever the door: an HTTPS call comes
+through no contract, and a direct call or a meta-transaction is called by the
+user, not by a contract you listed. A block that pairs `only` with an explicit
+`"allow"` on another door does not parse, because that `"allow"` could never
+apply. The list holds 1 to 32 NEAR account ids, each once, matched exactly:
+`game.near` does not admit `x.game.near`.
+
+A meta-transaction is told from a contract call by the block that carried it:
+the `Delegate` action sits on the receipt before the one that reaches the
+contract, and the worker reads every block. A meta-transaction runs as the
+account that signed the delegate action — its secrets, its storage cell, its
+keys, `NEAR_SENDER_ID` — and `NEAR_RELAYER_ID` names the relayer. A delegate
+action that calls some other contract, which then calls OutLayer, is a
+`contract` call from that contract.
+
+| Manifest | Admits |
+|---|---|
+| `"callers": {"contract": {"only": ["game.near"]}}` | `game.near` calling OutLayer, and nothing else |
+| `"callers": {"contract": "deny", "https": "deny"}` | direct calls only |
+| `"callers": {"direct": "deny", "contract": "deny"}` | HTTPS calls only |
+| `"callers": {"https": "deny"}` | direct calls and calls through any contract |
+| `"callers": {"contract": "deny", "meta_tx": "allow"}` | direct calls, meta-transactions and HTTPS calls |
+
+A refused run executes nothing and says why, ending "Nothing was executed.":
+
+- `This project's manifest does not admit direct calls: OutLayer was called by alice.near, the account that signed the transaction, and callers.direct is "deny". Nothing was executed.`
+- `This project's manifest does not admit calls made through a contract: this run was signed by alice.near and OutLayer was called by dapp.near, and callers.contract is "deny". Nothing was executed.`
+- `This project's manifest does not admit meta-transactions: alice.near signed the call and relayer.near relayed it, and a callers block admits meta-transactions only with callers.meta_tx: "allow". Nothing was executed.`
+- `This project's manifest does not admit HTTPS calls (callers.https is "deny"): call it on chain. Nothing was executed.`
+- `This project's manifest admits calls only from the contracts it names: OutLayer was called by other.near on behalf of alice.near, which is not one of them. Nothing was executed.`
+
+A refusal never lists the accounts on `only`. On chain it is settled as any
+refusal is: the contract keeps its base fee and returns the rest of the
+deposit. Over HTTPS the call is `failed` with the sentence as its `error`. The
+job's status is `access_denied`.
+
+The rule is the version's: it is in the wasm, covered by its hash, and applies
+to the owner as to anyone — to let a door through, publish a version that
+admits it. **Every published version stays callable**: a caller names any of
+them with `version_key`, and a version without the block admits every door.
+Gating a project means removing (`remove_version`) each version that does not
+carry the rule you want. The same bytes run outside the project — directly
+from their wasm URL — keep the rule, since it travels in the wasm. A run built
+from a GitHub repository is judged after its build, so a refused first run
+still costs one compilation.
 
 ## How a request names its operation
 
@@ -5130,7 +5236,8 @@ gets an **empty allowlist**: no outbound network at all.
 
 A manifest that is present and cannot be read — larger than 64 KB, not valid
 JSON, or not a manifest (an unknown top-level member, a `storage_account`
-other than `signer` or `predecessor`, a key declaration that breaks its rules) — refuses the run
+other than `signer` or `predecessor`, a key declaration that breaks its rules,
+a `callers` block that breaks its rules) — refuses the run
 before it executes: a declaration nobody can read never becomes no
 declaration. So does `storage_account: "predecessor"` on a run that carries no
 predecessor.
@@ -5577,6 +5684,11 @@ are acting for.
 is an Agent Connect wallet running under a bound account's name, which is opt-in
 per call. Bill and attribute against the payer; act as the sender.
 
+A NEP-366 meta-transaction runs as the account that signed the delegate action:
+it is `NEAR_SENDER_ID`, `NEAR_USER_ACCOUNT_ID` and `NEAR_PREDECESSOR_ID`, its
+key is `NEAR_SIGNER_PUBLIC_KEY`, and `NEAR_RELAYER_ID` names the account that
+relayed it and paid its gas (empty on every other call).
+
 ### 4.5 Keys of your own: EVM sub-keys
 
 A connector that holds funds on an EVM chain — a venue deposit, a bridge leg —
@@ -5752,9 +5864,11 @@ Format, limits and every refusal:
 A connector can ask the owner before it acts. With `"tasks": true` in the
 manifest, an operation prepares its action, leaves it as a task for the owner
 of the row the call named, and answers the agent `awaiting_owner`; the owner
-reads the task in their inbox and carries it out with their own call of the
-operation the task names. The model, the host interface and the SDK are in
-[TASKS.md](https://github.com/out-layer/outlayer/blob/main/docs/TASKS.md).
+reads the task in their inbox and approves it with one message their wallet
+signs, and the platform starts a run of the agent that prepared it — on the
+agent's own payment key, within the preparing run's compute limit — which
+carries out the operation the task names. The model, the host interface and
+the SDK are in [TASKS.md](https://github.com/out-layer/outlayer/blob/main/docs/TASKS.md).
 
 The convention for a connector's policy is one field, `confirm`: the list of
 operations that need the owner. A connector may ask on grounds of its own as
@@ -5764,8 +5878,10 @@ Four rules a connector keeps:
 
 * **A task is paid for when it is prepared.** The operation that opens a task
   keeps its price, and nothing comes back if the owner says no. The operation
-  that answers a task is priced at zero, and so are `task_status`,
-  `task_cancel`, `task_delete`, `tasks` and `tasks_unlock`.
+  that answers a task is priced at zero — the run the platform starts for an
+  approval is admitted only then — and so are `task_status`, `task_cancel`,
+  `task_delete`, `tasks` and `tasks_unlock`. The compute of the run that
+  answers is the agent's to pay, as its own call's would be.
 
 * **Check before you ask.** The request is judged against the policy before
   the task is made, so the owner is never shown what the policy forbids.
@@ -5773,6 +5889,39 @@ Four rules a connector keeps:
   action against the policy and the limits as they are at that moment.
 * **Show what you will do, whole.** What cannot be shown whole is refused, not
   shown in part.
+
+The run that answers is an HTTPS call of the agent's, and the owner opens
+tasks for a new device with a direct call of their own, so a connector that
+declares `tasks` can shut neither door (§4.9).
+
+The pattern in code — the policy's `confirm`, the operation `confirm`, what it
+answers on chain, prices, manifest, tests — is [CONNECTOR_TASKS.md](https://github.com/out-layer/outlayer/blob/main/docs/CONNECTOR_TASKS.md).
+
+### 4.9 Who may call you
+
+The manifest's `callers` block says which doors a run may come through: a
+direct call, a call through a contract (any, or only the ones it names), a
+NEP-366 meta-transaction, an HTTPS call. The worker judges the door from the
+job before it decrypts, derives or runs anything, and refuses the rest with a
+sentence that names the door and the caller.
+
+```jsonc
+"callers": { "contract": { "only": ["game.near"] } }   // game.near, and nothing else
+"callers": { "https": "deny" }                          // on chain only, no meta-transactions
+```
+
+Absent, every door is open. Present, a door it does not name is open, except
+meta-transactions, which need `"meta_tx": "allow"`. `only` admits exactly the
+accounts it lists as the caller of OutLayer, so it shuts HTTPS, direct calls
+and meta-transactions by itself. The full rules and every refusal sentence are
+in [CONNECTOR_MANIFEST.md](https://github.com/out-layer/outlayer/blob/main/wasi-examples/CONNECTOR_MANIFEST.md#callers-who-may-run-it).
+
+The rule is the version's: a version published without it stays callable by
+anyone who names it with `version_key`, so remove those versions.
+
+This is about how a run arrives, not who is behind it: to admit particular
+people, put the condition on the secret row (§4.1, §4.2). The two are judged
+separately and neither widens the other.
 
 ## 5. Limits
 
@@ -5953,13 +6102,18 @@ access; one that echoed secrets would make every test run a leak.
 
 # Tasks between an agent and its owner
 
-An agent prepares; the owner reads and acts with a call of their own.
+An agent prepares; the owner reads and approves; the agent's run carries it out.
 
 A run of a project, admitted to an owner's secret row, leaves that owner a
 **task**: "confirm this email", "show me the bet before it is placed", "give me
 your photo". The owner learns of it and reads it in their inbox, with no run
-and at no cost, and acts on it by calling an operation of the same project from
-their own wallet. The agent learns the outcome the next time it asks.
+and at no cost, and approves it with one message their wallet signs. The
+platform then starts a run of the agent that prepared the task — on the
+agent's own payment key, as the agent's own call, within the compute limit of
+the run that prepared it — and that run executes the operation the task
+names. The owner sends no transaction and pays nothing; nobody runs the agent
+but the platform, on the owner's signature. The agent learns the outcome the
+next time it asks.
 
 It is one system for the platform. Any WASI project may use it, connectors
 among them, and an owner with ten agents reads their tasks in one inbox.
@@ -5967,7 +6121,9 @@ among them, and an owner with ten agents reads their tasks in one inbox.
 What it is not:
 
 * **Not a paused run.** Nothing waits inside the enclave. A task is a record.
-* **Not a second run on the agent's money.** Each side pays for its own call.
+* **Not a run of the owner's.** The owner signs; the run that acts is the
+  agent's, paid by the agent's key, and bounded by the run that prepared it.
+  An agent's call that was worth $1 of compute is carried out for $1 at most.
 * **Not a script the owner is made to run.** A task names the operation that
   answers it and carries no arguments for it. The project's code decides what
   happens.
@@ -5981,6 +6137,11 @@ What it is not:
    ```json
    "tasks": true
    ```
+
+   The run that carries a task out is an HTTPS call of the agent's, and the
+   owner opens tasks for a new device with a direct call of their own
+   (`tasks_unlock`): a `callers` block that shuts either door beside `tasks`
+   does not parse.
 
 2. Build on the SDK with the `tasks` feature:
 
@@ -5998,7 +6159,7 @@ What it is not:
        Display::new("Send an email")
            .list("To", &message.to, WrittenBy::Agent)
            .field("Body", FieldKind::LongText, &message.body, WrittenBy::Agent),
-       "confirm",                 // the operation the owner calls
+       "confirm",                 // the operation the owner's approval runs
        &serde_json::to_vec(&message)?, // handed back to it; never shown
        policy_json.as_bytes(),    // the policy the task is made under
    )
@@ -6007,8 +6168,8 @@ What it is not:
    return Ok(tasks::awaiting_owner(&opened));
    ```
 
-4. Write the operation the task names. It takes the owner's answer, acts, and
-   reports:
+4. Write the operation the task names. The platform runs it on the owner's
+   approval, as the agent's own call: it takes the answer, acts, and reports:
 
    ```rust
    let answer = tasks::answered_for("confirm", &input, policy_json.as_bytes())
@@ -6034,13 +6195,17 @@ What it is not:
    comes back if the owner says no or the task runs out. The operation that
    answers a task, and the five the dispatcher serves, are priced at zero: the
    action was paid for by whoever asked for it, and an owner pays nothing to
-   say yes. A call from a wallet attaches an operation's exact price, so an
-   operation priced at zero is also the one an owner can call with nothing but
-   the deposit for the run.
+   say yes. The run the platform starts on an approval is admitted only when
+   its operation is priced zero — a priced one fails the task
+   `operation_priced` — and its compute is paid by the agent's payment key,
+   as any call of the agent's is, up to the compute limit of the run that
+   prepared the task. A key that cannot pay for it fails the task
+   `preparer_key_unavailable`; nothing is charged to the owner.
 
 `connectors/tasks-probe` is a project that does nothing else, and
 `connectors/gmail-connector` is a connector whose `send` asks the owner when
-their policy lists it under `confirm`.
+their policy lists it under `confirm`. How a connector puts an action behind
+the owner's confirmation: [CONNECTOR_TASKS.md](https://github.com/out-layer/outlayer/blob/main/docs/CONNECTOR_TASKS.md).
 
 ## Whose task, and who may do what
 
@@ -6049,15 +6214,33 @@ keystore opened. The **preparer** is the account that made the run. Both are
 the worker's facts, from the job and the keystore: no function of the host
 interface takes an account.
 
+The run that **answers** a task is the preparer's, started by the platform
+on the owner's approval: it is admitted with the consent sealed in the task
+— the preparer's payment key, wallet, identity binding and compute limit, as
+the preparing run had them — and the host refuses the answer in any other
+run (`not-the-preparer`), and in the preparer's own run without the owner's
+signature over this task, this hash and these words (`approval-invalid`).
+A task opened by that run is the next **turn** of the answered task's
+conversation: it carries the answered task's `thread`, and it is the same
+agent's — the inbox shows it from that agent, the agent's `mine` and `status`
+list it, and it counts in that agent's share and under its mute. A turn is
+opened whatever the owner's row says of that agent now: one the row no
+longer admits is still the preparer of a turn in the owner's own inbox,
+which muting that agent and deleting its waiting tasks clears. A run that
+answered tasks of more than one conversation opens none: `open` is refused
+`internal`. A run that answered nothing — or whose every answer was refused
+— opens in a conversation of its own.
+
 | The run is | It may |
 |---|---|
-| the project's, made by an account the owner's row admits **by name** | open a task for that owner; read, cancel and delete the tasks it made; read their outcomes |
-| the project's, made by the owner | open tasks for themselves; answer the tasks of this project addressed to them; open them for a new device |
+| the project's, made by an account the owner's row admits **by name** | open a task for that owner; read, cancel and delete its tasks — those it made and the turns of its conversations; read their outcomes |
+| the one the platform started for an approved task: the preparer's, on the preparer's key | answer that task, report its result, and open the next turn of its conversation |
+| the project's, made by the owner | open tasks for themselves; open their waiting tasks for a new device (`tasks_unlock`) |
 | the project's, admitted by a row open to everyone, to a pattern, or to holders of a token or a role | run; `open` is refused `not-granted-by-name` |
 | the project's, made by another agent of the same owner | nothing of the first agent's tasks |
 | another project's | nothing of this project's tasks |
 | any run that names no row, or whose row did not open | nothing: `no-owner` |
-| any run a contract relayed — the account that called OutLayer is not the account that signed | nothing: `relayed` |
+| any run a contract relayed — the account that called OutLayer is not the account that signed; a meta-transaction is not one, it is the call of the account that signed the delegate action | nothing: `relayed` |
 
 A run uses tasks only when the account that called OutLayer is the account
 that signed: the owner's wallet calling the contract itself, or a call over
@@ -6065,9 +6248,13 @@ HTTPS. A contract the owner signs any transaction to can call OutLayer in the
 owner's name; such a run is signed by the owner and is not the owner's act,
 so it opens, reads and answers nothing.
 
-A call over HTTPS is made as the account whose payment key pays for it. A
-payment key of the owner's account therefore acts as the owner, and answers
-their tasks: an agent is given a key of its own, never the owner's.
+A call over HTTPS is made as the account whose payment key pays for it, and a
+task is opened over HTTPS only: the consent to carry out the owner's answer
+is a payment key — the run that carries it out is paid by that key — so a
+run on chain is refused `no-payment-key` at `open`. No key answers a task by
+calling: a key of the owner's account is not the preparer, and the preparer's
+own call carries no approval. The run that answers is started by the platform
+and by nothing else.
 
 "By name" is a `Whitelist` that lists the caller on the path that admitted
 them. A dated grant — `And[Whitelist, ValidUntil]` — is by name while it lasts.
@@ -6087,14 +6274,15 @@ the outcomes kept, stay.
 | `answer_by` | the operation the owner calls, and what they supply with it: nothing, text, or a reference to a file |
 | `state` | bytes of the project's own, sealed beside the task and handed back when it is answered. The prepared action lives there. Never shown |
 | `policy_hash` | the hash of the policy the task was made under |
-| `build` | SHA-256 of the build that made the task: the code the owner's proof names |
+| `build` | SHA-256 of the build that made the task: the code the owner's proof names, and the build the run that answers must be of |
+| consent | sealed beside the envelope, never shown: the preparing run's payment key (its nonce), wallet, whether its identity was bound, and its compute limit — what the run that carries the task out must be admitted with. The store keeps the same facts in the clear as the task's **voucher**, from which the platform starts that run |
 
 The task key is under the master of the vault the owner's row is bound to,
 and under the default master for a row bound to none: what a vault seals, it
 seals with its own key, tasks included. The store records the vault beside
 each task (`vault` in the inbox's list), so what a vault's owner did is
 known as the vault's.
-| `thread` | the id of the first task of the conversation |
+| `thread` | the id of the first task of the conversation; a turn keeps the conversation's preparer |
 | life | 24 hours at most; a project may ask for less |
 
 Everything but `state` is one document, the **envelope**, written once in a
@@ -6129,16 +6317,20 @@ bytes whatever type the task says it is.
 | State | Means |
 |---|---|
 | `open` | waits for the owner |
-| `answering` | the owner answered; the call named in `run` acts |
-| `done` | that call ended well and the project reported |
-| `failed` | that call ended any other way. Its status is the platform's ordinary status of a call |
+| `approved` | the owner approved; the platform queued the preparer's run, named in `run`, which has not taken the answer yet |
+| `answering` | that run took the answer and acts |
+| `done` | that run ended well and the project reported |
+| `failed` | the run could not be started, did not start, refused the task, or ended any other way. `failure_reason` says which: `preparer_key_unavailable`, `operation_priced`, `operation_unknown`, `operation_limit_reached`, `wallet_unresolved`, `queue_unavailable`, `run_not_started`, or `run_refused:<reason>` with the host's reason — `hash-mismatch`, `answer-invalid`, `not-the-preparer`, `approval-invalid`, `expired`, `void`, `unreadable`, `unavailable`, `not-found`, `unreported` |
 | `rejected`, `cancelled` | the owner said no; the preparer withdrew it |
 | `expired` | past its life |
-| `void` | the policy changed since it was made, or the answer ran another build of the project than the one that made it; found when it is answered |
+| `void` | the policy changed since it was made, or the run that answered was of another build of the project than the one that made it; found when it is answered |
 
-Each move is made once. A task never returns to `open`: a call that failed may
+Each move is made once. A task never returns to `open`: a run that failed may
 have acted in part, so the owner sees `failed` and the agent prepares a new
-task if the work is still wanted.
+task if the work is still wanted. A task `approved` for thirty minutes without
+a run taking its answer, and one `answering` for thirty minutes without a
+report, are ended `failed` by the platform (`run_not_started`, and the run's
+status).
 
 A task that leaves `open` loses what it showed at once — the sealed copy and
 every device's copy. Its outcome is kept 30 days.
@@ -6148,14 +6340,14 @@ every device's copy. Its outcome is kept 30 days.
 | Limit | Value |
 |---|---|
 | open tasks addressed to one owner | 20 |
-| of them, from one preparer | 5 |
 | tasks one run opens | 5 |
 | a task's life | 24 hours |
 | what the waiting tasks of one owner hold together | 64 MiB |
 | files of one task | 10, and 6 MiB together: what one call carries |
 | `state` | 256 KiB |
 | the envelope | 256 KiB |
-| what the owner supplies, or the reason they reject with | 8 KiB sealed; the owner's page takes 5000 bytes of text |
+| what the owner supplies, the note beside their approval, or the reason they reject with | 8 KiB sealed each; the owner's page takes 5000 bytes of text |
+| of them, from one preparer, `open` and `approved` together | 10: an eleventh is refused `inbox-full` (`preparer_full` at the store) |
 | a result left for the preparer | 16 KiB |
 
 ## What is sealed, and who reads it
@@ -6167,7 +6359,8 @@ The coordinator stores a task and opens none of it.
 | the envelope | twice: sealed under a key of the enclave, and under a content key wrapped to each of the owner's devices | the owner, on a signed-in device; the host |
 | the files | under the task's content key, each bound to the task and to its place | the owner, on a signed-in device; the project's code, when the task is answered |
 | `state` | sealed under the key of the enclave | the project's code, when the task is answered |
-| what the owner supplies, the reason of a rejection | encrypted by the owner's page to the task's reply key | the project's code; the preparer's next run |
+| what the owner supplies, the note beside their approval, the reason of a rejection | encrypted by the owner's page to the task's reply key | the project's code, in the run that answers; the preparer's next run |
+| the owner's approval — the signature, the key, the nonce, the minute | in the clear | the coordinator at the door; the host in the run that answers, which verifies it again |
 | the result | sealed under the key of the enclave | the preparer's run |
 | who asked whom, through which project, of what kind, when, the state | readable by the coordinator | the owner in a session; the preparer; the coordinator |
 
@@ -6203,16 +6396,22 @@ So a project's answer has to name the task it opened: `tasks::awaiting_owner`
 is that, put wherever the answer has room for it. A turn puts it beside its
 result, for the next task.
 
-The run's answer is served to the owner by `GET /inbox/tasks/{id}/origin` for a
-call over HTTPS; a request on chain answered in its transaction. The
+The run's input and its answer are served to the owner by
+`GET /inbox/tasks/{id}/origin` for a call over HTTPS, each as the bytes its
+attestation's `input_hash` and `output_hash` are the SHA-256 of; a request on
+chain carries both in its transaction. The
 attestation is public (`GET /attestations/by-call/{call_id}`,
 `/by-request/{request_id}`).
 
 A step that could not be run — the chain or the API did not answer — is "not
-checked", never "does not hold". The owner may answer past a proof that does
-not hold or was not checked, by saying so: the answer is still refused unless
-the hash it names is that of the task sealed in the enclave, so a task written
-into the store can be shown and cannot be acted on.
+checked", never "does not hold". The owner may approve past a proof that does
+not hold or was not checked, by saying so: the approval is still refused in
+the enclave unless the hash it names is that of the task sealed there, so a
+task written into the store can be shown and cannot be acted on.
+
+The run that carried a task out is named by `run` once there is one, and its
+attestation is public too: the page holds it to the task — a call of the
+preparer, of the task's project, of the build the task names.
 
 ## The owner's session and devices
 
@@ -6272,13 +6471,13 @@ every refusal are in the API spec under **Inbox**.
 | sign in, sign out | `POST`, `DELETE /inbox/session` | a signed statement; the session |
 | know what waits, read it | `GET /inbox/tasks` | the session, and this device's key |
 | open a file of a task | `GET /inbox/tasks/{id}/files/{n}` | the session, and this device's key |
-| check the proof | `GET /inbox/tasks/{id}/origin`, and the run's attestation | the session |
+| check the proof: the run, what it was asked, what it answered | `GET /inbox/tasks/{id}/origin`, and the run's attestation | the session |
 | reject, with a reason | `POST /inbox/tasks/{id}/reject` | the session |
 | delete one, or all | `DELETE /inbox/tasks/{id}`, `DELETE /inbox/tasks` | the session |
 | mute an agent or a project, see who is muted, unmute | `POST`, `GET`, `DELETE /inbox/mutes` | the session |
 | see the devices signed in, withdraw one | `GET /inbox/devices`, `DELETE /inbox/devices/{id}` | the session; for another device, the owner's signature too |
 | be told at a URL, see it, remove it | `PUT`, `GET`, `DELETE /inbox/webhook` | the session; to name or remove, the owner's signature too |
-| act | one call of the project, signed by their wallet | the run |
+| approve | `POST /inbox/tasks/{id}/approve` | the session, and the owner's signature over the task |
 
 In the dashboard the mutes, the devices and the webhook are on the inbox's
 settings screen, `/inbox/settings`.
@@ -6291,6 +6490,28 @@ one NEP-413 signature over a sentence that names the action and the minute,
 made from the owner's click, good for ten minutes, once. The webhook's URL
 is named in the sentence by its SHA-256, so the wallet shows no address.
 Without it the answer is 403 `confirmation_required`.
+
+**Approving** is the same signature over the task:
+
+> Approve in OutLayer as `alice.near`: task `<id>` with hash `<64 hex>` and supply `<64 hex>`. At `<time>`.
+
+The hash is `task_hash`, the SHA-256 of the envelope bytes the page opened;
+the supply is the SHA-256 of `{"note":<base64|null>,"supplied":<base64|null>}`
+over what the owner wrote — their answer to an `input` task (purpose
+`answer`), and a note for the agent beside any approval (purpose `note`),
+each sealed by the page to the task's reply key — so the owner's words are
+under the owner's signature, not merely beside it. The body of
+`POST /inbox/tasks/{id}/approve` is `{task_hash, approval: {at, public_key,
+signature, nonce}, supplied?, note?}`. The coordinator rebuilds the sentence
+from the session's account, the path's id and the body, verifies it, spends
+the nonce, and moves the task `open → approved` with the run it then
+queues; the enclave rebuilds it again from the sealed envelope and the
+run's input, and takes an approval up to ten minutes ahead of its clock and
+up to thirty behind. A `confirm` task takes no `supplied`; an `input` task
+takes one. The answer is `{id, state, run}`, with `failure_reason` when the
+run could not be started and the task is `failed` at once. A key removed
+from the account between the door and the run passes the door — the chain's
+word is kept five minutes, as at sign-in — and is refused in the enclave.
 
 A refusal is `{"error": sentence, "reason": code, "terminal": bool}`. Nothing
 waiting is `{"tasks": []}`; no session is 401 `session_required`, with no count
@@ -6305,8 +6526,9 @@ to whoever holds it (`GET /wallet/v1/approval/{id}`).
 
 ### Events
 
-An owner who named a URL is sent `task_created`, `task_answered` and
-`task_expired`, through the sender the wallet's webhooks use, with
+An owner who named a URL is sent `task_created`, `task_approved` (with the
+`run` queued for it), `task_answered`, `task_failed` (with `failure_reason`)
+and `task_expired`, through the sender the wallet's webhooks use, with
 `X-Wallet-Id: owner:<account>` and `X-Webhook-Signature`: the HMAC-SHA256 of
 the body, in hex, under a secret of the owner's own. The secret is made when
 the URL is named and told to the owner once, in the answer to that call and in
@@ -6329,11 +6551,19 @@ is `ok([])`.
 | Function | Who | Does |
 |---|---|---|
 | `open(request)` | preparer | makes the task |
-| `mine()`, `status(id)` | preparer | its tasks, or one of them |
-| `cancel(id)`, `delete(id)` | preparer | withdraws, deletes |
-| `answered(id, hash, operation, policy, supplied)` | owner | takes the answer; hands back `state` |
-| `report(id, result)` | owner | leaves the result for the preparer |
+| `mine()`, `status(id)` | preparer | its tasks — a turn is the preparer's of its conversation — or one of them; `status` also reads a task this run opened |
+| `cancel(id)`, `delete(id)` | preparer; or the run that opened the task | withdraws, deletes |
+| `answered(id, hash, operation, policy, approval, supplied, note)` | the preparer's run the platform started for the task | verifies the owner's approval over this task, this hash and these words, and takes the answer; hands back `state`, the files, `supplied` and `note` opened |
+| `report(id, result)` | the same run | leaves the result for the preparer |
 | `unlock()` | owner | writes the copies for the devices now in force |
+
+`open` seals the run's consent into the task — its payment key, wallet,
+identity binding and compute limit — and sends the same facts to the store as
+the voucher. `answered` holds the run it is in to that consent before it
+looks at the signature: another key, wallet, identity, or more compute than
+the preparing run was allowed is `not-the-preparer`. The refusals a run
+meets before the task moves are reported to the store when the run ends, and
+a task refused at that door is `failed` with `run_refused:<reason>`.
 
 | `reason` | A project answers | When |
 |---|---|---|
@@ -6347,16 +6577,19 @@ is `ok([])`.
 | `display-invalid` | `display_invalid` | what is shown is outside the bounds; the message names what |
 | `too-large` | `task_too_large` | `state`, `policy`, the files, the envelope or a result |
 | `life-too-long` | `task_life_too_long` | a life asked beyond the maximum |
+| `no-payment-key` | `task_no_payment_key` | `open` in a run on chain: a task is opened over HTTPS, with the payment key that will pay for the run that carries it out |
 | `not-found` | `task_not_found` | no such task of this project, owner and preparer |
-| `not-the-owner` | `not_the_owner` | an owner's function in another account's run |
+| `not-the-owner` | `not_the_owner` | `unlock` in another account's run |
+| `not-the-preparer` | `not_the_preparer` | `answered` or `report` in a run that is not the one the platform started for the task: another account, another payment key, another wallet, another identity, or more compute than the preparing run was allowed |
+| `approval-invalid` | `task_approval_invalid` | the owner's signature does not verify over this task, this hash and these words, is by a key that is not a full-access key of the owner's account, is too old or too far ahead, or the task was never approved |
 | `hash-mismatch` | `task_hash_mismatch` | the hash named is not the task's |
-| `answer-invalid` | `task_answer_invalid` | another operation than the one the task names; or what was supplied is not what was asked, or does not open |
-| `closed` | `task_closed` | answered, rejected or cancelled already |
+| `answer-invalid` | `task_answer_invalid` | another operation than the one the task names; or what was supplied, or the note, is not what was asked, or does not open |
+| `closed` | `task_closed` | answered, rejected or cancelled already; or approved, and this run is not the one started for it |
 | `expired` | `task_expired` | past its life |
 | `void` | `task_void` | the policy changed, or another build than the one that made the task answers it |
 | `unreadable` | `task_unreadable` | a sealed copy that does not open. The message is `decryption failed` |
 | `unavailable` | `task_store_unavailable` | the store or the chain did not answer. The one a caller repeats later |
-| `internal` | `task_internal_error` | a fault of the platform's own, which a repeat does not mend. Where a task's id is named, an earlier run of the same call took it: the task is among the caller's |
+| `internal` | `task_internal_error` | a fault of the platform's own, which a repeat does not mend. Where a task's id is named, an earlier run of the same call took it: the task is among the caller's. Also `open` in a run that answered tasks of more than one conversation |
 
 ## Tests
 
@@ -6367,6 +6600,7 @@ is `ok([])`.
 | the host interface, against a store and a chain that a test can tamper with | `worker/src/tasks` | `cargo test --lib tasks::` |
 | the probe through the executor to an in-process store and RPC | `worker/tests/tasks_probe.rs` | `cargo test --release --test tasks_probe` |
 | the page's side against the host's, on shared vectors | `tests/lib/tasks_page.test.mjs` | `node --test` |
+| the approval end to end on testnet: the agent prepares, the owner's page signs, the agent's run acts | `tests/tasks_e2e.sh` | `--apply`, through a keyed RPC |
 
 ---
 
@@ -7070,10 +7304,11 @@ sealed::delete("records", None, "init")?;
 
 ### Tasks (`outlayer::tasks`, feature `tasks`)
 
-An agent prepares; the owner reads and acts with a call of their own. A run
-admitted to an owner's secret row leaves that owner a task, and the owner
-answers it by calling an operation of the same project. Declare `"tasks": true`
-in the manifest. The model is in `docs/TASKS.md`.
+An agent prepares; the owner reads and approves with one signature; the
+agent's run carries it out. A run admitted to an owner's secret row leaves that
+owner a task; the owner approves it in their inbox, and the platform starts a
+run of the agent — on the agent's own payment key — in the operation the task
+names. Declare `"tasks": true` in the manifest. The model is in `docs/TASKS.md`.
 
 ```rust
 use outlayer::tasks::{self, Display, FieldKind, WrittenBy};
@@ -7083,7 +7318,7 @@ let opened = tasks::confirm(
     Display::new("Send an email")
         .list("To", &to, WrittenBy::Agent)
         .field("Body", FieldKind::LongText, &body, WrittenBy::Agent),
-    "confirm",          // the operation the owner calls
+    "confirm",          // the operation the owner's approval runs
     &state,             // handed back to it; never shown
     policy.as_bytes(),  // the policy the task is made under
 )
@@ -7091,7 +7326,9 @@ let opened = tasks::confirm(
 .open()?;
 let answer = tasks::awaiting_owner(&opened);
 
-// Acting: the operation the task names, called by the owner.
+// Acting: the operation the task names, run by the platform as the agent on
+// the owner's approval; the input carries the approval, and what the owner
+// supplied or noted, sealed.
 let answer = tasks::answered_for("confirm", &input, policy.as_bytes())?;
 // … act on `answer.state` and `answer.files`, under the policy as it is now …
 tasks::report(&answer.id, result.as_bytes())?;

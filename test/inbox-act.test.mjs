@@ -1,26 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { PROVENANCE_LEGEND, answerInput, asks, callOf, linesOf, made, madeBy, provenance, readAnswer, rowsOf, shortTaskId, unlockCall, waits } from '../lib/inbox/act.ts';
+import { PROVENANCE_LEGEND, approvalSentence, asks, failureWords, linesOf, made, madeBy, provenance, readAnswer, rowsOf, shortTaskId, supplyDigest, unlockCall, waits } from '../lib/inbox/act.ts';
 
-const envelope = { id: 'run-0', answer_by: { operation: 'confirm', supplies: 'nothing' } };
 const outcome = (value) => ({ status: { SuccessValue: btoa(typeof value === 'string' ? value : JSON.stringify(value)) } });
-
-test('an answer names the task, the hash shown and the operation the task names', () => {
-  assert.deepEqual(answerInput(envelope, 'ab'.repeat(32), null), {
-    operation: 'confirm',
-    task_id: 'run-0',
-    task_hash: 'ab'.repeat(32),
-  });
-  assert.equal(answerInput(envelope, 'h', 'c2VhbGVk').supplied, 'c2VhbGVk');
-});
-
-test('the call is of the project that made the task, on the owner\'s own row', () => {
-  const call = callOf('connectors.outlayer.near/gmail', 'owner.near', 'gmail', 'ab'.repeat(32), { operation: 'confirm' });
-  // The version is the build the task was made by: the one the proof checked.
-  assert.deepEqual(call.source, { Project: { project_id: 'connectors.outlayer.near/gmail', version_key: 'ab'.repeat(32) } });
-  assert.deepEqual(call.secrets_ref, { account_id: 'owner.near', profile: 'gmail' });
-  assert.equal(call.input_data, '{"operation":"confirm"}');
-});
 
 test('opening the tasks of a project for this browser is one call of its active version', () => {
   const call = unlockCall('connectors.outlayer.near/gmail', 'owner.near', 'gmail');
@@ -28,7 +10,53 @@ test('opening the tasks of a project for this browser is one call of its active 
   assert.deepEqual(call.source, { Project: { project_id: 'connectors.outlayer.near/gmail' } });
   assert.deepEqual(call.secrets_ref, { account_id: 'owner.near', profile: 'gmail' });
   assert.equal(call.input_data, '{"operation":"tasks_unlock"}');
-  assert.deepEqual(call.resource_limits, callOf('p', 'o', 'r', 'b', {}).resource_limits);
+  assert.deepEqual(Object.keys(call).sort(), ['input_data', 'resource_limits', 'response_format', 'secrets_ref', 'source']);
+  assert.equal(call.response_format, 'Json');
+  assert.deepEqual(call.resource_limits, { max_instructions: 10000000000, max_memory_mb: 128, max_execution_seconds: 60 });
+});
+
+const ID = '0b9c1a52-7c1e-4a53-9c58-2f0c8f6f3b11-0';
+const HASH = 'ab'.repeat(32);
+/** The digest of nothing said: `{"note":null,"supplied":null}`, as the coordinator's and the enclave's tests have it. */
+const NOTHING_SAID = '93121736c33115cb57757d3d5c09b430c4a03d2c3fa06dbbda48a466620b5799';
+
+test('the approval is one sentence naming the task, the hash shown and the digest of what was said, to the second in UTC', async () => {
+  const digest = await supplyDigest(null, null);
+  assert.equal(
+    approvalSentence('alice.near', ID, HASH, digest, 1793275200),
+    `Approve in OutLayer as alice.near: task ${ID} with hash ${HASH} and supply ${NOTHING_SAID}. At 2026-10-29T12:00:00Z.`,
+  );
+  assert.match(approvalSentence('o.near', ID, HASH, digest, 0), /\. At 1970-01-01T00:00:00Z\.$/);
+  // One shape: nothing parses it, both sides rebuild it and compare bytes.
+  assert.equal(approvalSentence('o.near', ID, HASH, digest, 1793275200).split(' ').length, 15);
+});
+
+test('the digest is of one canonical document, the vectors the coordinator and the enclave hold', async () => {
+  const of = async (text) => Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text))), (b) => b.toString(16).padStart(2, '0')).join('');
+  assert.equal(await supplyDigest(null, null), NOTHING_SAID);
+  assert.equal(await supplyDigest(null, null), await of('{"note":null,"supplied":null}'));
+  assert.equal(await supplyDigest('YWJj', null), await of('{"note":null,"supplied":"YWJj"}'));
+  assert.equal(await supplyDigest('YWJj', 'aGk='), await of('{"note":"aGk=","supplied":"YWJj"}'));
+  assert.equal(await supplyDigest(null, 'aGk='), await of('{"note":"aGk=","supplied":null}'));
+  assert.notEqual(await supplyDigest('YWJj', null), await supplyDigest(null, 'YWJj'), 'a note is not a supply');
+  assert.match(await supplyDigest(null, null), /^[0-9a-f]{64}$/);
+});
+
+test('why a task failed is said in words, and a reason this build does not know is said as it came', () => {
+  assert.equal(failureWords('preparer_key_unavailable'), "the agent's payment key could not pay for the run");
+  assert.equal(failureWords('run_not_started'), 'no worker started the run in time');
+  assert.equal(failureWords('run_refused:hash-mismatch'), 'the task the run holds is not the one you approved');
+  assert.equal(failureWords('run_refused:approval-invalid'), 'your approval did not verify in the enclave');
+  assert.equal(failureWords('run_refused:void'), 'the policy changed since the task was made');
+  assert.equal(failureWords('run_refused:unreadable'), 'the run refused the task (unreadable)');
+  assert.equal(failureWords('run_refused:unavailable'), 'the run could not reach the store or the chain');
+  assert.equal(failureWords('run_refused:not-found'), 'the run found no such task');
+  assert.equal(failureWords('something_new'), 'something_new');
+  assert.equal(failureWords(undefined), 'the run did not finish the task');
+  assert.equal(failureWords(null), 'the run did not finish the task');
+  for (const reason of ['operation_priced', 'operation_unknown', 'operation_limit_reached', 'wallet_unresolved', 'queue_unavailable']) {
+    assert.notEqual(failureWords(reason), reason, reason);
+  }
 });
 
 test('the project\'s answer is a result or a refusal, never a guess', () => {
@@ -125,23 +153,6 @@ test('an answer that succeeded with nothing to say has the output null', () => {
 test('an answer is read as UTF-8', () => {
   assert.deepEqual(readAnswer(encoded(JSON.stringify({ success: true, output: 'отправлено ✓' }))), { ok: true, output: 'отправлено ✓' });
   assert.deepEqual(readAnswer(encoded(JSON.stringify({ success: false, error: 'задача закрыта' }))), { ok: false, refusal: 'задача закрыта' });
-});
-
-test('what the owner supplied is sent when there is any, even when it is empty', () => {
-  assert.ok(!('supplied' in answerInput(envelope, 'h', null)));
-  assert.deepEqual(answerInput(envelope, 'h', ''), { operation: 'confirm', task_id: 'run-0', task_hash: 'h', supplied: '' });
-  // The operation is the one the task names, whatever else the envelope holds.
-  const other = { ...envelope, operation: 'send', answer_by: { operation: 'supply_photo', supplies: 'file' } };
-  assert.equal(answerInput(other, 'h', null).operation, 'supply_photo');
-});
-
-test('the call names the build the task was made by, asks for JSON and holds the run to its limits', () => {
-  const call = callOf('owner.near/app', 'owner.near', 'default', 'cd'.repeat(32), { operation: 'confirm', task_id: 'run-0', task_hash: 'h' });
-  assert.deepEqual(Object.keys(call).sort(), ['input_data', 'resource_limits', 'response_format', 'secrets_ref', 'source']);
-  assert.equal(call.source.Project.version_key, 'cd'.repeat(32));
-  assert.equal(call.response_format, 'Json');
-  assert.deepEqual(call.resource_limits, { max_instructions: 10000000000, max_memory_mb: 128, max_execution_seconds: 60 });
-  assert.deepEqual(JSON.parse(call.input_data), { operation: 'confirm', task_id: 'run-0', task_hash: 'h' });
 });
 
 test('a task waits in minutes under an hour and in hours from it, and never less than a minute', () => {

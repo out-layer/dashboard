@@ -35,7 +35,7 @@ let opened = tasks::confirm(
         .list("To", &message.to, WrittenBy::Agent)
         .field("Subject", FieldKind::Text, &message.subject, WrittenBy::Agent)
         .field("Body", FieldKind::LongText, &message.body, WrittenBy::Agent),
-    "confirm",                       // the operation the owner calls
+    "confirm",                       // the operation the owner's approval runs
     &serde_json::to_vec(&message)?,  // handed back to it; never shown
     policy_json.as_bytes(),          // the policy the task is made under
 )
@@ -45,7 +45,7 @@ let opened = tasks::confirm(
 // The agent did its part: a success.
 return Ok(tasks::awaiting_owner(&opened));`;
 
-const ACT = `// The operation the task names, called by the owner's wallet.
+const ACT = `// The operation the task names: the platform runs it as the agent, on the owner's approval.
 let answer = tasks::answered_for("confirm", &input, policy_json.as_bytes())
     .map_err(|e| e.refusal())?;
 let message: Message = serde_json::from_slice(&answer.state)?;
@@ -89,6 +89,8 @@ let opened = tasks::input(display, "supply", Supplies::Text, &state, &policy)
     .map_err(|e| e.refusal())?;`;
 
 const STATEMENT = `Sign in to OutLayer as alice.near. Device key: p256:BFFcPW65…. Valid until 2026-10-29T12:00:00Z.`;
+
+const APPROVAL = `Approve in OutLayer as alice.near: task 0b9c1a52-7c1e-4a53-9c58-2f0c8f6f3b11-0 with hash 92067502a74314ee… and supply 93121736c33115cb…. At 2026-10-29T12:00:00Z.`;
 
 const KEYS = `project key (keystore)   HMAC-SHA256(master, "task-key:v1:{project_uuid}:{owner}")
   task key               HMAC-SHA256(project key, "task:" || id)
@@ -145,14 +147,15 @@ export default function TasksDocsPage() {
       <h2 className="text-3xl font-bold mb-6 text-accent-text">Tasks</h2>
 
       <p className="text-foreground mb-6">
-        An agent prepares; the owner reads and acts with a call of their own. A run of a project, admitted
-        to an owner&apos;s secret row, leaves that owner a task through the <C>outlayer:tasks</C> host
+        An agent prepares; the owner reads and approves; the agent&apos;s run carries it out. A run of a project,
+        admitted to an owner&apos;s secret row, leaves that owner a task through the <C>outlayer:tasks</C> host
         interface. The owner reads it in their{' '}
         <Link href="/inbox" className="text-accent-text underline">
           inbox
         </Link>{' '}
-        with no run, and acts on it by calling an operation of the same project from their own wallet. Any
-        project can use it,{' '}
+        with no run, and approves it with one message their wallet signs; the platform then starts a run of the
+        agent that prepared it — on the agent&apos;s own payment key, within the compute limit of the run that
+        prepared it — which executes the operation the task names. Any project can use it,{' '}
         <Link href="/docs/connectors" className="text-accent-text underline">
           connectors
         </Link>{' '}
@@ -165,15 +168,16 @@ export default function TasksDocsPage() {
           <p className="text-foreground">
             <strong>An action prepared and waiting for its owner.</strong> &ldquo;Confirm this email&rdquo;,
             &ldquo;show me the bet before it is placed&rdquo;, &ldquo;give me your photo&rdquo;. The agent&apos;s
-            call leaves it; the owner&apos;s call carries it out; the agent learns the outcome the next time it
-            asks.
+            call leaves it; the owner signs; a run of the agent, started by the platform, carries it out; the agent
+            learns the outcome the next time it asks.
           </p>
           <ul className="list-disc list-inside space-y-2 text-foreground mt-3">
             <li>
               <strong>Not a paused run.</strong> Nothing waits inside the enclave. A task is a record.
             </li>
             <li>
-              <strong>Not a second run on the agent&apos;s money.</strong> Each side pays for its own call.
+              <strong>Not a run of the owner&apos;s.</strong> The owner sends no transaction and pays nothing. The run
+              that acts is the agent&apos;s, paid by the agent&apos;s key, and bounded by the run that prepared it.
             </li>
             <li>
               <strong>Not a script the owner is made to run.</strong> A task names the operation that answers
@@ -244,8 +248,9 @@ export default function TasksDocsPage() {
             <em>RAW request</em> — what the agent&apos;s run was called with. Beside it, <a href="#proof" className="text-accent-text underline">the proof</a>{' '}
             that a published build of the connector made the task, with the run&apos;s attestation on request. What a field
             cannot hold — a Gmail attachment, a file&apos;s content on GitHub — is handed over as a download. Approving is one
-            call of the connector&apos;s <C>confirm</C>, signed by the owner&apos;s wallet: one transaction, and{' '}
-            <C>confirm</C> is priced at zero.
+            message the owner&apos;s wallet signs, with a note for the agent if they want to give one: no transaction.
+            The platform then runs the connector&apos;s <C>confirm</C> as the agent, on the agent&apos;s own payment key,
+            within the compute limit of the call that prepared the task; <C>confirm</C> is priced at zero.
           </p>
           <p className="text-foreground mt-3">
             <strong>Carried out exactly as shown.</strong> <C>confirm</C> acts on the write sealed in the task and on nothing
@@ -253,13 +258,14 @@ export default function TasksDocsPage() {
             the day&apos;s count again as they are at that moment; a policy changed since the task was made makes the task{' '}
             <C>void</C>. On GitHub the owner&apos;s yes is bound to the commit they were shown: a merge is made with that head
             commit, so GitHub refuses it if the pull request moved, and an approval of any other head is refused. A confirmed
-            write counts against the owner&apos;s daily number for the agent that prepared it.
+            write counts against the owner&apos;s daily number for the agent that prepared it, beside the agent&apos;s
+            direct writes.
           </p>
           <p className="text-foreground mt-3">
             <strong>Saying no.</strong> <em>Reject</em> in the inbox takes an optional reason, encrypted in the page for the
             connector; nothing is written, and the agent reads the reason with <C>task_status</C> the next time it asks. A
-            write refused after the owner&apos;s answer ends the task <C>failed</C>, and its sentence says whether the write
-            happened, so a write that was made is not prepared twice.
+            write refused after the owner&apos;s approval ends the task <C>failed</C>, with the reason, and the agent&apos;s
+            sentence says whether the write happened, so a write that was made is not prepared twice.
           </p>
           <p className="text-foreground mt-3">
             How a connector builds this is in{' '}
@@ -278,7 +284,8 @@ export default function TasksDocsPage() {
           <CodeBlock language="rust" code={PREPARE} />
           <CodeBlock language="json" code={AWAITING} />
           <p className="text-foreground mt-3">
-            Write the operation the task names. It takes the owner&apos;s answer, acts, and reports:
+            Write the operation the task names. The platform runs it as the agent on the owner&apos;s approval; it takes
+            the answer, acts, and reports:
           </p>
           <CodeBlock language="rust" code={ACT} />
           <p className="text-foreground mt-3">The rest is the same in every project, and the SDK answers it:</p>
@@ -301,7 +308,10 @@ export default function TasksDocsPage() {
           <p className="text-foreground mt-3">
             <strong>A task is paid for when it is prepared.</strong> In a connector, the operation that opens a
             task keeps its price, and nothing comes back if the owner says no. The operation that answers a
-            task, and the five above, are priced at zero: an owner pays nothing to say yes.
+            task, and the five above, are priced at zero: an owner pays nothing to say yes, and the run the
+            platform starts for an approval is admitted only when its operation is priced zero. Its compute is
+            the agent&apos;s to pay, as any call of the agent&apos;s is, up to the compute limit of the run that
+            prepared the task.
           </p>
         </section>
 
@@ -322,7 +332,8 @@ export default function TasksDocsPage() {
           <CodeBlock language="json" code={GUESS_START} />
           <ul className="list-disc list-inside space-y-2 text-foreground mt-3">
             <li>
-              The owner types a guess in the inbox; their own call runs <C>guess</C>, which judges it.
+              The owner types a guess in the inbox and approves; the platform runs <C>guess</C> as the agent, which
+              judges it.
             </li>
             <li>
               Wrong: <C>higher</C> or <C>lower</C> arrives as the next task of the same thread, showing the guess, the answer
@@ -354,8 +365,12 @@ export default function TasksDocsPage() {
                 'open a task for that owner; read, cancel and delete its tasks: those it made and the turns of its conversations',
               ],
               [
+                "the one the platform started for an approved task: the preparer's, on the preparer's key",
+                'answer that task, report its result, and open the next turn of its conversation',
+              ],
+              [
                 "the project's, made by the owner",
-                'open the next turn of the conversation a task the run answered belongs to; read, cancel and delete a turn the run opened; answer the tasks of this project addressed to them; open them for a new device',
+                'open tasks for themselves; open their waiting tasks for a new device',
               ],
               [
                 'admitted by a row open to everyone, to a pattern, or to holders of a token or a role',
@@ -371,6 +386,12 @@ export default function TasksDocsPage() {
             ]}
           />
           <p className="text-foreground">
+            A task is opened over HTTPS only: the consent to carry out the owner&apos;s answer is a payment key, the
+            one that pays for the run that carries it out. No key answers a task by calling: a key of the owner&apos;s
+            account is not the preparer, and the preparer&apos;s own call carries no approval. The run that answers
+            is started by the platform and by nothing else.
+          </p>
+          <p className="text-foreground mt-3">
             As with a bot in a messenger, nobody writes to a person who has not let them, and the owner
             silences whom they please: they mute an agent or a project in the inbox, and delete its waiting
             tasks at once. Who is muted, the devices signed in and the URL task events go to are on the
@@ -414,9 +435,18 @@ export default function TasksDocsPage() {
             head={['State', 'Means']}
             rows={[
               [<C key="a">open</C>, 'waits for the owner'],
-              [<C key="a">answering</C>, <>the owner answered; the call named in <C>run</C> acts</>],
-              [<C key="a">done</C>, 'that call ended well and the project reported'],
-              [<C key="a">failed</C>, 'that call ended any other way. Its status is the ordinary status of a call'],
+              [<C key="a">approved</C>, <>the owner approved; the platform queued the agent&apos;s run, named in <C>run</C>, which has not taken the answer yet</>],
+              [<C key="a">answering</C>, 'that run took the answer and acts'],
+              [<C key="a">done</C>, 'that run ended well and the project reported'],
+              [
+                <C key="a">failed</C>,
+                <>
+                  the run could not be started, did not start, refused the task, or ended any other way; <C>failure_reason</C>{' '}
+                  says which: <C>preparer_key_unavailable</C>, <C>operation_priced</C>, <C>operation_unknown</C>,{' '}
+                  <C>operation_limit_reached</C>, <C>wallet_unresolved</C>, <C>queue_unavailable</C>, <C>run_not_started</C>, or{' '}
+                  <C>run_refused:&lt;reason&gt;</C> with the host&apos;s reason
+                </>,
+              ],
               [<C key="a">rejected</C>, 'the owner said no, with a reason if they gave one'],
               [<C key="a">cancelled</C>, 'the preparer withdrew it'],
               [<C key="a">expired</C>, 'past its life: 24 hours at most'],
@@ -424,14 +454,15 @@ export default function TasksDocsPage() {
             ]}
           />
           <p className="text-foreground">
-            Each move is made once, and a task never returns to <C>open</C>: a call that failed may have acted
-            in part. A task that leaves <C>open</C> loses what it showed at once; its outcome is kept 30 days.
+            Each move is made once, and a task never returns to <C>open</C>: a run that failed may have acted
+            in part. A task that leaves <C>open</C> loses what it showed at once; its outcome is kept 30 days. A task
+            approved for thirty minutes without a run taking its answer is ended <C>failed</C> by the platform.
           </p>
           <Table
             head={['Limit', 'Value']}
             rows={[
               ['open tasks addressed to one owner', '20'],
-              ['of them, from one preparer', '5'],
+              ['of them, from one preparer, open and approved together', '10'],
               ['tasks one run opens', '5'],
               ['what the waiting tasks of one owner hold together', '64 MiB'],
               ['files of one task', '10, and 6 MiB together'],
@@ -457,7 +488,8 @@ export default function TasksDocsPage() {
                 'see who was asked by whom, of what kind and when; delete a task',
                 'read what a task shows; add a device of their own; act on a task',
               ],
-              ["a session's token", 'list tasks as ciphertext; reject and delete', "read a task without the device's key; act on a task"],
+              ["a session's token", 'list tasks as ciphertext; reject and delete', "read a task without the device's key; approve a task"],
+              ["the agent's payment key", 'prepare tasks, and pay for the run that carries an approved one out', 'approve a task, or answer one by calling'],
             ]}
           />
         </section>
@@ -479,7 +511,9 @@ export default function TasksDocsPage() {
             So a project&apos;s answer has to name the task it opened: <C>tasks::awaiting_owner</C> is that, put
             wherever the answer has room for it. A task written into the platform&apos;s database can be shown
             and cannot be acted on: the project acts on the task sealed in the enclave, and the owner&apos;s
-            answer must name its hash.
+            approval must name its hash. The run that carried a task out is named by <C>run</C> once there is one,
+            and its attestation is public too: the page holds it to the task — a call of the agent, of the
+            task&apos;s project, of the build the task names.
           </p>
         </section>
 
@@ -521,6 +555,38 @@ export default function TasksDocsPage() {
           </p>
         </section>
 
+        <section id="approval">
+          <AnchorHeading id="approval">The approval</AnchorHeading>
+          <p className="text-foreground">
+            Approving a task is the same kind of signature over the task, made from the owner&apos;s click, good for
+            ten minutes, once:
+          </p>
+          <CodeBlock language="text" code={APPROVAL} />
+          <ul className="list-disc list-inside space-y-2 text-foreground mt-3">
+            <li>
+              The hash is the SHA-256 of the task&apos;s bytes as the page opened them: what the owner read is what
+              the enclave must hold.
+            </li>
+            <li>
+              The supply is the SHA-256 of <C>{'{"note":<base64|null>,"supplied":<base64|null>}'}</C> over what the
+              owner wrote — their answer to an <C>input</C> task, and a note for the agent beside any approval — each
+              sealed by the page to the task&apos;s reply key. The owner&apos;s words are under the owner&apos;s signature,
+              not merely beside it.
+            </li>
+            <li>
+              The coordinator rebuilds the sentence from the session&apos;s account, the task&apos;s id and the request,
+              verifies it, spends the nonce, moves the task to <C>approved</C> and queues the agent&apos;s run. The
+              enclave rebuilds it again from the sealed task and the run&apos;s input, and takes an approval up to ten
+              minutes ahead of its clock and up to thirty behind.
+            </li>
+            <li>
+              The run is admitted as the agent&apos;s own call: the agent&apos;s payment key, wallet and identity binding as
+              the preparing run had them, and no more compute than that run was allowed. A run that cannot be
+              started ends the task <C>failed</C> at once, with the reason.
+            </li>
+          </ul>
+        </section>
+
         <section id="refusals">
           <AnchorHeading id="refusals">Refusals</AnchorHeading>
           <p className="text-foreground">
@@ -543,11 +609,14 @@ export default function TasksDocsPage() {
               [<C key="a">display_invalid</C>, 'what is shown is outside the bounds; the sentence names what', 'fix the request'],
               [<C key="a">task_too_large</C>, 'the state, the task or a result is over its bound', 'make it smaller'],
               [<C key="a">task_life_too_long</C>, 'a life asked beyond 24 hours', 'ask for less'],
+              [<C key="a">task_no_payment_key</C>, 'a task opened from a run on chain: a task is opened over HTTPS, with the key that pays for the run that carries it out', 'call over HTTPS'],
               [<C key="a">task_not_found</C>, 'no such task of this project, owner and preparer', 'no'],
-              [<C key="a">not_the_owner</C>, "an owner's operation in another account's call", 'no'],
+              [<C key="a">not_the_owner</C>, "tasks_unlock in another account's call", 'no'],
+              [<C key="a">not_the_preparer</C>, 'the answering operation in a run that is not the one the platform started for the task', 'no'],
+              [<C key="a">task_approval_invalid</C>, "the owner's signature does not verify over this task, this hash and these words, or the task was never approved", 'no'],
               [<C key="a">task_hash_mismatch</C>, "the hash named is not the task's", 'no'],
               [<C key="a">task_answer_invalid</C>, 'another operation than the task names, or what was supplied is not what was asked', 'no'],
-              [<C key="a">task_closed</C>, 'answered, rejected or cancelled already', 'no'],
+              [<C key="a">task_closed</C>, 'approved, answered, rejected or cancelled already', 'no'],
               [<C key="a">task_expired</C>, 'past its life', 'prepare it again'],
               [<C key="a">task_void</C>, 'the policy changed, or another build answered', 'prepare it again'],
               [<C key="a">task_unreadable</C>, 'a sealed copy that does not open', 'no'],

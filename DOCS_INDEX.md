@@ -55,7 +55,7 @@ dashboard/app/docs/
 ├── vrf/page.tsx                  # VRF (Verifiable Random Function)
 ├── signing-keys/page.tsx         # Signing Keys — ed25519 and secp256k1 keys a module signs with and never sees
 ├── encryption-keys/page.tsx      # Encryption Keys — symmetric keys a module seals data with and never sees; sealed storage
-├── tasks/page.tsx                # Tasks — an agent prepares, the owner reads in the inbox and acts with a call of their own
+├── tasks/page.tsx                # Tasks — an agent prepares, the owner reads in the inbox and approves with one signature, the agent's run carries it out
 ├── examples/page.tsx             # Example Projects (all examples)
 ├── trust-verification/page.tsx   # Trust & Verification - why trust OutLayer
 ├── storage/page.tsx              # Persistent Storage

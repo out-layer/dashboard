@@ -7,9 +7,9 @@
  * as it came, and is not a success.
  */
 
-export type TaskState = 'open' | 'answering' | 'done' | 'failed' | 'rejected' | 'cancelled' | 'expired' | 'void';
+export type TaskState = 'open' | 'approved' | 'answering' | 'done' | 'failed' | 'rejected' | 'cancelled' | 'expired' | 'void';
 
-const TASK_STATES: readonly string[] = ['open', 'answering', 'done', 'failed', 'rejected', 'cancelled', 'expired', 'void'];
+const TASK_STATES: readonly string[] = ['open', 'approved', 'answering', 'done', 'failed', 'rejected', 'cancelled', 'expired', 'void'];
 
 /** A task as the inbox lists it: who asked, and ciphertext. */
 export type InboxTask = {
@@ -25,7 +25,10 @@ export type InboxTask = {
   state: TaskState | 'unknown';
   created_at: number;
   expires_at: number;
+  /** The run the platform started for the task once the owner approved it: a call of the agent that prepared it. */
   run?: string;
+  /** Why a `failed` task failed: the run was refused at the door, never started, or refused the task when it ran. */
+  failure_reason?: string;
   reply_pubkey: string;
   content: string | null;
   device_copy: string | null;
@@ -146,6 +149,31 @@ export async function listTasks(base: string, token: string, show: 'waiting' | '
 
 export function rejectTask(base: string, token: string, id: string, reason: string | null): Promise<{ id: string; state: TaskState }> {
   return ask(base, `/inbox/tasks/${encodeURIComponent(id)}/reject`, { method: 'POST', token, body: { reason } });
+}
+
+/** What the owner's approval of a task carries: the hash they read, the wallet's signature, and what they said, sealed. */
+export type Approval = {
+  /** SHA-256, hex, of the envelope the page opened. */
+  task_hash: string;
+  /** The wallet's signature over the approval's sentence. */
+  approval: Confirmation;
+  /** The owner's answer, sealed to the task's reply key (purpose `answer`), base64; for an `input` task. */
+  supplied?: string;
+  /** The owner's comment, sealed the same way (purpose `note`), base64. */
+  note?: string;
+};
+
+/** What an approval, a rejection or a refusal to start the run leaves the task as. */
+export type Moved = { id: string; state: TaskState; run?: string; failure_reason?: string };
+
+/**
+ * Approve a task: the platform starts a run of the agent that prepared it,
+ * on the agent's own payment key, which carries the task out. `approved`
+ * with the `run` on success; `failed` with `failure_reason` when the run
+ * could not be started.
+ */
+export function approveTask(base: string, token: string, id: string, approval: Approval): Promise<Moved> {
+  return ask(base, `/inbox/tasks/${encodeURIComponent(id)}/approve`, { method: 'POST', token, body: approval });
 }
 
 export function deleteTask(base: string, token: string, id: string): Promise<{ deleted: number }> {

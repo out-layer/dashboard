@@ -158,11 +158,13 @@ function Inbox() {
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
 
-  // The waiting tasks this browser holds no copy of, by project, in the list's order.
+  // The waiting tasks this browser holds no copy of, by project, in the
+  // list's order. The API lists `locked` only for a task that waits — open,
+  // or approved and being carried out.
   const locked = useMemo(() => {
     const found = new Map<string, LockedOfProject>();
     for (const task of tasks) {
-      if (task.state === 'open' && task.locked) {
+      if (task.locked) {
         const had = found.get(task.project_id);
         if (had) had.count += 1;
         else found.set(task.project_id, { project_id: task.project_id, profile: task.profile, count: 1 });

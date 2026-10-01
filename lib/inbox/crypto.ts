@@ -25,7 +25,7 @@ const TAG = 16;
 const CURVE = { name: 'ECDH', namedCurve: 'P-256' } as const;
 
 /** What a blob encrypted to a public key is for. */
-export type Purpose = 'device-copy' | 'answer' | 'rejection';
+export type Purpose = 'device-copy' | 'answer' | 'rejection' | 'note';
 
 /** A device: a key pair whose private half cannot be exported. */
 export type Device = {
@@ -385,14 +385,14 @@ export async function readTask(device: Device, task: Listed, owner: string): Pro
   return { envelope, document: text, hash, contentKey };
 }
 
-/** What the owner supplies with an answer, or the reason of a rejection. */
-export async function writeReply(envelope: Envelope, purpose: 'answer' | 'rejection', words: string): Promise<Uint8Array> {
+/** What the owner supplies with an answer, the note beside an approval, or the reason of a rejection. */
+export async function writeReply(envelope: Envelope, purpose: 'answer' | 'note' | 'rejection', words: string): Promise<Uint8Array> {
   return sealTo(readPubkey(envelope.reply_pubkey), purpose, envelope.id, utf8(words));
 }
 
 /**
- * Most bytes of a reason or of what the owner supplies, as UTF-8. An answer
- * travels in a transaction, whose input the contract bounds.
+ * Most bytes of a reason, of a note or of what the owner supplies, as UTF-8.
+ * Sealed, each is held to the inbox API's bound of 8 KiB.
  */
 export const MOST_REPLY_BYTES = 5000;
 

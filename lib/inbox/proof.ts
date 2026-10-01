@@ -74,17 +74,15 @@ export type Proof<A extends Attested = Attested> = {
 };
 
 /**
- * `owner`: the signed-in account the task waits for. `build` and `thread`: the
- * build and the conversation the envelope names, `null` while the task is not
+ * `preparer`: the agent whose run made the task, and whose run carries it
+ * out. `build`: the build the envelope names, `null` while the task is not
  * readable in this browser.
  */
 export type Task = {
   id: string;
   project_id: string;
   preparer: string;
-  owner: string;
   build: string | null;
-  thread: string | null;
 };
 
 export type Deps<A extends Attested> = {
@@ -190,38 +188,17 @@ export async function prove<A extends Attested>(task: Task, hash: string | null,
     steps.push({ name: 'enclave', ok: null, said: `The quote could not be verified: ${message(e)}` });
   }
 
-  // The run is made by the task's preparer, or — for a turn only — by the
-  // owner: their own answer to the conversation's previous task, whose answer
-  // opens this one under the agent that prepared the conversation. A task
-  // that starts its conversation (`thread` is its own id) is made by its
-  // preparer's run and by no other. Either way what ties the run to this
-  // task is its answer naming the task, the last step.
+  // The run is made by the task's preparer: a task of a conversation, its
+  // first or a turn, is made by the agent's run and by no other. What ties
+  // the run to this task is its answer naming the task, the last step.
   const sameId = origin.door === 'https' ? attestation.call_id === origin.call_id : attestation.request_id === origin.request_id;
   const madeBy = (origin.door === 'https' ? attestation.payment_key_owner : attestation.caller_account_id) ?? task.preparer;
   if (attestation.project_id !== task.project_id) {
     steps.push({ name: 'run', ok: false, said: `The attested run was of ${attestation.project_id ?? 'no project'}, not of ${task.project_id}.` });
-  } else if (!sameId || (madeBy !== task.preparer && madeBy !== task.owner)) {
-    steps.push({ name: 'run', ok: false, said: `The attested run is not the run ${origin.run} made by ${task.preparer} or by you.` });
-  } else if (madeBy === task.preparer) {
-    steps.push({ name: 'run', ok: true, said: `It was a run of ${task.project_id}, made by ${task.preparer}.` });
-  } else if (task.thread === null) {
-    steps.push({
-      name: 'run',
-      ok: null,
-      said: `The attested run is your own, and a run of yours makes only a turn of a conversation: whether this task is one is checked once the task is readable in this browser.`,
-    });
-  } else if (task.thread === task.id) {
-    steps.push({
-      name: 'run',
-      ok: false,
-      said: `The attested run is your own, and this task starts its conversation: only a run of ${task.preparer} makes such a task.`,
-    });
+  } else if (!sameId || madeBy !== task.preparer) {
+    steps.push({ name: 'run', ok: false, said: `The attested run is not the run ${origin.run} made by ${task.preparer}.` });
   } else {
-    steps.push({
-      name: 'run',
-      ok: true,
-      said: "The attested run is the run that made this task: your own answer to the conversation's previous task.",
-    });
+    steps.push({ name: 'run', ok: true, said: `It was a run of ${task.project_id}, made by ${task.preparer}.` });
   }
 
   if (!attestation.executed_wasm_sha256) {
@@ -306,4 +283,33 @@ export function verdict(proof: Proof): string {
     return 'Made by a published build of the project, in an approved enclave. Whether it is this task is checked once the task is readable in this browser.';
   }
   return `The proof could not be checked. ${unread?.said ?? ''}`.trim();
+}
+
+/**
+ * The run that carried an approved task out, held to the task: the platform
+ * started it for the agent that prepared the task, so its attestation is of
+ * the call the task names (`run`), names the preparer as the payment key's
+ * owner, the task's project, and the build the task names. What the run
+ * answered is the agent's and is not served to the owner, so it is not
+ * checked here, and the step says so: the task's state is the coordinator's
+ * word on it.
+ */
+export function carriedBy(task: Task, run: string, attestation: Attested): Step {
+  if (attestation.call_id !== run) {
+    return { name: 'run', ok: false, said: `The attestation is of the call ${attestation.call_id ?? 'none'}, not of the run ${run} the task names.` };
+  }
+  if (attestation.project_id !== task.project_id) {
+    return { name: 'run', ok: false, said: `The attested run was of ${attestation.project_id ?? 'no project'}, not of ${task.project_id}.` };
+  }
+  if (attestation.payment_key_owner !== task.preparer) {
+    return { name: 'run', ok: false, said: `The attested run was not a call of ${task.preparer}, whose run carries a task out.` };
+  }
+  if (task.build !== null && (attestation.executed_wasm_sha256 ?? '').toLowerCase() !== task.build.toLowerCase()) {
+    return { name: 'build', ok: false, said: 'The attested run was not of the build the task names.' };
+  }
+  return {
+    name: 'run',
+    ok: true,
+    said: `The run ${run} was a call of ${task.preparer} in ${task.project_id}${task.build === null ? '' : ', of the build the task names'}; what it answered is the agent's, not checked here.`,
+  };
 }

@@ -4,7 +4,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
-  InboxRefused, attestationOf, deleteTask, deleteTasks, deleteWebhook, listDevices, listMutes, listTasks, mute,
+  InboxRefused, approveTask, attestationOf, deleteTask, deleteTasks, deleteWebhook, listDevices, listMutes, listTasks, mute,
   pendingApprovals, rejectTask, setWebhook, signIn, signOut, taskFile, taskOrigin, unmute, webhook,
 } from '../lib/inbox/api.ts';
 
@@ -87,7 +87,7 @@ test('a state the page does not know is unknown, and never open', async () => {
 });
 
 test('every state the page knows is read as it came', async () => {
-  const states = ['open', 'answering', 'done', 'failed', 'rejected', 'cancelled', 'expired', 'void'];
+  const states = ['open', 'approved', 'answering', 'done', 'failed', 'rejected', 'cancelled', 'expired', 'void'];
   const { result } = await asked(
     () => json(200, { tasks: states.map((state) => task({ state })), more: true }),
     () => listTasks(BASE, TOKEN),
@@ -399,6 +399,29 @@ test('a task\'s id is one segment of every path it is in', async () => {
 
   const plain = await asked(() => json(200, { ciphertext: 'AQID' }), () => taskFile(BASE, TOKEN, '0b9c1a52-7c1e-4a53-9c58-2f0c8f6f3b11-0', 0));
   assert.equal(plain.calls[0].url, `${BASE}/inbox/tasks/0b9c1a52-7c1e-4a53-9c58-2f0c8f6f3b11-0/files/0`);
+});
+
+test('an approval carries the hash read, the signature and what was said sealed, and is answered with the run or the failure', async () => {
+  const approval = { at: 1793275200, public_key: 'ed25519:k', signature: 'c2ln', nonce: 'bm9uY2U=' };
+  const started = await asked(
+    () => json(200, { id: ODD_ID, state: 'approved', run: 'call-1' }),
+    () => approveTask(BASE, TOKEN, ODD_ID, { task_hash: 'ab'.repeat(32), approval, supplied: 'c2VhbGVk', note: 'bm90ZQ==' }),
+  );
+  assert.deepEqual(started.result, { id: ODD_ID, state: 'approved', run: 'call-1' });
+  assert.deepEqual([started.calls[0].method, started.calls[0].url], ['POST', `${BASE}/inbox/tasks/${ODD_PATH}/approve`]);
+  assert.deepEqual(started.calls[0].headers, { Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'application/json' });
+  assert.deepEqual(JSON.parse(started.calls[0].body), { task_hash: 'ab'.repeat(32), approval, supplied: 'c2VhbGVk', note: 'bm90ZQ==' });
+  // Nothing said: neither member is sent, rather than sent as null.
+  const bare = await asked(() => json(200, { id: 'run-0', state: 'approved', run: 'call-2' }), () => approveTask(BASE, TOKEN, 'run-0', { task_hash: 'ab'.repeat(32), approval }));
+  assert.deepEqual(Object.keys(JSON.parse(bare.calls[0].body)).sort(), ['approval', 'task_hash']);
+  // A run that could not be started is a failed task, not a refusal of the request.
+  const failed = await asked(
+    () => json(200, { id: 'run-0', state: 'failed', run: 'call-3', failure_reason: 'preparer_key_unavailable' }),
+    () => approveTask(BASE, TOKEN, 'run-0', { task_hash: 'ab'.repeat(32), approval }),
+  );
+  assert.deepEqual(failed.result, { id: 'run-0', state: 'failed', run: 'call-3', failure_reason: 'preparer_key_unavailable' });
+  const closed = await refused(409, { error: 'task_closed', message: 'the task is approved', state: 'approved' }, () => approveTask(BASE, TOKEN, 'run-0', { task_hash: 'ab'.repeat(32), approval }));
+  assert.equal(closed.reason, 'task_closed');
 });
 
 test('a rejection without a reason says so, and sends no words', async () => {

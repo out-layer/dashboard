@@ -387,6 +387,11 @@ test('a reply is sealed to the task\'s reply key, for its purpose and its task',
   const reason = await writeReply(to, 'rejection', '');
   assert.equal(reason.length, 1 + 65 + 12 + 16, 'a reason of no words is still sealed');
   assert.deepEqual(await openFrom(reader, 'rejection', 'run-7', reason), new Uint8Array(0));
+  // A note beside an approval is sealed under its own purpose: it is not an answer, and not a reason.
+  const note = await writeReply(to, 'note', 'go ahead, but today only');
+  assert.equal(new TextDecoder().decode(await openFrom(reader, 'note', 'run-7', note)), 'go ahead, but today only');
+  await assert.rejects(openFrom(reader, 'answer', 'run-7', note), /decryption failed/);
+  await assert.rejects(openFrom(reader, 'rejection', 'run-7', note), /decryption failed/);
 });
 
 test('the deadline of the sentence is written to the second, in UTC', () => {

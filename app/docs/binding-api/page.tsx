@@ -498,6 +498,92 @@ request_execution({ ..., use_bound_identity: true })`}
       </section>
 
       {/* ─────────────────────────────────────────────────────────────── */}
+      <section id="wallet-votes" className="mb-10 scroll-mt-4">
+        <AnchorHeading id="wallet-votes">Votes from owner wallets</AnchorHeading>
+        <p className="text-foreground mb-4">
+          A wallet whose policy requires approval holds a fund-moving operation until its
+          approvers vote. An approver whose account has no access keys — a wallet contract owned
+          by an EVM key or a passkey — votes with an authorization its own contract resolves.
+          Your app builds that authorization and posts it; nothing here signs anything. The
+          approver is a plain entry in the policy, <code className={code}>{'{"id": "<wallet account>"}'}</code>,
+          with no <code className={code}>pubkey</code>: a pinned key means &ldquo;only this
+          key&rdquo;, and a contract vote from a pinned approver is never counted.
+        </p>
+        <pre className="bg-card-muted rounded p-4 text-sm overflow-x-auto mb-4">{`GET  /wallet/v1/approval/{id}          → wallet_pubkey, request_hash, op (no auth)
+POST /wallet/v1/approve/{id}  { "account_id": "<wallet account>", "authorization": "<blob>" }
+POST /wallet/v1/reject/{id}   { "account_id": "<wallet account>", "authorization": "<blob>", "reason": "…" }
+
+payload the blob must authorize:
+  approve:{approval_id}:{wallet_pubkey}:{request_hash}     (reject:… for a reject)`}</pre>
+        <p className="text-foreground mb-4">
+          Before the vote is stored we read, at one block, the code the account runs, then
+          call <code className={code}>w_is_signature_allowed</code> and{' '}
+          <code className={code}>w_resolve_auth</code> on it; the keystore makes the same two calls
+          again before it signs. The vote counts only when the resolution is that payload, byte for
+          byte. An EIP-712 wallet is called with{' '}
+          <code className={code}>{'{purpose: "PROVE_OWNERSHIP", recipient, authorization}'}</code>,
+          where <code className={code}>recipient</code> is <code className={code}>outlayer.near</code>{' '}
+          on mainnet and <code className={code}>outlayer.testnet</code> on testnet. A passkey wallet
+          is called with <code className={code}>{'{path: [], authorization}'}</code>, and an
+          authorization that leaves sub-authorizations pending is refused.
+        </p>
+        <div className="overflow-x-auto mb-4">
+          <table className="min-w-full text-sm border border-border">
+            <thead>
+              <tr>
+                <th className={th}>Answer</th>
+                <th className={th}>Meaning</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td className={td}><code className={code}>200</code></td>
+                <td className={td}>Stored. <code className={code}>status</code> says whether the threshold is met (an approve) or the request is cancelled (a reject from an approver).</td>
+              </tr>
+              <tr>
+                <td className={td}><code className={code}>400 bad_request</code></td>
+                <td className={td}>The account does not run a wallet build this deployment accepts votes from, or the body carries both a signature and an authorization, or neither.</td>
+              </tr>
+              <tr>
+                <td className={td}><code className={code}>401 invalid_signature</code></td>
+                <td className={td}>
+                  The wallet did not resolve the authorization to this vote&apos;s payload; the
+                  message carries the wallet&apos;s own reason (a wrong key, another payload,
+                  signatures disabled). A passkey message timestamped in the future is refused by
+                  the wallet itself — sign with a timestamp a little in the past.
+                </td>
+              </tr>
+              <tr>
+                <td className={td}><code className={code}>403 not_approver</code></td>
+                <td className={td}>The account is not an approver this wallet&apos;s policy admits — not listed, or pinned to a key. Decided on the policy as the chain holds it, so an approver added a moment ago is admitted. Nothing stored.</td>
+              </tr>
+              <tr>
+                <td className={td}><code className={code}>409 already_approved</code></td>
+                <td className={td}>This account already voted on this approval, either way. One vote per account.</td>
+              </tr>
+              <tr>
+                <td className={td}><code className={code}>409 conflict</code></td>
+                <td className={td}>The approval is no longer pending — approved, rejected or expired; the message names which. Stop.</td>
+              </tr>
+              <tr>
+                <td className={td}><code className={code}>503</code> with <code className={code}>Retry-After</code></td>
+                <td className={td}>The chain could not be read. Nothing was stored; send the same vote again.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p className="text-foreground">
+          The approval detail lists each vote with <code className={code}>proof_kind</code>:{' '}
+          <code className={code}>contract</code> for these, <code className={code}>nep413</code> for
+          a key holder&apos;s signature. The policy side is in{' '}
+          <Link href="/docs/agent-custody#multisig" className="text-accent-text underline">
+            Multisig Approval
+          </Link>
+          .
+        </p>
+      </section>
+
+      {/* ─────────────────────────────────────────────────────────────── */}
       <section id="refusals" className="mb-10 scroll-mt-4">
         <AnchorHeading id="refusals">Reading a refusal</AnchorHeading>
         <p className="text-foreground mb-4">
@@ -703,6 +789,14 @@ request_execution({ ..., use_bound_identity: true })`}
                   <code className={code}>in_flight_operation</code> when the id is not yet readable.
                 </td>
                 <td className={td}>Yes, after the named request finishes.</td>
+              </tr>
+              <tr>
+                <td className={td}><code className={code}>409</code> on a vote</td>
+                <td className={td}>
+                  <code className={code}>already_approved</code> — this account already voted;{' '}
+                  <code className={code}>conflict</code> — the approval is no longer pending.
+                </td>
+                <td className={td}>No. The vote is in, or the decision is made.</td>
               </tr>
               <tr>
                 <td className={td}><code className={code}>422</code></td>

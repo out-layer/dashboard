@@ -24,7 +24,13 @@ interface ApprovalDetail {
   status: string;
   expires_at: string;
   created_at: string;
-  approvers: { approver_id: string; approver_role: string; signature: string; created_at: string }[];
+  approvers: {
+    approver_id: string;
+    approver_role: string;
+    signature: string | null;
+    proof_kind?: 'nep413' | 'contract';
+    created_at: string;
+  }[];
 }
 
 export default function ApprovalDetailPage() {
@@ -134,7 +140,7 @@ function ApprovalDetailContent() {
 
       if (!resp.ok) {
         const errorData = await resp.json().catch(() => ({}));
-        throw new Error(errorData.error || errorData.message || `${vote} failed: ${resp.status}`);
+        throw new Error(errorData.message || errorData.error || `${vote} failed: ${resp.status}`);
       }
 
       const result = await resp.json();
@@ -214,7 +220,7 @@ function ApprovalDetailContent() {
  <span className="text-sm text-muted-foreground">{approval.request_type}</span>
               </div>
  <span className="text-sm text-faint-foreground">
-                {approval.approvers?.length || 0} / {approval.required_approvals} approved
+                {approval.approvers?.filter((a) => a.approver_role === 'signer').length || 0} / {approval.required_approvals} approved
               </span>
             </div>
 
@@ -267,10 +273,14 @@ function ApprovalDetailContent() {
  <h2 className="text-lg font-semibold text-foreground mb-3">Approvers</h2>
  <div className="space-y-2">
                 {approval.approvers.map((a, i) => (
- <div key={i} className="flex items-center justify-between bg-success/10 rounded p-3">
+ <div key={i} className={`flex items-center justify-between rounded p-3 ${a.approver_role === 'reject' ? 'bg-destructive/10' : 'bg-success/10'}`}>
                     <div>
  <p className="text-sm font-mono text-foreground">{a.approver_id}</p>
- <p className="text-xs text-muted-foreground">Role: {a.approver_role}</p>
+ <p className="text-xs text-muted-foreground">
+                        {a.approver_role === 'reject' ? 'Rejected' : 'Approved'}
+                        {' · '}
+                        {a.proof_kind === 'contract' ? 'by its wallet contract' : 'with a signed key'}
+                      </p>
                     </div>
  <p className="text-xs text-faint-foreground">{formatDate(a.created_at)}</p>
                   </div>

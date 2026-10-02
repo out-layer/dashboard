@@ -466,7 +466,7 @@ export default function AgentCustodyPage() {
     "approvers": [
       { "id": "alice.near", "role": "admin",  "pubkey": "ed25519:<base58>" },
       { "id": "bob.near",   "role": "signer", "pubkey": "ed25519:<base58>" },
-      { "id": "carol.near", "role": "signer", "pubkey": "ed25519:<base58>" }
+      { "id": "carol.near", "role": "signer" }
     ]
   },
   "capabilities": {
@@ -491,6 +491,25 @@ export default function AgentCustodyPage() {
  <p className="text-foreground mb-4">
           On a wallet with an approval threshold, fund-moving operations go into a pending state.
           Designated approvers sign the request using their NEAR wallet (NEP-413 signature). Once the required number of signatures is collected, the transaction executes automatically.
+        </p>
+
+ <p className="text-foreground mb-4">
+          An approver is a NEAR account. A <code className="bg-card-muted px-1 rounded">pubkey</code> in its
+          policy entry pins it to that key: only a signature by it counts. Without one, any full-access key of the
+          account can sign, and the key is checked on chain when the vote arrives and again before anything
+          executes. A vote from an account the policy does not name is refused when it arrives
+          (<code className="bg-card-muted px-1 rounded">403 not_approver</code>) and never counts.
+        </p>
+
+ <p className="text-foreground mb-4">
+          An approver can also be an account <strong>without access keys</strong>: a wallet contract owned by an
+          EVM key or a passkey. Such an approver votes through its wallet&apos;s own app, which sends{' '}
+ <code className="bg-card-muted px-1 rounded">{'{account_id, authorization}'}</code> to the same{' '}
+ <code className="bg-card-muted px-1 rounded">approve</code> and <code className="bg-card-muted px-1 rounded">reject</code>{' '}
+          endpoints. The authorization is checked by calling the approver&apos;s own contract, which must resolve
+          it to the exact vote string below; the keystore makes the same call again before signing. Only wallet
+          builds this deployment lists can vote this way, and an approver with a pinned{' '}
+ <code className="bg-card-muted px-1 rounded">pubkey</code> never can.
         </p>
 
  <div className="bg-card-muted border-l-4 border-border p-4 mb-4">
@@ -1387,6 +1406,7 @@ curl -s -H "Authorization: Bearer $API_KEY" \\
  <h3 className="text-lg font-semibold mt-6 mb-2">Signature format</h3>
  <p className="text-foreground mb-2">
  All signatures are <strong>raw ed25519</strong> &mdash; sign the message string bytes directly with your NEAR key, then base58-encode the 64-byte result.
+ The key must be a <strong>full-access</strong> key of the account (or the key of an implicit account not created yet): a function-call key, the kind applications hold after you log in to them, is refused.
  This is <strong>NOT</strong> NEP-413 (the <code className="bg-card-muted px-1 rounded">/sign-message</code> endpoint returns NEP-413 signatures, which are a different format and won&apos;t work here).
         </p>
  <div className="overflow-x-auto mb-4">

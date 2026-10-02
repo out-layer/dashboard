@@ -228,7 +228,7 @@ function WalletApprovalsContent() {
       });
       if (!resp.ok) {
         const err = await resp.json().catch(() => ({ error: resp.statusText }));
-        throw new Error(err.error || err.message || `API error: ${resp.status}`);
+        throw new Error(err.message || err.error || `API error: ${resp.status}`);
       }
       const data = await resp.json();
       if (data.request_id) {
@@ -274,7 +274,7 @@ function WalletApprovalsContent() {
       });
       if (!resp.ok) {
         const err = await resp.json().catch(() => ({ error: resp.statusText }));
-        throw new Error(err.error || err.message || `API error: ${resp.status}`);
+        throw new Error(err.message || err.error || `API error: ${resp.status}`);
       }
       setSuccess('Request rejected.');
       await loadApprovals();

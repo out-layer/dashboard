@@ -732,7 +732,8 @@ curl -s -X POST -H "Content-Type: application/json" \\
  <p className="text-foreground mt-3 mb-2">
  <strong>Cross-chain withdrawals: prefer <code className="bg-card-muted px-1 rounded">&quot;async&quot;: true</code>.</strong>          The 1Click bridge can take longer than the synchronous response window, so add <code className="bg-card-muted px-1 rounded">&quot;async&quot;: true</code> to the body. The call then returns
  immediately with <code className="bg-card-muted px-1 rounded">status: &quot;processing&quot;</code> and a <code className="bg-card-muted px-1 rounded">poll_url</code>; poll <code className="bg-card-muted px-1 rounded">GET /wallet/v1/requests/&#123;request_id&#125;</code> until terminal.
- Same-chain NEAR settles in seconds, so <code className="bg-card-muted px-1 rounded">async</code> is optional there.
+ Same-chain NEAR usually settles in seconds, so <code className="bg-card-muted px-1 rounded">async</code> is optional there; when the solver relay is slow a synchronous call still answers <code className="bg-card-muted px-1 rounded">processing</code> with a <code className="bg-card-muted px-1 rounded">poll_url</code>, so branch on the status and poll it.
+ A withdrawal runs to its outcome even if your client disconnects: give a synchronous call at least 100&nbsp;s, and if your client gives up first, re-send with the same <code className="bg-card-muted px-1 rounded">Idempotency-Key</code> rather than submitting a new withdrawal.
         </p>
 
  <div className="bg-card-muted border-l-4 border-border p-4 mb-4">
@@ -759,6 +760,9 @@ curl -s -X POST -H "Content-Type: application/json" \\
   -d '{"to":"partner.near","amount":"1000000","token":"nep141:usdt.tether-token.near"}' \\
   "https://api.outlayer.ai/wallet/v1/intents/transfer"`}
         </SyntaxHighlighter>
+ <p className="text-foreground mt-3 mb-2">
+ The response is usually <code className="bg-card-muted px-1 rounded">status: &quot;success&quot;</code>. When the solver relay is slow it is <code className="bg-card-muted px-1 rounded">processing</code> with a <code className="bg-card-muted px-1 rounded">poll_url</code>: poll it, and do not send the transfer again.
+        </p>
 
  <h3 className="text-lg font-semibold mt-4 mb-2">9. Delete wallet (irreversible)</h3>
  <p className="text-foreground mb-2">Delete the on-chain account, send all NEAR to a beneficiary, and revoke all API keys:</p>

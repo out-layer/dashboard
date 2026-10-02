@@ -208,6 +208,8 @@ function Inbox() {
   const rest = tasks.filter((t) => t.id !== wanted && !isSent(t.state));
   const sent = tasks.filter((t) => t.id !== wanted && isSent(t.state));
   const nothing = tasks.length === 0 && approvals.length === 0 && readingApprovals === null;
+  /** The tasks are still on their way: nothing of them is shown yet. */
+  const readingTasks = loading && tasks.length === 0;
 
   return (
     <div className="space-y-6">
@@ -219,29 +221,27 @@ function Inbox() {
 
       <WebhookNamedElsewhere />
 
-      {loading && tasks.length === 0 && (
-        <div className="flex items-center gap-3 text-sm text-muted-foreground">
-          <span className="h-8 w-8 animate-spin rounded-full border-b-2 border-accent" />
-          Reading your tasks…
-        </div>
-      )}
-
-      {readingApprovals && (
-        <div className="max-w-3xl space-y-1 text-sm text-muted-foreground">
-          <div className="flex items-center gap-3">
-            <span className="h-4 w-4 animate-spin rounded-full border-b-2 border-accent" />
-            {readingApprovals.wallets === 0
-              ? 'Finding your wallets…'
-              : `Reading the approvals of your wallets: ${readingApprovals.read} of ${readingApprovals.wallets}`}
+      {(readingTasks || readingApprovals) && (
+        <div className="flex max-w-3xl items-start gap-3 text-sm text-muted-foreground" role="status">
+          <span className="mt-0.5 h-5 w-5 shrink-0 animate-spin rounded-full border-b-2 border-accent" aria-hidden="true" />
+          <div className="space-y-1">
+            {readingTasks && <p>Reading your tasks…</p>}
+            {readingApprovals && (
+              <p>
+                {readingApprovals.wallets === 0
+                  ? 'Finding your wallets…'
+                  : `Reading the approvals of your wallets: ${readingApprovals.read} of ${readingApprovals.wallets}`}
+              </p>
+            )}
+            {readingApprovals && readingApprovals.wallets > 5 && (
+              <p className="text-xs">
+                Each wallet with a policy of yours is asked on its own, so {readingApprovals.wallets} wallets take a while.{' '}
+                <Link href="/wallet/manage" className="text-accent-text hover:underline">
+                  Your wallets
+                </Link>
+              </p>
+            )}
           </div>
-          {readingApprovals.wallets > 5 && (
-            <p className="text-xs">
-              Each wallet with a policy of yours is asked on its own, so {readingApprovals.wallets} wallets take a while.{' '}
-              <Link href="/wallet/manage" className="text-accent-text hover:underline">
-                Your wallets
-              </Link>
-            </p>
-          )}
         </div>
       )}
 

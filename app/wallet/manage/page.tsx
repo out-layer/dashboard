@@ -429,8 +429,8 @@ function WalletManagePage() {
                   <InfoHint
                     text={
                       <>
-                        Kept in this browser only. To add or rotate a wallet&apos;s keys, update <code>authorized_key_hashes</code> in
-                        its policy.
+                        Kept in this browser only, to open Edit Policy. A wallet&apos;s keys are added and rotated there, under
+                        Authorized keys &mdash; with one of its keys in hand.
                       </>
                     }
                   />

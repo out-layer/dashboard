@@ -387,3 +387,16 @@ test('the tasks are shown before the wallets\' approvals are read, and the quick
   assert.match(context, /setReadingApprovals\(\{ wallets: wallets\.length, read: 0 \}\)/);
   assert.match(page, /Reading the approvals of your wallets: \$\{readingApprovals\.read\} of \$\{readingApprovals\.wallets\}/);
 });
+
+test('the inbox asks nothing of a frozen wallet, and the approvals page marks what waits on one', () => {
+  assert.match(code(CONTEXT), /\.filter\(\(wallet\) => !wallet\.frozen\)/);
+  const approvals = code('app/wallet/approvals/page.tsx');
+  assert.match(approvals, /setFrozenWallets\(new Set\(wallets\.filter\(\(w\) => w\.frozen\)/);
+  assert.match(approvals, /Frozen — executes only after unfreeze/);
+});
+
+test('the inbox page turns one spinner, whatever is being read', () => {
+  const page = code('app/inbox/[[...id]]/page.tsx');
+  assert.equal([...page.matchAll(/animate-spin/g)].length, 1);
+  assert.match(page, /\{readingTasks && <p>Reading your tasks…<\/p>\}/);
+});

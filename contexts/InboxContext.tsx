@@ -233,8 +233,11 @@ export function InboxProvider({ children }: { children: ReactNode }) {
       if (first) setReadingApprovals({ wallets: 0, read: 0 });
       const listed = (await viewMethodRef
         .current({ contractId, method: 'get_wallet_policies_by_owner', args: { owner: accountId } })
-        .catch(() => [])) as Array<{ wallet_pubkey: string }>;
-      const wallets = Array.isArray(listed) ? listed : [];
+        .catch(() => [])) as Array<{ wallet_pubkey: string; frozen?: boolean }>;
+      // A frozen wallet signs nothing until it is unfrozen, and starts nothing
+      // new: what waits on it is not asked about here. The approvals page
+      // lists it, marked frozen.
+      const wallets = (Array.isArray(listed) ? listed : []).filter((wallet) => !wallet.frozen);
       if (first) setReadingApprovals({ wallets: wallets.length, read: 0 });
       const pending = await Promise.all(
         wallets.map(async (wallet) => {

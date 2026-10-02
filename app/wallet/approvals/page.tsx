@@ -67,6 +67,8 @@ function WalletApprovalsContent() {
   const [nextRefreshIn, setNextRefreshIn] = useState<number | null>(null);
   // Cached wallet pubkeys (loaded once from contract, reused for polling)
   const walletPubkeysRef = useRef<string[]>([]);
+  /** The wallets the owner froze: what waits on them signs nothing until they are unfrozen. */
+  const [frozenWallets, setFrozenWallets] = useState<Set<string>>(new Set());
 
   // API key for approve action
   const [apiKey, setApiKey] = useState<string>('');
@@ -142,9 +144,10 @@ function WalletApprovalsContent() {
         contractId,
         method: 'get_wallet_policies_by_owner',
         args: { owner: accountId },
- }).catch(() => []) as Array<{ wallet_pubkey: string }>;
+ }).catch(() => []) as Array<{ wallet_pubkey: string; frozen?: boolean }>;
 
       const pubkeys = wallets.map(w => w.wallet_pubkey);
+      setFrozenWallets(new Set(wallets.filter((w) => w.frozen).map((w) => w.wallet_pubkey)));
       walletPubkeysRef.current = pubkeys;
       setHasPolicies(pubkeys.length > 0);
 
@@ -446,6 +449,14 @@ function WalletApprovalsContent() {
                       {isExpired(approval.expires_at) && (
  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border border-border-strong text-muted-foreground">
                           Expired
+                        </span>
+                      )}
+                      {approval.wallet_pubkey && frozenWallets.has(approval.wallet_pubkey) && (
+                        <span
+                          className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-info/10 text-info"
+                          title="The wallet is frozen: an approval given now is carried out only after it is unfrozen."
+                        >
+                          Frozen — executes only after unfreeze
                         </span>
                       )}
                     </div>

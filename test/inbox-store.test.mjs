@@ -163,6 +163,17 @@ test('a session cleared is gone, and the others stay', () => {
   });
 });
 
+test('a session cleared by its token goes only while it is the one kept', () => {
+  within(memory(), () => {
+    saveSession('testnet', session({ token: 'new' }));
+    clearSession('testnet', 'owner.near', 'old');
+    assert.equal(loadSession('testnet', 'owner.near', NOW)?.token, 'new', 'another tab signed in since: its session stays');
+    clearSession('testnet', 'owner.near', 'new');
+    assert.equal(loadSession('testnet', 'owner.near', NOW), null);
+    assert.doesNotThrow(() => clearSession('testnet', 'owner.near', 'new'), 'clearing what is not there');
+  });
+});
+
 test('a browser that gives no storage has no session, and says so without throwing', () => {
   const refuses = () => {
     throw new DOMException('The operation is insecure.', 'SecurityError');

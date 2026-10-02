@@ -19,9 +19,11 @@
  * owner's click. Approving a task is the card's: one message the wallet
  * signs, from the owner's click, and no transaction.
  *
- * One tab polls, once a minute, and tells the others what it found — which
- * is ciphertext and the rows as the API gave them. Each tab reads the tasks
- * with the device's key for itself.
+ * Only a tab that is seen asks, once a minute: a hidden tab asks nothing and
+ * reads again when it is shown. Each tab reads with the session kept in this
+ * browser and that session's device key; a tab shown after another tab signed
+ * in or out takes the session kept now before it reads. The tasks are read
+ * first and the wallets' approvals after them.
  */
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
@@ -34,6 +36,8 @@ import { newDevice, readTask, statement, toBase64, type Device, type Read } from
 import { clearSession, deleteDevice, loadDevice, loadSession, saveDevice, saveSession, type StoredSession } from '@/lib/inbox/store';
 
 const POLL_INTERVAL_MS = 60_000;
+/** A tab shown again reads at once only when its last read is at least this old. */
+const SHOWN_AGAIN_MS = 15_000;
 const SESSION_SECONDS = 30 * 24 * 60 * 60;
 
 /** A task of the inbox, read on this device when it can be. */
@@ -93,12 +97,6 @@ export function useInbox(): Inbox {
   return inbox;
 }
 
-/** What one tab tells the others: the tasks it read, the approvals it read, or that it opened and wants both. */
-type Told =
-  | { type: 'tasks'; tasks: api.InboxTask[] }
-  | { type: 'approvals'; approvals: ShownApproval[] }
-  | { type: 'hello' };
-
 export function InboxProvider({ children }: { children: ReactNode }) {
   const { accountId, isConnected, network, contractId, viewMethod, signMessage } = useNearWallet();
   const { signAndSendTransaction } = useNearWallet();
@@ -118,6 +116,10 @@ export function InboxProvider({ children }: { children: ReactNode }) {
   const approvalsKnown = useRef(false);
   /** Made ahead of the click that signs in. */
   const prepared = useRef<Device | null>(null);
+  /** Moves when another tab changed the session kept: the session is taken from storage again. */
+  const [kept, setKept] = useState(0);
+  const storedRef = useRef(stored);
+  storedRef.current = stored;
   const viewMethodRef = useRef(viewMethod);
   viewMethodRef.current = viewMethod;
 
@@ -153,14 +155,32 @@ export function InboxProvider({ children }: { children: ReactNode }) {
     return () => {
       cancelled = true;
     };
+  }, [isConnected, accountId, network, kept]);
+
+  // Another tab signed in or out of the account: this tab takes the session
+  // kept now, with its key, once it is seen.
+  useEffect(() => {
+    if (!isConnected || !accountId) return;
+    const take = () => {
+      if (document.visibilityState !== 'visible') return;
+      if ((loadSession(network, accountId)?.token ?? null) !== (storedRef.current?.token ?? null)) setKept((n) => n + 1);
+    };
+    document.addEventListener('visibilitychange', take);
+    window.addEventListener('storage', take);
+    return () => {
+      document.removeEventListener('visibilitychange', take);
+      window.removeEventListener('storage', take);
+    };
   }, [isConnected, accountId, network]);
 
   const endSession = useCallback(
     (why: 'ended' | 'replaced') => {
       if (!accountId) return;
       // The key of a session that is over reads nothing more.
-      if (stored) void deleteDevice(network, accountId, stored.deviceId).catch(() => undefined);
-      clearSession(network, accountId);
+      if (stored) {
+        void deleteDevice(network, accountId, stored.deviceId).catch(() => undefined);
+        clearSession(network, accountId, stored.token);
+      }
       setStored(null);
       setDevice(null);
       setEnded(why);
@@ -271,95 +291,51 @@ export function InboxProvider({ children }: { children: ReactNode }) {
 
   /** The tasks, shown as soon as they are read, and the wallets' approvals after them. */
   const refresh = useCallback(async () => {
-    const approvalsRead = listApprovals();
     await refreshTasks();
-    const found = await approvalsRead;
+    const found = await listApprovals();
     if (found) setApprovals(found);
   }, [listApprovals, refreshTasks]);
 
-  // One tab asks; the others are told. A tab that does not lead reads the
-  // tasks for itself when it opens — the leader asks again only once a
-  // minute — and asks the leader for the approvals it already holds.
+  // Only a seen tab asks: the tasks, then the approvals, once a minute. A
+  // hidden tab stops; shown again, it reads at once unless it read moments
+  // ago. A tab whose session another tab replaced asks nothing with it.
   useEffect(() => {
     if (!stored || !accountId) return;
     setLoading(true);
-    const channel =
-      typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel(`outlayer-inbox:${network}:${accountId}`) : null;
     let cancelled = false;
-    let leading = false;
     let timer: ReturnType<typeof setInterval> | null = null;
-    let release: (() => void) | null = null;
-    /** What this tab last read while it led: what a tab that opens later is told at once. */
-    let lastTasks: api.InboxTask[] | null = null;
-    let lastApprovals: ShownApproval[] | null = null;
-    if (channel) {
-      channel.onmessage = (event) => {
-        const told = event.data as Partial<Told> | undefined;
-        if (told?.type === 'tasks' && Array.isArray(told.tasks)) {
-          void show(told.tasks).then(() => setLoading(false));
-        } else if (told?.type === 'approvals' && Array.isArray(told.approvals)) {
-          setApprovals(told.approvals);
-        } else if (told?.type === 'hello' && leading) {
-          if (lastTasks) channel.postMessage({ type: 'tasks', tasks: lastTasks } satisfies Told);
-          if (lastApprovals) channel.postMessage({ type: 'approvals', approvals: lastApprovals } satisfies Told);
-        }
-      };
-    }
+    let lastRead = 0;
     const tick = async () => {
-      const approvalsRead = listApprovals();
+      lastRead = Date.now();
       const listed = await listTasks();
       if (cancelled) return;
-      if (listed) {
-        lastTasks = listed;
-        channel?.postMessage({ type: 'tasks', tasks: listed } satisfies Told);
-        await show(listed);
-      }
+      if (listed) await show(listed);
       setLoading(false);
-      const found = await approvalsRead;
+      const found = await listApprovals();
       if (cancelled) return;
-      if (found) {
-        lastApprovals = found;
-        setApprovals(found);
-        channel?.postMessage({ type: 'approvals', approvals: found } satisfies Told);
-      }
+      if (found) setApprovals(found);
     };
-    const lead = () => {
-      if (cancelled) return;
-      leading = true;
-      void tick();
+    const stop = () => {
+      if (timer) clearInterval(timer);
+      timer = null;
+    };
+    const seen = () => {
+      if (document.visibilityState !== 'visible' || loadSession(network, accountId)?.token !== stored.token) {
+        stop();
+        return;
+      }
+      if (timer) return;
+      if (Date.now() - lastRead >= SHOWN_AGAIN_MS) void tick();
       timer = setInterval(() => void tick(), POLL_INTERVAL_MS);
     };
-    const held = () =>
-      new Promise<void>((done) => {
-        if (cancelled) {
-          done();
-          return;
-        }
-        release = done;
-        lead();
-      });
-    const locks = typeof navigator !== 'undefined' ? navigator.locks : undefined;
-    if (locks && typeof locks.request === 'function') {
-      const name = `outlayer-inbox-poller:${network}:${accountId}`;
-      void locks.request(name, { mode: 'exclusive', ifAvailable: true }, (lock) => {
-        if (lock) return held();
-        // Another tab leads: the tasks are read here now, the leader is asked
-        // for what it holds, and this tab waits to lead in its turn.
-        void refreshTasks();
-        channel?.postMessage({ type: 'hello' } satisfies Told);
-        void locks.request(name, { mode: 'exclusive' }, held);
-        return undefined;
-      });
-    } else {
-      lead();
-    }
+    seen();
+    document.addEventListener('visibilitychange', seen);
     return () => {
       cancelled = true;
-      if (timer) clearInterval(timer);
-      if (release) release();
-      channel?.close();
+      stop();
+      document.removeEventListener('visibilitychange', seen);
     };
-  }, [stored, accountId, network, listTasks, listApprovals, show, refreshTasks]);
+  }, [stored, accountId, network, listTasks, listApprovals, show]);
 
   const signIn = useCallback(async () => {
     if (!accountId) return;
@@ -421,7 +397,7 @@ export function InboxProvider({ children }: { children: ReactNode }) {
       // The session here ends whatever the API says of it.
     }
     await deleteDevice(network, accountId, stored.deviceId).catch(() => undefined);
-    clearSession(network, accountId);
+    clearSession(network, accountId, stored.token);
     setStored(null);
     setDevice(null);
     setTasks([]);

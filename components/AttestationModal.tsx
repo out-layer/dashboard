@@ -8,7 +8,8 @@ import type { NetworkType } from '@/contexts/NearWalletContext';
 /**
  * The attestation of one run, in a popup: the screen `/attestation/<job>`
  * shows, over whatever page opened it. The Executions table opens it for a
- * job, the inbox for the run that made a task.
+ * job, the inbox for the run that made a task — with what the inbox checked of
+ * the task against it, above the attestation.
  */
 export default function AttestationModal({
   jobId,
@@ -20,6 +21,7 @@ export default function AttestationModal({
   network,
   knownInput,
   knownOutput,
+  checks,
   onClose,
 }: {
   jobId: number | null;
@@ -33,6 +35,8 @@ export default function AttestationModal({
   knownInput?: string;
   /** What the run answered, when the opener holds it: the view checks it against the attested hash. */
   knownOutput?: string;
+  /** What the opener checked against this attestation, step by step: shown above it. */
+  checks?: Array<{ ok: boolean | null; said: string }>;
   onClose: () => void;
 }) {
   const [showHelp, setShowHelp] = useState(false);
@@ -73,6 +77,22 @@ export default function AttestationModal({
             <div className="rounded-md border border-destructive/30 bg-destructive/10 p-4 mb-4">
               <p className="text-sm text-destructive-text">{error}</p>
             </div>
+          )}
+
+          {checks && checks.length > 0 && (
+            <section className="mb-4 rounded-md border border-border p-4">
+              <h3 className="text-sm font-semibold text-foreground">What the inbox checked of the task</h3>
+              <ol className="mt-2 list-decimal space-y-1 pl-5 text-xs text-muted-foreground">
+                {checks.map((check, at) => (
+                  <li key={at}>
+                    <span className={check.ok === true ? 'text-success-text' : check.ok === false ? 'text-destructive-text' : 'text-foreground'}>
+                      {check.ok === true ? 'Holds. ' : check.ok === false ? 'Does not hold. ' : 'Not checked. '}
+                    </span>
+                    {check.said}
+                  </li>
+                ))}
+              </ol>
+            </section>
           )}
 
           {attestation && (

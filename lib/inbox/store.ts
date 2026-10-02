@@ -57,9 +57,26 @@ export function saveSession(network: string, session: StoredSession): void {
   localStorage.setItem(sessionKey(network, session.accountId), JSON.stringify(session));
 }
 
-export function clearSession(network: string, account: string): void {
+/**
+ * Forgets the account's session. With `token`, only while the session kept is
+ * that one: a tab whose session ended does not erase the session another tab
+ * signed in with since.
+ */
+export function clearSession(network: string, account: string, token?: string): void {
   try {
-    localStorage.removeItem(sessionKey(network, account));
+    const key = sessionKey(network, account);
+    if (token !== undefined) {
+      const raw = localStorage.getItem(key);
+      if (!raw) return;
+      let kept: { token?: unknown } | null = null;
+      try {
+        kept = JSON.parse(raw) as { token?: unknown };
+      } catch {
+        kept = null;
+      }
+      if (kept?.token !== token) return;
+    }
+    localStorage.removeItem(key);
   } catch {
     /* storage unavailable */
   }

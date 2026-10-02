@@ -367,14 +367,15 @@ test('a notice is closed by Got it alone: no wallet, no answer, no reply sealed 
   assert.match(code('lib/inbox/crypto.ts'), /export async function writeReply\(envelope: AskingEnvelope,/);
 });
 
-test('the tasks are shown before the wallets\' approvals are read, and the quick reads never reach the wallets\' routes', () => {
+test('the tasks are shown before the wallets\' approvals are asked, and the quick reads never reach the wallets\' routes', () => {
   const context = code(CONTEXT);
-  // The poll starts the approvals, shows the tasks, and only then waits for the approvals.
-  const tick = context.slice(context.indexOf('const tick = async () => {'));
-  const started = tick.indexOf('listApprovals()');
+  // The poll and the refresh show the tasks first, and only then ask the wallets.
+  const tick = context.slice(context.indexOf('const tick = async () => {'), context.indexOf('const stop = () => {'));
   const shown = tick.indexOf('await show(listed)');
-  const awaited = tick.indexOf('await approvalsRead');
-  assert.ok(started >= 0 && shown > started && awaited > shown, 'approvals started, tasks shown, then approvals awaited');
+  const asked = tick.indexOf('await listApprovals()');
+  assert.ok(tick.indexOf('await listTasks()') >= 0 && shown > 0 && asked > shown, 'tasks listed and shown, then approvals asked');
+  const refresh = context.slice(context.indexOf('const refresh = useCallback('), context.indexOf('}, [listApprovals, refreshTasks]);'));
+  assert.ok(refresh.indexOf('await refreshTasks()') >= 0 && refresh.indexOf('await listApprovals()') > refresh.indexOf('await refreshTasks()'));
   // Every wallet's pending approvals are asked at once, not one after another.
   assert.match(context, /await Promise\.all\(\s*wallets\.map\(/);
   assert.doesNotMatch(context, /for \(const wallet of/);
@@ -399,4 +400,33 @@ test('the inbox page turns one spinner, whatever is being read', () => {
   const page = code('app/inbox/[[...id]]/page.tsx');
   assert.equal([...page.matchAll(/animate-spin/g)].length, 1);
   assert.match(page, /\{readingTasks && <p>Reading your tasks…<\/p>\}/);
+});
+
+test('only a seen tab asks, with the session kept in this browser, and no tab is told another tab\'s rows', () => {
+  const context = code(CONTEXT);
+  // A tab's rows are sealed for its own session's device: none is handed to another tab.
+  assert.doesNotMatch(context, /BroadcastChannel|navigator\.locks/);
+  // A hidden tab, or one whose session another tab replaced, stops asking.
+  const seen = context.slice(context.indexOf('const seen = () => {'));
+  assert.match(seen, /document\.visibilityState !== 'visible' \|\| loadSession\(network, accountId\)\?\.token !== stored\.token/);
+  assert.match(context, /document\.addEventListener\('visibilitychange', seen\)/);
+  // A tab takes the session another tab signed in with, once it is seen.
+  assert.match(context, /window\.addEventListener\('storage', take\)/);
+  // A session that ends forgets only itself, never one another tab signed in with since.
+  assert.equal([...context.matchAll(/clearSession\(network, accountId\)/g)].length, 0);
+  assert.equal([...context.matchAll(/clearSession\(network, accountId, stored\.token\)/g)].length, 2);
+});
+
+test('a proof that holds is one button, and its steps are in the attestation popup', () => {
+  const text = code(CARD);
+  const proven = text.slice(text.indexOf(') : proven ? ('), text.indexOf(') : (', text.indexOf(') : proven ? (') + 1));
+  assert.match(proven, /<AttestationBadge label="Show attestation"/);
+  assert.match(proven, /onClick=\{showProof\}/);
+  assert.doesNotMatch(proven, /proof\.steps|<details/);
+  // The popup is handed the steps the proof took.
+  assert.match(text, /checks: proof\.steps,/);
+  assert.equal([...text.matchAll(/checks=\{shownAttestation\.checks\}/g)].length, 2);
+  assert.match(code('components/AttestationModal.tsx'), /What the inbox checked of the task/);
+  // Past a proof that does not hold, the owner answers only by saying so.
+  assert.match(text, /Approve without the proof\./);
 });

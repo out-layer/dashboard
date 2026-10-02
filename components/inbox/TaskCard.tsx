@@ -14,8 +14,10 @@
  * For every open task the page checks the proof (`lib/inbox/proof`): that
  * the task was made by a published build of its project, in an approved
  * enclave, and that what that run answered names this task with the hash of
- * what is shown. A proof that does not hold, or could not be checked, is said
- * in its place, and the owner answers past it only by saying so.
+ * what is shown. A proof that holds is one button, Show attestation, whose
+ * popup lists the steps above the attestation. A proof that does not hold, or
+ * could not be checked, is said in its place with its steps, and the owner
+ * answers past it only by saying so.
  *
  * The framed panel shows the task three ways: as the form the project
  * prepared from the agent's request, each field a control the owner reads
@@ -44,6 +46,7 @@ import { fetchConnectorDescription, type AttestationResponse } from '@/lib/api';
 import { carriedBy, prove, verdict, type Origin, type Proof, type Step } from '@/lib/inbox/proof';
 import { Badge } from '@/components/ui/badge';
 import { AgentChip } from '@/components/ui/agent-chip';
+import { AttestationBadge } from '@/components/ui/attestation-badge';
 import { Button } from '@/components/ui/button';
 import { HashChip } from '@/components/ui/hash-chip';
 import { useNearWallet } from '@/contexts/NearWalletContext';
@@ -293,10 +296,13 @@ export function TaskCard({ task }: { task: ShownTask }) {
   const [proof, setProof] = useState<Proof<AttestationResponse> | null>(null);
   const [pastTheProof, setPastTheProof] = useState(false);
   const [view, setView] = useState<View>('preview');
-  /** The attestation the modal is open over, with what the run was asked and answered when they are held. */
-  const [shownAttestation, setShownAttestation] = useState<{ attestation: AttestationResponse; knownInput?: string; knownOutput?: string } | null>(
-    null,
-  );
+  /** The attestation the modal is open over, with what the run was asked and answered when they are held, and the proof's steps. */
+  const [shownAttestation, setShownAttestation] = useState<{
+    attestation: AttestationResponse;
+    knownInput?: string;
+    knownOutput?: string;
+    checks?: Step[];
+  } | null>(null);
   /** The lookup of the attestation of the run that carried the task out, asked for from a click. */
   const [runAsked, setRunAsked] = useState<{ is: 'loading' } | { is: 'failed'; said: string } | null>(null);
   /** That run held to the task, once its attestation was fetched. */
@@ -559,10 +565,15 @@ export function TaskCard({ task }: { task: ShownTask }) {
     }
   };
 
-  /** From a click: the modal over the attestation the proof read, with what the run was asked and answered. */
+  /** From a click: the modal over the attestation the proof read, with what the run was asked and answered, and the proof's steps. */
   const showProof = () => {
     if (!proof?.attestation) return;
-    setShownAttestation({ attestation: proof.attestation, knownInput: proof.input ?? undefined, knownOutput: proof.output ?? undefined });
+    setShownAttestation({
+      attestation: proof.attestation,
+      knownInput: proof.input ?? undefined,
+      knownOutput: proof.output ?? undefined,
+      checks: proof.steps,
+    });
   };
 
   const size = (bytes: number) =>
@@ -676,6 +687,7 @@ export function TaskCard({ task }: { task: ShownTask }) {
             network={network}
             knownInput={shownAttestation.knownInput}
             knownOutput={shownAttestation.knownOutput}
+            checks={shownAttestation.checks}
             onClose={() => setShownAttestation(null)}
           />
         )}
@@ -836,22 +848,25 @@ export function TaskCard({ task }: { task: ShownTask }) {
         </div>
       )}
 
-      {(open || approved) && (
-        <div
-          className={`mt-4 rounded-md border p-3 text-sm ${
-            proof === null
-              ? 'border-border text-muted-foreground'
-              : proven
-                ? 'border-success/30 bg-success/10 text-success-text'
-                : proof.unchecked
-                  ? 'border-info/30 bg-info/10 text-foreground'
-                  : 'border-destructive/30 bg-destructive/10 text-destructive-text'
-          }`}
-        >
-          <p>{proof === null ? 'Checking that a published build of the project made this task…' : verdict(proof)}</p>
-          {proof !== null && (
+      {/* A proof that holds is one button: its steps are in the attestation's popup. One that does not, or could not be checked, says why here. */}
+      {(open || approved) &&
+        (proof === null ? (
+          <p className="mt-4 text-xs text-muted-foreground">Checking that a published build of the project made this task…</p>
+        ) : proven ? (
+          <div className="mt-4">
+            <button type="button" onClick={showProof} title={verdict(proof)} aria-label={`${verdict(proof)} Show the attestation.`}>
+              <AttestationBadge label="Show attestation" className="cursor-pointer hover:border-accent/60" />
+            </button>
+          </div>
+        ) : (
+          <div
+            className={`mt-4 rounded-md border p-3 text-sm ${
+              proof.unchecked ? 'border-info/30 bg-info/10 text-foreground' : 'border-destructive/30 bg-destructive/10 text-destructive-text'
+            }`}
+          >
+            <p>{verdict(proof)}</p>
             <details className="mt-2">
-              <summary className="cursor-pointer text-xs">The proof, step by step</summary>
+              <summary className="cursor-pointer text-xs">What was checked</summary>
               <ol className="mt-2 list-decimal space-y-1 pl-5 text-xs">
                 {proof.steps.map((step) => (
                   <li key={step.name}>
@@ -861,23 +876,22 @@ export function TaskCard({ task }: { task: ShownTask }) {
                 ))}
               </ol>
             </details>
-          )}
-          {proof?.attestation && (
-            <Button variant="outline" size="sm" className="mt-2" onClick={showProof}>
-              Show the attestation
-            </Button>
-          )}
-          {read && open && !isNotice && proof !== null && !proven && (
-            <label className="mt-3 flex items-start gap-2 text-xs">
-              <input type="checkbox" checked={pastTheProof} onChange={(e) => setPastTheProof(e.target.checked)} className="mt-0.5" />
-              <span>
-                Approve without the proof. The project still refuses an approval of a task it did not make: what it
-                acts on is the task sealed in the enclave, and the hash shown under RAW form above must be that task&apos;s.
-              </span>
-            </label>
-          )}
-        </div>
-      )}
+            {proof.attestation && (
+              <Button variant="outline" size="sm" className="mt-2" onClick={showProof}>
+                Show attestation
+              </Button>
+            )}
+            {read && open && !isNotice && (
+              <label className="mt-3 flex items-start gap-2 text-xs">
+                <input type="checkbox" checked={pastTheProof} onChange={(e) => setPastTheProof(e.target.checked)} className="mt-0.5" />
+                <span>
+                  Approve without the proof. The project still refuses an approval of a task it did not make: what it
+                  acts on is the task sealed in the enclave, and the hash shown under RAW form above must be that task&apos;s.
+                </span>
+              </label>
+            )}
+          </div>
+        ))}
 
       {shownAttestation && (
         <AttestationModal
@@ -887,6 +901,7 @@ export function TaskCard({ task }: { task: ShownTask }) {
           network={network}
           knownInput={shownAttestation.knownInput}
           knownOutput={shownAttestation.knownOutput}
+          checks={shownAttestation.checks}
           onClose={() => setShownAttestation(null)}
         />
       )}

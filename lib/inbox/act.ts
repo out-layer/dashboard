@@ -38,6 +38,54 @@ export function unlockCall(projectId: string, owner: string, profile: string) {
   };
 }
 
+/**
+ * The run that made a task, read off the task's id: `<run>-<n>`, the n-th task
+ * that run opened. Held to the shape `madeBy` reads; `null` for an id that is
+ * not one.
+ */
+export function runOfTask(id: string): string | null {
+  const found = /^(.+)-\d+$/.exec(id);
+  return found && madeBy(found[1]) !== null ? found[1] : null;
+}
+
+/** What an integration is called on a card: the connector's name, or the project for any other. */
+export function integrationOf(projectId: string): string {
+  return connectorOf(projectId) ?? projectId;
+}
+
+/**
+ * Sent: the owner said yes and the agent's run is carrying it out — approved
+ * and not yet taken, or taken and acting. Nothing more is asked of the owner;
+ * the task moves to the closed ones when the run ends.
+ */
+export function isSent(state: string): boolean {
+  return state === 'approved' || state === 'answering';
+}
+
+/**
+ * The connector a task's project is, by the registry's naming —
+ * `connectors.outlayer.<near|testnet>/<id>` — or `null` for any other project,
+ * which has no `describe` block to read.
+ */
+export function connectorOf(projectId: string): string | null {
+  const found = /^connectors\.outlayer\.(?:near|testnet)\/([a-z0-9_-]+)$/.exec(projectId);
+  return found ? found[1] : null;
+}
+
+/**
+ * Does the operation that answers the task take the owner's note? It does
+ * when its `describe` entry names a `note` parameter: the connector says it
+ * hands the note to the agent. Anything else — no block, no such operation,
+ * no such parameter — is no: a note nobody reads is not offered.
+ */
+export function takesNote(
+  description: { operations?: { name: string; params?: { name: string }[] }[] } | null,
+  operation: string,
+): boolean {
+  const op = description?.operations?.find((o) => o.name === operation);
+  return Boolean(op?.params?.some((p) => p.name === 'note'));
+}
+
 /** A moment in the sentence the wallet signs: to the second, in UTC. */
 function moment(unixSeconds: number): string {
   return new Date(unixSeconds * 1000).toISOString().replace(/\.\d{3}Z$/, 'Z');
@@ -156,16 +204,20 @@ export function readAnswer(outcome: { status?: { SuccessValue?: string; Failure?
  * agent asked; an input task is what it asks the owner for.
  */
 export function asks(kind: Envelope['kind']): string {
-  return kind === 'confirm' ? 'asked' : 'asks you for';
+  return kind === 'confirm' ? 'asked' : kind === 'input' ? 'asks you for' : 'tells you';
 }
 
-/** The mark drawn inside a field of the form, and its words, by who wrote the field. */
-export function provenance(writtenBy: TaskField['written_by']): { mark: string; title: string } {
-  return writtenBy === 'agent' ? { mark: '🤖', title: 'written by the agent' } : { mark: '⚙', title: 'filled in by the connector' };
+/**
+ * The mark drawn inside a field the agent wrote, and its words: those values
+ * are the agent's, to be read as such. A field the integration filled in
+ * carries no mark.
+ */
+export function provenance(writtenBy: TaskField['written_by']): { mark: string; title: string } | null {
+  return writtenBy === 'agent' ? { mark: '🤖', title: 'written by the agent' } : null;
 }
 
-/** The legend under the form's heading: each mark and its words. */
-export const PROVENANCE_LEGEND = `${provenance('agent').mark} ${provenance('agent').title} · ${provenance('project').mark} ${provenance('project').title}`;
+/** The legend under the form's heading: the mark and its words. */
+export const PROVENANCE_LEGEND = '🤖 written by the agent';
 
 /** How many rows a read-only text area is given for `lines` lines of content: at least `least`, at most 12. */
 export function rowsOf(lines: number, least = 3): number {

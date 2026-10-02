@@ -38,9 +38,9 @@
  * has the run that made it. A failed one says why.
  */
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import AttestationModal from '@/components/AttestationModal';
-import type { AttestationResponse } from '@/lib/api';
+import { fetchConnectorDescription, type AttestationResponse } from '@/lib/api';
 import { carriedBy, prove, verdict, type Origin, type Proof, type Step } from '@/lib/inbox/proof';
 import { Badge } from '@/components/ui/badge';
 import { AgentChip } from '@/components/ui/agent-chip';
@@ -49,13 +49,21 @@ import { HashChip } from '@/components/ui/hash-chip';
 import { useNearWallet } from '@/contexts/NearWalletContext';
 import { useInbox, type ShownTask } from '@/contexts/InboxContext';
 import * as api from '@/lib/inbox/api';
-import { PROVENANCE_LEGEND, approvalSentence, asks, failureWords, linesOf, made, madeBy, provenance, rowsOf, shortTaskId, supplyDigest, waits } from '@/lib/inbox/act';
+import { PROVENANCE_LEGEND, approvalSentence, asks, connectorOf, failureWords, integrationOf, isSent, linesOf, made, madeBy, provenance, rowsOf, runOfTask, shortTaskId, supplyDigest, takesNote, waits } from '@/lib/inbox/act';
 import { MOST_REPLY_BYTES, fromBase64, openFile, replyBytes, saveName, toBase64, writeReply, type TaskField } from '@/lib/inbox/crypto';
+
+/** What a notice's badge says where its state means something else to the owner than a task's. */
+const NOTICE_WORDS: Partial<Record<ShownTask['state'], string>> = { open: 'Notice', done: 'Seen' };
+
+/** What a task's badge says: its state, and for a notice what that state means to the owner. */
+function stateWords(task: ShownTask): string {
+  return (task.kind === 'notice' ? NOTICE_WORDS[task.state] : undefined) ?? STATE_WORDS[task.state];
+}
 
 const STATE_WORDS: Record<ShownTask['state'], string> = {
   open: 'Waiting for you',
-  approved: 'Approved: being carried out',
-  answering: 'Being acted on',
+  approved: 'Sent',
+  answering: 'Sent',
   done: 'Done',
   failed: 'Failed',
   rejected: 'Rejected',
@@ -71,12 +79,12 @@ const CONTROL =
 
 /**
  * One field of the form: its label above, its value in a control the owner
- * cannot edit but can select and copy, and inside the control's right edge
- * the mark of who wrote it. A long text and a list are a text area sized to
- * their lines; everything else is one line.
+ * cannot edit but can select and copy, and — for a value the agent wrote —
+ * the agent's mark inside the control's right edge. A long text and a list
+ * are a text area sized to their lines; everything else is one line.
  */
 function Field({ field }: { field: TaskField }) {
-  const { mark, title } = provenance(field.written_by);
+  const marked = provenance(field.written_by);
   const value = field.kind === 'list' ? field.values.join('\n') : (field.values[0] ?? '');
   const tall = field.kind === 'list' || field.kind === 'long_text';
   return (
@@ -102,9 +110,11 @@ function Field({ field }: { field: TaskField }) {
             }`}
           />
         )}
-        <span role="img" aria-label={title} title={title} className="absolute right-2.5 top-1.5 select-none text-xs leading-5 text-muted-foreground">
-          {mark}
-        </span>
+        {marked && (
+          <span role="img" aria-label={marked.title} title={marked.title} className="absolute right-2.5 top-1.5 select-none text-xs leading-5 text-muted-foreground">
+            {marked.mark}
+          </span>
+        )}
       </span>
     </label>
   );
@@ -148,6 +158,53 @@ function ViewSwitch({ view, readable, locked, onChange }: { view: View; readable
       {choice('input', 'RAW request')}
     </div>
   );
+}
+
+/** A small button that is an icon, named by its title on hover and for a screen reader. */
+function IconButton({ title, onClick, disabled, children }: { title: string; onClick: () => void; disabled?: boolean; children: ReactNode }) {
+  return (
+    <button
+      type="button"
+      title={title}
+      aria-label={title}
+      onClick={onClick}
+      disabled={disabled}
+      className="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-50"
+    >
+      {children}
+    </button>
+  );
+}
+
+const TrashIcon = () => (
+  <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6M10 11v6M14 11v6" />
+  </svg>
+);
+
+const MuteIcon = () => (
+  <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M13.7 21a2 2 0 0 1-3.4 0M18.6 13A17 17 0 0 1 18 8M6.3 6.3A6 6 0 0 0 6 8c0 7-3 9-3 9h14M18 8a6 6 0 0 0-9.3-5M2 2l20 20" />
+  </svg>
+);
+
+/** One row of a card's details: a label, and its value as data. */
+function Row({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <>
+      <dt className="text-muted-foreground">{label}</dt>
+      <dd className="min-w-0 break-all text-foreground">{children}</dd>
+    </>
+  );
+}
+
+/** A request as a person reads it: JSON indented, anything else as it is. */
+function readable(input: string): string {
+  try {
+    return JSON.stringify(JSON.parse(input), null, 2);
+  } catch {
+    return input;
+  }
 }
 
 /** Exact bytes under the line that says what they are, to copy, and their hash under the line that says what the hash is. */
@@ -225,6 +282,12 @@ export function TaskCard({ task }: { task: ShownTask }) {
   const [notice, setNotice] = useState<string | null>(null);
   const [supplied, setSupplied] = useState('');
   const [note, setNote] = useState('');
+  /** The operation that answers this task hands a note to the agent (its `describe` names `note`). */
+  const [noteTaken, setNoteTaken] = useState(false);
+  /** The owner opened the note field. */
+  const [noting, setNoting] = useState(false);
+  /** A sent task is drawn folded; the owner unfolds it to see what they approved. */
+  const [unfolded, setUnfolded] = useState(false);
   const [rejecting, setRejecting] = useState(false);
   const [reason, setReason] = useState('');
   const [proof, setProof] = useState<Proof<AttestationResponse> | null>(null);
@@ -245,6 +308,10 @@ export function TaskCard({ task }: { task: ShownTask }) {
 
   const read = task.read;
   const open = task.state === 'open';
+  /** A notice asks nothing: it is read, and closed with Got it. */
+  const isNotice = (read ? read.envelope.kind : task.kind) === 'notice';
+  /** The envelope of a task the owner answers; none for a notice, or a task not read here. */
+  const asking = read && read.envelope.kind !== 'notice' ? read.envelope : null;
   /** Approved: the owner said yes, and the run the platform started has not taken it yet; still readable, still listed. */
   const approved = task.state === 'approved';
   const now = Date.now() / 1000;
@@ -256,7 +323,7 @@ export function TaskCard({ task }: { task: ShownTask }) {
   useEffect(() => {
     setProof(null);
     setPastTheProof(false);
-    if (!(open || approved) || !token || !accountId) return;
+    if (!(open || (approved && unfolded)) || !token || !accountId) return;
     let cancelled = false;
     void prove<AttestationResponse>(
       {
@@ -294,7 +361,25 @@ export function TaskCard({ task }: { task: ShownTask }) {
     };
     // viewMethod is a new function on every render of the wallet's context.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [task.id, task.project_id, task.preparer, accountId, shownHash, open, approved, token, coordinatorUrl, network, contractId]);
+  }, [task.id, task.project_id, task.preparer, accountId, shownHash, open, approved, unfolded, token, coordinatorUrl, network, contractId]);
+
+  // A note is offered only where it reaches somebody: the answering
+  // operation of a connector whose `describe` names a `note` parameter.
+  const answeredBy = asking?.answer_by.operation ?? null;
+  useEffect(() => {
+    setNoteTaken(false);
+    const connector = connectorOf(task.project_id);
+    if (!open || !connector || !answeredBy) return;
+    let cancelled = false;
+    fetchConnectorDescription(connector, network)
+      .then((description) => {
+        if (!cancelled) setNoteTaken(takesNote(description, answeredBy));
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [task.project_id, answeredBy, open, network]);
 
   const proven = proof?.holds === true;
   const mayAct = proven || pastTheProof;
@@ -331,15 +416,16 @@ export function TaskCard({ task }: { task: ShownTask }) {
       if (!accountId) throw new Error('The wallet is not connected.');
       if (!token) throw new Error('Sign in first.');
       if (!read) throw new Error('Not readable in this browser yet.');
-      const supplies = read.envelope.answer_by.supplies;
+      if (!asking) throw new Error('A notice takes no answer.');
+      const supplies = asking.answer_by.supplies;
       let sealed: string | null = null;
       if (supplies !== 'nothing') {
         const words = supplied.trim();
         if (!words) throw new Error(supplies === 'file' ? 'Name the file: its address and its hash.' : 'Write what is asked for.');
-        sealed = toBase64(await writeReply(read.envelope, 'answer', words));
+        sealed = toBase64(await writeReply(asking, 'answer', words));
       }
-      const noted = note.trim();
-      const sealedNote = noted ? toBase64(await writeReply(read.envelope, 'note', noted)) : null;
+      const noted = noteTaken && noting ? note.trim() : '';
+      const sealedNote = noted ? toBase64(await writeReply(asking, 'note', noted)) : null;
       const at = Math.floor(Date.now() / 1000);
       const nonce = toBase64(globalThis.crypto.getRandomValues(new Uint8Array(32)));
       const digest = await supplyDigest(sealed, sealedNote);
@@ -353,17 +439,25 @@ export function TaskCard({ task }: { task: ShownTask }) {
         ...(sealedNote === null ? {} : { note: sealedNote }),
       });
       if (moved.state === 'failed') throw new Error(`Approved, but the run could not be started: ${failureWords(moved.failure_reason)}.`);
-      return `Approved. A run of ${task.preparer} is carrying it out${moved.run ? `: call ${moved.run}` : ''}.`;
+      return task.kind === 'confirm' ? 'Approved. The agent is carrying it out.' : 'Sent. The agent is carrying it out.';
     });
 
   const reject = () =>
     within('reject', async () => {
       if (!token) throw new Error('Sign in first.');
       const words = reason.trim();
-      const sealed = words && read ? toBase64(await writeReply(read.envelope, 'rejection', words)) : null;
+      const sealed = words && asking ? toBase64(await writeReply(asking, 'rejection', words)) : null;
       await api.rejectTask(coordinatorUrl, token, task.id, sealed);
       setRejecting(false);
       return 'Rejected.';
+    });
+
+  /** From a click: Got it. The notice closes as seen; nothing is signed and nothing runs. */
+  const gotIt = () =>
+    within('ack', async () => {
+      if (!token) throw new Error('Sign in first.');
+      await api.acknowledgeTask(coordinatorUrl, token, task.id);
+      return 'Seen.';
     });
 
   const remove = () =>
@@ -445,6 +539,26 @@ export function TaskCard({ task }: { task: ShownTask }) {
     }
   };
 
+  /**
+   * From the owner opening "What the agent asked": the run that made the
+   * task, as the API names it, once. What it was asked is kept with the call,
+   * and stays when the task closes and what it showed is gone.
+   */
+  const loadOrigin = async () => {
+    if (origin || originAsked?.is === 'loading') return;
+    if (!token) {
+      setOriginAsked({ is: 'failed', said: 'sign in first' });
+      return;
+    }
+    setOriginAsked({ is: 'loading' });
+    try {
+      setOrigin(await api.taskOrigin(coordinatorUrl, token, task.id));
+      setOriginAsked(null);
+    } catch (e) {
+      setOriginAsked({ is: 'failed', said: e instanceof Error ? e.message : String(e) });
+    }
+  };
+
   /** From a click: the modal over the attestation the proof read, with what the run was asked and answered. */
   const showProof = () => {
     if (!proof?.attestation) return;
@@ -456,14 +570,140 @@ export function TaskCard({ task }: { task: ShownTask }) {
 
   const tooLong = (words: string) => replyBytes(words) > MOST_REPLY_BYTES;
 
-  const supplies = read?.envelope.answer_by.supplies ?? 'nothing';
-  const operation = read?.envelope.answer_by.operation;
+  const supplies = asking?.answer_by.supplies ?? 'nothing';
+  const operation = asking?.answer_by.operation;
   /** The call that carried the task out, once there is one. */
   const run = task.run ?? null;
   /** Waiting — open, or approved — and without a copy for this browser because it arrived before this browser signed in. */
   const locked = !read && (open || approved) && task.locked;
   /** A task that did not open here for another reason has no preview and no task bytes: only the run's input. */
   const shown: View = read || locked ? view : 'input';
+
+  // Closed: what it showed is gone and nothing is asked. One row of data —
+  // its state, when, from whom, through what — and the rest on demand.
+  const madeByRun = runOfTask(task.id);
+  const flags = (
+    <span className="ml-auto flex items-center gap-0.5">
+      <IconButton title="Delete this task" onClick={() => void remove()} disabled={busy !== null}>
+        <TrashIcon />
+      </IconButton>
+      <IconButton title="Mute this agent and delete its tasks" onClick={() => void silence()} disabled={busy !== null}>
+        <MuteIcon />
+      </IconButton>
+    </span>
+  );
+  const said = (
+    <>
+      {error && <p className="mt-2 rounded-md border border-destructive/30 bg-destructive/10 p-2 text-xs text-destructive-text">{error}</p>}
+      {done && !error && <p className="mt-2 rounded-md border border-success/30 bg-success/10 p-2 text-xs text-success-text">{done}</p>}
+      {notice && !error && <p className="mt-2 rounded-md border border-border p-2 text-xs text-muted-foreground">{notice}</p>}
+    </>
+  );
+  const attestationLink = (onClick: () => void, asked: { is: 'loading' } | { is: 'failed'; said: string } | null) => (
+    <>
+      {' · '}
+      <Button variant="link" size="sm" className="h-auto p-0 text-xs" onClick={onClick} disabled={asked?.is === 'loading'}>
+        {asked?.is === 'loading' ? 'attestation…' : 'attestation'}
+      </Button>
+      {asked?.is === 'failed' && <span className="text-muted-foreground"> {asked.said}</span>}
+    </>
+  );
+  if (!open && !isSent(task.state)) {
+    return (
+      <article className="rounded-lg border border-border bg-card px-4 py-2.5">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
+          <Badge variant="outline">{stateWords(task)}</Badge>
+          <span className="text-muted-foreground">{new Date(task.created_at * 1000).toLocaleString()}</span>
+          <AgentChip account={task.preparer} />
+          <span className="font-mono text-foreground" title={task.project_id}>
+            {integrationOf(task.project_id)}
+          </span>
+          {flags}
+        </div>
+        {task.failure_reason !== undefined && <p className="mt-1 text-xs text-destructive-text">{failureWords(task.failure_reason)}</p>}
+        <details
+          className="mt-1 text-xs"
+          onToggle={(e) => {
+            if (e.currentTarget.open) void loadOrigin();
+          }}
+        >
+          <summary className="cursor-pointer text-muted-foreground">Details</summary>
+          <dl className="mt-2 grid grid-cols-[max-content_1fr] gap-x-3 gap-y-1">
+            <Row label="Task">
+              <span className="font-mono">{task.id}</span>
+            </Row>
+            <Row label="Integration">
+              <span className="font-mono">{task.project_id}</span>
+            </Row>
+            <Row label="Made by">
+              {madeByRun ? <span className="font-mono">{madeByRun}</span> : 'a run'}
+              {attestationLink(() => void showOrigin(), originAsked)}
+            </Row>
+            {run && (
+              <Row label="Carried out by">
+                <span className="font-mono">{run}</span>
+                {attestationLink(() => void showRun(run), runAsked)}
+                {carried && (
+                  <span className={carried.ok ? 'text-success-text' : 'text-destructive-text'}>
+                    {' '}
+                    {carried.ok ? 'Holds. ' : 'Does not hold. '}
+                    {carried.said}
+                  </span>
+                )}
+              </Row>
+            )}
+            <Row label="Asked">
+              {originAsked?.is === 'loading' ? (
+                <span className="text-muted-foreground">loading…</span>
+              ) : origin === null ? (
+                <span className="text-muted-foreground">—</span>
+              ) : origin.input === null ? (
+                <span className="text-muted-foreground">on chain: the request is in its transaction</span>
+              ) : (
+                <pre className="max-h-80 overflow-auto whitespace-pre-wrap break-all rounded-md border border-border bg-background p-2 font-mono text-xs">
+                  {readable(origin.input)}
+                </pre>
+              )}
+            </Row>
+          </dl>
+        </details>
+        {said}
+        {shownAttestation && (
+          <AttestationModal
+            jobId={shownAttestation.attestation.task_id}
+            isHttpsCall={Boolean(shownAttestation.attestation.call_id)}
+            attestation={shownAttestation.attestation}
+            network={network}
+            knownInput={shownAttestation.knownInput}
+            knownOutput={shownAttestation.knownOutput}
+            onClose={() => setShownAttestation(null)}
+          />
+        )}
+      </article>
+    );
+  }
+
+  // Sent: nothing more is asked of the owner. The card folds to its title
+  // and one line, and moves to the closed ones when the run ends.
+  if (isSent(task.state) && !unfolded) {
+    return (
+      <article className="rounded-lg border border-border bg-card px-5 py-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <h2 className="mr-auto min-w-0 break-words text-sm font-semibold text-foreground">
+            {read ? read.envelope.display.title : `Task ${shortTaskId(task.id)}`}
+          </h2>
+          <Badge variant="outline">{stateWords(task)}</Badge>
+        </div>
+        <div className="mt-1 flex flex-wrap items-center gap-x-2 text-xs text-muted-foreground">
+          <span className="inline-flex h-2 w-2 animate-pulse rounded-full bg-accent" aria-hidden="true" />
+          <span>The agent is carrying it out. It moves to Closed when it is done.</span>
+          <Button variant="link" size="sm" className="h-auto p-0 text-xs" onClick={() => setUnfolded(true)}>
+            Show
+          </Button>
+        </div>
+      </article>
+    );
+  }
 
   return (
     <article className={`rounded-lg border bg-card p-5 ${open ? 'border-accent/50' : 'border-border'}`}>
@@ -475,51 +715,26 @@ export function TaskCard({ task }: { task: ShownTask }) {
               ? task.locked
                 ? approved
                   ? 'A task you approved'
-                  : 'A task waiting for you'
+                  : isNotice
+                    ? 'A notice for you'
+                    : 'A task waiting for you'
                 : 'A task this page could not read'
               : `Task ${shortTaskId(task.id)}`}
         </h2>
-        <Badge variant={open ? 'default' : 'outline'}>{STATE_WORDS[task.state]}</Badge>
+        <Badge variant={open ? 'default' : 'outline'}>{stateWords(task)}</Badge>
       </header>
       {task.failure_reason !== undefined && (
         <p className="mt-1 text-xs text-destructive-text">Failed: {failureWords(task.failure_reason)}.</p>
       )}
 
-      <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
-        <span className="inline-flex items-center gap-1">
-          From agent <AgentChip account={task.preparer} />
+      <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+        <AgentChip account={task.preparer} />
+        <span className="font-mono text-foreground" title={task.project_id}>
+          {integrationOf(task.project_id)}
         </span>
-        <span aria-hidden="true">·</span>
-        <span>
-          Via <span className="break-all font-mono text-foreground">{task.project_id}</span>
-        </span>
-        <span aria-hidden="true">·</span>
-        <span title={open ? waits(task.expires_at, now) : undefined}>{made(task.created_at)}</span>
+        <span>{new Date(task.created_at * 1000).toLocaleString()}</span>
+        {open && <span>{waits(task.expires_at, now)}</span>}
       </div>
-      {!open && (
-        <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
-          <span>
-            {origin ? (
-              <>
-                Made by run <span className="break-all font-mono text-foreground">{origin.run}</span>
-              </>
-            ) : (
-              'Made by a run'
-            )}
-          </span>
-          <span aria-hidden="true">·</span>
-          <Button
-            variant="link"
-            size="sm"
-            className="h-auto p-0 text-xs"
-            onClick={() => void showOrigin()}
-            disabled={originAsked?.is === 'loading'}
-          >
-            {originAsked?.is === 'loading' ? 'attestation…' : 'attestation'}
-          </Button>
-          {originAsked?.is === 'failed' && <span className="text-muted-foreground">{originAsked.said}</span>}
-        </div>
-      )}
       {run && (
         <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
           <span>
@@ -652,7 +867,7 @@ export function TaskCard({ task }: { task: ShownTask }) {
               Show the attestation
             </Button>
           )}
-          {read && open && proof !== null && !proven && (
+          {read && open && !isNotice && proof !== null && !proven && (
             <label className="mt-3 flex items-start gap-2 text-xs">
               <input type="checkbox" checked={pastTheProof} onChange={(e) => setPastTheProof(e.target.checked)} className="mt-0.5" />
               <span>
@@ -690,62 +905,75 @@ export function TaskCard({ task }: { task: ShownTask }) {
         </p>
       )}
 
-      {read && open && (
+      {read && open && isNotice && (
+        <div className="mt-4 border-t border-border pt-4">
+          <Button onClick={() => void gotIt()} disabled={busy !== null}>
+            {busy === 'ack' ? 'Closing…' : 'Got it'}
+          </Button>
+        </div>
+      )}
+
+      {read && open && !isNotice && (
         <div className="mt-4 space-y-3 border-t border-border pt-4">
           {supplies !== 'nothing' && (
             <label className="block space-y-1 text-sm">
-              <span className="text-muted-foreground">
-                {supplies === 'file'
-                  ? 'The file, as an address and its hash. The file itself is not uploaded from here.'
-                  : 'Your answer'}
-              </span>
+              <span className="text-muted-foreground">{supplies === 'file' ? 'The file: its address and its hash' : 'Your answer'}</span>
               <textarea
                 value={supplied}
                 onChange={(e) => !tooLong(e.target.value) && setSupplied(e.target.value)}
-                rows={supplies === 'file' ? 2 : 4}
+                rows={2}
                 className="w-full rounded-md border border-border bg-background p-2 text-sm text-foreground"
               />
             </label>
           )}
-          <label className="block space-y-1 text-sm">
-            <span className="text-muted-foreground">
-              A note for the agent, if you want to give one. It is encrypted in this page; the connector reads it
-              with your approval.
-            </span>
-            <textarea
-              value={note}
-              onChange={(e) => !tooLong(e.target.value) && setNote(e.target.value)}
-              rows={2}
-              className="w-full rounded-md border border-border bg-background p-2 text-sm text-foreground"
-            />
-          </label>
-          <p className="text-sm text-muted-foreground">
-            Approving signs one message with your wallet: no transaction, nothing attached. The message names this
-            task&apos;s id and hash{supplies === 'nothing' && !note.trim() ? '' : ', and what you wrote above, encrypted for the project'}.
-            A run of <AgentChip account={task.preparer} /> then carries it out, paid by the agent: one call of{' '}
-            <span className="font-mono text-foreground">{operation}</span> in{' '}
-            <span className="font-mono text-foreground">{task.project_id}</span>, which does what the task describes,
-            under your policy as it is now, and nothing else. Reject below if you do not want it done.
-          </p>
-          <div className="flex flex-wrap gap-2">
+          {noteTaken &&
+            (noting ? (
+              <label className="block space-y-1 text-sm">
+                <span className="text-muted-foreground">A note for the agent — it gets it with the result</span>
+                <textarea
+                  value={note}
+                  onChange={(e) => !tooLong(e.target.value) && setNote(e.target.value)}
+                  rows={2}
+                  className="w-full rounded-md border border-border bg-background p-2 text-sm text-foreground"
+                />
+              </label>
+            ) : (
+              <button type="button" onClick={() => setNoting(true)} className="text-xs text-muted-foreground underline-offset-2 hover:underline">
+                Add a note for the agent
+              </button>
+            ))}
+          <div className="flex flex-wrap items-center gap-2">
             <Button onClick={() => void approve()} disabled={busy !== null || !mayAct}>
-              {busy === 'approve'
-                ? 'Waiting for the wallet…'
-                : task.kind === 'confirm'
-                  ? `Approve: ${task.preparer} runs ${operation}`
-                  : `Answer: ${task.preparer} runs ${operation}`}
+              {busy === 'approve' ? 'Waiting for the wallet…' : task.kind === 'confirm' ? 'Approve' : 'Send answer'}
             </Button>
             <Button variant="outline" onClick={() => setRejecting((was) => !was)} disabled={busy !== null}>
               Reject
             </Button>
           </div>
+          <details className="text-xs text-muted-foreground">
+            <summary className="cursor-pointer list-none">
+              Your wallet signs one message. No transaction, no fee. <span className="underline-offset-2 hover:underline">How it works</span>
+            </summary>
+            <p className="mt-2">
+              The signature covers exactly this task{supplies === 'nothing' ? '' : ' and your answer'}. The agent&apos;s own run
+              then does what is shown above and nothing else, and the agent pays for it. If you reject, nothing is done.
+            </p>
+            <dl className="mt-2 grid grid-cols-[max-content_1fr] gap-x-3 gap-y-1">
+              <Row label="Task">
+                <span className="font-mono">{task.id}</span>
+              </Row>
+              <Row label="Runs">
+                <span className="font-mono">{operation}</span> in <span className="font-mono">{task.project_id}</span>
+              </Row>
+              <Row label="Agent">
+                <span className="font-mono">{task.preparer}</span>
+              </Row>
+            </dl>
+          </details>
           {rejecting && (
             <div className="space-y-2 rounded-md border border-border p-3">
               <label className="block space-y-1 text-sm">
-                <span className="text-muted-foreground">
-                  A reason for the agent, if you want to give one. It is encrypted in this page; the agent reads it
-                  the next time it asks.
-                </span>
+                <span className="text-muted-foreground">Why? (optional — the agent sees it the next time it checks)</span>
                 <textarea
                   value={reason}
                   onChange={(e) => !tooLong(e.target.value) && setReason(e.target.value)}
@@ -771,15 +999,7 @@ export function TaskCard({ task }: { task: ShownTask }) {
         <p className="mt-4 rounded-md border border-border p-3 text-sm text-muted-foreground">{notice}</p>
       )}
 
-      <footer className="mt-4 flex flex-wrap gap-2 border-t border-border pt-3">
-        <Button variant="ghost" size="sm" onClick={() => void remove()} disabled={busy !== null}>
-          {busy === 'delete' ? 'Deleting…' : 'Delete'}
-        </Button>
-        <Button variant="ghost" size="sm" onClick={() => void silence()} disabled={busy !== null}>
-          {busy === 'mute' ? 'Muting…' : 'Mute this agent and delete its tasks'}
-        </Button>
-        <span className="ml-auto self-center break-all font-mono text-xs text-faint-foreground">{task.id}</span>
-      </footer>
+      <footer className="mt-3 flex">{flags}</footer>
     </article>
   );
 }

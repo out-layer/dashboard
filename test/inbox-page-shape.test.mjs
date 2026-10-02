@@ -226,7 +226,7 @@ test('only a task in the state open is drawn as open or counted by the bell', ()
   assert.equal([...code(CARD).matchAll(/\.state === 'failed'/g)].length, 1);
   // What the card says of the two states the approval adds: approved is being
   // carried out, and a failed task says why, in words.
-  assert.match(code(CARD), /approved: 'Approved: being carried out',/);
+  assert.match(code(CARD), /approved: 'Sent',/);
   assert.match(code(CARD), /Failed: \{failureWords\(task\.failure_reason\)\}\./);
   assert.match(code(CARD), /unknown: 'In a state this page does not know',/);
 });
@@ -349,4 +349,20 @@ test('signIn is called from a click', () => {
   }
   // The context hands `signIn` out and does not call it.
   assert.equal([...code(CONTEXT).matchAll(/(?<![\w$.])signIn\s*\(/g)].length, 0);
+});
+
+test('a notice is closed by Got it alone: no wallet, no answer, no reply sealed for it', () => {
+  const text = code(CARD);
+  // Got it calls the acknowledge route and nothing that signs or seals.
+  const at = text.indexOf('const gotIt = () =>');
+  assert.ok(at > 0, 'the card has Got it');
+  const body = text.slice(at, closes(text, text.indexOf('within(', at) + 'within'.length));
+  assert.match(body, /api\.acknowledgeTask\(/);
+  assert.doesNotMatch(body, /signMessage|writeReply|approveTask|rejectTask/);
+  // Got it is pressed: a click calls it.
+  assert.match(text, /onClick=\{\(\) => void gotIt\(\)\}/);
+  // The answer block — approve, reject, what the owner supplies — is drawn for a task that is not a notice.
+  assert.match(text, /\{read && open && !isNotice && \(/);
+  // Sealing a reply takes an envelope that names a reply key: a notice's does not, by its type.
+  assert.match(code('lib/inbox/crypto.ts'), /export async function writeReply\(envelope: AskingEnvelope,/);
 });

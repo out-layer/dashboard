@@ -26,6 +26,7 @@ import { SignInPrompt } from '@/components/inbox/SignInPrompt';
 import { TaskCard } from '@/components/inbox/TaskCard';
 import { useInbox, type ShownTask } from '@/contexts/InboxContext';
 import { useNearWallet } from '@/contexts/NearWalletContext';
+import { isSent } from '@/lib/inbox/act';
 import * as api from '@/lib/inbox/api';
 
 function Closed() {
@@ -45,22 +46,28 @@ function Closed() {
       setError(e instanceof Error ? e.message : String(e));
     }
   };
+  // Read with the page, and again whenever what waits changes: a task that
+  // left the waiting list is here a moment later.
+  const { tasks } = useInbox();
+  const waiting = tasks.map((t) => t.id).join(' ');
+  useEffect(() => {
+    void load();
+    // `load` is a new function on every render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token, coordinatorUrl, waiting]);
 
   return (
-    <section className="max-w-3xl space-y-3">
-      <div className="flex items-center gap-3">
-        <h2 className="text-sm font-semibold text-foreground">Closed</h2>
-        <Button variant="outline" size="sm" onClick={() => void load()}>
-          {shown === null ? 'Show closed tasks' : 'Refresh'}
-        </Button>
+    <section className="max-w-3xl space-y-2">
+      <div className="flex items-baseline gap-3">
+        <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Closed</h2>
+        <span className="text-xs text-muted-foreground" title="What a closed task showed is deleted; its outcome is kept for 30 days.">
+          last 30 days
+        </span>
       </div>
-      <p className="text-sm text-muted-foreground">
-        Closed tasks keep only their outcome, for 30 days. What they showed is deleted.
-      </p>
       {error && (
         <p className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive-text">{error}</p>
       )}
-      {shown !== null && shown.length === 0 && <p className="text-sm text-muted-foreground">No closed tasks in the last 30 days.</p>}
+      {shown !== null && shown.length === 0 && <p className="text-xs text-muted-foreground">None.</p>}
       {shown !== null &&
         shown.map((task) => <TaskCard key={task.id} task={{ ...task, read: null, unread: null } satisfies ShownTask} />)}
       {more && <p className="text-sm text-muted-foreground">The newest are shown. Older closed tasks are kept and not listed.</p>}
@@ -158,6 +165,25 @@ function Inbox() {
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
 
+  // While something the owner sent is being carried out, the list is read
+  // again every five seconds, so that it leaves for Closed when its run ends
+  // rather than at the next minute's poll. At most three minutes of it: a
+  // run that has not ended by then is waited for at the usual pace.
+  const sending = tasks.filter((t) => isSent(t.state)).map((t) => t.id).join(' ');
+  const [quickReads, setQuickReads] = useState(0);
+  useEffect(() => {
+    if (!sending) {
+      setQuickReads(0);
+      return;
+    }
+    if (quickReads >= 36) return;
+    const timer = setTimeout(() => {
+      setQuickReads((n) => n + 1);
+      void refresh();
+    }, 5000);
+    return () => clearTimeout(timer);
+  }, [sending, quickReads, refresh]);
+
   // The waiting tasks this browser holds no copy of, by project, in the
   // list's order. The API lists `locked` only for a task that waits — open,
   // or approved and being carried out.
@@ -177,7 +203,9 @@ function Inbox() {
   if (session !== 'active') return <SignInPrompt />;
 
   const first = wanted ? tasks.filter((t) => t.id === wanted) : [];
-  const rest = tasks.filter((t) => t.id !== wanted);
+  // What waits for the owner first; what they sent, folded, after it.
+  const rest = tasks.filter((t) => t.id !== wanted && !isSent(t.state));
+  const sent = tasks.filter((t) => t.id !== wanted && isSent(t.state));
   const nothing = tasks.length === 0 && approvals.length === 0;
 
   return (
@@ -213,6 +241,10 @@ function Inbox() {
           <TaskCard key={task.id} task={task} />
         ))}
         {rest.map((task) => (
+          <TaskCard key={task.id} task={task} />
+        ))}
+        {sent.length > 0 && <h2 className="pt-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Sent</h2>}
+        {sent.map((task) => (
           <TaskCard key={task.id} task={task} />
         ))}
         {more && (
@@ -254,8 +286,8 @@ function Inbox() {
         >
           Muted agents, browsers, webhook
         </Link>
-        <Button variant="ghost" size="sm" onClick={() => void signOut()}>
-          Sign out of this browser
+        <Button variant="ghost" size="sm" onClick={() => void signOut()} title="Ends this browser's session. Your tasks and other browsers are not touched.">
+          Sign out
         </Button>
       </div>
     </div>

@@ -54,9 +54,8 @@ export type FileNote = {
   size: number;
 };
 
-/** A task's envelope: everything of a task but the project's own state. */
-export type Envelope = {
-  answer_by: { operation: string; supplies: 'nothing' | 'text' | 'file' };
+/** What every envelope holds, whatever its kind. */
+type EnvelopeOfAnyKind = {
   /** SHA-256 of the build that made the task, hex: the code the proof names, and the one that answers. */
   build: string;
   created_at: number;
@@ -64,18 +63,29 @@ export type Envelope = {
   expires_at: number;
   files: FileNote[];
   id: string;
-  kind: 'confirm' | 'input';
   owner: string;
   policy_hash: string;
   preparer: string;
   profile: string;
   project: string;
   project_uuid: string;
-  reply_pubkey: string;
   state_hash: string;
   thread: string;
   v: number;
 };
+
+/** A task the owner answers: it names the operation that carries the answer out, and the key the answer is sealed to. */
+export type AskingEnvelope = EnvelopeOfAnyKind & {
+  kind: 'confirm' | 'input';
+  answer_by: { operation: string; supplies: 'nothing' | 'text' | 'file' };
+  reply_pubkey: string;
+};
+
+/** A notice: it tells the owner something and asks nothing — no operation, no reply key. */
+export type NoticeEnvelope = EnvelopeOfAnyKind & { kind: 'notice' };
+
+/** A task's envelope: everything of a task but the project's own state. */
+export type Envelope = AskingEnvelope | NoticeEnvelope;
 
 const FIELD_KINDS: readonly string[] = ['money', 'account', 'address', 'text', 'long_text', 'list'];
 
@@ -290,7 +300,18 @@ export function isEnvelope(value: unknown): value is Envelope {
   const e = value as Record<string, unknown>;
   const answerBy = e.answer_by as Record<string, unknown> | undefined;
   const display = e.display as Record<string, unknown> | undefined;
-  if (typeof answerBy !== 'object' || answerBy === null || typeof display !== 'object' || display === null) return false;
+  if (typeof display !== 'object' || display === null) return false;
+  // The kind and what it holds agree: a task that takes an answer names its
+  // operation and its reply key, and a notice names neither — as the host
+  // that wrote it holds them.
+  const asking =
+    (e.kind === 'confirm' || e.kind === 'input') &&
+    typeof answerBy === 'object' &&
+    answerBy !== null &&
+    text(answerBy.operation) &&
+    (answerBy.supplies === 'nothing' || answerBy.supplies === 'text' || answerBy.supplies === 'file') &&
+    text(e.reply_pubkey);
+  const notice = e.kind === 'notice' && !('answer_by' in e) && !('reply_pubkey' in e);
   const fields = display.fields;
   const wellFormedFields =
     Array.isArray(fields) &&
@@ -326,10 +347,8 @@ export function isEnvelope(value: unknown): value is Envelope {
     wellFormedFields &&
     wellFormedFiles &&
     text(display.title) &&
-    text(answerBy.operation) &&
-    (answerBy.supplies === 'nothing' || answerBy.supplies === 'text' || answerBy.supplies === 'file') &&
-    (e.kind === 'confirm' || e.kind === 'input') &&
-    [e.id, e.owner, e.preparer, e.profile, e.project, e.project_uuid, e.reply_pubkey, e.thread].every(text) &&
+    (asking || notice) &&
+    [e.id, e.owner, e.preparer, e.profile, e.project, e.project_uuid, e.thread].every(text) &&
     [e.policy_hash, e.state_hash].every(text) &&
     typeof e.build === 'string' &&
     /^[0-9a-f]{64}$/.test(e.build) &&
@@ -386,7 +405,7 @@ export async function readTask(device: Device, task: Listed, owner: string): Pro
 }
 
 /** What the owner supplies with an answer, the note beside an approval, or the reason of a rejection. */
-export async function writeReply(envelope: Envelope, purpose: 'answer' | 'note' | 'rejection', words: string): Promise<Uint8Array> {
+export async function writeReply(envelope: AskingEnvelope, purpose: 'answer' | 'note' | 'rejection', words: string): Promise<Uint8Array> {
   return sealTo(readPubkey(envelope.reply_pubkey), purpose, envelope.id, utf8(words));
 }
 

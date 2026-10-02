@@ -20,7 +20,7 @@ export type InboxTask = {
   profile: string;
   /** The vault the owner's row is bound to, whose master seals the task; `null` for the default master. */
   vault: string | null;
-  kind: 'confirm' | 'input';
+  kind: 'confirm' | 'input' | 'notice';
   /** A state this build does not know is `unknown`: never drawn as open. */
   state: TaskState | 'unknown';
   created_at: number;
@@ -29,7 +29,8 @@ export type InboxTask = {
   run?: string;
   /** Why a `failed` task failed: the run was refused at the door, never started, or refused the task when it ran. */
   failure_reason?: string;
-  reply_pubkey: string;
+  /** What the owner's answer is sealed to; `null` for a notice, which takes none. */
+  reply_pubkey: string | null;
   content: string | null;
   device_copy: string | null;
   locked: boolean;
@@ -174,6 +175,11 @@ export type Moved = { id: string; state: TaskState; run?: string; failure_reason
  */
 export function approveTask(base: string, token: string, id: string, approval: Approval): Promise<Moved> {
   return ask(base, `/inbox/tasks/${encodeURIComponent(id)}/approve`, { method: 'POST', token, body: approval });
+}
+
+/** Got it: the owner saw a notice. It closes as `done`; nothing is signed and nothing runs. */
+export function acknowledgeTask(base: string, token: string, id: string): Promise<{ id: string; state: TaskState }> {
+  return ask(base, `/inbox/tasks/${encodeURIComponent(id)}/acknowledge`, { method: 'POST', token });
 }
 
 export function deleteTask(base: string, token: string, id: string): Promise<{ deleted: number }> {

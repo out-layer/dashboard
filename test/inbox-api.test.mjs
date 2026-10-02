@@ -4,7 +4,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
-  InboxRefused, approveTask, attestationOf, deleteTask, deleteTasks, deleteWebhook, listDevices, listMutes, listTasks, mute,
+  InboxRefused, acknowledgeTask, approveTask, attestationOf, deleteTask, deleteTasks, deleteWebhook, listDevices, listMutes, listTasks, mute,
   pendingApprovals, rejectTask, setWebhook, signIn, signOut, taskFile, taskOrigin, unmute, webhook,
 } from '../lib/inbox/api.ts';
 
@@ -243,6 +243,25 @@ test('signing in sends the statement and no bearer; signing out sends the bearer
   assert.equal(left.calls[0].method, 'DELETE');
   assert.deepEqual(left.calls[0].headers, { Authorization: `Bearer ${TOKEN}` });
   assert.equal(left.calls[0].body, undefined);
+});
+
+test('Got it posts to the notice\'s route with the bearer and nothing else', async () => {
+  const seen = await asked(() => json(200, { id: 'run-0', state: 'done' }), () => acknowledgeTask(BASE, TOKEN, 'run-0'));
+  assert.deepEqual(seen.result, { id: 'run-0', state: 'done' });
+  assert.equal(seen.calls.length, 1);
+  assert.equal(seen.calls[0].url, `${BASE}/inbox/tasks/run-0/acknowledge`);
+  assert.equal(seen.calls[0].method, 'POST');
+  assert.deepEqual(seen.calls[0].headers, { Authorization: `Bearer ${TOKEN}` });
+  assert.equal(seen.calls[0].body, undefined);
+  const odd = await asked(() => json(200, { id: 'a/b', state: 'done' }), () => acknowledgeTask(BASE, TOKEN, 'a/b?x'));
+  assert.equal(odd.calls[0].url, `${BASE}/inbox/tasks/a%2Fb%3Fx/acknowledge`);
+});
+
+test('a listed notice is read with no reply key', async () => {
+  const notice = { id: 'run-0', kind: 'notice', state: 'open', reply_pubkey: null };
+  const read = await asked(() => json(200, { tasks: [notice], more: false }), () => listTasks(BASE, TOKEN));
+  assert.equal(read.result.tasks[0].kind, 'notice');
+  assert.equal(read.result.tasks[0].reply_pubkey, null);
 });
 
 // The settings screen

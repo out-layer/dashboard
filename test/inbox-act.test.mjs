@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { PROVENANCE_LEGEND, approvalSentence, asks, failureWords, linesOf, made, madeBy, provenance, readAnswer, rowsOf, shortTaskId, supplyDigest, unlockCall, waits } from '../lib/inbox/act.ts';
+import { PROVENANCE_LEGEND, approvalSentence, asks, connectorOf, failureWords, integrationOf, isSent, linesOf, made, madeBy, provenance, readAnswer, rowsOf, runOfTask, shortTaskId, supplyDigest, takesNote, unlockCall, waits } from '../lib/inbox/act.ts';
 
 const outcome = (value) => ({ status: { SuccessValue: btoa(typeof value === 'string' ? value : JSON.stringify(value)) } });
 
@@ -88,10 +88,11 @@ test('the form is headed by who prepared it from what the agent asked, by the ta
   assert.equal(asks('input'), 'asks you for');
 });
 
-test('a field is marked by who wrote it, and the legend names both marks', () => {
+test('a field the agent wrote is marked, and the legend names the mark', () => {
   assert.deepEqual(provenance('agent'), { mark: '🤖', title: 'written by the agent' });
-  assert.deepEqual(provenance('project'), { mark: '⚙', title: 'filled in by the connector' });
-  assert.equal(PROVENANCE_LEGEND, '🤖 written by the agent · ⚙ filled in by the connector');
+  // A value the integration filled in carries no mark: only the agent's words are marked.
+  assert.equal(provenance('project'), null);
+  assert.equal(PROVENANCE_LEGEND, '🤖 written by the agent');
 });
 
 test('a text area is sized to its lines, between its least and twelve', () => {
@@ -180,4 +181,43 @@ test('the door of a run is read off its id as the coordinator reads it', () => {
   assert.equal(madeBy('req-'), null);
   assert.equal(madeBy('req--1'), null);
   assert.equal(madeBy(''), null);
+});
+
+test('a connector is named by the registry; any other project is none', () => {
+  assert.equal(connectorOf('connectors.outlayer.testnet/gmail'), 'gmail');
+  assert.equal(connectorOf('connectors.outlayer.near/connector-probe'), 'connector-probe');
+  assert.equal(connectorOf('outlayer-alice.testnet/tasks-probe'), null);
+  assert.equal(connectorOf('connectors.outlayer.testnet.evil.near/gmail'), null);
+  assert.equal(connectorOf('connectors.outlayer.testnet/gmail/extra'), null);
+});
+
+test('a note is offered only where the answering operation names a note parameter', () => {
+  const gmail = { operations: [{ name: 'confirm', params: [{ name: 'task_id' }, { name: 'task_hash' }, { name: 'approval' }, { name: 'note' }] }, { name: 'send', params: [{ name: 'to' }] }] };
+  assert.equal(takesNote(gmail, 'confirm'), true);
+  assert.equal(takesNote(gmail, 'send'), false, 'another operation');
+  assert.equal(takesNote(gmail, 'guess'), false, 'an operation the block does not describe');
+  assert.equal(takesNote({ operations: [{ name: 'guess' }] }, 'guess'), false, 'no parameters');
+  assert.equal(takesNote({}, 'confirm'), false);
+  assert.equal(takesNote(null, 'confirm'), false, 'no block');
+});
+
+test('a task is sent once the owner said yes and until its run ends', () => {
+  assert.equal(isSent('approved'), true);
+  assert.equal(isSent('answering'), true);
+  for (const state of ['open', 'done', 'failed', 'rejected', 'cancelled', 'expired', 'void', 'unknown']) {
+    assert.equal(isSent(state), false, state);
+  }
+});
+
+test('the run that made a task is read off its id', () => {
+  assert.equal(runOfTask('82f27e58-758e-40c1-b6a2-58adc0b41026-0'), '82f27e58-758e-40c1-b6a2-58adc0b41026');
+  assert.equal(runOfTask('req-4027-3'), 'req-4027');
+  assert.equal(runOfTask('82f27e58-758e-40c1-b6a2-58adc0b41026'), null, 'a call id alone is no task id');
+  assert.equal(runOfTask('-0'), null);
+  assert.equal(runOfTask(''), null);
+});
+
+test('an integration is named by its connector, any other project by itself', () => {
+  assert.equal(integrationOf('connectors.outlayer.testnet/connector-probe'), 'connector-probe');
+  assert.equal(integrationOf('outlayer-alice.testnet/tasks-probe'), 'outlayer-alice.testnet/tasks-probe');
 });

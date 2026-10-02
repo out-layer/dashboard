@@ -83,6 +83,14 @@ const POLICY_CONFIRM = `{
 
 const GUESS_START = `{"operation": "guess_start", "max": 100}`;
 
+const NOTICE = `let opened = tasks::notice(
+    Display::new("The email was sent").field("To", FieldKind::Address, &to, WrittenBy::Project),
+    policy_json.as_bytes(),
+)
+.open()
+.map_err(|e| e.refusal())?;
+return Ok(tasks::notified(&opened)); // {"status":"notified", "task_id", "task_hash", "thread", "expires_at", "link"}`;
+
 const TURN = `// Ask for text instead of a yes; the answering operation is "supply".
 let opened = tasks::input(display, "supply", Supplies::Text, &state, &policy)
     .open()
@@ -190,6 +198,18 @@ export default function TasksDocsPage() {
           </ul>
         </section>
 
+        <section id="notices">
+          <AnchorHeading id="notices">Notices</AnchorHeading>
+          <p className="text-foreground">
+            A task asks yes or no (<C>confirm</C>), or for something the owner supplies (<C>input</C>) — or nothing at all.
+            A <strong>notice</strong> (<C>notice</C>) tells the owner that something happened; they read it in the same inbox
+            and press <strong>Got it</strong>. It names no operation and no run follows it, so it needs no payment key: a run on
+            chain may open one. It is shown, sealed and limited as a task is, and the agent reads it <C>open</C> until it is
+            seen, then <C>done</C>.
+          </p>
+          <CodeBlock language="rust" code={NOTICE} />
+        </section>
+
         <section id="asks-first">
           <AnchorHeading id="asks-first">Connectors that ask first</AnchorHeading>
           <p className="text-foreground">
@@ -243,8 +263,8 @@ export default function TasksDocsPage() {
             <Link href="/inbox" className="text-accent-text underline">
               inbox
             </Link>{' '}
-            as the prepared form, in three views: <em>Preview</em> — every value the write will use, each marked as the
-            agent&apos;s words or the connector&apos;s; <em>RAW form</em> — the exact bytes the task&apos;s hash covers;{' '}
+            as the prepared form, in three views: <em>Preview</em> — every value the write will use, the ones the
+            agent wrote marked 🤖; <em>RAW form</em> — the exact bytes the task&apos;s hash covers;{' '}
             <em>RAW request</em> — what the agent&apos;s run was called with. Beside it, <a href="#proof" className="text-accent-text underline">the proof</a>{' '}
             that a published build of the connector made the task, with the run&apos;s attestation on request. What a field
             cannot hold — a Gmail attachment, a file&apos;s content on GitHub — is handed over as a download. Approving is one
@@ -337,11 +357,13 @@ export default function TasksDocsPage() {
             </li>
             <li>
               Wrong: <C>higher</C> or <C>lower</C> arrives as the next task of the same thread, showing the guess, the answer
-              and the attempts so far. Right: the game ends and nothing more is opened.
+              and the attempts so far. Right: the game ends with a notice in the thread, &ldquo;You guessed it: 57, in 6
+              attempts&rdquo;, which asks nothing.
             </li>
             <li>
               The agent follows it with <C>task_status</C>: each turn&apos;s result is{' '}
-              <C>{'{attempt, guess, verdict, max, detail}'}</C>, with <C>next_task_id</C> while the game goes on.
+              <C>{'{attempt, guess, verdict, max, detail}'}</C>, with <C>next_task_id</C> while the game goes on and{' '}
+              <C>notice_task_id</C> when it is won.
             </li>
             <li>
               The number is in the task&apos;s sealed <C>state</C>, handed from turn to turn, beside random bytes: the owner
@@ -437,7 +459,7 @@ export default function TasksDocsPage() {
               [<C key="a">open</C>, 'waits for the owner'],
               [<C key="a">approved</C>, <>the owner approved; the platform queued the agent&apos;s run, named in <C>run</C>, which has not taken the answer yet</>],
               [<C key="a">answering</C>, 'that run took the answer and acts'],
-              [<C key="a">done</C>, 'that run ended well and the project reported'],
+              [<C key="a">done</C>, 'that run ended well and the project reported; for a notice, the owner pressed Got it'],
               [
                 <C key="a">failed</C>,
                 <>
@@ -456,7 +478,8 @@ export default function TasksDocsPage() {
           <p className="text-foreground">
             Each move is made once, and a task never returns to <C>open</C>: a run that failed may have acted
             in part. A task that leaves <C>open</C> loses what it showed at once; its outcome is kept 30 days. A task
-            approved for thirty minutes without a run taking its answer is ended <C>failed</C> by the platform.
+            approved for thirty minutes without a run taking its answer is ended <C>failed</C> by the platform. A notice is{' '}
+            <C>open</C>, then <C>done</C>, <C>cancelled</C> or <C>expired</C>, and counts in every limit below as a task does.
           </p>
           <Table
             head={['Limit', 'Value']}
@@ -538,7 +561,8 @@ export default function TasksDocsPage() {
             <li>
               Before a task is encrypted to a device, the enclave checks the statement itself: the account,
               the deadline, the signature, and that the key that signed is a full-access key of the account on
-              chain.
+              chain. An implicit account that no transfer has made yet is signed for by its own key, the one
+              it will be made with.
             </li>
             <li>
               A session lasts while the key that signed it is a full-access key of the account: a key removed

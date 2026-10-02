@@ -109,6 +109,31 @@ test('what the host made for the device, the page opens', async () => {
   assert.equal(toHex(new Uint8Array(await subtle.digest('SHA-256', document))), GOLDEN.hash);
 });
 
+test('the host\'s notice is an envelope to the page, and its hash is of its bytes', async () => {
+  const document = new TextEncoder().encode(GOLDEN.notice_envelope);
+  const notice = JSON.parse(GOLDEN.notice_envelope);
+  assert.equal(notice.kind, 'notice');
+  assert.ok(isEnvelope(notice));
+  assert.equal(toHex(new Uint8Array(await subtle.digest('SHA-256', document))), GOLDEN.notice_hash);
+  const device = await newDevice();
+  const read = await readTask(device, await listed(device, document, notice.id), notice.owner);
+  assert.equal(read.hash, GOLDEN.notice_hash);
+  assert.equal(read.envelope.kind, 'notice');
+});
+
+test('a notice names no operation and no reply key, and a task that takes an answer names both', () => {
+  const { answer_by: _a, reply_pubkey: _r, ...notice } = envelope({ kind: 'notice' });
+  assert.ok(isEnvelope(notice));
+  assert.ok(!isEnvelope({ ...notice, answer_by: { operation: 'confirm', supplies: 'nothing' } }), 'a notice with an operation');
+  assert.ok(!isEnvelope({ ...notice, reply_pubkey: GOLDEN.reply_pubkey }), 'a notice with a reply key');
+  assert.ok(!isEnvelope({ ...notice, answer_by: null }), 'a notice with an empty operation member');
+  const { answer_by: _b, ...confirmBare } = envelope();
+  const { reply_pubkey: _c, ...confirmUnkeyed } = envelope();
+  assert.ok(!isEnvelope(confirmBare), 'a confirm with no operation');
+  assert.ok(!isEnvelope(confirmUnkeyed), 'a confirm with no reply key');
+  assert.ok(!isEnvelope({ ...notice, kind: 'input' }), 'an input with neither');
+});
+
 test('a copy opens for its device, its purpose and its task, and for nothing else', async () => {
   const device = await goldenDevice();
   const copy = fromHex(GOLDEN.device_copy);

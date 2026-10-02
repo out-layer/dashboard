@@ -99,23 +99,31 @@ function WalletApprovalsContent() {
   // then not everything, and the page must not look as if it were.
   const fetchPendingApprovals = useCallback(async (pubkeys: string[]) => {
     if (!token) return;
-    const allApprovals: PendingApproval[] = [];
     const unasked: string[] = [];
-    for (const pubkey of pubkeys) {
-      try {
-        for (const row of await inbox.pendingApprovals(coordinatorUrl, token, pubkey)) {
-          const pa = row as unknown as PendingApproval;
-          // Checked when loaded, not when clicked: the signature has to follow the
-          // click with nothing awaited in between, and the page has to be able to
-          // say "do not sign this" before anyone reaches for the button.
-          const op_check = await checkOpAgainstHash(pa.op_canonical, pa.request_hash);
-          allApprovals.push({ ...pa, wallet_pubkey: pubkey, op_check });
+    // Every wallet is asked at once: one after another, many wallets take
+    // seconds each. Once a minute, so the wallets' routes stay within their
+    // per-address bucket.
+    const perWallet = await Promise.all(
+      pubkeys.map(async (pubkey): Promise<PendingApproval[]> => {
+        try {
+          const rows = await inbox.pendingApprovals(coordinatorUrl, token, pubkey);
+          return await Promise.all(
+            rows.map(async (row) => {
+              const pa = row as unknown as PendingApproval;
+              // Checked when loaded, not when clicked: the signature has to follow the
+              // click with nothing awaited in between, and the page has to be able to
+              // say "do not sign this" before anyone reaches for the button.
+              const op_check = await checkOpAgainstHash(pa.op_canonical, pa.request_hash);
+              return { ...pa, wallet_pubkey: pubkey, op_check };
+            }),
+          );
+        } catch (e) {
+          unasked.push(e instanceof Error ? e.message : String(e));
+          return [];
         }
-      } catch (e) {
-        unasked.push(e instanceof Error ? e.message : String(e));
-      }
-    }
-    setApprovals(allApprovals);
+      }),
+    );
+    setApprovals(perWallet.flat());
     setError(
       unasked.length > 0
         ? `${unasked.length} of ${pubkeys.length} wallets could not be asked about, so this list may be incomplete: ${unasked[0]}`

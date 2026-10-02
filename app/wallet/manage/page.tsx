@@ -1,11 +1,15 @@
 'use client';
 
 import { PageHeader } from '@/components/ui/page-header';
-import { useState, useEffect, useCallback, Suspense } from 'react';
+import { useState, useEffect, useCallback, Suspense, type ReactNode } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useNearWallet } from '@/contexts/NearWalletContext';
 import { RequireWallet } from '@/components/ui/require-wallet';
 import { EmptyState } from '@/components/ui/empty-state';
+import { AgentChip } from '@/components/ui/agent-chip';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { InfoHint } from '@/components/ui/info-hint';
+import { implicitAccountOf } from '@/lib/short-account';
 import { getCoordinatorApiUrl } from '@/lib/api';
 import Link from 'next/link';
 import { actionCreators } from '@near-js/transactions';
@@ -51,6 +55,8 @@ function WalletManagePage() {
   // Saved API keys from localStorage
   const [savedKeys, setSavedKeys] = useState<Record<string, string>>({});
   const [showKeyInput, setShowKeyInput] = useState<string | null>(null);
+  /** The action whose consequences are on screen, waiting for the owner's click. */
+  const [confirming, setConfirming] = useState<{ action: 'freeze' | 'unfreeze' | 'remove'; walletPubkey: string } | null>(null);
   const [keyInput, setKeyInput] = useState('');
   const [revealedKeys, setRevealedKeys] = useState<Set<string>>(new Set());
 
@@ -183,6 +189,50 @@ function WalletManagePage() {
     }
   };
 
+  /**
+   * Remove the wallet's policy: one transaction of `delete_wallet_policy`,
+   * from the click on the dialog that said what follows.
+   */
+  const handleRemovePolicy = async (walletPubkey: string) => {
+    if (!accountId) return;
+    setError(null);
+    setSubmitting(true);
+
+    try {
+      const action = actionCreators.functionCall(
+        'delete_wallet_policy',
+        { wallet_pubkey: walletPubkey },
+        BigInt('30000000000000'),
+        BigInt('0')
+      );
+
+      await signAndSendTransaction({
+        receiverId: contractId,
+        actions: [action],
+      });
+
+      setSuccess(`The policy of ${walletPubkey.substring(0, 20)}... is removed`);
+      setTimeout(() => {
+        setSuccess(null);
+        loadWallets();
+      }, 2000);
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  /** From the dialog's button: the action it described, and the dialog closes. */
+  const confirmAction = async () => {
+    if (!confirming) return;
+    const { action, walletPubkey } = confirming;
+    if (action === 'freeze') await handleFreeze(walletPubkey);
+    else if (action === 'unfreeze') await handleUnfreeze(walletPubkey);
+    else await handleRemovePolicy(walletPubkey);
+    setConfirming(null);
+  };
+
   /** Get the API key for a wallet — from saved keys or URL param */
   const getWalletApiKey = (walletPubkey: string): string | null => {
     return savedKeys[walletPubkey] || searchParams.get('key') || null;
@@ -237,7 +287,7 @@ function WalletManagePage() {
                   ed25519:{apiKeyWallet.address}
                 </p>
  <p className="text-xs text-faint-foreground mt-1">
-                  NEAR address: {apiKeyWallet.address}
+                  NEAR address: <AgentChip account={apiKeyWallet.address} className="font-mono" />
                 </p>
               </div>
  <div className="flex items-center gap-3">
@@ -311,9 +361,15 @@ function WalletManagePage() {
                         </span>
                       )}
                     </div>
+                    {implicitAccountOf(wallet.wallet_pubkey) ? (
+                      <p className="mt-1 text-xs text-muted-foreground" title={wallet.wallet_pubkey}>
+                        <AgentChip account={implicitAccountOf(wallet.wallet_pubkey) as string} className="font-mono" />
+                      </p>
+                    ) : (
  <p className="mt-1 text-xs text-muted-foreground font-mono break-all">
-                      {wallet.wallet_pubkey.split(':').slice(1).join(':') || wallet.wallet_pubkey}
-                    </p>
+                        {wallet.wallet_pubkey.split(':').slice(1).join(':') || wallet.wallet_pubkey}
+                      </p>
+                    )}
  <p className="text-xs text-faint-foreground mt-1">
                       Updated: {formatTimestamp(wallet.updated_at)}
                     </p>
@@ -332,22 +388,30 @@ function WalletManagePage() {
                       </span>
                     )}
                     {wallet.frozen ? (
-                      <button
-                        onClick={() => handleUnfreeze(wallet.wallet_pubkey)}
+                      <IconAction
+                        title="Unfreeze: let the agent act again"
+                        onClick={() => setConfirming({ action: 'unfreeze', walletPubkey: wallet.wallet_pubkey })}
                         disabled={submitting}
- className="px-3 py-1.5 text-sm bg-success text-white rounded hover:opacity-90 disabled:opacity-50 cursor-pointer"
                       >
-                        Unfreeze
-                      </button>
+                        <UnlockIcon />
+                      </IconAction>
                     ) : (
-                      <button
-                        onClick={() => handleFreeze(wallet.wallet_pubkey)}
+                      <IconAction
+                        title="Freeze: the agent starts nothing new"
+                        onClick={() => setConfirming({ action: 'freeze', walletPubkey: wallet.wallet_pubkey })}
                         disabled={submitting}
- className="px-3 py-1.5 text-sm bg-destructive text-white rounded hover:opacity-90 disabled:opacity-50 cursor-pointer"
                       >
-                        Freeze
-                      </button>
+                        <LockIcon />
+                      </IconAction>
                     )}
+                    <IconAction
+                      title="Remove the policy"
+                      onClick={() => setConfirming({ action: 'remove', walletPubkey: wallet.wallet_pubkey })}
+                      disabled={submitting}
+                      destructive
+                    >
+                      <TrashIcon />
+                    </IconAction>
                   </div>
                 </div>
 
@@ -360,14 +424,20 @@ function WalletManagePage() {
                 )}
 
                 {/* API Key (local browser storage) */}
- <div className="mt-3 pt-3 border-t border-border">
- <div className="mb-2">
+ <div className="mt-3 pt-3 border-t border-border flex flex-wrap items-center gap-2">
  <span className="text-xs font-semibold text-muted-foreground">API Key</span>
-                  </div>
+                  <InfoHint
+                    text={
+                      <>
+                        Kept in this browser only. To add or rotate a wallet&apos;s keys, update <code>authorized_key_hashes</code> in
+                        its policy.
+                      </>
+                    }
+                  />
 
                   {/* Local saved key */}
                   {savedKeys[wallet.wallet_pubkey] ? (
- <div className="flex items-center gap-2 mb-2">
+ <div className="flex items-center gap-2">
  <span className="text-xs text-muted-foreground">Local:</span>
  <code className="text-xs font-mono bg-card-muted px-2 py-0.5 rounded select-all">
                         {revealedKeys.has(wallet.wallet_pubkey)
@@ -407,7 +477,7 @@ function WalletManagePage() {
                       </Link>
                     </div>
                   ) : showKeyInput === wallet.wallet_pubkey ? (
- <div className="flex items-center gap-2 mb-2">
+ <div className="flex flex-1 items-center gap-2">
                       <input
                         type="text"
                         value={keyInput}
@@ -444,15 +514,11 @@ function WalletManagePage() {
                   ) : (
                     <button
                       onClick={() => { setShowKeyInput(wallet.wallet_pubkey); setKeyInput(''); }}
- className="text-xs text-accent-text hover:underline mb-2"
+ className="text-xs text-accent-text hover:underline"
                     >
-                      + Save API key to browser
+                      + Save to browser
                     </button>
                   )}
-
- <p className="text-xs text-faint-foreground mt-2">
- Key is stored in this browser only. To add/rotate keys, update <code>authorized_key_hashes</code> in the policy.
-                  </p>
                 </div>
               </div>
             </div>
@@ -460,6 +526,108 @@ function WalletManagePage() {
           })}
         </div>
       )}
+
+      {confirming && (
+        <ConfirmDialog
+          title={
+            confirming.action === 'freeze'
+              ? 'Freeze this wallet?'
+              : confirming.action === 'unfreeze'
+                ? 'Unfreeze this wallet?'
+                : 'Remove this wallet\'s policy?'
+          }
+          action={
+            confirming.action === 'freeze'
+              ? 'Sign: freeze the wallet'
+              : confirming.action === 'unfreeze'
+                ? 'Sign: unfreeze the wallet'
+                : 'Sign: remove the policy'
+          }
+          destructive={confirming.action !== 'unfreeze'}
+          busy={submitting}
+          onConfirm={() => void confirmAction()}
+          onClose={() => setConfirming(null)}
+        >
+          <p className="break-all font-mono text-xs">{confirming.walletPubkey}</p>
+          {confirming.action === 'freeze' && (
+            <ul className="list-disc space-y-1 pl-5">
+              <li>The agent can start nothing new with this wallet: no transfer, swap, withdrawal or call.</li>
+              <li>Orders it already placed stay open and keep filling: a freeze cancels nothing.</li>
+              <li>Cancelling is never frozen: the agent&apos;s API key still cancels its orders.</li>
+              <li>Unfreeze lets it act again, within its policy.</li>
+            </ul>
+          )}
+          {confirming.action === 'unfreeze' && (
+            <ul className="list-disc space-y-1 pl-5">
+              <li>The agent can act with this wallet again, within its policy as it is.</li>
+            </ul>
+          )}
+          {confirming.action === 'remove' && (
+            <ul className="list-disc space-y-1 pl-5">
+              <li>The wallet keeps working, with no policy: no limits, no allowlists, no approvals.</li>
+              <li>
+                The API keys this policy authorized stop working, and the key the wallet was registered with works again
+                &mdash; whoever holds that key controls the wallet with no limits.
+              </li>
+              <li>A freeze, if any, is lifted.</li>
+              <li>Approvals waiting on this wallet are no longer listed in your inbox.</li>
+              <li>The storage deposit of the policy is refunded to you.</li>
+              <li>Limiting the wallet again takes a new policy, set with its API key.</li>
+            </ul>
+          )}
+          <p>One transaction, signed by your wallet, with nothing attached.</p>
+        </ConfirmDialog>
+      )}
     </div>
   );
 }
+
+/** A small button that is an icon, named by its title on hover and for a screen reader. */
+function IconAction({
+  title,
+  onClick,
+  disabled,
+  destructive = false,
+  children,
+}: {
+  title: string;
+  onClick: () => void;
+  disabled?: boolean;
+  destructive?: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      title={title}
+      aria-label={title}
+      onClick={onClick}
+      disabled={disabled}
+      className={`inline-flex h-8 w-8 items-center justify-center rounded border border-border-strong text-muted-foreground transition-colors hover:bg-muted disabled:opacity-50 ${
+        destructive ? 'hover:text-destructive-text' : 'hover:text-foreground'
+      }`}
+    >
+      {children}
+    </button>
+  );
+}
+
+const LockIcon = () => (
+  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <rect x="4" y="11" width="16" height="10" rx="2" />
+    <path d="M8 11V7a4 4 0 0 1 8 0v4" />
+  </svg>
+);
+
+const UnlockIcon = () => (
+  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <rect x="4" y="11" width="16" height="10" rx="2" />
+    <path d="M8 11V7a4 4 0 0 1 7.5-2" />
+  </svg>
+);
+
+const TrashIcon = () => (
+  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6M10 11v6M14 11v6" />
+  </svg>
+);

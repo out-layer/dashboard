@@ -11,3 +11,38 @@ export function isImplicitAccount(account: string): boolean {
 export function shortAccount(account: string): string {
   return isImplicitAccount(account) ? `${account.slice(0, 7)}…${account.slice(-7)}` : account;
 }
+
+const BASE58 = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
+
+/**
+ * The implicit account of an ed25519 key written `ed25519:<base58>`: the 64
+ * lowercase hex of its 32 bytes — the account an agent's custody wallet is.
+ * `null` for any other key.
+ */
+export function implicitAccountOf(publicKey: string): string | null {
+  if (!publicKey.startsWith('ed25519:')) return null;
+  const text = publicKey.slice('ed25519:'.length);
+  const bytes: number[] = [];
+  for (const char of text) {
+    let carry = BASE58.indexOf(char);
+    if (carry < 0) return null;
+    for (let i = 0; i < bytes.length; i++) {
+      carry += bytes[i] * 58;
+      bytes[i] = carry & 0xff;
+      carry >>= 8;
+    }
+    while (carry > 0) {
+      bytes.push(carry & 0xff);
+      carry >>= 8;
+    }
+  }
+  for (const char of text) {
+    if (char !== '1') break;
+    bytes.push(0);
+  }
+  if (bytes.length !== 32) return null;
+  return bytes
+    .reverse()
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
+}

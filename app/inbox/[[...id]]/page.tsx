@@ -161,14 +161,15 @@ function LockedBanner({ locked }: { locked: LockedOfProject }) {
 function Inbox() {
   const params = useParams<{ id?: string[] }>();
   const wanted = params?.id?.[0] ?? null;
-  const { session, loading, tasks, more, approvals, error, refresh, signOut } = useInbox();
+  const { session, loading, tasks, more, approvals, readingApprovals, error, refresh, refreshTasks, signOut } = useInbox();
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
 
-  // While something the owner sent is being carried out, the list is read
-  // again every five seconds, so that it leaves for Closed when its run ends
-  // rather than at the next minute's poll. At most three minutes of it: a
-  // run that has not ended by then is waited for at the usual pace.
+  // While something the owner sent is being carried out, the tasks are read
+  // again every five seconds — the tasks alone, never the wallets' routes —
+  // so that it leaves for Closed when its run ends rather than at the next
+  // minute's poll. At most three minutes of it: a run that has not ended by
+  // then is waited for at the usual pace.
   const sending = tasks.filter((t) => isSent(t.state)).map((t) => t.id).join(' ');
   const [quickReads, setQuickReads] = useState(0);
   useEffect(() => {
@@ -179,10 +180,10 @@ function Inbox() {
     if (quickReads >= 36) return;
     const timer = setTimeout(() => {
       setQuickReads((n) => n + 1);
-      void refresh();
+      void refreshTasks();
     }, 5000);
     return () => clearTimeout(timer);
-  }, [sending, quickReads, refresh]);
+  }, [sending, quickReads, refreshTasks]);
 
   // The waiting tasks this browser holds no copy of, by project, in the
   // list's order. The API lists `locked` only for a task that waits — open,
@@ -206,7 +207,7 @@ function Inbox() {
   // What waits for the owner first; what they sent, folded, after it.
   const rest = tasks.filter((t) => t.id !== wanted && !isSent(t.state));
   const sent = tasks.filter((t) => t.id !== wanted && isSent(t.state));
-  const nothing = tasks.length === 0 && approvals.length === 0;
+  const nothing = tasks.length === 0 && approvals.length === 0 && readingApprovals === null;
 
   return (
     <div className="space-y-6">
@@ -218,10 +219,29 @@ function Inbox() {
 
       <WebhookNamedElsewhere />
 
-      {loading && nothing && (
+      {loading && tasks.length === 0 && (
         <div className="flex items-center gap-3 text-sm text-muted-foreground">
           <span className="h-8 w-8 animate-spin rounded-full border-b-2 border-accent" />
-          Reading the inbox…
+          Reading your tasks…
+        </div>
+      )}
+
+      {readingApprovals && (
+        <div className="max-w-3xl space-y-1 text-sm text-muted-foreground">
+          <div className="flex items-center gap-3">
+            <span className="h-4 w-4 animate-spin rounded-full border-b-2 border-accent" />
+            {readingApprovals.wallets === 0
+              ? 'Finding your wallets…'
+              : `Reading the approvals of your wallets: ${readingApprovals.read} of ${readingApprovals.wallets}`}
+          </div>
+          {readingApprovals.wallets > 5 && (
+            <p className="text-xs">
+              Each wallet with a policy of yours is asked on its own, so {readingApprovals.wallets} wallets take a while.{' '}
+              <Link href="/wallet/manage" className="text-accent-text hover:underline">
+                Your wallets
+              </Link>
+            </p>
+          )}
         </div>
       )}
 

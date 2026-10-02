@@ -57,6 +57,12 @@ type Inbox = {
   /** More wait than are listed: the list is the newest. */
   more: boolean;
   approvals: ShownApproval[];
+  /**
+   * The wallets' approvals being read for the first time this session: how
+   * many wallets the owner's policies govern, and how many have answered.
+   * Each is asked on its own, so many wallets read slowly. `null` once read.
+   */
+  readingApprovals: { wallets: number; read: number } | null;
   /** What waits: open tasks and pending approvals. Zero without a session. */
   count: number;
   error: string | null;
@@ -65,6 +71,8 @@ type Inbox = {
   signIn: () => Promise<void>;
   signOut: () => Promise<void>;
   refresh: () => Promise<void>;
+  /** The tasks alone, without the wallets' approvals: for reading again often. */
+  refreshTasks: () => Promise<void>;
   /**
    * From a click only: one transaction of the project's `tasks_unlock` on the
    * owner's row `profile`, which writes the copies of every task of the project
@@ -101,6 +109,9 @@ export function InboxProvider({ children }: { children: ReactNode }) {
   const [error, setError] = useState<string | null>(null);
   const [signingIn, setSigningIn] = useState(false);
   const [more, setMore] = useState(false);
+  const [readingApprovals, setReadingApprovals] = useState<{ wallets: number; read: number } | null>(null);
+  /** The approvals were read once this session: later reads are not shown as progress. */
+  const approvalsKnown = useRef(false);
   /** Made ahead of the click that signs in. */
   const prepared = useRef<Device | null>(null);
   const viewMethodRef = useRef(viewMethod);
@@ -110,6 +121,8 @@ export function InboxProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     setTasks([]);
     setApprovals([]);
+    setReadingApprovals(null);
+    approvalsKnown.current = false;
     setError(null);
     setEnded(false);
     setDevice(null);
@@ -160,12 +173,13 @@ export function InboxProvider({ children }: { children: ReactNode }) {
     [accountId, network, stored],
   );
 
+  /** The tasks as the API listed them, each read on this device when it can be. */
   const show = useCallback(
-    async (polled: Polled) => {
+    async (listed: api.InboxTask[]) => {
       const owner = accountId;
       if (!owner) return;
       const shown = await Promise.all(
-        polled.tasks.map(async (task): Promise<ShownTask> => {
+        listed.map(async (task): Promise<ShownTask> => {
           if (task.locked || task.content === null || task.device_copy === null) {
             return { ...task, read: null, unread: task.locked ? 'locked' : null };
           }
@@ -178,44 +192,83 @@ export function InboxProvider({ children }: { children: ReactNode }) {
         }),
       );
       setTasks(shown);
-      setApprovals(polled.approvals);
     },
     [accountId, device],
   );
 
-  const poll = useCallback(async (): Promise<Polled | null> => {
-    if (!stored || !accountId || !contractId) return null;
+  /** A failure to ask: a session that ended ends here; any other is said, and what was shown stays shown. */
+  const failed = useCallback(
+    (e: unknown) => {
+      if (e instanceof api.InboxRefused && e.sessionEnded) {
+        endSession(e.sessionReplaced ? 'replaced' : 'ended');
+        return;
+      }
+      setError(e instanceof Error ? e.message : String(e));
+    },
+    [endSession],
+  );
+
+  const listTasks = useCallback(async (): Promise<api.InboxTask[] | null> => {
+    if (!stored) return null;
     try {
       const listed = await api.listTasks(coordinatorUrl, stored.token);
       setMore(listed.more);
-      const wallets = (await viewMethodRef
-        .current({ contractId, method: 'get_wallet_policies_by_owner', args: { owner: accountId } })
-        .catch(() => [])) as Array<{ wallet_pubkey: string }>;
-      const found: ShownApproval[] = [];
-      for (const wallet of Array.isArray(wallets) ? wallets : []) {
-        const pending = await api.pendingApprovals(coordinatorUrl, stored.token, wallet.wallet_pubkey);
-        for (const approval of pending) {
-          found.push({ ...approval, id: String(approval.id), wallet_pubkey: wallet.wallet_pubkey });
-        }
-      }
       setError(null);
-      return { tasks: listed.tasks, approvals: found };
+      return listed.tasks;
     } catch (e) {
-      if (e instanceof api.InboxRefused && e.sessionEnded) {
-        endSession(e.sessionReplaced ? 'replaced' : 'ended');
-        return null;
-      }
-      // What was shown stays shown: a failure to ask is not an empty inbox.
-      setError(e instanceof Error ? e.message : String(e));
+      failed(e);
       return null;
     }
-  }, [stored, accountId, contractId, coordinatorUrl, endSession]);
+  }, [stored, coordinatorUrl, failed]);
 
-  const refresh = useCallback(async () => {
-    const polled = await poll();
-    if (polled) await show(polled);
+  /**
+   * What waits on the wallets the owner's policies govern: one read of the
+   * chain, then every wallet's pending approvals at once. Slower than the
+   * tasks, and never in their way.
+   */
+  const listApprovals = useCallback(async (): Promise<ShownApproval[] | null> => {
+    if (!stored || !accountId || !contractId) return null;
+    try {
+      const first = !approvalsKnown.current;
+      if (first) setReadingApprovals({ wallets: 0, read: 0 });
+      const listed = (await viewMethodRef
+        .current({ contractId, method: 'get_wallet_policies_by_owner', args: { owner: accountId } })
+        .catch(() => [])) as Array<{ wallet_pubkey: string }>;
+      const wallets = Array.isArray(listed) ? listed : [];
+      if (first) setReadingApprovals({ wallets: wallets.length, read: 0 });
+      const pending = await Promise.all(
+        wallets.map(async (wallet) => {
+          const found = (await api.pendingApprovals(coordinatorUrl, stored.token, wallet.wallet_pubkey)).map(
+            (approval): ShownApproval => ({ ...approval, id: String(approval.id), wallet_pubkey: wallet.wallet_pubkey }),
+          );
+          if (first) setReadingApprovals((was) => (was ? { ...was, read: was.read + 1 } : was));
+          return found;
+        }),
+      );
+      approvalsKnown.current = true;
+      setReadingApprovals(null);
+      return pending.flat();
+    } catch (e) {
+      setReadingApprovals(null);
+      failed(e);
+      return null;
+    }
+  }, [stored, accountId, contractId, coordinatorUrl, failed]);
+
+  /** The tasks alone: what a page reads again while what the owner sent is carried out. */
+  const refreshTasks = useCallback(async () => {
+    const listed = await listTasks();
+    if (listed) await show(listed);
     setLoading(false);
-  }, [poll, show]);
+  }, [listTasks, show]);
+
+  /** The tasks, shown as soon as they are read, and the wallets' approvals after them. */
+  const refresh = useCallback(async () => {
+    const approvalsRead = listApprovals();
+    await refreshTasks();
+    const found = await approvalsRead;
+    if (found) setApprovals(found);
+  }, [listApprovals, refreshTasks]);
 
   // One tab asks; the others are told.
   useEffect(() => {
@@ -227,7 +280,8 @@ export function InboxProvider({ children }: { children: ReactNode }) {
       channel.onmessage = (event) => {
         const polled = event.data as Partial<Polled> | undefined;
         if (polled && Array.isArray(polled.tasks) && Array.isArray(polled.approvals)) {
-          void show(polled as Polled).then(() => setLoading(false));
+          setApprovals(polled.approvals);
+          void show(polled.tasks).then(() => setLoading(false));
         }
       };
     }
@@ -235,13 +289,15 @@ export function InboxProvider({ children }: { children: ReactNode }) {
     let timer: ReturnType<typeof setInterval> | null = null;
     let release: (() => void) | null = null;
     const tick = async () => {
-      const polled = await poll();
+      const approvalsRead = listApprovals();
+      const listed = await listTasks();
       if (cancelled) return;
-      if (polled) {
-        channel?.postMessage(polled);
-        await show(polled);
-      }
+      if (listed) await show(listed);
       setLoading(false);
+      const found = await approvalsRead;
+      if (cancelled) return;
+      if (found) setApprovals(found);
+      if (listed && found) channel?.postMessage({ tasks: listed, approvals: found } satisfies Polled);
     };
     const lead = () => {
       if (cancelled) return;
@@ -272,7 +328,7 @@ export function InboxProvider({ children }: { children: ReactNode }) {
       if (release) release();
       channel?.close();
     };
-  }, [stored, accountId, network, poll, show]);
+  }, [stored, accountId, network, listTasks, listApprovals, show]);
 
   const signIn = useCallback(async () => {
     if (!accountId) return;
@@ -366,17 +422,19 @@ export function InboxProvider({ children }: { children: ReactNode }) {
       tasks,
       more,
       approvals,
+      readingApprovals: session === 'active' ? readingApprovals : null,
       count: session === 'active' ? waiting : 0,
       error,
       signingIn,
       signIn,
       signOut,
       refresh,
+      refreshTasks,
       unlock,
       token: stored?.token ?? null,
       coordinatorUrl,
     };
-  }, [stored, ended, tasks, more, approvals, loading, error, signingIn, signIn, signOut, refresh, unlock, coordinatorUrl]);
+  }, [stored, ended, tasks, more, approvals, readingApprovals, loading, error, signingIn, signIn, signOut, refresh, refreshTasks, unlock, coordinatorUrl]);
 
   return <InboxContext.Provider value={value}>{children}</InboxContext.Provider>;
 }

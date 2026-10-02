@@ -366,3 +366,24 @@ test('a notice is closed by Got it alone: no wallet, no answer, no reply sealed 
   // Sealing a reply takes an envelope that names a reply key: a notice's does not, by its type.
   assert.match(code('lib/inbox/crypto.ts'), /export async function writeReply\(envelope: AskingEnvelope,/);
 });
+
+test('the tasks are shown before the wallets\' approvals are read, and the quick reads never reach the wallets\' routes', () => {
+  const context = code(CONTEXT);
+  // The poll starts the approvals, shows the tasks, and only then waits for the approvals.
+  const tick = context.slice(context.indexOf('const tick = async () => {'));
+  const started = tick.indexOf('listApprovals()');
+  const shown = tick.indexOf('await show(listed)');
+  const awaited = tick.indexOf('await approvalsRead');
+  assert.ok(started >= 0 && shown > started && awaited > shown, 'approvals started, tasks shown, then approvals awaited');
+  // Every wallet's pending approvals are asked at once, not one after another.
+  assert.match(context, /await Promise\.all\(\s*wallets\.map\(/);
+  assert.doesNotMatch(context, /for \(const wallet of/);
+  // The five-second reads of the page are of the tasks alone: the wallets' routes have a bucket of their own per address.
+  const page = code('app/inbox/[[...id]]/page.tsx');
+  const quick = page.slice(page.indexOf('setQuickReads((n) => n + 1);'), page.indexOf('}, 5000);'));
+  assert.match(quick, /void refreshTasks\(\);/);
+  assert.doesNotMatch(quick, /void refresh\(\);/);
+  // The first read of the approvals says how many wallets it asks and how many answered.
+  assert.match(context, /setReadingApprovals\(\{ wallets: wallets\.length, read: 0 \}\)/);
+  assert.match(page, /Reading the approvals of your wallets: \$\{readingApprovals\.read\} of \$\{readingApprovals\.wallets\}/);
+});

@@ -9,6 +9,8 @@ import { RequireWallet } from '@/components/ui/require-wallet';
 import { EmptyState } from '@/components/ui/empty-state';
 import { CodeBlock } from '@/components/ui/code-block';
 import { HashChip } from '@/components/ui/hash-chip';
+import { AgentChip } from '@/components/ui/agent-chip';
+import { implicitAccountOf } from '@/lib/short-account';
 import { getCoordinatorApiUrl } from '@/lib/api';
 import { useInbox } from '@/contexts/InboxContext';
 import { SignInPrompt } from '@/components/inbox/SignInPrompt';
@@ -462,7 +464,12 @@ function WalletApprovalsContent() {
                     </div>
                     {approval.wallet_pubkey && (
  <div className="mt-1.5 flex items-center gap-1.5 text-xs text-faint-foreground">
-                        Wallet: <HashChip value={approval.wallet_pubkey} trim={10} />
+                        Agent:{' '}
+                        {implicitAccountOf(approval.wallet_pubkey) ? (
+                          <AgentChip account={implicitAccountOf(approval.wallet_pubkey) as string} className="font-mono" />
+                        ) : (
+                          <HashChip value={approval.wallet_pubkey} trim={10} />
+                        )}
                       </div>
                     )}
                   </div>

@@ -16,6 +16,15 @@ test('an ed25519 key is its implicit account: the hex of its 32 bytes', () => {
   assert.equal(shortAccount('000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f'), '0001020…c1d1e1f');
 });
 
+test('a key written as the contract writes it, `ed25519:<64 hex>`, is its own implicit account', () => {
+  const hex = 'f0cc6233ec147fd1a28cdc8626a8d7a3c5070d441a8f3146e6b046c27ec76096';
+  assert.equal(implicitAccountOf(`ed25519:${hex}`), hex);
+  assert.equal(implicitAccountOf(`ed25519:${hex.toUpperCase()}`), hex);
+  // A key with no 0 in its hex is still read as hex, not as base58.
+  const noZero = '1b4a82d7b84fdfc5727416c52de3f3516cf2675316b18b17a99fb7dc4e4fb756';
+  assert.equal(implicitAccountOf(`ed25519:${noZero}`), noZero);
+});
+
 test('anything that is not an ed25519 key of 32 bytes has no implicit account', () => {
   for (const key of ['secp256k1:1thX6LZfHDZZKUs92febYZhYRcXddmzfzF2NvTkPNE', '1thX6LZfHDZZKUs92febYZhYRcXddmzfzF2NvTkPNE', 'ed25519:0OIl', 'ed25519:', 'ed25519:111', 'ed25519:JEKNVnkbo3jma5nREBBJCDoXFVeKkD56V3xKrvRmWxFG1']) {
     assert.equal(implicitAccountOf(key), null, key);

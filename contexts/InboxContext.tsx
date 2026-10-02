@@ -93,7 +93,11 @@ export function useInbox(): Inbox {
   return inbox;
 }
 
-type Polled = { tasks: api.InboxTask[]; approvals: ShownApproval[] };
+/** What one tab tells the others: the tasks it read, the approvals it read, or that it opened and wants both. */
+type Told =
+  | { type: 'tasks'; tasks: api.InboxTask[] }
+  | { type: 'approvals'; approvals: ShownApproval[] }
+  | { type: 'hello' };
 
 export function InboxProvider({ children }: { children: ReactNode }) {
   const { accountId, isConnected, network, contractId, viewMethod, signMessage } = useNearWallet();
@@ -273,55 +277,79 @@ export function InboxProvider({ children }: { children: ReactNode }) {
     if (found) setApprovals(found);
   }, [listApprovals, refreshTasks]);
 
-  // One tab asks; the others are told.
+  // One tab asks; the others are told. A tab that does not lead reads the
+  // tasks for itself when it opens — the leader asks again only once a
+  // minute — and asks the leader for the approvals it already holds.
   useEffect(() => {
     if (!stored || !accountId) return;
     setLoading(true);
     const channel =
       typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel(`outlayer-inbox:${network}:${accountId}`) : null;
+    let cancelled = false;
+    let leading = false;
+    let timer: ReturnType<typeof setInterval> | null = null;
+    let release: (() => void) | null = null;
+    /** What this tab last read while it led: what a tab that opens later is told at once. */
+    let lastTasks: api.InboxTask[] | null = null;
+    let lastApprovals: ShownApproval[] | null = null;
     if (channel) {
       channel.onmessage = (event) => {
-        const polled = event.data as Partial<Polled> | undefined;
-        if (polled && Array.isArray(polled.tasks) && Array.isArray(polled.approvals)) {
-          setApprovals(polled.approvals);
-          void show(polled.tasks).then(() => setLoading(false));
+        const told = event.data as Partial<Told> | undefined;
+        if (told?.type === 'tasks' && Array.isArray(told.tasks)) {
+          void show(told.tasks).then(() => setLoading(false));
+        } else if (told?.type === 'approvals' && Array.isArray(told.approvals)) {
+          setApprovals(told.approvals);
+        } else if (told?.type === 'hello' && leading) {
+          if (lastTasks) channel.postMessage({ type: 'tasks', tasks: lastTasks } satisfies Told);
+          if (lastApprovals) channel.postMessage({ type: 'approvals', approvals: lastApprovals } satisfies Told);
         }
       };
     }
-    let cancelled = false;
-    let timer: ReturnType<typeof setInterval> | null = null;
-    let release: (() => void) | null = null;
     const tick = async () => {
       const approvalsRead = listApprovals();
       const listed = await listTasks();
       if (cancelled) return;
-      if (listed) await show(listed);
+      if (listed) {
+        lastTasks = listed;
+        channel?.postMessage({ type: 'tasks', tasks: listed } satisfies Told);
+        await show(listed);
+      }
       setLoading(false);
       const found = await approvalsRead;
       if (cancelled) return;
-      if (found) setApprovals(found);
-      if (listed && found) channel?.postMessage({ tasks: listed, approvals: found } satisfies Polled);
+      if (found) {
+        lastApprovals = found;
+        setApprovals(found);
+        channel?.postMessage({ type: 'approvals', approvals: found } satisfies Told);
+      }
     };
     const lead = () => {
       if (cancelled) return;
+      leading = true;
       void tick();
       timer = setInterval(() => void tick(), POLL_INTERVAL_MS);
     };
+    const held = () =>
+      new Promise<void>((done) => {
+        if (cancelled) {
+          done();
+          return;
+        }
+        release = done;
+        lead();
+      });
     const locks = typeof navigator !== 'undefined' ? navigator.locks : undefined;
     if (locks && typeof locks.request === 'function') {
-      void locks.request(
-        `outlayer-inbox-poller:${network}:${accountId}`,
-        { mode: 'exclusive' },
-        () =>
-          new Promise<void>((done) => {
-            if (cancelled) {
-              done();
-              return;
-            }
-            release = done;
-            lead();
-          }),
-      );
+      const name = `outlayer-inbox-poller:${network}:${accountId}`;
+      void locks.request(name, { mode: 'exclusive', ifAvailable: true }, (lock) => {
+        if (lock) return held();
+        // Another tab leads: the tasks are read here now, the leader is asked
+        // for what it holds, and this tab waits to lead in its turn.
+        void refreshTasks();
+        channel?.postMessage({ type: 'hello' } satisfies Told);
+        void locks.request(name, { mode: 'exclusive' }, held);
+        return undefined;
+      });
     } else {
       lead();
     }
@@ -331,7 +359,7 @@ export function InboxProvider({ children }: { children: ReactNode }) {
       if (release) release();
       channel?.close();
     };
-  }, [stored, accountId, network, listTasks, listApprovals, show]);
+  }, [stored, accountId, network, listTasks, listApprovals, show, refreshTasks]);
 
   const signIn = useCallback(async () => {
     if (!accountId) return;

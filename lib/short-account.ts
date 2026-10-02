@@ -15,13 +15,15 @@ export function shortAccount(account: string): string {
 const BASE58 = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
 
 /**
- * The implicit account of an ed25519 key written `ed25519:<base58>`: the 64
- * lowercase hex of its 32 bytes — the account an agent's custody wallet is.
- * `null` for any other key.
+ * The implicit account of an ed25519 key — the 64 lowercase hex of its 32
+ * bytes, the account an agent's custody wallet is. The contract and the
+ * coordinator write a wallet's key `ed25519:<64 hex>`, which is the account
+ * itself; a key written `ed25519:<base58>` is decoded. `null` for any other key.
  */
 export function implicitAccountOf(publicKey: string): string | null {
   if (!publicKey.startsWith('ed25519:')) return null;
   const text = publicKey.slice('ed25519:'.length);
+  if (/^[0-9a-fA-F]{64}$/.test(text)) return text.toLowerCase();
   const bytes: number[] = [];
   for (const char of text) {
     let carry = BASE58.indexOf(char);

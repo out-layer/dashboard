@@ -7,6 +7,8 @@ import { useNearWallet } from '@/contexts/NearWalletContext';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { checkOpAgainstHash, type OpCheck } from '@/lib/approval-hash';
+import { AgentChip } from '@/components/ui/agent-chip';
+import { implicitAccountOf } from '@/lib/short-account';
 
 interface ApprovalDetail {
   id: string;
@@ -226,8 +228,15 @@ function ApprovalDetailContent() {
 
  <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
- <p className="text-muted-foreground">Wallet</p>
- <p className="font-mono text-foreground text-xs break-all">{approval.wallet_id}</p>
+ <p className="text-muted-foreground">Agent</p>
+                <p className="text-foreground text-xs">
+                  {implicitAccountOf(approval.wallet_pubkey) ? (
+                    <AgentChip account={implicitAccountOf(approval.wallet_pubkey) as string} className="font-mono" />
+                  ) : (
+                    <span className="font-mono break-all">{approval.wallet_pubkey}</span>
+                  )}
+                </p>
+ <p className="mt-1 font-mono text-faint-foreground text-xs break-all" title="The wallet's id at OutLayer">{approval.wallet_id}</p>
               </div>
               <div>
  <p className="text-muted-foreground">Request Hash</p>

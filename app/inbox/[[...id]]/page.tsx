@@ -27,6 +27,8 @@ import { TaskCard } from '@/components/inbox/TaskCard';
 import { useInbox, type ShownTask } from '@/contexts/InboxContext';
 import { useNearWallet } from '@/contexts/NearWalletContext';
 import { isSent } from '@/lib/inbox/act';
+import { AgentChip } from '@/components/ui/agent-chip';
+import { implicitAccountOf } from '@/lib/short-account';
 import * as api from '@/lib/inbox/api';
 
 function Closed() {
@@ -283,7 +285,13 @@ function Inbox() {
                 <Link href={`/wallet/approvals/${encodeURIComponent(approval.id)}`} className="font-medium text-accent-text hover:underline">
                   {String(approval.request_type ?? 'A request')} waits for your approval
                 </Link>
-                <p className="mt-1 break-all font-mono text-xs text-muted-foreground">{approval.wallet_pubkey}</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {implicitAccountOf(approval.wallet_pubkey) ? (
+                    <AgentChip account={implicitAccountOf(approval.wallet_pubkey) as string} className="font-mono" />
+                  ) : (
+                    <span className="break-all font-mono">{approval.wallet_pubkey}</span>
+                  )}
+                </p>
               </li>
             ))}
           </ul>

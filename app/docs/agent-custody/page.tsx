@@ -733,7 +733,7 @@ curl -s -X POST -H "Content-Type: application/json" \\
  <strong>Cross-chain withdrawals: prefer <code className="bg-card-muted px-1 rounded">&quot;async&quot;: true</code>.</strong>          The 1Click bridge can take longer than the synchronous response window, so add <code className="bg-card-muted px-1 rounded">&quot;async&quot;: true</code> to the body. The call then returns
  immediately with <code className="bg-card-muted px-1 rounded">status: &quot;processing&quot;</code> and a <code className="bg-card-muted px-1 rounded">poll_url</code>; poll <code className="bg-card-muted px-1 rounded">GET /wallet/v1/requests/&#123;request_id&#125;</code> until terminal.
  Same-chain NEAR usually settles in seconds, so <code className="bg-card-muted px-1 rounded">async</code> is optional there; when the solver relay is slow a synchronous call still answers <code className="bg-card-muted px-1 rounded">processing</code> with a <code className="bg-card-muted px-1 rounded">poll_url</code>, so branch on the status and poll it.
- A withdrawal runs to its outcome even if your client disconnects: give a synchronous call at least 100&nbsp;s, and if your client gives up first, re-send with the same <code className="bg-card-muted px-1 rounded">Idempotency-Key</code> rather than submitting a new withdrawal.
+ A withdrawal runs to its outcome even if your client disconnects: give a synchronous call at least 100&nbsp;s, and if your client gives up first, re-send with the same <code className="bg-card-muted px-1 rounded">X-Idempotency-Key</code> rather than submitting a new withdrawal.
         </p>
 
  <div className="bg-card-muted border-l-4 border-border p-4 mb-4">
@@ -1115,7 +1115,7 @@ curl -s -X POST -H "Content-Type: application/json" \\
 ORDER=$(curl -s -X POST "$API" \\
   -H "Authorization: Bearer $API_KEY" \\
   -H "Content-Type: application/json" \\
-  -H "Idempotency-Key: $(uuidgen)" \\
+  -H "X-Idempotency-Key: $(uuidgen)" \\
   -d '{"base_asset": "nep141:wrap.near",
        "quote_asset": "nep141:17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1",
        "side": "sell",

@@ -312,6 +312,7 @@ The ephemeral account ID = hex(public_key) on intents.near.`}
 {`{
   "check_id": "a1b2c3d4-...",
   "check_key": "7f3a9b2c...64 hex chars...",
+  "status": "unclaimed",
   "token": "17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1",
   "amount": "1000000",
   "memo": "Payment for data analysis",
@@ -319,6 +320,12 @@ The ephemeral account ID = hex(public_key) on intents.near.`}
   "expires_at": "2026-03-13T11:00:00Z"
 }`}
         </SyntaxHighlighter>
+
+ <p className="text-foreground mb-6">
+ If the funding transfer is not confirmed in time, <code className="text-xs bg-card-muted px-1 rounded">status</code> is <code className="text-xs bg-card-muted px-1 rounded">creating</code> with a <code className="text-xs bg-card-muted px-1 rounded">poll_url</code>.
+          The <code className="text-xs bg-card-muted px-1 rounded">check_key</code> is in that answer too &mdash; keep it. Poll until the check reads <code className="text-xs bg-card-muted px-1 rounded">unclaimed</code>
+          (or <code className="text-xs bg-card-muted px-1 rounded">failed</code>: the funding never executed and nothing moved). Do not create it again.
+        </p>
 
  <h3 className="font-semibold text-foreground mb-3">2. Share the check_key with the receiver</h3>
  <p className="text-foreground mb-6">
@@ -343,6 +350,8 @@ curl -X POST https://api.outlayer.ai/wallet/v1/payment-check/claim \\
 
  <SyntaxHighlighter language="json" style={vscDarkPlus} className="rounded-lg text-sm mb-6">
 {`{
+  "request_id": "5e6f7a8b-...",
+  "status": "partially_claimed",
   "token": "17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1",
   "amount_claimed": "500000",
   "remaining": "500000",
@@ -351,6 +360,12 @@ curl -X POST https://api.outlayer.ai/wallet/v1/payment-check/claim \\
   "intent_hash": "Bx7k..."
 }`}
         </SyntaxHighlighter>
+
+ <p className="text-foreground mb-6">
+ When the transfer is not confirmed in time the answer is <code className="text-xs bg-card-muted px-1 rounded">status: &quot;processing&quot;</code> with a <code className="text-xs bg-card-muted px-1 rounded">poll_url</code>
+          (<code className="text-xs bg-card-muted px-1 rounded">remaining</code> and <code className="text-xs bg-card-muted px-1 rounded">claimed_at</code> absent). Poll it until the request reads <code className="text-xs bg-card-muted px-1 rounded">completed</code>, or 
+          <code className="text-xs bg-card-muted px-1 rounded">failed</code> with <code className="text-xs bg-card-muted px-1 rounded">never_executed</code> (nothing moved; claim again). Do not claim again while it is processing.
+        </p>
 
  <h3 className="font-semibold text-foreground mb-3">4. Sender reclaims unclaimed funds (optional)</h3>
  <SyntaxHighlighter language="bash" style={vscDarkPlus} className="rounded-lg text-sm mb-4">
@@ -362,6 +377,8 @@ curl -X POST https://api.outlayer.ai/wallet/v1/payment-check/claim \\
 
  <SyntaxHighlighter language="json" style={vscDarkPlus} className="rounded-lg text-sm mb-6">
 {`{
+  "request_id": "9c0d1e2f-...",
+  "status": "reclaimed",
   "token": "17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1",
   "amount_reclaimed": "500000",
   "remaining": "0",
@@ -408,7 +425,7 @@ curl -X POST https://api.outlayer.ai/wallet/v1/payment-check/claim \\
               </table>
             </div>
  <p className="text-xs font-semibold text-muted-foreground mb-1">Response</p>
- <p className="text-xs text-muted-foreground">Returns <code className="bg-card-muted px-1 rounded">check_id</code>, <code className="bg-card-muted px-1 rounded">check_key</code>, <code className="bg-card-muted px-1 rounded">token</code>, <code className="bg-card-muted px-1 rounded">amount</code>, <code className="bg-card-muted px-1 rounded">memo</code>, <code className="bg-card-muted px-1 rounded">created_at</code>, <code className="bg-card-muted px-1 rounded">expires_at</code>.</p>
+ <p className="text-xs text-muted-foreground">Returns <code className="bg-card-muted px-1 rounded">check_id</code>, <code className="bg-card-muted px-1 rounded">check_key</code>, <code className="bg-card-muted px-1 rounded">status</code> (<code className="bg-card-muted px-1 rounded">unclaimed</code>, or <code className="bg-card-muted px-1 rounded">creating</code> with <code className="bg-card-muted px-1 rounded">poll_url</code> while the funding is unconfirmed), <code className="bg-card-muted px-1 rounded">token</code>, <code className="bg-card-muted px-1 rounded">amount</code>, <code className="bg-card-muted px-1 rounded">memo</code>, <code className="bg-card-muted px-1 rounded">created_at</code>, <code className="bg-card-muted px-1 rounded">expires_at</code>.</p>
           </div>
         </div>
 
@@ -466,7 +483,7 @@ curl -X POST https://api.outlayer.ai/wallet/v1/payment-check/claim \\
               </table>
             </div>
  <p className="text-xs font-semibold text-muted-foreground mb-1">Response</p>
- <p className="text-xs text-muted-foreground">Returns <code className="bg-card-muted px-1 rounded">token</code>, <code className="bg-card-muted px-1 rounded">amount_claimed</code>, <code className="bg-card-muted px-1 rounded">remaining</code>, <code className="bg-card-muted px-1 rounded">memo</code>, <code className="bg-card-muted px-1 rounded">claimed_at</code>, <code className="bg-card-muted px-1 rounded">intent_hash</code>.</p>
+ <p className="text-xs text-muted-foreground">Returns <code className="bg-card-muted px-1 rounded">request_id</code>, <code className="bg-card-muted px-1 rounded">status</code> (<code className="bg-card-muted px-1 rounded">claimed</code> / <code className="bg-card-muted px-1 rounded">partially_claimed</code>, or <code className="bg-card-muted px-1 rounded">processing</code> with <code className="bg-card-muted px-1 rounded">poll_url</code>), <code className="bg-card-muted px-1 rounded">token</code>, <code className="bg-card-muted px-1 rounded">amount_claimed</code>, <code className="bg-card-muted px-1 rounded">remaining</code>, <code className="bg-card-muted px-1 rounded">memo</code>, <code className="bg-card-muted px-1 rounded">claimed_at</code>, <code className="bg-card-muted px-1 rounded">intent_hash</code>.</p>
           </div>
         </div>
 
@@ -496,7 +513,7 @@ curl -X POST https://api.outlayer.ai/wallet/v1/payment-check/claim \\
               </table>
             </div>
  <p className="text-xs font-semibold text-muted-foreground mb-1">Response</p>
- <p className="text-xs text-muted-foreground">Returns <code className="bg-card-muted px-1 rounded">token</code>, <code className="bg-card-muted px-1 rounded">amount_reclaimed</code>, <code className="bg-card-muted px-1 rounded">remaining</code>, <code className="bg-card-muted px-1 rounded">reclaimed_at</code>, <code className="bg-card-muted px-1 rounded">intent_hash</code>.</p>
+ <p className="text-xs text-muted-foreground">Returns <code className="bg-card-muted px-1 rounded">request_id</code>, <code className="bg-card-muted px-1 rounded">status</code> (<code className="bg-card-muted px-1 rounded">reclaimed</code> / <code className="bg-card-muted px-1 rounded">partially_reclaimed</code>, or <code className="bg-card-muted px-1 rounded">processing</code> with <code className="bg-card-muted px-1 rounded">poll_url</code>), <code className="bg-card-muted px-1 rounded">token</code>, <code className="bg-card-muted px-1 rounded">amount_reclaimed</code>, <code className="bg-card-muted px-1 rounded">remaining</code>, <code className="bg-card-muted px-1 rounded">reclaimed_at</code>, <code className="bg-card-muted px-1 rounded">intent_hash</code>.</p>
           </div>
         </div>
 
@@ -546,7 +563,7 @@ curl -X POST https://api.outlayer.ai/wallet/v1/payment-check/claim \\
                   </tr>
                 </thead>
                 <tbody>
- <tr className="border-b"><td className="px-3 py-1.5 font-mono">status</td><td className="px-3 py-1.5">no</td><td className="px-3 py-1.5">Filter: unclaimed, claimed, reclaimed, partially_claimed</td></tr>
+ <tr className="border-b"><td className="px-3 py-1.5 font-mono">status</td><td className="px-3 py-1.5">no</td><td className="px-3 py-1.5">Filter: creating, unclaimed, claiming, claimed, partially_claimed, reclaiming, reclaimed, partially_reclaimed, failed, expired</td></tr>
  <tr className="border-b"><td className="px-3 py-1.5 font-mono">limit</td><td className="px-3 py-1.5">no</td><td className="px-3 py-1.5">Max results (default 50, max 100)</td></tr>
  <tr className="border-b"><td className="px-3 py-1.5 font-mono">offset</td><td className="px-3 py-1.5">no</td><td className="px-3 py-1.5">Pagination offset (default 0)</td></tr>
                 </tbody>
@@ -595,6 +612,9 @@ curl -X POST https://api.outlayer.ai/wallet/v1/payment-check/claim \\
 {`                    create
                       |
                       v
+                  [creating] ---- funding never executed ---> [failed]
+                      |
+                      v
                   [unclaimed]
                    /      \\
           claim   /        \\  reclaim
@@ -606,11 +626,14 @@ curl -X POST https://api.outlayer.ai/wallet/v1/payment-check/claim \\
           [claimed]   (mixed)    [reclaimed]
 
 Statuses:
+  creating            - funding transfer not confirmed yet
   unclaimed           - funds locked, waiting to be claimed
+  claiming/reclaiming - a claim or reclaim is in flight; another waits for it
   partially_claimed   - some funds claimed, rest available
   partially_reclaimed - some funds reclaimed by sender
   claimed             - all funds claimed by receiver
-  reclaimed           - all funds reclaimed by sender`}
+  reclaimed           - all funds reclaimed by sender
+  failed              - the funding never executed; nothing moved`}
           </SyntaxHighlighter>
         </div>
 

@@ -1084,6 +1084,12 @@ curl -s -X POST -H "Content-Type: application/json" \\
           The unfilled remainder always comes back to this wallet. If 1Click&apos;s own figures are worse
           than the terms the policy authorised, the still-unfunded order is cancelled and nothing is sent.
         </p>
+ <p className="text-foreground mb-6">
+          When the funding transfer is not confirmed in time, the answer is <code className="bg-card-muted px-1 rounded">status: &quot;processing&quot;</code> 
+          with the <code className="bg-card-muted px-1 rounded">order_id</code> and a <code className="bg-card-muted px-1 rounded">poll_url</code>. Do not place the order again: the transfer may land.
+          The request settles on its own &mdash; <code className="bg-card-muted px-1 rounded">success</code>, or <code className="bg-card-muted px-1 rounded">failed</code> with 
+          <code className="bg-card-muted px-1 rounded">never_executed</code> once the transfer is known never to have run, and only then is the order cancelled.
+        </p>
 
  <h3 className="text-xl font-semibold text-foreground mt-8 mb-3">Policy</h3>
  <p className="text-foreground mb-6">
@@ -1168,6 +1174,7 @@ curl -s -X POST "$API/cancel-all" -H "Authorization: Bearer $API_KEY"
 
  <p className="text-foreground mb-4">
           Action routes are asynchronous — they return <code className="bg-card-muted px-1 rounded">request_id</code> with status <code className="bg-card-muted px-1 rounded">pending_deposit</code>; poll <code className="bg-card-muted px-1 rounded">GET /wallet/v1/requests/&#123;id&#125;</code> until terminal.
+          A call whose submit went out but whose answer was lost returns <code className="bg-card-muted px-1 rounded">processing</code> with a <code className="bg-card-muted px-1 rounded">poll_url</code> instead: do not retry it, the request settles on its own.
         </p>
 
  <div className="bg-card-muted border-l-4 border-border p-4 mb-4">

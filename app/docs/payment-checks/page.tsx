@@ -326,6 +326,13 @@ The ephemeral account ID = hex(public_key) on intents.near.`}
           The <code className="text-xs bg-card-muted px-1 rounded">check_key</code> is in that answer too &mdash; keep it. Poll until the check reads <code className="text-xs bg-card-muted px-1 rounded">unclaimed</code>
           (or <code className="text-xs bg-card-muted px-1 rounded">failed</code>: the funding never executed and nothing moved). Do not create it again.
         </p>
+ <p className="text-foreground mb-6">
+ Send <code className="text-xs bg-card-muted px-1 rounded">X-Idempotency-Key</code> on the create, and <code className="text-xs bg-card-muted px-1 rounded">X-Answer-Within: &lt;seconds&gt;</code> below your own timeout to be answered
+          <code className="text-xs bg-card-muted px-1 rounded">creating</code> in time. If the answer is lost &mdash; a timeout, a dropped connection &mdash; re-send with the same key: the
+          <code className="text-xs bg-card-muted px-1 rounded">duplicate_idempotency_key</code> answer (HTTP 200) carries <code className="text-xs bg-card-muted px-1 rounded">checks: [&#123;check_id, check_key, status&#125;]</code>, the check that key made
+          with its <code className="text-xs bg-card-muted px-1 rounded">check_key</code> derived again, so a lost answer is not a lost key. Ask with the API key that created the check; another key of the
+          same wallet gets <code className="text-xs bg-card-muted px-1 rounded">check_key: null</code>. A batch&apos;s request reads <code className="text-xs bg-card-muted px-1 rounded">processing</code> while it runs and lists the checks reserved so far.
+        </p>
 
  <h3 className="font-semibold text-foreground mb-3">2. Share the check_key with the receiver</h3>
  <p className="text-foreground mb-6">
@@ -364,7 +371,10 @@ curl -X POST https://api.outlayer.ai/wallet/v1/payment-check/claim \\
  <p className="text-foreground mb-6">
  When the transfer is not confirmed in time the answer is <code className="text-xs bg-card-muted px-1 rounded">status: &quot;processing&quot;</code> with a <code className="text-xs bg-card-muted px-1 rounded">poll_url</code>
           (<code className="text-xs bg-card-muted px-1 rounded">remaining</code> and <code className="text-xs bg-card-muted px-1 rounded">claimed_at</code> absent). Poll it until the request reads <code className="text-xs bg-card-muted px-1 rounded">completed</code>, or 
-          <code className="text-xs bg-card-muted px-1 rounded">failed</code> with <code className="text-xs bg-card-muted px-1 rounded">never_executed</code> (nothing moved; claim again). Do not claim again while it is processing.
+          <code className="text-xs bg-card-muted px-1 rounded">failed</code> with <code className="text-xs bg-card-muted px-1 rounded">never_executed</code> (nothing moved; claim again). Do not claim again while it is processing:
+          send <code className="text-xs bg-card-muted px-1 rounded">X-Idempotency-Key</code>, so a retried claim answers <code className="text-xs bg-card-muted px-1 rounded">duplicate_idempotency_key</code> naming the request
+          (<code className="text-xs bg-card-muted px-1 rounded">request_id</code>, <code className="text-xs bg-card-muted px-1 rounded">status</code>, <code className="text-xs bg-card-muted px-1 rounded">poll_url</code>) instead of claiming twice, and <code className="text-xs bg-card-muted px-1 rounded">X-Answer-Within: &lt;seconds&gt;</code>
+          below your own timeout to be answered <code className="text-xs bg-card-muted px-1 rounded">processing</code> in time.
         </p>
 
  <h3 className="font-semibold text-foreground mb-3">4. Sender reclaims unclaimed funds (optional)</h3>

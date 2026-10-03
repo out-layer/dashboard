@@ -13,7 +13,7 @@ import { implicitAccountOf } from '@/lib/short-account';
 import { getCoordinatorApiUrl } from '@/lib/api';
 import Link from 'next/link';
 import { actionCreators } from '@near-js/transactions';
-import { saveWalletKey, getAllWalletKeys, removeWalletKey } from '@/lib/wallet-keys';
+import { saveWalletKey, getAllWalletKeys, getWalletKey, removeWalletKey } from '@/lib/wallet-keys';
 
 interface WalletPolicy {
   wallet_pubkey: string;
@@ -70,19 +70,26 @@ function WalletManagePage() {
     setSavedKeys(map);
   }, []);
 
+  // The wallet's key for this visit: `?key=` as given, or, for `?wallet=<account>`,
+  // the key this browser saved for that wallet — so a link can name a wallet
+  // without carrying its key.
+  const urlKey =
+    searchParams.get('key') ||
+    (searchParams.get('wallet') ? getWalletKey(`ed25519:${searchParams.get('wallet')}`) : null);
+
   // Also save key from URL param if we know the wallet pubkey
   useEffect(() => {
-    const apiKey = searchParams.get('key');
+    const apiKey = urlKey;
     if (apiKey && apiKeyWallet) {
       const pk = `ed25519:${apiKeyWallet.address}`;
       saveWalletKey(pk, apiKey);
       setSavedKeys((prev) => ({ ...prev, [pk]: apiKey }));
     }
-  }, [apiKeyWallet, searchParams]);
+  }, [apiKeyWallet, urlKey]);
 
   // Resolve API key from query param → wallet_id
   useEffect(() => {
-    const apiKey = searchParams.get('key');
+    const apiKey = urlKey;
     if (!apiKey) return;
 
     (async () => {
@@ -100,7 +107,7 @@ function WalletManagePage() {
         setError(`Failed to resolve API key: ${(err as Error).message}`);
       }
     })();
-  }, [searchParams, coordinatorUrl]);
+  }, [urlKey, coordinatorUrl]);
 
   // Load wallet policies owned by this account
   const loadWallets = useCallback(async () => {
@@ -235,7 +242,7 @@ function WalletManagePage() {
 
   /** Get the API key for a wallet — from saved keys or URL param */
   const getWalletApiKey = (walletPubkey: string): string | null => {
-    return savedKeys[walletPubkey] || searchParams.get('key') || null;
+    return savedKeys[walletPubkey] || urlKey || null;
   };
 
   const formatTimestamp = (nanos: number) => {
@@ -256,6 +263,14 @@ function WalletManagePage() {
       <PageHeader
         title="Wallets"
         description="Policy-guarded agent wallets you control: freeze, unfreeze and edit policies."
+        action={
+          <Link
+            href="/wallet/new"
+            className="inline-block rounded-md bg-accent px-4 py-2 text-sm font-semibold text-on-accent hover:bg-accent-hover"
+          >
+            New agent
+          </Link>
+        }
       />
 
       {error && (
@@ -304,7 +319,11 @@ function WalletManagePage() {
                   subscription
                 </Link>
                 <Link
-                  href={`/wallet?key=${searchParams.get('key')}`}
+                  href={
+                    searchParams.get('wallet')
+                      ? `/wallet?wallet=${encodeURIComponent(searchParams.get('wallet') as string)}`
+                      : `/wallet?key=${urlKey}`
+                  }
  className="px-3 py-1.5 text-sm bg-accent text-on-accent rounded hover:bg-accent-hover"
                 >
                   Set Policy
@@ -326,11 +345,19 @@ function WalletManagePage() {
       ) : wallets.length === 0 && !apiKeyWallet ? (
         <EmptyState
           title="No wallet policies yet"
-          description="Wallet policies appear here when an AI agent registers a wallet with your account as controller."
+          description="Create an agent here, or let one register itself with your account as controller."
           action={
- <Link href="/docs/agent-custody" className="text-sm font-semibold text-accent-text hover:underline">
-              How agent custody works →
-            </Link>
+            <div className="flex items-center gap-4">
+              <Link
+                href="/wallet/new"
+                className="inline-block rounded-md bg-accent px-4 py-2 text-sm font-semibold text-on-accent hover:bg-accent-hover"
+              >
+                New agent
+              </Link>
+              <Link href="/docs/agent-custody" className="text-sm font-semibold text-accent-text hover:underline">
+                How agent custody works →
+              </Link>
+            </div>
           }
         />
       ) : (

@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { AnchorHeading, useHashNavigation } from '../sections/utils';
 
 /**
@@ -143,7 +144,9 @@ export default function SubscriptionsDocsPage() {
  <p className="text-foreground">
             A trial is <strong>fifty connector calls, within seven days of the wallet&apos;s creation</strong>.
             That is the whole rule. The wallet claims a key with{' '}
-            <code className="bg-card-muted px-1 rounded">POST /trial-key</code>, sends it as{' '}
+            <code className="bg-card-muted px-1 rounded">POST /trial-key</code> — under its{' '}
+            <code className="bg-card-muted px-1 rounded">Bearer wk_…</code> or a{' '}
+            <code className="bg-card-muted px-1 rounded">Bearer near:…</code> signature — sends it as{' '}
             <code className="bg-card-muted px-1 rounded">X-Payment-Key</code>, and the answer says how many calls it
             makes and when it stops working.
  </p>
@@ -167,8 +170,57 @@ export default function SubscriptionsDocsPage() {
               <code className="bg-card-muted px-1 rounded">GET /subscription/status</code> reports{' '}
               <code className="bg-card-muted px-1 rounded">trial.calls_left</code>.
  </li>
+ <li>
+              The key is derived, not random: <code className="bg-card-muted px-1 rounded">GET /wallet/v1/payment-key</code>{' '}
+              answers it again, under the credential that claimed it — nothing needs storing. It is bound to that
+              credential: another <code className="bg-card-muted px-1 rounded">wk_</code> of the wallet cannot read it
+              (<code className="bg-card-muted px-1 rounded">403 payment_key_other_credential</code>), and once that{' '}
+              <code className="bg-card-muted px-1 rounded">wk_</code> is revoked the key stops working for good.
+ </li>
  </ul>
  <p className="text-foreground mt-3">One per wallet.</p>
+        </section>
+
+        <section id="sponsor-codes">
+ <AnchorHeading id="sponsor-codes">Sponsor codes: premium somebody else pays for</AnchorHeading>
+ <p className="text-foreground">
+            A sponsor code (<code className="bg-card-muted px-1 rounded">spn_…</code>) is a secret a person or a
+            service gives you — a one-time link from a friend, a voucher, or the backend that runs your agent.
+            Redeeming it puts a subscription, paid by the sponsor, on the wallet&apos;s nonce-0 key: the trial&apos;s
+            key if it was claimed (the trial is converted — no call count), a new key if not.
+ </p>
+ <pre className="bg-card-muted p-3 rounded text-sm overflow-x-auto mt-2"><code>{`POST /wallet/v1/sponsorship        Authorization: Bearer wk_…  (or near:…)
+{"code": "spn_…"}
+
+→ {"payment_key": "<owner>:0:<key>", "owner": "…", "nonce": 0,
+   "allowance_usd": "10000000", "expires_at": "…", "sponsor": "…", "project_ids": […]}`}</code></pre>
+ <ul className="list-disc list-inside text-foreground mt-3 space-y-1">
+ <li>No claim window; it works with or without a trial.</li>
+ <li>
+              A key carries one sponsor while its grant is live: the same code again, or another code before the
+              grant ends, changes nothing and answers what the key holds. After it ends, another code is taken.
+ </li>
+ <li>
+              <code className="bg-card-muted px-1 rounded">payment_key</code> comes back only to the credential the key
+              is bound to; another credential of the wallet redeems the grant without seeing it.
+ </li>
+ <li>
+              Refusals: <code className="bg-card-muted px-1 rounded">404 sponsor_code_invalid</code> (one answer for
+              every reason), <code className="bg-card-muted px-1 rounded">409 sponsor_cannot_top_up</code> (the key
+              already holds more), <code className="bg-card-muted px-1 rounded">409 payment_key_deleted</code> /{' '}
+              <code className="bg-card-muted px-1 rounded">payment_key_revoked</code>.
+ </li>
+ <li>
+              A sponsored key may be allowed several calls in flight at once; the code sets how many. Like every
+              nonce-0 key it cannot be bought on: when the grant ends, buy on a payment key the wallet creates.
+ </li>
+ </ul>
+ <p className="text-foreground mt-3">
+            In the dashboard, <Link href="/wallet/new" className="text-accent-text hover:underline">New agent</Link>{' '}
+            takes a code when it creates the agent; a sponsor&apos;s link{' '}
+            <code className="bg-card-muted px-1 rounded">/redeem?code=…</code> opens it with the code filled in. From
+            the CLI: <code className="bg-card-muted px-1 rounded">outlayer redeem spn_…</code>.
+ </p>
         </section>
 
         <section id="no-quota">
@@ -180,7 +232,7 @@ export default function SubscriptionsDocsPage() {
  </p>
  <p className="text-foreground mt-3">
             What remains is technical: a per-key rate limit per minute, one call in flight at a time for a key
-            living on an allowance, and each connector&apos;s own ceiling on a single operation, there against a
+            living on an allowance (a sponsored key: as many as its code allows), and each connector&apos;s own ceiling on a single operation, there against a
             runaway loop and far above ordinary use — Gmail, for one, stops at 500 sends a day per wallet. An attempt refused by that cap still counts toward it, so wait for the window to end rather than retrying into it.
  </p>
         </section>

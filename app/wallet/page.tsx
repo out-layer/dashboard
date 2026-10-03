@@ -6,7 +6,7 @@ import { useNearWallet } from '@/contexts/NearWalletContext';
 import WalletConnectionModal from '@/components/WalletConnectionModal';
 import { getCoordinatorApiUrl } from '@/lib/api';
 import Link from 'next/link';
-import { saveWalletKey, computeKeyHash } from '@/lib/wallet-keys';
+import { saveWalletKey, computeKeyHash, getWalletKey } from '@/lib/wallet-keys';
 import { submitPolicy, parsePolicyResponse } from '@/lib/wallet-policy';
 import { useApiKeyHash } from '@/hooks/useApiKeyHash';
 import { usePolicyForm } from '@/hooks/usePolicyForm';
@@ -53,7 +53,11 @@ export default function WalletHandoffPage() {
 function WalletHandoffContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const apiKey = searchParams.get('key');
+  // `?key=` as given, or, for `?wallet=<account>`, the key this browser saved
+  // for that wallet — a link can name a wallet without carrying its key.
+  const apiKey =
+    searchParams.get('key') ||
+    (searchParams.get('wallet') ? getWalletKey(`ed25519:${searchParams.get('wallet')}`) : null);
 
   const {
     accountId,

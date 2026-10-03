@@ -19,7 +19,7 @@ const spec: ConnectorSpec = {
   id: 'hyperliquid',
   provider: 'Hyperliquid',
   title: 'Hyperliquid policy',
-  description: 'The caps under which an agent may trade perpetuals from its own wallet. Without a policy the connector is read-only.',
+  description: 'The caps under which an agent may trade perpetuals from its own wallet. Without a policy the agent trades with no caps, and withdraws only back to its wallet.',
   projects: {
     testnet: 'connectors.outlayer.testnet/hyperliquid',
     mainnet: 'connectors.outlayer.near/hyperliquid',

@@ -1080,9 +1080,17 @@ export function ConnectorOwnerPage({ spec }: { spec: ConnectorSpec }) {
           <More label={policyOnly ? 'Where the policy lives, and what an agent names' : 'Where the credential lives, and what an agent names'}>
             <p>
               Row <code>{profile}</code> under <code>{projectId}</code>, encrypted, readable by <strong>{accountId}</strong>
-              {grantedTo ? ' and the agent you named' : ' alone until you add someone under Access'}. An agent you granted names{' '}
-              <code>{`{ account_id: "${accountId}", profile: "${profile}" }`}</code> in its calls. Removing the row{' '}
-              {policyOnly ? 'makes the connector read-only again' : 'disconnects the account'}.
+              {grantedTo ? ' and the agent you named' : ' alone until you add someone under Access'}.{' '}
+              {policyOnly ? (
+                <>OutLayer attaches it to every call of the agents whose wallets you own; they name nothing.{' '}</>
+              ) : (
+                <>
+                  An agent you granted names <code>{`{ account_id: "${accountId}", profile: "${profile}" }`}</code> in
+                  its calls.{' '}
+                </>
+              )}
+              Removing the row{' '}
+              {policyOnly ? 'lifts the caps: the agent trades with no caps again' : 'disconnects the account'}.
             </p>
             {txHash && <p>Transaction {txHash}</p>}
           </More>

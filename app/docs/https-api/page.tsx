@@ -129,6 +129,16 @@ curl -X POST https://api.outlayer.ai/call/alice.near/my-assistant \\
                 </td>
               </tr>
               <tr>
+ <td className="px-4 py-3 text-sm font-mono">X-Wallet-Id</td>
+ <td className="px-4 py-3 text-sm text-foreground">For wallet connectors</td>
+ <td className="px-4 py-3 text-sm text-faint-foreground">-</td>
+ <td className="px-4 py-3 text-sm text-muted-foreground">
+                  The paying key&apos;s own custody wallet (<code>wallet_id</code> from <code>GET /wallet/v1/address</code>).
+                  A run gets the wallet&apos;s host functions only when it is sent; another wallet is refused{' '}
+                  <code>403 wallet_not_yours</code>
+                </td>
+              </tr>
+              <tr>
  <td className="px-4 py-3 text-sm font-mono">X-Compute-Limit</td>
  <td className="px-4 py-3 text-sm text-muted-foreground">No</td>
  <td className="px-4 py-3 text-sm font-mono">10000</td>

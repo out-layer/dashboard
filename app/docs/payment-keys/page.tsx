@@ -381,7 +381,8 @@ near call usdt.tether-token.near ft_transfer_call '{
  <td className="px-4 py-3 text-sm">Calls paid by an ALLOWANCE</td>
  <td className="px-4 py-3 text-sm font-mono">1 at a time</td>
  <td className="px-4 py-3 text-sm text-muted-foreground">
-                  A subscription is a flat rate, so what bounds it is how much can be in flight.
+                  A subscription is a flat rate, so what bounds it is how much can be in flight
+                  (a key sponsored by a code: as many as the code allows).
                   A key that also holds money answers the second call out of its balance instead of
                   refusing it; a key with no balance gets{' '}
  <code>call_already_in_flight</code> (429, non-terminal — waiting clears it).

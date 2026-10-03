@@ -39,6 +39,8 @@ const NOINDEX_PAGES = [
   ['app/inbox', 'Inbox'],
   ['app/wallet', 'Wallet handoff'],
   ['app/wallet/fund', 'Fund wallet'],
+  ['app/wallet/new', 'New agent'],
+  ['app/redeem', 'Redeem a sponsor code'],
 ]
 
 function layoutSource({ title, description, robots, retemplate }) {

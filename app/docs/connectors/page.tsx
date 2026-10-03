@@ -110,6 +110,13 @@ export default function ConnectorsDocsPage() {
             the coordinator bills it and picks which limit applies, the worker refuses a connector call
             that names none, and your guest dispatches on it.
           </p>
+          <p className="text-foreground mt-3">
+            A connector that acts on the caller&apos;s wallet — signs, trades, moves funds — gets that wallet only
+            when the call sends <code className="bg-card-muted px-1 rounded">X-Wallet-Id</code> (the wallet&apos;s id
+            from <code className="bg-card-muted px-1 rounded">GET /wallet/v1/address</code>). Without it the run has
+            no wallet at all; another wallet&apos;s id is refused{' '}
+            <code className="bg-card-muted px-1 rounded">403 wallet_not_yours</code>.
+          </p>
           <div className="bg-destructive/10 border-l-4 border-red-500 p-4 my-4">
             <p className="text-sm text-foreground">
               <strong>Fail-closed, before your code runs.</strong> Absent, blank, not a string, nested,
@@ -195,6 +202,15 @@ export default function ConnectorsDocsPage() {
   "input": { "operation": "send" },
   "secrets_ref": { "account_id": "owner.near", "profile": "gmail" }
 }`}</code></pre>
+          <p className="text-foreground mt-3">
+            <strong>The owner&apos;s policy, on the trading connectors</strong> (<code className="bg-card-muted px-1 rounded">hyperliquid</code>,{' '}
+            <code className="bg-card-muted px-1 rounded">polymarket</code>). For a wallet with an owner the platform
+            attaches the owner&apos;s row itself — the call names nothing — keeps a row of the owner&apos;s the call
+            does name, and refuses any other account&apos;s with{' '}
+            <code className="bg-card-muted px-1 rounded">403 policy_row_not_owner</code>; doing that again blocks the
+            wallet on these connectors for a while (<code className="bg-card-muted px-1 rounded">403 calls_suspended</code>).
+            With no policy the connector trades on its built-in default: no caps, withdrawals only back to the wallet.
+          </p>
           <p className="text-foreground mt-3">
             <strong>The agent&apos;s.</strong> A credential stored FOR a custody wallet under the{' '}
             <em>wallet&apos;s</em> account and fetched only when the call asks for it with{' '}

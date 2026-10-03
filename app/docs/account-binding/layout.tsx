@@ -2,8 +2,8 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: "Connectors & Subscriptions",
-  description: "What a connector is and how its operations are priced on chain, the per-operation author share, subscriptions as a flat allowance for a payment key, and the…",
+  title: "Personal Account Binding",
+  description: "Letting an agent act as a named account its owner already has: the one transaction the holder signs (the wallet contract installed by hash as a global…",
 };
 
 export default function Layout({ children }: { children: React.ReactNode }) {

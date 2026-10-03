@@ -2,8 +2,8 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: "Connectors & Subscriptions",
-  description: "What a connector is and how its operations are priced on chain, the per-operation author share, subscriptions as a flat allowance for a payment key, and the…",
+  title: "Binding API reference",
+  description: "The calls a bound-account integration makes: which of the two account identities each endpoint is about (everything under /binding/ is the asset account…",
 };
 
 export default function Layout({ children }: { children: React.ReactNode }) {

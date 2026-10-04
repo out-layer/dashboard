@@ -13,6 +13,7 @@ import { AgentChip } from '@/components/ui/agent-chip';
 import { implicitAccountOf } from '@/lib/short-account';
 import { getCoordinatorApiUrl } from '@/lib/api';
 import { useInbox } from '@/contexts/InboxContext';
+import { usePageVisible } from '@/lib/use-page-visible';
 import { SignInPrompt } from '@/components/inbox/SignInPrompt';
 import * as inbox from '@/lib/inbox/api';
 import { checkOpAgainstHash, type OpCheck } from '@/lib/approval-hash';
@@ -167,30 +168,41 @@ function WalletApprovalsContent() {
   }, [accountId, contractId, fetchPendingApprovals]);
 
   // Initial load when connected and signed in
+  /** When the approvals were last asked for: a tab shown again asks at once only if a full interval has passed. */
+  const lastReadRef = useRef(0);
   useEffect(() => {
     if (isConnected && accountId && token) {
+      lastReadRef.current = Date.now();
       loadApprovals();
     }
   }, [isConnected, accountId, token, loadApprovals]);
 
-  // Asked again once a minute, inside the session.
+  // Asked again once a minute, inside the session, while the tab is looked
+  // at. A hidden tab asks nothing; shown again, it asks at once if a minute
+  // has passed, and the countdown starts over.
+  const visible = usePageVisible();
   useEffect(() => {
-    if (!hasPolicies || !isConnected || !token) {
+    if (!hasPolicies || !isConnected || !token || !visible) {
       setNextRefreshIn(null);
       return;
     }
+    const read = () => {
+      lastReadRef.current = Date.now();
+      void fetchPendingApprovals(walletPubkeysRef.current);
+    };
+    if (Date.now() - lastReadRef.current >= REFRESH_INTERVAL) read();
     let countdown = REFRESH_INTERVAL / 1000;
     setNextRefreshIn(countdown);
     const tick = setInterval(() => {
       countdown -= 1;
       if (countdown <= 0) {
         countdown = REFRESH_INTERVAL / 1000;
-        void fetchPendingApprovals(walletPubkeysRef.current);
+        read();
       }
       setNextRefreshIn(countdown);
     }, 1000);
     return () => clearInterval(tick);
-  }, [hasPolicies, isConnected, token, fetchPendingApprovals]);
+  }, [hasPolicies, isConnected, token, visible, fetchPendingApprovals]);
 
   // Approve a pending request (requires NEAR wallet signature, not API key)
   const handleApprove = async (approvalId: string) => {

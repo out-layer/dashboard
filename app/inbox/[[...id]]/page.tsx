@@ -24,8 +24,9 @@ import { PageHeader } from '@/components/ui/page-header';
 import { RequireWallet } from '@/components/ui/require-wallet';
 import { SignInPrompt } from '@/components/inbox/SignInPrompt';
 import { TaskCard } from '@/components/inbox/TaskCard';
-import { useInbox, type ShownTask } from '@/contexts/InboxContext';
+import { useInbox, type ReadFailure, type ShownTask } from '@/contexts/InboxContext';
 import { useNearWallet } from '@/contexts/NearWalletContext';
+import { usePageVisible } from '@/lib/use-page-visible';
 import { isSent } from '@/lib/inbox/act';
 import { AgentChip } from '@/components/ui/agent-chip';
 import { implicitAccountOf } from '@/lib/short-account';
@@ -160,10 +161,47 @@ function LockedBanner({ locked }: { locked: LockedOfProject }) {
   );
 }
 
+/**
+ * A read that failed, said in one line with what to do. A refusal that passes
+ * by itself (too many requests, a service not ready, no network) is not shown
+ * raw: the inbox reads again within the minute on its own, so the line says
+ * that, and offers the read now. Anything else is shown as the API said it.
+ */
+function NotRefreshed({ failure, readAt, retry }: { failure: ReadFailure; readAt: number | null; retry: () => Promise<void> }) {
+  const [trying, setTrying] = useState(false);
+  const what = failure.of === 'tasks' ? 'Not refreshed' : 'Wallet approvals not refreshed';
+  const shown = readAt ? ` Showing what was read at ${new Date(readAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}.` : '';
+  return (
+    <div
+      role="status"
+      className={`flex max-w-3xl flex-wrap items-center gap-x-3 gap-y-2 rounded-md border p-3 text-sm ${
+        failure.busy ? 'border-border bg-card-muted text-foreground' : 'border-destructive/30 bg-destructive/10 text-destructive-text'
+      }`}
+    >
+      <p className="min-w-0 flex-1">
+        <span className="font-medium">{what}</span>
+        {failure.busy ? ' — the server is busy. It retries by itself within a minute.' : `: ${failure.message}`}
+        <span className={failure.busy ? 'text-muted-foreground' : ''}>{shown}</span>
+      </p>
+      <Button
+        variant="outline"
+        size="sm"
+        disabled={trying}
+        onClick={() => {
+          setTrying(true);
+          void retry().finally(() => setTrying(false));
+        }}
+      >
+        {trying ? 'Trying…' : 'Try now'}
+      </Button>
+    </div>
+  );
+}
+
 function Inbox() {
   const params = useParams<{ id?: string[] }>();
   const wanted = params?.id?.[0] ?? null;
-  const { session, loading, tasks, more, approvals, readingApprovals, error, refresh, refreshTasks, signOut } = useInbox();
+  const { session, loading, tasks, more, approvals, readingApprovals, readFailure, readAt, refresh, refreshTasks, signOut } = useInbox();
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
 
@@ -171,21 +209,23 @@ function Inbox() {
   // again every five seconds — the tasks alone, never the wallets' routes —
   // so that it leaves for Closed when its run ends rather than at the next
   // minute's poll. At most three minutes of it: a run that has not ended by
-  // then is waited for at the usual pace.
+  // then is waited for at the usual pace. A hidden tab reads nothing; shown
+  // again, it picks up where it stopped.
   const sending = tasks.filter((t) => isSent(t.state)).map((t) => t.id).join(' ');
   const [quickReads, setQuickReads] = useState(0);
+  const visible = usePageVisible();
   useEffect(() => {
     if (!sending) {
       setQuickReads(0);
       return;
     }
-    if (quickReads >= 36) return;
+    if (!visible || quickReads >= 36) return;
     const timer = setTimeout(() => {
       setQuickReads((n) => n + 1);
       void refreshTasks();
     }, 5000);
     return () => clearTimeout(timer);
-  }, [sending, quickReads, refreshTasks]);
+  }, [sending, quickReads, visible, refreshTasks]);
 
   // The waiting tasks this browser holds no copy of, by project, in the
   // list's order. The API lists `locked` only for a task that waits — open,
@@ -215,11 +255,7 @@ function Inbox() {
 
   return (
     <div className="space-y-6">
-      {error && (
-        <p className="max-w-3xl rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive-text">
-          The inbox could not be asked just now: {error} What is shown below is what was last read.
-        </p>
-      )}
+      {readFailure && <NotRefreshed failure={readFailure} readAt={readAt} retry={refresh} />}
 
       <WebhookNamedElsewhere />
 
@@ -298,7 +334,7 @@ function Inbox() {
         </section>
       )}
 
-      {!loading && nothing && !error && (
+      {!loading && nothing && !readFailure && (
         <EmptyState title="Nothing waits for you" description="What your agents ask of you, and the approvals of your wallets, appear here." />
       )}
 

@@ -69,7 +69,17 @@ type Inbox = {
   readingApprovals: { wallets: number; read: number } | null;
   /** What waits: open tasks and pending approvals. Zero without a session. */
   count: number;
+  /** Signing in failed, in words the owner can act on. */
   error: string | null;
+  /**
+   * The last read of the tasks or the approvals failed; what is shown is
+   * from `readAt`. `busy` is a refusal that passes by itself (too many
+   * requests, a service not ready, no network): the next minute's read
+   * retries it, and the page says so instead of the raw refusal.
+   */
+  readFailure: ReadFailure | null;
+  /** When the tasks were last read successfully (ms since epoch). */
+  readAt: number | null;
   signingIn: boolean;
   /** From a click only: opens the wallet to sign the statement. */
   signIn: () => Promise<void>;
@@ -88,6 +98,14 @@ type Inbox = {
   token: string | null;
   coordinatorUrl: string;
 };
+
+export type ReadFailure = { of: 'tasks' | 'approvals'; busy: boolean; message: string };
+
+/** A failed read, sorted: one that passes by itself, or one with a reason to show. */
+function readFailureOf(of: ReadFailure['of'], e: unknown): ReadFailure {
+  const busy = e instanceof api.InboxRefused ? e.status === 429 || e.status === 503 : e instanceof TypeError;
+  return { of, busy, message: e instanceof Error ? e.message : String(e) };
+}
 
 const InboxContext = createContext<Inbox | undefined>(undefined);
 
@@ -109,6 +127,9 @@ export function InboxProvider({ children }: { children: ReactNode }) {
   const [approvals, setApprovals] = useState<ShownApproval[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [tasksFailure, setTasksFailure] = useState<ReadFailure | null>(null);
+  const [approvalsFailure, setApprovalsFailure] = useState<ReadFailure | null>(null);
+  const [readAt, setReadAt] = useState<number | null>(null);
   const [signingIn, setSigningIn] = useState(false);
   const [more, setMore] = useState(false);
   const [readingApprovals, setReadingApprovals] = useState<{ wallets: number; read: number } | null>(null);
@@ -130,6 +151,9 @@ export function InboxProvider({ children }: { children: ReactNode }) {
     setReadingApprovals(null);
     approvalsKnown.current = false;
     setError(null);
+    setTasksFailure(null);
+    setApprovalsFailure(null);
+    setReadAt(null);
     setEnded(false);
     setDevice(null);
     if (!isConnected || !accountId) {
@@ -220,14 +244,14 @@ export function InboxProvider({ children }: { children: ReactNode }) {
     [accountId, device],
   );
 
-  /** A failure to ask: a session that ended ends here; any other is said, and what was shown stays shown. */
+  /** A failure to read: a session that ended ends here; any other is said, and what was shown stays shown. */
   const failed = useCallback(
-    (e: unknown) => {
+    (of: ReadFailure['of'], e: unknown) => {
       if (e instanceof api.InboxRefused && e.sessionEnded) {
         endSession(e.sessionReplaced ? 'replaced' : 'ended');
         return;
       }
-      setError(e instanceof Error ? e.message : String(e));
+      (of === 'tasks' ? setTasksFailure : setApprovalsFailure)(readFailureOf(of, e));
     },
     [endSession],
   );
@@ -237,10 +261,11 @@ export function InboxProvider({ children }: { children: ReactNode }) {
     try {
       const listed = await api.listTasks(coordinatorUrl, stored.token);
       setMore(listed.more);
-      setError(null);
+      setTasksFailure(null);
+      setReadAt(Date.now());
       return listed.tasks;
     } catch (e) {
-      failed(e);
+      failed('tasks', e);
       return null;
     }
   }, [stored, coordinatorUrl, failed]);
@@ -274,10 +299,11 @@ export function InboxProvider({ children }: { children: ReactNode }) {
       );
       approvalsKnown.current = true;
       setReadingApprovals(null);
+      setApprovalsFailure(null);
       return pending.flat();
     } catch (e) {
       setReadingApprovals(null);
-      failed(e);
+      failed('approvals', e);
       return null;
     }
   }, [stored, accountId, contractId, coordinatorUrl, failed]);
@@ -432,6 +458,8 @@ export function InboxProvider({ children }: { children: ReactNode }) {
       readingApprovals: session === 'active' ? readingApprovals : null,
       count: session === 'active' ? waiting : 0,
       error,
+      readFailure: session === 'active' ? (tasksFailure ?? approvalsFailure) : null,
+      readAt,
       signingIn,
       signIn,
       signOut,
@@ -441,7 +469,7 @@ export function InboxProvider({ children }: { children: ReactNode }) {
       token: stored?.token ?? null,
       coordinatorUrl,
     };
-  }, [stored, ended, tasks, more, approvals, readingApprovals, loading, error, signingIn, signIn, signOut, refresh, refreshTasks, unlock, coordinatorUrl]);
+  }, [stored, ended, tasks, more, approvals, readingApprovals, loading, error, tasksFailure, approvalsFailure, readAt, signingIn, signIn, signOut, refresh, refreshTasks, unlock, coordinatorUrl]);
 
   return <InboxContext.Provider value={value}>{children}</InboxContext.Provider>;
 }

@@ -430,3 +430,33 @@ test('a proof that holds is one button, and its steps are in the attestation pop
   // Past a proof that does not hold, the owner answers only by saying so.
   assert.match(text, /Approve without the proof\./);
 });
+
+// A failed read is one line with what to do, not the raw refusal: a refusal
+// that passes by itself (429, 503, no network) says the inbox retries within
+// the minute and offers the read now; the time of the last good read is shown.
+test('a failed read is one short line with "Try now", busy refusals not shown raw', () => {
+  const page = readFileSync(new URL('../app/inbox/[[...id]]/page.tsx', import.meta.url), 'utf8');
+  const context = readFileSync(new URL('../contexts/InboxContext.tsx', import.meta.url), 'utf8');
+  assert.doesNotMatch(page, /could not be asked just now|What is shown below is what was last read/);
+  assert.match(page, /<NotRefreshed failure=\{readFailure\} readAt=\{readAt\} retry=\{refresh\} \/>/);
+  assert.match(page, /the server is busy\. It retries by itself within a minute\./);
+  assert.match(page, /'Try now'/);
+  assert.match(page, /Showing what was read at/);
+  assert.match(context, /e\.status === 429 \|\| e\.status === 503 : e instanceof TypeError/);
+  // A read failure is not the sign-in error: the sign-in prompt never shows a failed poll.
+  assert.match(context, /failed\('tasks', e\)/);
+  assert.match(context, /failed\('approvals', e\)/);
+  assert.doesNotMatch(context.slice(context.indexOf('const failed = useCallback'), context.indexOf('const listTasks')), /setError\(/);
+});
+
+// A hidden tab asks nothing: every timer that reads the inbox or the wallets'
+// approvals stops while the tab is not looked at.
+test('hidden tabs do not poll: the minute poll, the quick reads, the approvals page', () => {
+  const context = readFileSync(new URL('../contexts/InboxContext.tsx', import.meta.url), 'utf8');
+  const page = readFileSync(new URL('../app/inbox/[[...id]]/page.tsx', import.meta.url), 'utf8');
+  const approvals = readFileSync(new URL('../app/wallet/approvals/page.tsx', import.meta.url), 'utf8');
+  assert.match(context, /document\.visibilityState !== 'visible'[^\n]*\n\s*stop\(\);/);
+  assert.match(page, /if \(!visible \|\| quickReads >= 36\) return;/);
+  assert.match(approvals, /if \(!hasPolicies \|\| !isConnected \|\| !token \|\| !visible\) \{/);
+  assert.match(approvals, /Date\.now\(\) - lastReadRef\.current >= REFRESH_INTERVAL/);
+});

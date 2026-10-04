@@ -13,6 +13,24 @@
  * does the one thing that makes such a form honest: what an EMPTY field means is
  * said in words under it. For a narrowing that is "no limit"; for a grant it is
  * "not allowed"; a blank left to be guessed reads as whichever the reader fears.
+ *
+ * How every connector's policy decides an action — the rule each schema here
+ * mirrors, and the order the connector applies it in:
+ *
+ * 1. **What the owner set decides first.** The actions ticked, the limits
+ *    typed, the switches turned on: the agent gets those and nothing wider.
+ * 2. **What the owner left empty falls to the connector's own default for that
+ *    field** — the field's `absentMeans`, said under it: no cap, any recipient,
+ *    no attachments, whatever the connector reads an absent key as.
+ * 3. **Everything else is refused.** An action no rule allows does not run.
+ *    The one exception is a connector whose policy is a fence around the
+ *    agent's own wallet (Polymarket, Hyperliquid): with no policy at all, or an
+ *    empty one, it runs on its built-in open default, which `emptySummary` says.
+ *
+ * "Ask me before" is not a fourth step: it takes an action the policy allows
+ * and makes it wait for the owner's yes. Asking about an action therefore
+ * allows it — ticking it there ticks it among the allowed actions, and
+ * unticking it there removes it from the asks (`asksBefore`).
  */
 
 /**
@@ -59,6 +77,13 @@ export interface PolicyField {
   emptyMeansAll?: boolean;
   /** For toggles: the choices the switch acts through, when it qualifies operations rather than standing alone. */
   link?: SwitchLink;
+  /**
+   * For choices: this is an "ask me before" set over the choices field `key`
+   * names — the actions the policy allows. An action asked about is an action
+   * allowed after the owner's yes, so the two move together: ticking one here
+   * ticks it there; unticking it there unticks it here.
+   */
+  asksBefore?: string;
 }
 
 /**

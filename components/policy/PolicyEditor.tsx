@@ -36,6 +36,10 @@ import { change, isUnrestricted, validate } from '@/lib/policies/policy';
  *    goes through `change`, so "public gists" on ticks "create a gist", and
  *    unticking the operation turns the switch off — never a switch that reads
  *    as allowed and does nothing.
+ * 7. **Asking about an action allows it.** "Ask me before" over an actions
+ *    field (`asksBefore`) ticks the action when it is asked about, and drops
+ *    the ask when the action is unticked — never an ask that waits on an
+ *    action the policy refuses anyway.
  */
 export function PolicyEditor({
   schema,

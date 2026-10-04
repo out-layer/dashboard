@@ -154,3 +154,23 @@ test('asking first about an action the policy does not allow is flagged', () => 
   assert.match(problems[0], /pr_merge is not among the actions ticked/);
   assert.deepEqual(githubPolicy.check({ actions: ['issue_comment'], repos: ['a/b'], max_writes_per_day: 5, confirm: ['issue_comment'] }), []);
 });
+
+test('asking before an action allows it, and an action no longer allowed is no longer asked about', () => {
+  // Ticked under Ask me before → ticked under Actions too.
+  const asked = change(githubPolicy, { actions: ['issue_get'] }, 'confirm', ['gist_create', 'pr_create']);
+  assert.deepEqual(asked.confirm, ['gist_create', 'pr_create']);
+  assert.ok(asked.actions.includes('gist_create') && asked.actions.includes('pr_create') && asked.actions.includes('issue_get'), JSON.stringify(asked.actions));
+  // An ask that needs a switch turns it on, as ticking the action does.
+  const merge = change(githubPolicy, { actions: ['pr_get'] }, 'confirm', ['pr_merge']);
+  assert.ok(merge.actions.includes('pr_merge'));
+  assert.equal(merge.allow_merge, true, 'merging asked about is merging allowed, switch and all');
+  // Unticking the action drops the ask.
+  const unticked = change(githubPolicy, asked, 'actions', asked.actions.filter((a) => a !== 'gist_create'));
+  assert.deepEqual(unticked.confirm, ['pr_create']);
+  const none = change(githubPolicy, unticked, 'actions', ['issue_get']);
+  assert.equal(none.confirm, undefined);
+  // Unticking only the ask leaves the action allowed, without asking.
+  const quiet = change(githubPolicy, asked, 'confirm', ['pr_create']);
+  assert.ok(quiet.actions.includes('gist_create'));
+  assert.deepEqual(validate(githubPolicy, { ...asked, repos: ['a/b'], branches: ['agent/*'], max_writes_per_day: 5 }), []);
+});

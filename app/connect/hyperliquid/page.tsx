@@ -3,7 +3,7 @@
 import React, { Suspense } from 'react';
 import { RequireWallet } from '@/components/ui/require-wallet';
 import { ConnectorOwnerPage, More, type ConnectorSpec } from '@/components/connect/ConnectorOwnerPage';
-import { VenueEligibility } from '@/components/connect/VenueEligibility';
+import { VenueTerms } from '@/components/connect/VenueTerms';
 import { CONNECTORS } from '@/lib/connectors';
 import { hyperliquidPolicy } from '@/lib/policies/hyperliquid';
 
@@ -32,13 +32,14 @@ const spec: ConnectorSpec = {
   notConfigured: '',
   intro: (
     <>
-      <VenueEligibility entry={CONNECTORS.find((c) => c.id === 'hyperliquid')!}>
+      <VenueTerms entry={CONNECTORS.find((c) => c.id === 'hyperliquid')!}>
         Storing this policy confirms that you, and the agent you grant, are allowed to trade on Hyperliquid.
-      </VenueEligibility>
+      </VenueTerms>
       <p>
         Nothing to connect here: the agent trades from a key of its own wallet, and Hyperliquid sees an ordinary account. What you store
-        is the fence around it. <strong>Without a policy the agent can read markets and positions, and place nothing.</strong> Orders
-        open only when all three sizes are set — per order, per day, and the leverage cap.
+        is the fence around it. <strong>Without a policy — or with every field left empty — the agent trades on the built-in default:</strong>{' '}
+        any coin, any size, leverage up to the market&apos;s own cap, deposits from its wallet, withdrawals only back to it. A policy that
+        sets anything replaces that default: orders then open only when all three sizes are set — per order, per day, and the leverage cap.
       </p>
       <More label="Why leverage is required even if the agent never changes it">
         <p>

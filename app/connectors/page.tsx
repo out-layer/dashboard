@@ -9,6 +9,7 @@ import { ExampleIcon } from '@/components/ui/example-icon';
 import { useNearWallet } from '@/contexts/NearWalletContext';
 import { CONNECTORS, CONNECTORS_LIBRARY_SKILL, skillUrl } from '@/lib/connectors';
 import { VenueEligibility } from '@/components/connect/VenueEligibility';
+import { HEADER_CHIP } from '@/components/connect/VenueTerms';
 
 /**
  * The connector library, for a person: what each connector lets an agent do,
@@ -19,6 +20,8 @@ import { VenueEligibility } from '@/components/connect/VenueEligibility';
 export default function ConnectorsPage() {
   const { network } = useNearWallet();
   const [mounted, setMounted] = useState(false);
+  /** The card whose venue terms are open: one at a time. */
+  const [termsOpen, setTermsOpen] = useState<string | null>(null);
   useEffect(() => setMounted(true), []);
 
   return (
@@ -63,6 +66,17 @@ export default function ConnectorsPage() {
                     >
                       Specs
                     </a>
+                    {c.venueTerms && (
+                      <button
+                        type="button"
+                        className={HEADER_CHIP}
+                        aria-expanded={termsOpen === c.id}
+                        onClick={() => setTermsOpen((open) => (open === c.id ? null : c.id))}
+                        title="Who may use it"
+                      >
+                        Terms
+                      </button>
+                    )}
                   </h2>
                   <div className="flex gap-1">
                     {c.networks.map((n) => (
@@ -75,29 +89,34 @@ export default function ConnectorsPage() {
                 <p className="mt-1.5 text-sm text-foreground">{c.tagline}</p>
                 <p className="mt-2 text-sm text-muted-foreground">{c.how}</p>
 
-                {!here && (
-                  <p className="mt-3 text-xs text-amber-800">
-                    Not published on {network} yet — switch the network at the top to use it.
-                  </p>
-                )}
-
                 {c.owner === 'policy' && (
                   <p className="mt-2 text-xs text-muted-foreground">No account to connect — the agent brings its own wallet; the policy is what turns trading on.</p>
                 )}
 
-                {c.venueTerms && (
+                {c.venueTerms && termsOpen === c.id && (
                   <div className="mt-2">
                     <VenueEligibility entry={c} compact />
                   </div>
                 )}
 
                 <div className="mt-auto flex flex-wrap items-center justify-between gap-3 pt-4">
-                  <a
-                    href={c.connectHref}
-                    className="inline-flex shrink-0 items-center rounded-lg bg-accent px-3 py-2 text-sm font-semibold text-on-accent hover:bg-accent-hover"
-                  >
-                    {c.owner === 'account' ? `Connect ${c.name}` : `Set the agent’s ${c.name} policy`}
-                  </a>
+                  {here ? (
+                    <a
+                      href={c.connectHref}
+                      className="inline-flex shrink-0 items-center rounded-lg bg-accent px-3 py-2 text-sm font-semibold text-on-accent hover:bg-accent-hover"
+                    >
+                      {c.owner === 'account' ? `Connect ${c.name}` : `Set the agent’s ${c.name} policy`}
+                    </a>
+                  ) : (
+                    // Where it runs is the badges above; on this network the action is simply off.
+                    <span
+                      aria-disabled="true"
+                      title={`Not on ${network}`}
+                      className="inline-flex shrink-0 cursor-not-allowed items-center rounded-lg bg-accent px-3 py-2 text-sm font-semibold text-on-accent opacity-40"
+                    >
+                      {c.owner === 'account' ? `Connect ${c.name}` : `Set the agent’s ${c.name} policy`}
+                    </span>
+                  )}
                   <div className="w-full min-w-0 sm:w-1/2">
                     <SkillUrlBox url={skillUrl(c.id)} compact label="Skill" />
                   </div>

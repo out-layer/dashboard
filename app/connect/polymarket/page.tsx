@@ -3,7 +3,7 @@
 import React, { Suspense } from 'react';
 import { RequireWallet } from '@/components/ui/require-wallet';
 import { ConnectorOwnerPage, More, type ConnectorSpec } from '@/components/connect/ConnectorOwnerPage';
-import { VenueEligibility } from '@/components/connect/VenueEligibility';
+import { VenueTerms } from '@/components/connect/VenueTerms';
 import { CONNECTORS } from '@/lib/connectors';
 import { polymarketPolicy } from '@/lib/policies/polymarket';
 
@@ -31,13 +31,14 @@ const spec: ConnectorSpec = {
   notConfigured: '',
   intro: (
     <>
-      <VenueEligibility entry={CONNECTORS.find((c) => c.id === 'polymarket')!}>
+      <VenueTerms entry={CONNECTORS.find((c) => c.id === 'polymarket')!}>
         Storing this policy confirms that you, and the agent you grant, are allowed to trade on Polymarket.
-      </VenueEligibility>
+      </VenueTerms>
       <p>
         Nothing to connect here: the agent trades from a key of its own wallet, and Polymarket sees an ordinary account. What you store is
-        the fence around it. <strong>Without a policy the agent can read markets and positions and cancel its own orders, and buy or sell
-        nothing.</strong> Orders open only when both sizes are set — per order and per day.
+        the fence around it. <strong>Without a policy — or with every field left empty — the agent trades on the built-in default:</strong>{' '}
+        any market, any size, deposits from its wallet, withdrawals only back to it. A policy that sets anything replaces that default:
+        orders then open only when both sizes are set — per order and per day.
       </p>
       <More label="What the connector can never do">
         <p>

@@ -102,7 +102,32 @@ function allowsAny(choices: PolicyField, values: string[], wanted: string[]): bo
  *   preset, cleared) turn the switch off.
  */
 export function change(schema: PolicySchema, value: PolicyValue, key: string, v: PolicyValue[string]): PolicyValue {
+  // An action asked about is an action allowed (`asksBefore`): ticked under
+  // "Ask me before", it is ticked among the allowed actions too — and that
+  // change goes through the rest of `change`, so its switches follow.
+  for (const ask of fields(schema)) {
+    if (ask.kind !== 'choices' || !ask.asksBefore) continue;
+    const target = fields(schema).find((f) => f.key === ask.asksBefore && f.kind === 'choices');
+    if (!target) continue;
+    if (key === ask.key) {
+      const allowed = chosen(value[target.key]);
+      const missing = chosen(v).filter((c) => !allowed.includes(c));
+      if (missing.length > 0) {
+        const order = (target.options ?? []).map((o) => o.value);
+        const widened = order.filter((o) => allowed.includes(o) || missing.includes(o));
+        return change(schema, { ...value, [key]: v }, target.key, widened);
+      }
+    }
+  }
   const next: PolicyValue = { ...value, [key]: v };
+  // An action no longer allowed is no longer asked about.
+  for (const ask of fields(schema)) {
+    if (ask.kind !== 'choices' || !ask.asksBefore || key !== ask.asksBefore) continue;
+    const allowed = chosen(next[ask.asksBefore]);
+    const asked = chosen(next[ask.key]);
+    const kept = asked.filter((c) => allowed.includes(c));
+    if (kept.length !== asked.length) next[ask.key] = kept.length > 0 ? kept : undefined;
+  }
   for (const { toggle, link, choices } of links(schema)) {
     const order = (choices.options ?? []).map((o) => o.value);
     const now = chosen(next[link.key]);

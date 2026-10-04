@@ -201,8 +201,10 @@ export default function SubscriptionsDocsPage() {
               grant ends, changes nothing and answers what the key holds. After it ends, another code is taken.
  </li>
  <li>
-              <code className="bg-card-muted px-1 rounded">payment_key</code> comes back only to the credential the key
-              is bound to; another credential of the wallet redeems the grant without seeing it.
+              Only the credential that reads the wallet's nonce-0 key redeems onto it (another one is{' '}
+              <code className="bg-card-muted px-1 rounded">403 payment_key_other_credential</code>, an older random key{' '}
+              <code className="bg-card-muted px-1 rounded">409 payment_key_not_recoverable</code>); a refused redeem
+              takes no use of the code, and a redeem that succeeds always returns the key.
  </li>
  <li>
               Refusals: <code className="bg-card-muted px-1 rounded">404 sponsor_code_invalid</code> (one answer for

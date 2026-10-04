@@ -38,7 +38,7 @@ interface Registered {
 }
 
 interface Sponsorship {
-  payment_key?: string;
+  payment_key: string;
   owner: string;
   allowance_usd: string;
   expires_at: string | null;
@@ -257,14 +257,12 @@ function NewAgentPageContent() {
                 verified integrations; the agent reads the key itself with{' '}
                 <code>GET /wallet/v1/payment-key</code>.
               </p>
-              {sponsorship.payment_key && (
-                <div className="mt-3">
-                  <span className="text-sm font-medium text-foreground">Payment key</span>
-                  <div className="mt-1 rounded-md border border-border bg-background px-3 py-2 font-mono text-sm break-all">
-                    <CopyText value={sponsorship.payment_key} />
-                  </div>
+              <div className="mt-3">
+                <span className="text-sm font-medium text-foreground">Payment key</span>
+                <div className="mt-1 rounded-md border border-border bg-background px-3 py-2 font-mono text-sm break-all">
+                  <CopyText value={sponsorship.payment_key} />
                 </div>
-              )}
+              </div>
             </section>
           )}
 

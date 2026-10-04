@@ -1,5 +1,5 @@
 // The Hyperliquid policy as the editor writes and reads it: only set keys reach
-// the JSON, an empty policy is READ-ONLY and says so, orders need all three
+// the JSON, an empty policy is the connector's open default and says so, orders need all three
 // sizes, and a stored policy comes back into the same value. Run: npm test
 
 import { test } from 'node:test';
@@ -7,11 +7,11 @@ import assert from 'node:assert/strict';
 import { hyperliquidPolicy, coinProblem, withdrawToProblem } from '../lib/policies/hyperliquid.ts';
 import { toJson, fromJson, validate, isUnrestricted, emptyValue } from '../lib/policies/policy.ts';
 
-test('an empty policy is {} and is described as read-only', () => {
+test('an empty policy is {} and is described as the open default', () => {
   assert.equal(toJson(hyperliquidPolicy, emptyValue()), '{}');
   assert.ok(isUnrestricted(emptyValue()));
-  assert.match(hyperliquidPolicy.emptySummary, /read-only/);
-  assert.equal(hyperliquidPolicy.summarize(emptyValue()), 'The agent cannot place orders or set leverage; it can neither fund the venue nor withdraw.');
+  assert.match(hyperliquidPolicy.emptySummary, /no caps/);
+  assert.match(hyperliquidPolicy.summarize(emptyValue()), /built-in default/);
 });
 
 test('only set fields reach the JSON, under the connector’s names, and round-trip', () => {

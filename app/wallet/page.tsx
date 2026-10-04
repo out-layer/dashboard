@@ -7,7 +7,7 @@ import WalletConnectionModal from '@/components/WalletConnectionModal';
 import { getCoordinatorApiUrl } from '@/lib/api';
 import Link from 'next/link';
 import { saveWalletKey, computeKeyHash, getWalletKey } from '@/lib/wallet-keys';
-import { submitPolicy, parsePolicyResponse } from '@/lib/wallet-policy';
+import { submitPolicy, parsePolicyResponse, parseApproverLine, type Approver } from '@/lib/wallet-policy';
 import { useApiKeyHash } from '@/hooks/useApiKeyHash';
 import { usePolicyForm } from '@/hooks/usePolicyForm';
 import { PolicyFormFields } from '@/components/wallet/PolicyFormFields';
@@ -108,6 +108,8 @@ function WalletHandoffContent() {
   const [requireApproval, setRequireApproval] = useState(true);
   const [approvalRequired, setApprovalRequired] = useState('1');
   const [additionalApprovers, setAdditionalApprovers] = useState('');
+  /** The key the stored policy pins the owner's own vote to, kept across a save. */
+  const [ownerPubkey, setOwnerPubkey] = useState<string | undefined>(undefined);
   // Which types require approval (unchecked = excluded_types). Built kinds AND the multisig-wired
   // Trusted kinds (swap, cross_chain_withdraw) can require approval — at execution the keystore
   // verifies the approver signatures, then signs the (re-fetched, fresh) Trusted artifact.
@@ -129,12 +131,12 @@ function WalletHandoffContent() {
     apiKeyHash,
     augmentPolicy: useCallback((base: Record<string, unknown>) => {
       if (!requireApproval) return base;
-      const approvers: Array<{ id: string; role: string }> = [{ id: effectiveOwner || '', role: 'admin' }];
-      if (additionalApprovers.trim()) {
-        additionalApprovers.split('\n').filter((l) => l.trim()).forEach((line) => {
-          const [id, role] = line.split(',').map((s) => s.trim());
-          if (id) approvers.push({ id, role: role || 'signer' });
-        });
+      const approvers: Approver[] = [
+        ownerPubkey ? { id: effectiveOwner || '', role: 'admin', pubkey: ownerPubkey } : { id: effectiveOwner || '', role: 'admin' },
+      ];
+      for (const line of additionalApprovers.split('\n')) {
+        const approver = parseApproverLine(line);
+        if (approver) approvers.push(approver);
       }
       const excluded_types = allTxTypes.filter((t) => !approvalTypes.has(t));
       return {
@@ -145,7 +147,7 @@ function WalletHandoffContent() {
           approvers,
         },
       };
-    }, [requireApproval, approvalRequired, additionalApprovers, effectiveOwner, approvalTypes]),
+    }, [requireApproval, approvalRequired, additionalApprovers, effectiveOwner, ownerPubkey, approvalTypes]),
   });
 
   // Fetch wallet info using the API key
@@ -207,16 +209,11 @@ function WalletHandoffContent() {
             if (parsed.approval) {
               setRequireApproval(true);
               setApprovalRequired(parsed.approval.required);
-              setAdditionalApprovers(
-                // Remove owner since it's auto-added — match by account_id, not role
-                parsed.approval.approvers
-                  .split('\n')
-                  .filter((line) => {
-                    const id = line.split(',').map((s) => s.trim())[0] || '';
-                    return id !== effectiveOwner;
-                  })
-                  .join('\n')
-              );
+              // The owner is the primary approver, written by the form itself:
+              // its line leaves the textarea, and its pinned key (if any) is kept.
+              const lines = parsed.approval.approvers.split('\n');
+              setOwnerPubkey(lines.map(parseApproverLine).find((a) => a?.id === effectiveOwner)?.pubkey);
+              setAdditionalApprovers(lines.filter((line) => parseApproverLine(line)?.id !== effectiveOwner).join('\n'));
               // Restore approvalTypes from excluded_types
               const excluded = (data.approval?.excluded_types || []) as string[];
               setApprovalTypes(new Set(allTxTypes.filter((t) => !excluded.includes(t))));
@@ -521,7 +518,7 @@ function WalletHandoffContent() {
 
                     <div>
  <label className="block text-xs font-medium text-muted-foreground mb-1">
-                        Additional Approvers (one per line: account_id, role)
+                        Additional Approvers (one per line: account_id, role[, pinned key])
                       </label>
                       <textarea
                         value={additionalApprovers}
@@ -530,7 +527,10 @@ function WalletHandoffContent() {
                         rows={3}
  className="w-full border border-border-strong rounded px-3 py-2 text-sm font-mono"
                       />
- <p className="text-xs text-faint-foreground mt-1">Roles: admin (can update policy), signer (can only approve)</p>
+ <p className="text-xs text-faint-foreground mt-1">
+                        Roles: admin (can update policy), signer (can only approve). A third value pins the approver to one key
+                        (<code>ed25519:…</code>): only that key&apos;s signature counts. Without it, any full-access key of the account votes.
+                      </p>
                       {(() => {
                         const total = countApprovers(effectiveOwner ?? '', additionalApprovers);
                         return total > MAX_APPROVERS ? (

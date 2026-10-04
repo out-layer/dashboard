@@ -4,17 +4,24 @@ import type { PolicySchema, PolicyValue } from './types';
  * The Polymarket connector's policy — the owner's caps on what an agent may
  * take a position on, from its own wallet. Mirrors
  * `connectors/polymarket-connector/src/policy.rs`: the keys, what absence
- * means, and the fail-closed rules.
+ * means, and the rules.
  *
- * It FAILS CLOSED. No policy, or a policy that names no size, is read-only:
- * markets, orders and positions answer, and `cancel` stays open so an agent
- * whose policy was withdrawn can still take its orders off the book. An order
- * needs BOTH `max_order_usd` and `max_daily_volume_usd`. Money moves only
- * where the two switches allow, and a withdrawal goes only to `intents` unless
- * `withdraw_to` names somewhere else. Every grant here says what is withheld.
+ * NO POLICY IS OPEN. No policy, or an empty one (`{}` — every field cleared),
+ * runs on the connector's built-in default: every market, no size, volume or
+ * open-notional cap, deposits from the wallet's own balance, withdrawals only
+ * back to the wallet's `intents`. A policy that sets anything replaces the
+ * default whole and fails closed: an order then needs BOTH `max_order_usd` and
+ * `max_daily_volume_usd`, money moves only where the two switches allow, and a
+ * withdrawal goes only to `intents` unless `withdraw_to` names somewhere else.
+ * `cancel` needs no policy at all.
  *
  * Amounts are whole dollars.
  */
+
+/** Nothing set — what `toJson` writes as `{}`: no policy, the open default. */
+function nothingSet(value: PolicyValue): boolean {
+  return Object.values(value).every((v) => v === undefined || v === '' || v === false || (Array.isArray(v) && v.length === 0));
+}
 
 function num(v: PolicyValue[string]): number | undefined {
   return typeof v === 'number' ? v : undefined;
@@ -48,7 +55,7 @@ export function withdrawToProblem(entry: string): string | null {
 export const polymarketPolicy: PolicySchema = {
   connector: 'polymarket',
   envKey: 'POLYMARKET_POLICY',
-  emptySummary: 'read-only — the agent can read markets, orders and positions and cancel its orders, and cannot buy, sell, deposit, withdraw or claim',
+  emptySummary: 'no caps — the built-in default: any market, any size, deposits from the wallet, withdrawals only back to it',
   groups: [
     {
       question: 'How much may it trade?',
@@ -157,6 +164,8 @@ export const polymarketPolicy: PolicySchema = {
   },
 
   summarize(value: PolicyValue): string {
+    // Nothing set is no policy: the connector's open default, not a closed one.
+    if (nothingSet(value)) return 'The agent trades on the built-in default: any market, any size and volume; it may fund the venue from the wallet and withdraw only back to the wallet’s intents.';
     const order = num(value.max_order_usd);
     const volume = num(value.max_daily_volume_usd);
     const markets = list(value.markets);

@@ -147,3 +147,10 @@ test('a stored switch with nothing to act on is flagged, and the sentence does n
   assert.deepEqual(validate(githubPolicy, together), []);
   assert.match(githubPolicy.summarize(together), /never merge and approve,/);
 });
+
+test('asking first about an action the policy does not allow is flagged', () => {
+  const problems = githubPolicy.check({ actions: ['issue_get', 'issue_comment'], repos: ['a/b'], max_writes_per_day: 5, confirm: ['issue_comment', 'pr_merge'] });
+  assert.equal(problems.length, 1, problems.join(' | '));
+  assert.match(problems[0], /pr_merge is not among the actions ticked/);
+  assert.deepEqual(githubPolicy.check({ actions: ['issue_comment'], repos: ['a/b'], max_writes_per_day: 5, confirm: ['issue_comment'] }), []);
+});

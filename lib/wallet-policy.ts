@@ -453,7 +453,7 @@ export interface ParsedPolicy {
   /** Approval section (page-specific, returned as-is for the caller to handle) */
   approval: {
     required: string;
-    approvers: string; // "account_id, role" lines
+    approvers: string; // "account_id, role[, pubkey]" lines
   } | null;
   /** The full policy JSON for the editor */
   fullJson: Record<string, unknown>;
@@ -463,6 +463,28 @@ export interface ParsedPolicy {
  * Parse the coordinator's GET /wallet/v1/policy response into form fields.
  * `currentApiKeyHash` is excluded from additional_key_hashes (it's auto-included).
  */
+/**
+ * One approver of the policy's multisig, as the form edits it: one line
+ * `account_id, role[, pubkey]`. `pubkey` pins the approver to that one key —
+ * without it the account votes with any of its full-access keys, or through
+ * its wallet contract — so a line read from a stored policy keeps it, and a
+ * save writes it back. Losing it on a round trip would quietly widen who may
+ * vote in the approver's name.
+ */
+export type Approver = { id: string; role: string; pubkey?: string };
+
+export function approverLine(a: { id?: unknown; role?: unknown; pubkey?: unknown }): string {
+  const parts = [String(a.id ?? ''), typeof a.role === 'string' && a.role ? a.role : 'signer'];
+  if (typeof a.pubkey === 'string' && a.pubkey.trim()) parts.push(a.pubkey.trim());
+  return parts.join(', ');
+}
+
+export function parseApproverLine(line: string): Approver | null {
+  const [id, role, pubkey] = line.split(',').map((s) => s.trim());
+  if (!id) return null;
+  return pubkey ? { id, role: role || 'signer', pubkey } : { id, role: role || 'signer' };
+}
+
 export function parsePolicyResponse(
   data: {
     rules?: any;
@@ -546,9 +568,7 @@ export function parsePolicyResponse(
   let approval: ParsedPolicy['approval'] = null;
   if (data.approval) {
     const ap = data.approval;
-    const approverLines = (ap.approvers || [])
-      .map((a: any) => `${a.id}, ${a.role || 'signer'}`)
-      .join('\n');
+    const approverLines = (ap.approvers || []).map(approverLine).join('\n');
     approval = {
       required: ap.threshold?.required?.toString() || '1',
       approvers: approverLines,

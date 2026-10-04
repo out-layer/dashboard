@@ -7,11 +7,11 @@ import assert from 'node:assert/strict';
 import { polymarketPolicy, marketProblem, withdrawToProblem } from '../lib/policies/polymarket.ts';
 import { toJson, fromJson, validate, isUnrestricted, emptyValue } from '../lib/policies/policy.ts';
 
-test('an empty policy is {} and is described as read-only', () => {
+test('an empty policy is {} and is described as the open default', () => {
   assert.equal(toJson(polymarketPolicy, emptyValue()), '{}');
   assert.ok(isUnrestricted(emptyValue()));
-  assert.match(polymarketPolicy.emptySummary, /read-only/);
-  assert.equal(polymarketPolicy.summarize(emptyValue()), 'The agent cannot place orders; it can neither fund the venue nor withdraw.');
+  assert.match(polymarketPolicy.emptySummary, /no caps/);
+  assert.match(polymarketPolicy.summarize(emptyValue()), /built-in default/);
 });
 
 test('only set fields reach the JSON, under the connector’s names, and round-trip', () => {

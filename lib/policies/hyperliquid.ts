@@ -4,18 +4,25 @@ import type { PolicySchema, PolicyValue } from './types';
  * The Hyperliquid connector's policy — the owner's caps on what an agent may
  * trade from its own wallet. Mirrors
  * `connectors/hyperliquid-connector/src/policy.rs`: the keys, what absence
- * means, and the fail-closed rules.
+ * means, and the rules.
  *
- * It FAILS CLOSED. No policy, or a policy that names no size, is read-only:
- * markets, positions and fills answer; nothing is placed. An order needs
+ * NO POLICY IS OPEN. No policy, or an empty one (`{}` — every field cleared),
+ * runs on the connector's built-in default: every coin, no size, volume or
+ * leverage cap beyond the market's, deposits from the wallet's own balance,
+ * withdrawals only back to the wallet's `intents`. A policy that sets anything
+ * replaces the default whole and fails closed: an order then needs
  * `max_order_usd`, `max_daily_volume_usd` AND `max_leverage` — the last one
  * because a fresh Hyperliquid account trades at the market's maximum leverage
- * until something sets it. Deposits and withdrawals are switches, off until
- * turned on. So every grant here says what is withheld, and the empty policy
- * is described as "read-only", never as "no limits".
+ * until something sets it — and deposits and withdrawals are switches, off
+ * until turned on.
  *
  * Amounts are whole dollars.
  */
+
+/** Nothing set — what `toJson` writes as `{}`: no policy, the open default. */
+function nothingSet(value: PolicyValue): boolean {
+  return Object.values(value).every((v) => v === undefined || v === '' || v === false || (Array.isArray(v) && v.length === 0));
+}
 
 function num(v: PolicyValue[string]): number | undefined {
   return typeof v === 'number' ? v : undefined;
@@ -46,7 +53,7 @@ export function withdrawToProblem(entry: string): string | null {
 export const hyperliquidPolicy: PolicySchema = {
   connector: 'hyperliquid',
   envKey: 'HYPERLIQUID_POLICY',
-  emptySummary: 'read-only — the agent can read markets, positions and fills, and cannot place an order, set leverage, deposit or withdraw',
+  emptySummary: 'no caps — the built-in default: any coin, any size, leverage up to the market’s, deposits from the wallet, withdrawals only back to it',
   groups: [
     {
       question: 'How much may it trade?',
@@ -168,6 +175,8 @@ export const hyperliquidPolicy: PolicySchema = {
   },
 
   summarize(value: PolicyValue): string {
+    // Nothing set is no policy: the connector's open default, not a closed one.
+    if (nothingSet(value)) return 'The agent trades on the built-in default: any coin, any size and volume, leverage up to the market’s own cap; it may fund the venue from the wallet and withdraw only back to the wallet’s intents.';
     const order = num(value.max_order_usd);
     const volume = num(value.max_daily_volume_usd);
     const leverage = num(value.max_leverage);

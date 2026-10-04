@@ -285,6 +285,12 @@ export const githubPolicy: PolicySchema = {
     if (actions.includes('pr_merge') && value.allow_merge !== true) {
       problems.push('Merge is ticked but its switch is off — turn on "Merge pull requests", or untick merge');
     }
+    // The connector refuses an action the policy does not allow before it would
+    // ask, so asking first about one is a setting that does nothing.
+    const askedButNotAllowed = list(value.confirm).filter((op) => !actions.includes(op));
+    if (askedButNotAllowed.length > 0) {
+      problems.push(`Ask me before: ${askedButNotAllowed.join(', ')} ${askedButNotAllowed.length === 1 ? 'is' : 'are'} not among the actions ticked — tick ${askedButNotAllowed.length === 1 ? 'it' : 'them'}, or untick it here`);
+    }
     return problems;
   },
 

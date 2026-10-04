@@ -259,11 +259,3 @@ export const mercuryPolicy: PolicySchema = {
     return value.sandbox === true ? `Mercury sandbox — no real money moves. ${sentence}` : sentence;
   },
 };
-
-/**
- * Where a first connection starts: nothing spent, the account pinned when the
- * token reaches exactly one — so the owner sees what they are about to allow
- * before they allow anything. A token that Mercury's sandbox accepted starts
- * with the sandbox switch on, since it works nowhere else. A starting point the
- * owner edits, never a default applied behind them.
- */

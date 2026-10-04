@@ -210,6 +210,9 @@ export default function ConnectorsDocsPage() {
             <code className="bg-card-muted px-1 rounded">403 policy_row_not_owner</code>; doing that again blocks the
             wallet on these connectors for a while (<code className="bg-card-muted px-1 rounded">403 calls_suspended</code>).
             With no policy the connector trades on its built-in default: no caps, withdrawals only back to the wallet.
+            A profile per wallet caps that wallet only while the owner&apos;s{' '}
+            <code className="bg-card-muted px-1 rounded">{'{owner, <connector>}'}</code> row exists too: a call that
+            names no row runs that one.
           </p>
           <p className="text-foreground mt-3">
             <strong>The agent&apos;s.</strong> A credential stored FOR a custody wallet under the{' '}

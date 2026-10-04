@@ -51,7 +51,7 @@ export default function WasiSection() {
  <li>Target: <code className="bg-card-muted px-2 py-1 rounded">wasm32-wasip2</code></li>
  <li>Use for: HTTP requests, complex I/O, modern features</li>
  <li>Binary size: Larger (~500KB-1MB)</li>
- <li>Features: HTTP client, advanced filesystem, sockets</li>
+ <li>Features: HTTP client and the OutLayer host interfaces. No files and no raw sockets: a run keeps its data in memory</li>
  <li>Requires: wasmtime 28+</li>
               </ul>
             </div>

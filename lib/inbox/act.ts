@@ -142,6 +142,16 @@ export function failureWords(reason: string | null | undefined): string {
       return 'the run could not be queued';
     case 'run_not_started':
       return 'no worker started the run in time';
+    case 'build_changed':
+      return 'the integration was updated since the agent prepared it; nothing was charged';
+    case 'run_failed':
+      return 'the run took your approval and did not carry it out; the agent was told why';
+    case 'run_trapped':
+      return 'the run said it carried out your approval, then failed; it most likely happened';
+    case 'run_unreported':
+      return 'the run took your approval and ended without saying what it did; it may have acted';
+    case 'run_unfinished':
+      return 'the run took your approval and never said it ended';
   }
   if (reason.startsWith('run_refused:')) {
     const why = reason.slice('run_refused:'.length);

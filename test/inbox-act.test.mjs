@@ -45,6 +45,11 @@ test('the digest is of one canonical document, the vectors the coordinator and t
 test('why a task failed is said in words, and a reason this build does not know is said as it came', () => {
   assert.equal(failureWords('preparer_key_unavailable'), "the agent's payment key could not pay for the run");
   assert.equal(failureWords('run_not_started'), 'no worker started the run in time');
+  assert.equal(failureWords('build_changed'), 'the integration was updated since the agent prepared it; nothing was charged');
+  assert.equal(failureWords('run_failed'), 'the run took your approval and did not carry it out; the agent was told why');
+  assert.equal(failureWords('run_unreported'), 'the run took your approval and ended without saying what it did; it may have acted');
+  assert.equal(failureWords('run_trapped'), 'the run said it carried out your approval, then failed; it most likely happened');
+  assert.equal(failureWords('run_unfinished'), 'the run took your approval and never said it ended');
   assert.equal(failureWords('run_refused:hash-mismatch'), 'the task the run holds is not the one you approved');
   assert.equal(failureWords('run_refused:approval-invalid'), 'your approval did not verify in the enclave');
   assert.equal(failureWords('run_refused:void'), 'the policy changed since the task was made');

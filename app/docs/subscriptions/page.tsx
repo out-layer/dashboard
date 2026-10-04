@@ -198,13 +198,20 @@ export default function SubscriptionsDocsPage() {
  <li>No claim window; it works with or without a trial.</li>
  <li>
               A key carries one sponsor while its grant is live: the same code again, or another code before the
-              grant ends, changes nothing and answers what the key holds. After it ends, another code is taken.
+              grant ends, changes nothing and answers what the key holds. After it ends, another code is taken —
+              never one this wallet redeemed before.
  </li>
  <li>
-              Only the credential that reads the wallet's nonce-0 key redeems onto it (another one is{' '}
-              <code className="bg-card-muted px-1 rounded">403 payment_key_other_credential</code>, an older random key{' '}
-              <code className="bg-card-muted px-1 rounded">409 payment_key_not_recoverable</code>); a refused redeem
-              takes no use of the code, and a redeem that succeeds always returns the key.
+              Only the credential that reads the wallet&apos;s nonce-0 key redeems onto it (another live one is{' '}
+              <code className="bg-card-muted px-1 rounded">403 payment_key_other_credential</code>), with one
+              exception, in which the redeem first binds the key to the caller: an older random key goes to the
+              caller that sends it as <code className="bg-card-muted px-1 rounded">X-Payment-Key</code> (without it,{' '}
+              <code className="bg-card-muted px-1 rounded">409 payment_key_not_recoverable</code>). A refused redeem
+              takes no use of the code; a redeem that succeeds always returns the key that now works.
+ </li>
+ <li>
+              The subscription pays for connector calls. It lifts the free tier&apos;s custody limits only when the
+              sponsor set the code up to.
  </li>
  <li>
               Refusals: <code className="bg-card-muted px-1 rounded">404 sponsor_code_invalid</code> (one answer for

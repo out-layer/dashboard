@@ -466,7 +466,11 @@ export default function TasksDocsPage() {
                   the run could not be started, did not start, refused the task, or ended any other way; <C>failure_reason</C>{' '}
                   says which: <C>preparer_key_unavailable</C>, <C>operation_priced</C>, <C>operation_unknown</C>,{' '}
                   <C>operation_limit_reached</C>, <C>wallet_unresolved</C>, <C>queue_unavailable</C>, <C>run_not_started</C>, or{' '}
-                  <C>run_refused:&lt;reason&gt;</C> with the host&apos;s reason
+                  <C>run_refused:&lt;reason&gt;</C> with the host&apos;s reason before the run took the answer; after it,{' '}
+                  <C>run_failed</C> (the project said it did not carry the task out; <C>result</C> holds why, a connector&apos;s{' '}
+                  refusal as <C>{'{"error": …}'}</C>), <C>run_trapped</C> (it reported the task carried out, then the run failed;{' '}
+                  <C>result</C> holds the report), <C>run_unreported</C> (the run ended without a word on the task: it may{' '}
+                  have acted) or <C>run_unfinished</C> (no word of its end in time)
                 </>,
               ],
               [<C key="a">rejected</C>, 'the owner said no, with a reason if they gave one'],

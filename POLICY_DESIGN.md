@@ -92,6 +92,18 @@ In order, nothing above the sentence and nothing between the sections:
 4. **Errors**: `validate()`'s list, `text-xs text-destructive-text`, only when
    there are any. The page's Save button is disabled while there are.
 
+**An existing connection whose policy is not loaded** shows one plate above
+the editor (`LoadPolicyBar`): "You already have a policy. It is stored
+encrypted on the contract, last changed <date>." and the button **Load and
+decrypt it**. Above, never under the form: the form is taller than a screen,
+and an owner who misses the button edits an empty form and overwrites the
+policy they have. The chain shows only that the row exists and when it
+changed — the keys are sealed inside it — and a connector page always stores
+the policy with the credential, so the row stands for the policy; a row made
+elsewhere without one says so once loaded. Save stays under the form, with a
+one-line warning while nothing is loaded: "Not loaded: saving replaces your
+current policy, whatever it allows, with this form."
+
 Nothing on the page folds away: no "Customize", no "Show all 25", no preset
 that stands in for the table. A field's explanation and what leaving it empty
 means are in its (i); what an empty field does to the agent is also in the

@@ -103,3 +103,20 @@ test('the design doc exists, is separate from DESIGN.md, and fixes what the edit
   const base = readFileSync(new URL('../DESIGN.md', import.meta.url), 'utf8');
   assert.match(base, /POLICY_DESIGN\.md/, 'DESIGN.md points at it');
 });
+
+// The form is tall: the button that loads the stored policy sits ABOVE it, and
+// says a policy exists — read off the row, the only thing the chain shows.
+test('"Load and decrypt it" is above the form, on both pages, and nowhere below', () => {
+  const bar = readFileSync(new URL('../components/policy/LoadPolicyBar.tsx', import.meta.url), 'utf8');
+  assert.match(bar, /You already have a policy\./);
+  assert.match(bar, /stored encrypted on the contract/);
+  assert.match(bar, /'Load and decrypt it'/);
+  for (const [name, src] of [['owner page', ownerPage], ['gmail page', gmailPage]]) {
+    const at = src.indexOf('<LoadPolicyBar');
+    const editor = src.indexOf('<PolicyEditor\n');
+    assert.ok(at > 0 && at < editor, `${name}: the bar comes before the editor`);
+    assert.match(src, /<LoadPolicyBar saved=\{policyRead\?\.origin === 'saved'\} updatedAt=\{updatedAt\}/);
+    assert.doesNotMatch(src, /'Load current policy'/, `${name}: no second load button under the form`);
+    assert.doesNotMatch(src, /You have not read the policy stored now/);
+  }
+});

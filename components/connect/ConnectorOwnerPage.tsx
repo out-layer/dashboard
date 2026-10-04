@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import { actionCreators } from '@near-js/transactions';
 import { PageHeader } from '@/components/ui/page-header';
 import { PolicyEditor } from '@/components/policy/PolicyEditor';
+import { LoadPolicyBar } from '@/components/policy/LoadPolicyBar';
 import { ConfirmNeedsInbox } from '@/components/inbox/ConfirmNeedsInbox';
 import { AgentChip } from '@/components/ui/agent-chip';
 import { useNearWallet } from '@/contexts/NearWalletContext';
@@ -1162,6 +1163,10 @@ export function ConnectorOwnerPage({ spec }: { spec: ConnectorSpec }) {
                   </p>
                 )}
 
+                {policyRead?.origin !== 'read' && (
+                  <LoadPolicyBar saved={policyRead?.origin === 'saved'} updatedAt={updatedAt} reading={reading} disabled={busy} onLoad={() => void readPolicy()} />
+                )}
+
                 <PolicyEditor
                   key={policyRead ? 'read' : 'unread'}
                   schema={spec.policy}
@@ -1180,16 +1185,11 @@ export function ConnectorOwnerPage({ spec }: { spec: ConnectorSpec }) {
 
                 {!policyRead && (
                   <p className="max-w-3xl rounded border border-red-300 bg-red-50 p-3 text-sm text-red-800">
-                    You have not read the policy stored now. Saving replaces it — whatever it allows — with what is in the form above.
+                    Not loaded: saving replaces your current policy, whatever it allows, with this form.
                   </p>
                 )}
 
                 <div className="flex flex-wrap items-center gap-2">
-                  {policyRead?.origin !== 'read' && (
-                    <button onClick={readPolicy} disabled={busy} className="rounded border border-gray-300 px-4 py-2 text-sm disabled:opacity-50">
-                      {reading ? 'Waiting for your wallet…' : 'Load current policy'}
-                    </button>
-                  )}
                   <button
                     onClick={() => beginUpdate({ keys: { [policyKey]: toJson(spec.policy, policy) }, label: 'Policy saved.' })}
                     disabled={busy || policyErrors.length > 0}
@@ -1199,26 +1199,8 @@ export function ConnectorOwnerPage({ spec }: { spec: ConnectorSpec }) {
                   </button>
                 </div>
 
-                {!policyRead && (
-                  <More label="Why does loading the policy need a transaction?">
-                    <p>
-                      Your policy is stored sealed, together with the credential, and only the keystore enclave can open it — this page cannot
-                      read it back. The one door into the enclave is running the connector, and on chain a run is a transaction: it attaches 0.1
-                      NEAR, keeps the run&apos;s cost — about 0.0013 NEAR — and returns the rest.
-                    </p>
-                    <p>
-                      The connector answers with the policy sealed to a key this page has just created and never sends anywhere, so the chain
-                      records only ciphertext.
-                    </p>
-                  </More>
-                )}
-                {policyRead && (
-                  <p className="text-xs text-muted-foreground">
-                    {policyRead.origin === 'read'
-                      ? 'Loaded from the connector just now.'
-                      : 'Saved just now — this is what the row holds; load it to see what the connector reads back.'}{' '}
-                    Saving takes two steps: a signature, then one transaction.
-                  </p>
+                {policyRead?.origin === 'read' && (
+                  <p className="text-xs text-muted-foreground">Loaded from the connector just now. Saving takes two steps: a signature, then one transaction.</p>
                 )}
               </div>
 

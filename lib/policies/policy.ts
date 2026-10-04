@@ -99,11 +99,11 @@ function allowsAny(choices: PolicyField, values: string[], wanted: string[]): bo
  * - an operation that does nothing without its switch, newly ticked, turns the
  *   switch on;
  * - choices that no longer allow any of a switch's operations (unticked, a
- *   preset, cleared) turn the switch off.
+ *   group switched off, cleared) turn the switch off.
  */
 export function change(schema: PolicySchema, value: PolicyValue, key: string, v: PolicyValue[string]): PolicyValue {
   // An action asked about is an action allowed (`asksBefore`): ticked under
-  // "Ask me before", it is ticked among the allowed actions too — and that
+  // "Manual approval", it is ticked among the allowed actions too — and that
   // change goes through the rest of `change`, so its switches follow.
   for (const ask of fields(schema)) {
     if (ask.kind !== 'choices' || !ask.asksBefore) continue;

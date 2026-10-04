@@ -236,7 +236,7 @@ export const githubPolicy: PolicySchema = {
     },
     {
       question: 'What may it do?',
-      note: 'Automatically: the agent runs it within the rules above. Ask me first: it is prepared and waits in your inbox; your yes runs it. Neither: it does not run.',
+      note: 'Auto-approve: the agent runs it within the limits below. Manual approval: it is prepared and waits in your inbox; your yes runs it. Neither: it does not run. A group’s name turns the whole group on or off.',
       fields: [
         {
           key: 'actions',
@@ -245,18 +245,12 @@ export const githubPolicy: PolicySchema = {
           help: 'Each is one operation of the connector. The agent can run only what is ticked; a new operation added later is NOT included until you tick it.',
           absentMeans: 'Nothing ticked: the agent cannot read or write anything.',
           options: GITHUB_ACTIONS,
-          presets: [
-            { label: 'Read only', values: reads },
-            { label: 'Issues and reviews', values: [...reads, 'issue_create', 'issue_comment', 'issue_update', 'pr_review'] },
-            { label: 'Contributor (through pull requests)', values: [...reads, 'issue_create', 'issue_comment', 'branch_create', 'commit', 'file_put', 'pr_create', 'pr_review'] },
-            { label: 'Gists only', values: ['gist_list', 'gist_get', 'gist_create', 'gist_update'] },
-          ],
         },
         {
           key: 'confirm',
-          label: 'Ask me first',
+          label: 'Manual approval',
           kind: 'choices',
-          help: 'A write ticked here is checked against the rules above, then prepared and left in your inbox instead of being made: you see every value it will use, and approving it takes one signature from your wallet — the agent then makes exactly what you were shown. Asking about a write allows it: ticking it here ticks it under Actions too.',
+          help: 'A write ticked here is checked against the rules above, then prepared and left in your inbox instead of being made: you see every value it will use, and approving it takes one signature from your wallet — the agent then makes exactly what you were shown. Asking about a write allows it: ticking it here takes it out of auto-approve, never out of what is allowed.',
           absentMeans: 'Nothing ticked: the agent makes every write it is allowed without asking.',
           options: GITHUB_CONFIRMABLE,
           asksBefore: 'actions',
@@ -286,7 +280,7 @@ export const githubPolicy: PolicySchema = {
     // ask, so asking first about one is a setting that does nothing.
     const askedButNotAllowed = list(value.confirm).filter((op) => !actions.includes(op));
     if (askedButNotAllowed.length > 0) {
-      problems.push(`Ask me first: ${askedButNotAllowed.join(', ')} ${askedButNotAllowed.length === 1 ? 'is' : 'are'} not among the actions ticked — tick ${askedButNotAllowed.length === 1 ? 'it' : 'them'}, or untick it here`);
+      problems.push(`Manual approval: ${askedButNotAllowed.join(', ')} ${askedButNotAllowed.length === 1 ? 'is' : 'are'} not among the actions ticked — tick ${askedButNotAllowed.length === 1 ? 'it' : 'them'}, or untick it here`);
     }
     return problems;
   },

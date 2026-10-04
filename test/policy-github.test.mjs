@@ -156,7 +156,7 @@ test('asking first about an action the policy does not allow is flagged', () => 
 });
 
 test('asking before an action allows it, and an action no longer allowed is no longer asked about', () => {
-  // Ticked under Ask me before → ticked under Actions too.
+  // Ticked under Manual approval → ticked under Actions too.
   const asked = change(githubPolicy, { actions: ['issue_get'] }, 'confirm', ['gist_create', 'pr_create']);
   assert.deepEqual(asked.confirm, ['gist_create', 'pr_create']);
   assert.ok(asked.actions.includes('gist_create') && asked.actions.includes('pr_create') && asked.actions.includes('issue_get'), JSON.stringify(asked.actions));

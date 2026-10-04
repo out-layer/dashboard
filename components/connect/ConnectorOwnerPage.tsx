@@ -1195,7 +1195,7 @@ export function ConnectorOwnerPage({ spec }: { spec: ConnectorSpec }) {
                     disabled={busy || policyErrors.length > 0}
                     className={`rounded px-4 py-2 text-sm text-white disabled:opacity-50 ${policyRead ? 'bg-[#cc6600]' : 'bg-red-700 hover:bg-red-800'}`}
                   >
-                    {updateStage === 'signing' && updatingPolicy ? 'Waiting for your signature…' : policyRead ? 'Update policy' : 'Yes, overwrite the stored policy'}
+                    {updateStage === 'signing' && updatingPolicy ? 'Waiting for your signature…' : policyRead ? 'Update policy' : 'Overwrite the stored policy'}
                   </button>
                 </div>
 

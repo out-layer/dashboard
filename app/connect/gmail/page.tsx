@@ -1028,7 +1028,7 @@ function ConnectGmail() {
                       ? 'Waiting for your signature…'
                       : policyRead
                         ? 'Update policy'
-                        : 'Yes, overwrite the stored policy'}
+                        : 'Overwrite the stored policy'}
                   </button>
                 </div>
 

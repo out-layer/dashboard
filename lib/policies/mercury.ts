@@ -132,7 +132,6 @@ export const mercuryPolicy: PolicySchema = {
           help: 'The connector uses only what is ticked. A wire is expensive and cannot be recalled, so it is never on unless you tick it.',
           absentMeans: 'Nothing ticked: ACH only.',
           options: MERCURY_METHODS,
-          presets: [{ label: 'ACH only', values: ['ach'] }],
         },
         {
           key: 'account_id',
@@ -182,10 +181,6 @@ export const mercuryPolicy: PolicySchema = {
           absentMeans: 'Nothing ticked: every operation, subject to the rules above.',
           options: MERCURY_OPERATIONS,
           emptyMeansAll: true,
-          presets: [
-            { label: 'Read only', values: reads },
-            { label: 'Read, and pay saved payees', values: [...reads, 'pay_invoice'] },
-          ],
         },
       ],
     },

@@ -27,10 +27,10 @@
  *    agent's own wallet (Polymarket, Hyperliquid): with no policy at all, or an
  *    empty one, it runs on its built-in open default, which `emptySummary` says.
  *
- * "Ask me before" is not a fourth step: it takes an action the policy allows
- * and makes it wait for the owner's yes. Asking about an action therefore
- * allows it — ticking it there ticks it among the allowed actions, and
- * unticking it there removes it from the asks (`asksBefore`).
+ * Manual approval is not a fourth step: it takes an action the policy allows
+ * and makes it wait for the owner's yes. An action that needs approval is
+ * therefore allowed — ticking it there ticks it among the allowed actions, and
+ * unticking it there removes it from the approvals (`asksBefore`).
  */
 
 /**
@@ -45,12 +45,6 @@ export interface Choice {
   label: string;
   /** Choices are rendered under their group's name. */
   group: string;
-}
-
-/** A named selection offered above the choices — what most owners mean. */
-export interface ChoicePreset {
-  label: string;
-  values: string[];
 }
 
 export interface PolicyField {
@@ -70,9 +64,8 @@ export interface PolicyField {
   normalize?: (entry: string) => string;
   /** For lists: the reason an entry is refused, or null. Runs after normalize. */
   validateEntry?: (entry: string) => string | null;
-  /** For choices: the vocabulary, and the selections offered as one click. */
+  /** For choices: the vocabulary. Each group's name is also the one-click switch for the whole group. */
   options?: Choice[];
-  presets?: ChoicePreset[];
   /** For choices: nothing ticked allows every choice, rather than none. */
   emptyMeansAll?: boolean;
   /** For toggles: the choices the switch acts through, when it qualifies operations rather than standing alone. */
@@ -85,8 +78,8 @@ export interface PolicyField {
    */
   asksBefore?: string;
   /**
-   * For choices: this field lists what WAITS for the owner — the "Ask me first"
-   * column of the decision table. Its rows are the options of the field
+   * For choices: this field lists what WAITS for the owner — the "Manual
+   * approval" column of the decision table. Its rows are the options of the field
    * `asksBefore` names (the actions the policy allows) when the connector has
    * one, and its own options otherwise, each then allowed by default and only
    * asked about or not. One such field per schema, in the same group as the

@@ -11,32 +11,29 @@ import { change, decide, decisionFields, decisionOf, isUnrestricted, validate, t
  * decide its shape.
  *
  * 1. **Every control is on the page.** Nothing folds away: a control a reader
- *    cannot see is a rule they do not know they set. Presets stay as one-click
- *    selections above the table they fill, never as a substitute for it.
+ *    cannot see is a rule they do not know they set.
  * 2. **The sentence comes first and is always live.** What the policy allows,
  *    said once at the top as the connector's `summarize` spells it, and
  *    recomputed on every change; a reader who reads nothing else reads that.
- *    Under it, the three rules every policy decides by.
- * 3. **Bounds, then decisions.** The groups that bound the agent — where, how
- *    much, the switches, the marker — come first, side by side on a wide
- *    screen. The decision table comes last, full width, one row per operation
- *    and three outcomes: refused (nothing ticked), automatic, or ask me first.
- *    An action asked about is an action allowed: ticking "Ask me first" moves
- *    it out of "Automatically", and refusing it drops the ask (`decide`).
- * 4. **The hierarchy is the section, then the field, then the default.** A
- *    numbered section title in the strongest weight, the field's label lighter,
- *    and what leaving it empty means in the faintest — printed under every
- *    empty field, not behind an (i). The (i) holds only the explanation.
- * 5. **The summary states permissions, never restrictions**, and an empty
- *    policy is described by the connector: `emptySummary` for a connector that
- *    fails closed or runs open, and "anyone, no limits" for one that narrows a
- *    consent already given.
- * 6. **Nothing is described that has not been loaded.** A caller that has not
- *    read the stored policy passes `headline`, and the editor says so instead
- *    of summarising a value it does not have.
- * 7. **A switch and the operations it qualifies move together** (`change`): a
- *    switch turned on ticks the operation it acts through, and unticking the
- *    operation turns the switch off.
+ *    Under it, closed, the rules every policy decides by.
+ * 3. **What, then where.** The decision table comes first, full width: one row
+ *    per operation, two outcomes — auto-approve, manual approval — and nothing
+ *    ticked is refused. An action asked about is an action allowed (`decide`).
+ *    A table whose rows cannot wait for the owner (reads) has no manual column.
+ *    A group's name is the switch for the whole group: one click turns every
+ *    row of it on, the next turns them all off. The limits come after, side by
+ *    side on a wide screen.
+ * 4. **The hierarchy is the section, then the field.** A numbered section title
+ *    in the strongest weight, the field's label lighter. What a field does and
+ *    what leaving it empty means are in its (i); the sentence at the top says
+ *    the consequence of every empty field that matters, and `check` refuses a
+ *    combination that cannot work.
+ * 5. **The two outcome columns are told apart by a faint tint** — success for
+ *    auto-approve, info for manual approval — the same on every connector.
+ * 6. **The summary states permissions, never restrictions**, and an empty
+ *    policy is described by the connector (`emptySummary`). A caller that has
+ *    not read the stored policy passes `headline` instead.
+ * 7. **A switch and the operations it qualifies move together** (`change`).
  */
 export function PolicyEditor({
   schema,
@@ -77,34 +74,21 @@ export function PolicyEditor({
           <summary className="select-none hover:text-foreground">How a policy decides</summary>
           <ol className="mt-1.5 list-decimal space-y-1 pl-4">
             <li>Your settings decide first: the actions ticked, the limits typed, the switches turned on. The agent gets nothing wider.</li>
-            <li>A field left empty falls to the connector’s own default for it, written under the field: no limit, any recipient, no attachments.</li>
+            <li>A field left empty falls to the connector’s own default for it, said in the field’s (i): no limit, any recipient, no attachments.</li>
             <li>
               {schema.emptyIsOpen
                 ? 'Everything else is refused — except that with no policy at all, or an empty one, this connector runs fully open.'
                 : 'Everything else is refused.'}
             </li>
-            {decision && <li>“Ask me first” takes an allowed action and makes it wait for your yes in the inbox. An action asked about is an action allowed.</li>}
+            {decision && <li>Manual approval takes an allowed action and makes it wait for your yes in the inbox. An action that needs your approval is an action allowed.</li>}
           </ol>
         </details>
       </div>
 
-      {bounds.length > 0 && (
-        <div className="grid gap-x-8 gap-y-6 [grid-template-columns:repeat(auto-fit,minmax(15rem,1fr))]">
-          {bounds.map((group, i) => (
-            <section key={group.question} className="min-w-0 space-y-3">
-              <SectionTitle n={i + 1}>{group.question}</SectionTitle>
-              {group.fields.map((field) => (
-                <Field key={field.key} field={field} value={value[field.key]} onChange={(v) => set(field.key, v)} disabled={disabled} />
-              ))}
-              {group.note && <p className="text-xs text-muted-foreground">{group.note}</p>}
-            </section>
-          ))}
-        </div>
-      )}
-
       {decision && (
         <section className="space-y-3">
-          <SectionTitle n={bounds.length + 1}>{decision.group.question}</SectionTitle>
+          <SectionTitle n={1}>{decision.group.question}</SectionTitle>
+          {decision.group.note && <p className="text-xs text-muted-foreground">{decision.group.note}</p>}
           {decision.group.fields
             .filter((f) => f !== decision.ask && f !== decision.allowed)
             .map((field) => (
@@ -116,15 +100,23 @@ export function PolicyEditor({
             allowed={decision.allowed}
             decisionOf={(op) => decisionOf(schema, value, op)}
             decide={(changes) => onChange(changes.reduce((v, [op, d]) => decide(schema, v, op, d), value))}
-            clear={() => {
-              const cleared = { ...value, [decision.ask.key]: undefined };
-              if (decision.allowed) cleared[decision.allowed.key] = undefined;
-              onChange(cleared);
-            }}
             disabled={disabled}
           />
-          {decision.group.note && <p className="text-xs text-muted-foreground">{decision.group.note}</p>}
         </section>
+      )}
+
+      {bounds.length > 0 && (
+        <div className="grid gap-x-8 gap-y-6 [grid-template-columns:repeat(auto-fit,minmax(15rem,1fr))]">
+          {bounds.map((group, i) => (
+            <section key={group.question} className="min-w-0 space-y-3">
+              <SectionTitle n={i + (decision ? 2 : 1)}>{group.question}</SectionTitle>
+              {group.fields.map((field) => (
+                <Field key={field.key} field={field} value={value[field.key]} onChange={(v) => set(field.key, v)} disabled={disabled} />
+              ))}
+              {group.note && <p className="text-xs text-muted-foreground">{group.note}</p>}
+            </section>
+          ))}
+        </div>
       )}
 
       {errors.length > 0 && (
@@ -152,10 +144,6 @@ function SectionTitle({ n, children }: { n: number; children: React.ReactNode })
 
 const INPUT = 'rounded-md border border-border-strong px-2.5 py-1.5 text-sm outline-none focus:border-accent focus:ring-1 focus:ring-accent disabled:opacity-50';
 
-function isEmpty(v: PolicyValue[string]): boolean {
-  return v === undefined || v === '' || v === false || (Array.isArray(v) && v.length === 0);
-}
-
 function Field({
   field,
   value,
@@ -167,8 +155,18 @@ function Field({
   onChange: (v: PolicyValue[string]) => void;
   disabled: boolean;
 }) {
-  const hint = <InfoHint text={field.help} />;
-  const absent = isEmpty(value) && <p className="text-xs text-faint-foreground">{field.absentMeans}</p>;
+  const hint = (
+    <InfoHint
+      text={
+        <>
+          <span className="block">{field.help}</span>
+          <span className="mt-2 block border-t border-border pt-2">
+            <strong className="font-medium text-foreground">Left empty:</strong> {field.absentMeans}
+          </span>
+        </>
+      }
+    />
+  );
   // A switch is one line: the box, its name, the (i); what "off" means under it while it is off.
   if (field.kind === 'toggle') {
     return (
@@ -180,7 +178,6 @@ function Field({
           </label>
           {hint}
         </div>
-        {absent && <div className="pl-6">{absent}</div>}
       </div>
     );
   }
@@ -217,12 +214,18 @@ function Field({
           className={`w-full max-w-xs ${INPUT}`}
         />
       )}
-      {absent}
     </div>
   );
 }
 
-/** A list of short entries as chips; type one and press Enter or a comma. */
+
+/**
+ * A list of short entries as one box: the entries as chips, and at their end
+ * the place to type the next one. Enter, a comma or a space adds it; a pasted
+ * list — commas, spaces or lines between — adds every entry at once. No entry
+ * any connector accepts holds a space. A long list scrolls inside the box, and
+ * its count and a way to clear it show from a handful on.
+ */
 function ListInput({
   field,
   entries,
@@ -238,9 +241,9 @@ function ListInput({
 
   const commit = (text: string) => {
     const added = text
-      .split(/[,\n]/)
+      .split(/[\s,]+/)
       .map((e) => (field.normalize ?? ((s) => s.trim()))(e))
-      .filter((e) => e.length > 0 && !entries.includes(e));
+      .filter((e, i, all) => e.length > 0 && !entries.includes(e) && all.indexOf(e) === i);
     if (added.length) onChange([...entries, ...added]);
     setDraft('');
   };
@@ -251,100 +254,102 @@ function ListInput({
 
   return (
     <div className="space-y-1">
-      {entries.length > 0 && (
-        <div className="flex flex-wrap gap-1">
-          {entries.map((entry) => (
-            <span key={entry} className="inline-flex items-center gap-1 rounded border border-border bg-card-muted px-2 py-0.5 font-mono text-xs">
-              {entry}
-              <button
-                type="button"
-                aria-label={`Remove ${entry}`}
-                onClick={() => remove(entry)}
-                disabled={disabled}
-                className="text-muted-foreground hover:text-foreground disabled:opacity-50"
-              >
-                ×
-              </button>
-            </span>
-          ))}
-        </div>
-      )}
-      <input
-        type="text"
-        value={draft}
-        placeholder={field.placeholder}
-        disabled={disabled}
-        onChange={(e) => (e.target.value.includes(',') ? commit(e.target.value) : setDraft(e.target.value))}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter') {
-            e.preventDefault();
-            commit(draft);
-          }
-        }}
-        onBlur={() => draft.trim() && commit(draft)}
-        className={`w-full max-w-xs ${INPUT}`}
-      />
-    </div>
-  );
-}
-
-/** One-click selections above a table: what most owners mean. The table stays. */
-function Presets({
-  field,
-  chosen,
-  put,
-  clear,
-  disabled,
-}: {
-  field: PolicyField;
-  chosen: string[];
-  put: (values: string[]) => void;
-  clear: () => void;
-  disabled: boolean;
-}) {
-  if (!field.presets?.length) return null;
-  const same = (values: string[]) => values.length === chosen.length && values.every((v) => chosen.includes(v));
-  return (
-    <div className="flex flex-wrap items-center gap-1.5">
-      <span className="text-xs text-muted-foreground">Start from:</span>
-      {field.presets.map((preset) => (
-        <button
-          key={preset.label}
-          type="button"
-          onClick={() => put(preset.values)}
+      <div
+        className={`flex max-h-32 flex-wrap items-center gap-1 overflow-y-auto rounded-md border border-border-strong px-1.5 py-1 focus-within:border-accent focus-within:ring-1 focus-within:ring-accent ${disabled ? 'opacity-50' : ''}`}
+        title="Type and press Enter. A pasted list — commas, spaces or lines between — adds every entry."
+      >
+        {entries.map((entry) => (
+          <span key={entry} className="inline-flex max-w-full items-center gap-1 rounded border border-border bg-card-muted px-1.5 py-0.5 font-mono text-xs">
+            <span className="truncate">{entry}</span>
+            <button
+              type="button"
+              aria-label={`Remove ${entry}`}
+              onClick={() => remove(entry)}
+              disabled={disabled}
+              className="text-muted-foreground hover:text-foreground"
+            >
+              ×
+            </button>
+          </span>
+        ))}
+        <input
+          type="text"
+          value={draft}
+          aria-label={field.label}
+          placeholder={entries.length === 0 ? field.placeholder : 'add…'}
           disabled={disabled}
-          aria-pressed={same(preset.values)}
-          className={`rounded-md border px-2 py-0.5 text-xs disabled:opacity-50 ${
-            same(preset.values) ? 'border-accent bg-accent/10 text-accent-text' : 'border-border-strong text-muted-foreground hover:border-accent hover:text-accent-text'
-          }`}
-        >
-          {preset.label}
-        </button>
-      ))}
-      {chosen.length > 0 && (
-        <button type="button" onClick={clear} disabled={disabled} className="px-1 text-xs text-muted-foreground underline hover:text-foreground disabled:opacity-50">
-          clear
-        </button>
+          onChange={(e) => (/[\s,]/.test(e.target.value) ? commit(e.target.value) : setDraft(e.target.value))}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              commit(draft);
+            } else if (e.key === 'Backspace' && draft === '' && entries.length > 0) {
+              remove(entries[entries.length - 1]);
+            }
+          }}
+          onBlur={() => draft.trim() && commit(draft)}
+          className="min-w-[6rem] flex-1 border-0 bg-transparent px-1 py-0.5 text-sm outline-none"
+        />
+      </div>
+      {entries.length >= 5 && (
+        <p className="text-xs text-faint-foreground">
+          <span className="tabular-nums">{entries.length}</span> entries ·{' '}
+          <button type="button" onClick={() => onChange(undefined)} disabled={disabled} className="underline hover:text-foreground">
+            clear all
+          </button>
+        </p>
       )}
     </div>
   );
 }
 
 const TH = 'pb-1 text-[11px] font-semibold uppercase tracking-wider text-faint-foreground';
+/** The two outcomes, told apart by a faint tint of their meaning — the same on every connector. */
+const AUTO_TINT = 'bg-success/[0.07]';
+const MANUAL_TINT = 'bg-info/[0.08]';
 
-/** The groups of a vocabulary, in its order, each as a small table; the tables flow into columns on a wide screen. */
+/** The groups of a vocabulary, in its order. */
 function groupsOf(options: Choice[]): { name: string; rows: Choice[] }[] {
   const names = [...new Set(options.map((o) => o.group))];
   return names.map((name) => ({ name, rows: options.filter((o) => o.group === name) }));
 }
 
 /**
- * The decision table: one row per operation, one column per outcome. A row
- * with nothing ticked is refused; "Automatically" and "Ask me first" exclude
- * each other, so a tick in one moves the row out of the other. Rows the
- * connector cannot ask about (reads) have no "Ask me first" box. A connector
- * with no allowed-actions field (Gmail) allows every row by default, so each
- * row is a pair of radios: automatic, or asked.
+ * A group's name as its switch: one click turns every row of the group on,
+ * the next — once all are on — turns them all off. It shows how many are on.
+ */
+function GroupSwitch({ name, on, of, toggle, disabled }: { name: string; on: number; of: number; toggle: () => void; disabled: boolean }) {
+  const all = on === of;
+  return (
+    <button
+      type="button"
+      onClick={toggle}
+      disabled={disabled}
+      aria-pressed={all}
+      title={all ? `Turn off all of ${name.toLowerCase()}` : `Turn on all of ${name.toLowerCase()}`}
+      className={`inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wider disabled:opacity-50 ${
+        all
+          ? 'border-accent bg-accent/10 text-accent-text'
+          : on > 0
+            ? 'border-accent/50 border-dashed text-foreground hover:border-accent'
+            : 'border-border-strong text-muted-foreground hover:border-accent hover:text-accent-text'
+      }`}
+    >
+      {name}
+      <span className="font-normal normal-case tracking-normal tabular-nums">
+        {on}/{of}
+      </span>
+    </button>
+  );
+}
+
+/**
+ * The decision table: one small table per group of operations, one row per
+ * operation, two outcome columns. A row with nothing ticked is refused;
+ * auto-approve and manual approval exclude each other. A group none of whose
+ * rows can wait for the owner (reads) has no manual column. A connector with
+ * no allowed-actions field (Gmail) allows every row, so each row is a pair of
+ * radios and its group name is a plain heading.
  */
 function DecisionTable({
   rows,
@@ -352,7 +357,6 @@ function DecisionTable({
   allowed,
   decisionOf,
   decide,
-  clear,
   disabled,
 }: {
   rows: PolicyField;
@@ -361,137 +365,101 @@ function DecisionTable({
   decisionOf: (op: string) => Decision;
   /** Several rows decided at once, each on the value the one before produced. */
   decide: (changes: [string, Decision][]) => void;
-  clear: () => void;
   disabled: boolean;
 }) {
   const options = rows.options ?? [];
   const askable = new Set((ask.options ?? []).map((o) => o.value));
-  const chosen = options.map((o) => o.value).filter((v) => decisionOf(v) !== 'refused');
   const one = (op: string, d: Decision) => decide([[op, d]]);
-  // A preset names what runs automatically; what it does not name is refused, asks included.
-  const put = (values: string[]) => decide(options.map((o) => [o.value, values.includes(o.value) ? 'automatic' : 'refused']));
-
   const label = (o: Choice) => o.label.replace(/ \(.*\)$/, '');
-  const columnTitle = (d: Decision) => (d === 'automatic' ? 'Automatically' : 'Ask me first');
-  // With no allowed-actions field every row runs by default, and what that means is the ask field's `absentMeans`.
-  const columnHelp = (d: Decision) => (d === 'automatic' ? (allowed ? allowed.help : ask.absentMeans) : ask.help);
+  const radios = !allowed;
 
   return (
-    <div className="space-y-3">
-      {allowed && (
-        <Presets field={allowed} chosen={chosen} put={put} clear={clear} disabled={disabled} />
-      )}
-      <div className="gap-8 md:columns-2 xl:columns-3">
-        {groupsOf(options).map((group) => (
+    <div className="gap-8 md:columns-2 xl:columns-3">
+      {groupsOf(options).map((group) => {
+        const manual = group.rows.some((o) => askable.has(o.value));
+        const on = group.rows.filter((o) => decisionOf(o.value) !== 'refused').length;
+        return (
           <table key={group.name} className="mb-4 w-full break-inside-avoid border-collapse text-sm">
             <thead>
               <tr className="border-b border-border">
-                <th scope="col" className={`${TH} text-left`}>
-                  {group.name}
+                <th scope="col" className="pb-1.5 text-left">
+                  {allowed ? (
+                    <GroupSwitch
+                      name={group.name}
+                      on={on}
+                      of={group.rows.length}
+                      // Turning a group on keeps the rows that wait for the owner waiting.
+                      toggle={() =>
+                        decide(
+                          on === group.rows.length
+                            ? group.rows.map((o) => [o.value, 'refused'])
+                            : group.rows.filter((o) => decisionOf(o.value) === 'refused').map((o) => [o.value, 'automatic']),
+                        )
+                      }
+                      disabled={disabled}
+                    />
+                  ) : (
+                    <span className={TH}>{group.name}</span>
+                  )}
                 </th>
-                {(['automatic', 'asked'] as Decision[]).map((d) => (
-                  <th key={d} scope="col" className={`${TH} w-24 text-center`}>
-                    <span className="inline-flex items-center gap-1">
-                      {columnTitle(d)}
-                      <InfoHint text={columnHelp(d)} align="right" />
-                    </span>
+                <th scope="col" className={`${TH} ${AUTO_TINT} w-20 rounded-t px-1 text-center`}>
+                  Auto-approve
+                </th>
+                {manual && (
+                  <th scope="col" className={`${TH} ${MANUAL_TINT} w-20 rounded-t px-1 text-center`}>
+                    Manual approval
                   </th>
-                ))}
+                )}
               </tr>
             </thead>
             <tbody>
               {group.rows.map((o) => {
                 const now = decisionOf(o.value);
-                const canAsk = askable.has(o.value);
-                const radios = !allowed;
                 return (
-                  <tr key={o.value} className="border-b border-border/60 last:border-0 hover:bg-card-muted/60">
+                  <tr key={o.value} className="border-b border-border/60 last:border-0">
                     <td className="py-1.5 pr-2" title={o.value}>
                       {label(o)}
                     </td>
-                    <td className="py-1.5 text-center">
+                    <td className={`${AUTO_TINT} py-1.5 text-center`}>
                       <input
                         type={radios ? 'radio' : 'checkbox'}
                         name={radios ? `${ask.key}:${o.value}` : undefined}
-                        aria-label={`${label(o)}: automatically`}
+                        aria-label={`${label(o)}: auto-approve`}
                         checked={now === 'automatic'}
                         onChange={() => one(o.value, now === 'automatic' && !radios ? 'refused' : 'automatic')}
                         disabled={disabled}
                       />
                     </td>
-                    <td className="py-1.5 text-center">
-                      {canAsk ? (
-                        <input
-                          type={radios ? 'radio' : 'checkbox'}
-                          name={radios ? `${ask.key}:${o.value}` : undefined}
-                          aria-label={`${label(o)}: ask me first`}
-                          checked={now === 'asked'}
-                          onChange={() => one(o.value, now === 'asked' && !radios ? 'automatic' : 'asked')}
-                          disabled={disabled}
-                        />
-                      ) : (
-                        <span className="text-faint-foreground" title="Cannot wait for you: it changes nothing">
-                          —
-                        </span>
-                      )}
-                    </td>
+                    {manual && (
+                      <td className={`${MANUAL_TINT} py-1.5 text-center`}>
+                        {askable.has(o.value) ? (
+                          <input
+                            type={radios ? 'radio' : 'checkbox'}
+                            name={radios ? `${ask.key}:${o.value}` : undefined}
+                            aria-label={`${label(o)}: manual approval`}
+                            checked={now === 'asked'}
+                            onChange={() => one(o.value, now === 'asked' && !radios ? 'automatic' : 'asked')}
+                            disabled={disabled}
+                          />
+                        ) : (
+                          <span className="text-faint-foreground" title="Cannot wait for you: it changes nothing">
+                            —
+                          </span>
+                        )}
+                      </td>
+                    )}
                   </tr>
                 );
               })}
-              {group.rows.length > 1 && allowed && (
-                <tr>
-                  <td className="pt-1 text-xs text-faint-foreground">whole group</td>
-                  <td className="pt-1 text-center">
-                    <GroupAll
-                      title={`All of ${group.name.toLowerCase()}: automatically`}
-                      state={groupState(group.rows, decisionOf, 'automatic')}
-                      onSet={(on) => decide(group.rows.map((o) => [o.value, on ? 'automatic' : 'refused']))}
-                      disabled={disabled}
-                    />
-                  </td>
-                  <td className="pt-1 text-center">
-                    {group.rows.some((o) => askable.has(o.value)) && (
-                      <GroupAll
-                        title={`All of ${group.name.toLowerCase()}: ask me first`}
-                        state={groupState(group.rows.filter((o) => askable.has(o.value)), decisionOf, 'asked')}
-                        onSet={(on) => decide(group.rows.filter((o) => askable.has(o.value)).map((o) => [o.value, on ? 'asked' : 'automatic']))}
-                        disabled={disabled}
-                      />
-                    )}
-                  </td>
-                </tr>
-              )}
             </tbody>
           </table>
-        ))}
-      </div>
+        );
+      })}
     </div>
   );
 }
 
-function groupState(rows: Choice[], decisionOf: (op: string) => Decision, d: Decision): 'all' | 'some' | 'none' {
-  const n = rows.filter((o) => decisionOf(o.value) === d).length;
-  return n === 0 ? 'none' : n === rows.length ? 'all' : 'some';
-}
-
-/** The whole-group box: ticked when every row is, indeterminate when some are. */
-function GroupAll({ title, state, onSet, disabled }: { title: string; state: 'all' | 'some' | 'none'; onSet: (on: boolean) => void; disabled: boolean }) {
-  return (
-    <input
-      type="checkbox"
-      aria-label={title}
-      title={title}
-      checked={state === 'all'}
-      ref={(el) => {
-        if (el) el.indeterminate = state === 'some';
-      }}
-      onChange={() => onSet(state !== 'all')}
-      disabled={disabled}
-    />
-  );
-}
-
-/** A set from a fixed vocabulary with no owner to ask: one "Allowed" column, the same table otherwise. */
+/** A set from a fixed vocabulary with no owner to ask: one "Allowed" column, each group's name its switch. */
 function ChoicesTable({
   field,
   chosen,
@@ -512,36 +480,43 @@ function ChoicesTable({
   const groups = groupsOf(options);
   const wide = groups.length > 1;
   return (
-    <div className="space-y-2">
-      <Presets field={field} chosen={chosen} put={put} clear={() => onChange(undefined)} disabled={disabled} />
-      <div className={wide ? 'gap-8 md:columns-2' : ''}>
-        {groups.map((group) => (
+    <div className={wide ? 'gap-8 md:columns-2' : ''}>
+      {groups.map((group) => {
+        const values = group.rows.map((o) => o.value);
+        const on = values.filter((v) => chosen.includes(v)).length;
+        return (
           <table key={group.name} className={`mb-2 break-inside-avoid border-collapse text-sm ${wide ? 'w-full' : 'w-full max-w-xs'}`}>
             <thead>
               <tr className="border-b border-border">
-                <th scope="col" className={`${TH} text-left`}>
-                  {group.name}
+                <th scope="col" className="pb-1.5 text-left">
+                  <GroupSwitch
+                    name={group.name}
+                    on={on}
+                    of={values.length}
+                    toggle={() => put(on === values.length ? chosen.filter((v) => !values.includes(v)) : [...chosen, ...values])}
+                    disabled={disabled}
+                  />
                 </th>
-                <th scope="col" className={`${TH} w-20 text-center`}>
+                <th scope="col" className={`${TH} ${AUTO_TINT} w-20 rounded-t px-1 text-center`}>
                   Allowed
                 </th>
               </tr>
             </thead>
             <tbody>
               {group.rows.map((o) => (
-                <tr key={o.value} className="border-b border-border/60 last:border-0 hover:bg-card-muted/60">
+                <tr key={o.value} className="border-b border-border/60 last:border-0">
                   <td className="py-1.5 pr-2" title={o.value}>
                     {o.label.replace(/ \(.*\)$/, '')}
                   </td>
-                  <td className="py-1.5 text-center">
+                  <td className={`${AUTO_TINT} py-1.5 text-center`}>
                     <input type="checkbox" aria-label={`${o.label}: allowed`} checked={chosen.includes(o.value)} onChange={() => toggle(o.value)} disabled={disabled} />
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
-        ))}
-      </div>
+        );
+      })}
     </div>
   );
 }

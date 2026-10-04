@@ -18,36 +18,68 @@ test('nothing folds away: no Customize, no hidden list, no defaultOpen', () => {
   assert.doesNotMatch(gmailPage, /defaultOpen/);
 });
 
-test('the sentence comes first, with the three rules under it', () => {
+test('the sentence comes first, then what it may do, then where and how much', () => {
   const sentence = editor.indexOf('This policy:');
   const rules = editor.indexOf('How a policy decides');
-  const bounds = editor.indexOf('grid-template-columns:repeat(auto-fit');
   const table = editor.indexOf('<DecisionTable');
-  assert.ok(sentence > 0 && sentence < rules && rules < bounds && bounds < table);
+  const limits = editor.indexOf('grid-template-columns:repeat(auto-fit');
+  assert.ok(sentence > 0 && sentence < rules && rules < table && table < limits);
   assert.match(editor, /Your settings decide first/);
-  assert.match(editor, /falls to the connector’s own default/);
+  assert.match(editor, /falls to the connector’s own default for it, said in the field’s \(i\)/);
   assert.match(editor, /Everything else is refused/);
   assert.match(editor, /schema\.emptyIsOpen\s*\?/, 'the open-default exception is named only for connectors that have it');
 });
 
-test('the decision table: two columns that exclude each other, a dash where nothing can wait, a whole-group box', () => {
-  assert.match(editor, /'Automatically' : 'Ask me first'/);
+test('the decision table: Auto-approve | Manual approval, tinted, no (i) in the headers, no manual column where nothing can wait', () => {
+  assert.match(editor, />\s*Auto-approve\s*</);
+  assert.match(editor, />\s*Manual approval\s*</);
+  assert.doesNotMatch(editor, /Automatically|Ask me first/);
+  assert.match(editor, /const AUTO_TINT = 'bg-success\/\[0\.07\]'/);
+  assert.match(editor, /const MANUAL_TINT = 'bg-info\/\[0\.08\]'/);
+  const table = editor.slice(editor.indexOf('function DecisionTable'), editor.indexOf('function ChoicesTable'));
+  assert.doesNotMatch(table, /<InfoHint/, 'column headers carry no (i)');
+  assert.match(table, /const manual = group\.rows\.some\(\(o\) => askable\.has\(o\.value\)\)/);
+  assert.match(table, /\{manual && \(/);
   assert.match(editor, /now === 'automatic' && !radios \? 'refused' : 'automatic'/);
   assert.match(editor, /now === 'asked' && !radios \? 'automatic' : 'asked'/);
   assert.match(editor, /type=\{radios \? 'radio' : 'checkbox'\}/, 'two outcomes only where nothing can be refused');
-  assert.match(editor, /Cannot wait for you/);
-  assert.match(editor, /el\.indeterminate = state === 'some'/);
-  // Several rows at once are folded over one value, never applied to the same stale one.
   assert.match(editor, /changes\.reduce\(\(v, \[op, d\]\) => decide\(schema, v, op, d\), value\)/);
 });
 
-test('sections are numbered and the hierarchy is section > field > default', () => {
-  assert.match(editor, /<SectionTitle n=\{i \+ 1\}>/);
-  assert.match(editor, /<SectionTitle n=\{bounds\.length \+ 1\}>/);
+test('a group name is its switch: on, then off; no presets anywhere', () => {
+  assert.match(editor, /function GroupSwitch/);
+  assert.match(editor, /on === group\.rows\.length\s*\? group\.rows\.map\(\(o\) => \[o\.value, 'refused'\]\)\s*: group\.rows\.filter\(\(o\) => decisionOf\(o\.value\) === 'refused'\)\.map\(\(o\) => \[o\.value, 'automatic'\]\)/);
+  assert.match(editor, /aria-pressed=\{all\}/);
+  assert.doesNotMatch(editor, /presets|Start from|>whole group</);
+  for (const f of ['github', 'mercury', 'gmail', 'hyperliquid', 'polymarket', 'types']) {
+    assert.doesNotMatch(readFileSync(new URL(`../lib/policies/${f}.ts`, import.meta.url), 'utf8'), /presets|ChoicePreset/, f);
+  }
+});
+
+test('a list is one box: chips and the input together, pasted lists split, a long list scrolls', () => {
+  const list = editor.slice(editor.indexOf('function ListInput'), editor.indexOf('const TH ='));
+  assert.match(list, /\.split\(\/\[\\s,\]\+\/\)/);
+  assert.match(list, /max-h-32[^"]*overflow-y-auto/);
+  assert.match(list, /entries\.length >= 5/);
+  assert.match(list, /clear all/);
+  assert.match(list, /e\.key === 'Backspace' && draft === ''/);
+});
+
+test('sections are numbered, decisions first, and what empty means is in the (i)', () => {
+  assert.match(editor, /<SectionTitle n=\{1\}>/);
+  assert.match(editor, /<SectionTitle n=\{i \+ \(decision \? 2 : 1\)\}>/);
   assert.match(editor, /text-sm font-semibold text-foreground/, 'the section title is the strongest text');
   assert.match(editor, /text-xs font-medium text-muted-foreground/, 'the field label is lighter');
-  assert.match(editor, /text-xs text-faint-foreground">\{field\.absentMeans\}/, 'what empty means is printed, faintest, under the field');
+  assert.match(editor, /Left empty:<\/strong> \{field\.absentMeans\}/);
+  assert.doesNotMatch(editor, /faint-foreground">\{field\.absentMeans\}/, 'not printed under the field');
   assert.doesNotMatch(editor, /<fieldset|<legend/, 'no fieldset indentation');
+});
+
+test('a button says what it does: no "Yes," where no question is asked', () => {
+  for (const src of [ownerPage, gmailPage]) {
+    assert.doesNotMatch(src, /Yes, overwrite/);
+    assert.match(src, /'Overwrite the stored policy'/);
+  }
 });
 
 test('design tokens only — no palette classes, no raw hexes', () => {
@@ -65,7 +97,7 @@ test('the pages give the editor the width of the screen and keep prose in a read
 
 test('the design doc exists, is separate from DESIGN.md, and fixes what the editor does', () => {
   assert.match(design, /# Policy pages/);
-  for (const must of ['Automatically', 'Ask me first', 'refused', 'How a policy decides', 'auto-fit', 'First match wins', 'Polymarket', 'Hyperliquid', 'Mercury', 'Gmail', 'GitHub']) {
+  for (const must of ['Auto-approve', 'Manual approval', 'refused', 'How a policy decides', 'auto-fit', 'First match wins', 'Polymarket', 'Hyperliquid', 'Mercury', 'Gmail', 'GitHub']) {
     assert.ok(design.includes(must), `POLICY_DESIGN.md names ${must}`);
   }
   const base = readFileSync(new URL('../DESIGN.md', import.meta.url), 'utf8');

@@ -17,7 +17,7 @@ export function SignInPrompt({ compact = false }: { compact?: boolean }) {
           ? 'This browser was signed out'
           : session === 'ended'
             ? 'Sign again to stay signed in'
-            : 'Sign a message to see what your agents ask of you'}
+            : 'Turn on notifications from your agents'}
       </p>
       {session === 'replaced' && (
         <p className="rounded-md border border-warning/40 bg-warning/10 p-3 text-sm text-foreground">
@@ -29,10 +29,15 @@ export function SignInPrompt({ compact = false }: { compact?: boolean }) {
         </p>
       )}
       <p className="text-sm text-muted-foreground">
-        One signature, no transaction and no cost. It opens a session in this browser for 30 days and names a key
-        this browser made for it: what your agents ask is encrypted to that key, and only this browser reads it. Your
-        other browsers stay signed in. The signature moves nothing and approves nothing.
+        One signature in your wallet — free, no transaction. It moves nothing and approves nothing.
       </p>
+      <details className="text-xs text-muted-foreground">
+        <summary className="cursor-pointer">What it does</summary>
+        <p className="mt-1">
+          It signs this browser in to your inbox for 30 days. What your agents ask is encrypted to a key this browser
+          made, so only this browser reads it; your other browsers stay signed in.
+        </p>
+      </details>
       {error && (
         <p className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive-text">{error}</p>
       )}

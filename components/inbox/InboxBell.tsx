@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useNearWallet } from '@/contexts/NearWalletContext';
 import { useInbox } from '@/contexts/InboxContext';
 import { SignInPrompt } from '@/components/inbox/SignInPrompt';
+import { hintQuietNow, quietHint, useInboxNudgeWanted } from '@/components/inbox/inboxNudge';
 
 /**
  * The bell. With a session it counts what waits and leads to the inbox.
@@ -13,12 +14,21 @@ import { SignInPrompt } from '@/components/inbox/SignInPrompt';
  * itself once — and says so when this browser was signed out because the
  * account signed in on one too many; the wallet still opens only from the click
  * inside it.
+ *
+ * A page whose policy asks the owner first (`ConfirmNeedsInbox`) puts a small
+ * hint under the crossed-out bell — "turn on notifications from your agents" —
+ * in place of a block in the page. A click on the bell puts it away for ten
+ * minutes.
  */
 export function InboxBell() {
   const { isConnected } = useNearWallet();
   const { session, count } = useInbox();
   const [open, setOpen] = useState(false);
   const offered = useRef(false);
+  const nudgeWanted = useInboxNudgeWanted();
+  // Read after mount: storage is the browser's.
+  const [quiet, setQuiet] = useState(true);
+  useEffect(() => setQuiet(hintQuietNow()), [nudgeWanted]);
   const box = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -68,7 +78,13 @@ export function InboxBell() {
     <div className="relative" ref={box}>
       <button
         type="button"
-        onClick={() => setOpen((was) => !was)}
+        onClick={() => {
+          setOpen((was) => !was);
+          if (!quiet) {
+            quietHint();
+            setQuiet(true);
+          }
+        }}
         aria-label="Inbox: sign in to see what waits"
         aria-expanded={open}
         className={frame}
@@ -81,6 +97,16 @@ export function InboxBell() {
       {open && (
         <div className="absolute right-0 top-11 z-50 w-80 rounded-lg border border-border bg-card p-4 shadow-lg">
           <SignInPrompt compact />
+        </div>
+      )}
+      {!open && nudgeWanted && !quiet && (
+        <div
+          role="note"
+          className="absolute right-0 top-11 z-40 w-56 rounded-lg border border-accent/40 bg-card px-3 py-2 text-xs text-foreground shadow-md"
+        >
+          <span className="absolute -top-1.5 right-3 h-3 w-3 rotate-45 border-l border-t border-accent/40 bg-card" aria-hidden="true" />
+          <span className="font-medium">Turn on notifications from your agents</span>
+          <span className="block text-muted-foreground">Click the bell — one signature, free.</span>
         </div>
       )}
     </div>

@@ -1,4 +1,4 @@
-import type { PolicyField, PolicySchema, PolicyValue, SwitchLink } from './types';
+import type { PolicyField, PolicyGroup, PolicySchema, PolicyValue, SwitchLink } from './types';
 
 /** Every field of the schema, flat. */
 export function fields(schema: PolicySchema): PolicyField[] {
@@ -145,6 +145,73 @@ export function change(schema: PolicySchema, value: PolicyValue, key: string, v:
       if (!allowsAny(choices, now, link.through)) next[toggle.key] = undefined;
       else if (now.some((c) => only.includes(c) && !before.includes(c))) next[toggle.key] = true;
     }
+  }
+  return next;
+}
+
+/**
+ * What the policy decides for one operation. `refused`: it does not run.
+ * `automatic`: the agent runs it within the bounds, without asking. `asked`: it
+ * is prepared and waits in the owner's inbox; the owner's yes runs it.
+ */
+export type Decision = 'refused' | 'automatic' | 'asked';
+
+/**
+ * The schema's decision table: the field listing what waits for the owner
+ * (`asks`), the field listing what is allowed (`asksBefore`) when the connector
+ * has one, and the group they share. Null for a connector with nothing to ask.
+ */
+export function decisionFields(schema: PolicySchema): { ask: PolicyField; allowed?: PolicyField; group: PolicyGroup } | null {
+  for (const group of schema.groups) {
+    const ask = group.fields.find((f) => f.kind === 'choices' && f.asks);
+    if (!ask) continue;
+    const allowed = ask.asksBefore ? fields(schema).find((f) => f.key === ask.asksBefore && f.kind === 'choices') : undefined;
+    return { ask, allowed, group };
+  }
+  return null;
+}
+
+/** The decision the value holds for `op` — see {@link Decision}. */
+export function decisionOf(schema: PolicySchema, value: PolicyValue, op: string): Decision {
+  const d = decisionFields(schema);
+  if (!d) return 'refused';
+  if (chosen(value[d.ask.key]).includes(op)) return 'asked';
+  if (!d.allowed) return 'automatic';
+  const allowed = chosen(value[d.allowed.key]);
+  if (allowed.length === 0) return d.allowed.emptyMeansAll ? 'automatic' : 'refused';
+  return allowed.includes(op) ? 'automatic' : 'refused';
+}
+
+/**
+ * `value` with `op` decided as `decision`, through {@link change} so every
+ * switch follows. Asking allows: `asked` ticks the operation among the allowed
+ * ones. `automatic` keeps it allowed and drops the ask. `refused` unticks it,
+ * which drops the ask too; a connector with no allowed-actions field cannot
+ * refuse here, so `refused` there reads as `automatic`.
+ */
+export function decide(schema: PolicySchema, value: PolicyValue, op: string, decision: Decision): PolicyValue {
+  const d = decisionFields(schema);
+  if (!d) return value;
+  const inOrder = (field: PolicyField, values: string[]) => (field.options ?? []).map((o) => o.value).filter((v) => values.includes(v));
+  const without = (field: PolicyField, values: string[]) => {
+    const kept = values.filter((v) => v !== op);
+    return kept.length > 0 ? kept : undefined;
+  };
+  const asked = chosen(value[d.ask.key]);
+  if (decision === 'asked') {
+    return asked.includes(op) ? value : change(schema, value, d.ask.key, inOrder(d.ask, [...asked, op]));
+  }
+  let next = asked.includes(op) ? change(schema, value, d.ask.key, without(d.ask, asked)) : value;
+  if (!d.allowed) return next;
+  const allowed = chosen(next[d.allowed.key]);
+  const every = (d.allowed.options ?? []).map((o) => o.value);
+  const allowsAll = allowed.length === 0 && d.allowed.emptyMeansAll === true;
+  if (decision === 'automatic') {
+    if (!allowsAll && !allowed.includes(op)) next = change(schema, next, d.allowed.key, inOrder(d.allowed, [...allowed, op]));
+  } else if (allowsAll) {
+    next = change(schema, next, d.allowed.key, every.filter((v) => v !== op));
+  } else if (allowed.includes(op)) {
+    next = change(schema, next, d.allowed.key, without(d.allowed, allowed));
   }
   return next;
 }

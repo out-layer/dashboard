@@ -55,6 +55,7 @@ export function withdrawToProblem(entry: string): string | null {
 export const polymarketPolicy: PolicySchema = {
   connector: 'polymarket',
   envKey: 'POLYMARKET_POLICY',
+  emptyIsOpen: true,
   emptySummary: 'no caps — the built-in default: any market, any size, deposits from the wallet, withdrawals only back to it',
   groups: [
     {

@@ -202,7 +202,7 @@ export function TrySending({
   };
 
   return (
-    <div className="rounded border border-border p-4 text-sm space-y-3">
+    <div className="max-w-3xl rounded border border-border p-4 text-sm space-y-3">
       <div className="flex items-baseline gap-2">
         <h3 className="font-medium text-foreground">Send a test message</h3>
         <InfoHint

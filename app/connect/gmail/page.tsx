@@ -807,7 +807,7 @@ function ConnectGmail() {
   const updatedAt = loaded ? new Date(loaded.updated_at / 1_000_000) : null;
 
   return (
-    <div className="max-w-2xl space-y-4">
+    <div className="w-full space-y-4">
       <PageHeader title="Connect Gmail" description="Let an agent send mail from your own address." />
 
       {!clientId && (
@@ -819,7 +819,7 @@ function ConnectGmail() {
       {row === 'loading' && stage === 'idle' && <p className="text-sm text-muted-foreground">Checking whether this account is connected…</p>}
 
       {row === 'unknown' && stage === 'idle' && (
-        <div className="rounded border border-gray-200 p-4 text-sm space-y-2">
+        <div className="max-w-3xl rounded border border-gray-200 p-4 text-sm space-y-2">
           <p>Whether this account is connected could not be read from the contract just now.</p>
           <button onClick={() => { setError(null); setRow('loading'); void loadRow(); }} className="rounded border border-gray-300 px-4 py-2 text-sm">
             Try again
@@ -828,7 +828,7 @@ function ConnectGmail() {
       )}
 
       {published === false && stage === 'idle' && (
-        <div className="rounded border border-gray-200 p-4 text-sm space-y-2">
+        <div className="max-w-3xl rounded border border-gray-200 p-4 text-sm space-y-2">
           <p className="font-medium">The Gmail connector is not published on {network} yet.</p>
           <p className="text-muted-foreground">
             Connecting here would store a credential nothing can read — the project{' '}
@@ -842,7 +842,7 @@ function ConnectGmail() {
       {/* ---------------- a first connection ---------------- */}
       {published !== false && row === null && stage === 'idle' && !reconnectToken && (
         <>
-          <p className="text-sm">
+          <p className="max-w-3xl text-sm">
             Google will ask you to allow one thing: sending mail. This connector cannot read your
             mailbox — it never asks for a scope that would let it, so no message of yours can reach
             an agent.
@@ -861,7 +861,7 @@ function ConnectGmail() {
 
       {(stage === 'ready' || stage === 'storing') && (
         <>
-          <div className="rounded border-2 border-amber-400 bg-amber-50 p-4 text-sm space-y-2">
+          <div className="max-w-3xl rounded border-2 border-amber-400 bg-amber-50 p-4 text-sm space-y-2">
             <p className="font-medium text-amber-900">Google has granted the credential. Nothing is saved yet.</p>
             <p className="text-amber-900">
               Choose what the agent may do, then press the button: your browser encrypts the credential and one
@@ -891,7 +891,7 @@ function ConnectGmail() {
       )}
 
       {stage === 'done' && (
-        <div className="space-y-4">
+        <div className="max-w-3xl space-y-4">
           <div className="rounded border border-green-300 bg-green-50 p-4 text-sm">
             <p className="font-medium text-green-800">Gmail connected.</p>
             <p className="mt-1 text-green-900">
@@ -928,7 +928,7 @@ function ConnectGmail() {
       {/* ---------------- an existing connection ---------------- */}
       {published !== false && loaded && stage === 'idle' && (
         <div className="space-y-4">
-          <div className="rounded border border-green-300 bg-green-50 px-4 py-3 text-sm text-green-900">
+          <div className="max-w-3xl rounded border border-green-300 bg-green-50 px-4 py-3 text-sm text-green-900">
             <span className="font-medium text-green-800">Gmail is connected.</span> Who may use it:{' '}
             <AccessChips access={loaded.access} />{' '}
             <a className="underline" href={`/secrets?project=${encodeURIComponent(projectId)}&profile=${PROFILE}&access=1`}>
@@ -936,7 +936,7 @@ function ConnectGmail() {
             </a>
           </div>
 
-          {saved && <div className="rounded border border-green-300 bg-green-50 px-4 py-3 text-sm text-green-900">✓ {saved}</div>}
+          {saved && <div className="max-w-3xl rounded border border-green-300 bg-green-50 px-4 py-3 text-sm text-green-900">✓ {saved}</div>}
 
           {mayAsk && <ConfirmNeedsInbox />}
 
@@ -945,7 +945,7 @@ function ConnectGmail() {
               rendered — a second control on screen here is a person deciding
               they are done and closing the tab with nothing saved. */}
           {updateStage === 'ready-to-store' || updateStage === 'storing' ? (
-            <div className="rounded border-2 border-amber-400 bg-amber-50 p-4 text-sm space-y-3">
+            <div className="max-w-3xl rounded border-2 border-amber-400 bg-amber-50 p-4 text-sm space-y-3">
               <p className="text-base font-semibold text-amber-900">Step 2 of 2 — not saved yet</p>
               <p className="text-amber-900">
                 {update?.keys.GMAIL_POLICY !== undefined
@@ -978,7 +978,7 @@ function ConnectGmail() {
               {/* ---- the policy ---- */}
               <div className="space-y-3">
                 {policyRead?.origin === 'read' && !policyRead.present && (
-                  <p className="rounded border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
+                  <p className="max-w-3xl rounded border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
                     The connector reports <strong>no policy at all</strong> in this row, so nothing can be sent
                     from it until one is saved.
                   </p>
@@ -990,19 +990,18 @@ function ConnectGmail() {
                   value={policy}
                   onChange={setPolicy}
                   disabled={busy}
-                  defaultOpen={!!policyRead}
                   headline={policyRead ? undefined : 'not loaded — what you save replaces what is stored'}
                 />
 
                 {policyRead?.origin === 'read' && policyRead.unknownKeys.length > 0 && (
-                  <p className="text-xs text-amber-800">
+                  <p className="max-w-3xl text-xs text-amber-800">
                     The stored policy also has {policyRead.unknownKeys.join(', ')} — a key this connector does not
                     know, which makes it refuse to send. Saving from here drops it.
                   </p>
                 )}
 
                 {!policyRead && (
-                  <p className="rounded border border-red-300 bg-red-50 p-3 text-sm text-red-800">
+                  <p className="max-w-3xl rounded border border-red-300 bg-red-50 p-3 text-sm text-red-800">
                     You have not read the policy stored now. Saving replaces it — whatever it allows — with what is
                     in the form above.
                   </p>
@@ -1072,9 +1071,9 @@ function ConnectGmail() {
               {/* Rule 9: reconnecting is rare, so it sits last and closed —
                   unless a new credential is already in hand, when it opens
                   itself, because what is pending must never be hidden. */}
-              <div className="border-t border-gray-200 pt-3 space-y-3">
+              <div className="max-w-3xl border-t border-gray-200 pt-3 space-y-3">
                 {reconnectToken ? (
-                  <div className="rounded border-2 border-amber-400 bg-amber-50 p-4 text-sm space-y-2">
+                  <div className="max-w-3xl rounded border-2 border-amber-400 bg-amber-50 p-4 text-sm space-y-2">
                     <p className="font-medium text-amber-900">Google granted a new credential. It is not in your row yet.</p>
                     <button
                       onClick={() => beginUpdate({ keys: { GMAIL_REFRESH_TOKEN: reconnectToken }, label: 'Google account reconnected.' })}

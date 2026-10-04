@@ -46,7 +46,7 @@ export const GITHUB_ACTIONS: Choice[] = [
   { value: 'issue_update', label: 'retitle, label, close', group: ISSUES },
   { value: 'pr_create', label: 'open a pull request', group: PULLS },
   { value: 'pr_review', label: 'review', group: PULLS },
-  { value: 'pr_merge', label: 'merge (needs the switch below)', group: PULLS },
+  { value: 'pr_merge', label: 'merge (needs its switch)', group: PULLS },
   { value: 'gist_create', label: 'create a gist', group: GISTS },
   { value: 'gist_update', label: 'change a gist', group: GISTS },
   { value: 'repo_star', label: 'star', group: STARS },
@@ -144,25 +144,6 @@ export const githubPolicy: PolicySchema = {
   emptySummary: 'nothing is allowed yet — the agent can only ask for the connection’s status',
   groups: [
     {
-      question: 'What may it do?',
-      fields: [
-        {
-          key: 'actions',
-          label: 'Actions',
-          kind: 'choices',
-          help: 'Each is one operation of the connector. The agent can run only what is ticked; a new operation added later is NOT included until you tick it.',
-          absentMeans: 'Nothing ticked: the agent cannot read or write anything.',
-          options: GITHUB_ACTIONS,
-          presets: [
-            { label: 'Read only', values: reads },
-            { label: 'Issues and reviews', values: [...reads, 'issue_create', 'issue_comment', 'issue_update', 'pr_review'] },
-            { label: 'Contributor (through pull requests)', values: [...reads, 'issue_create', 'issue_comment', 'branch_create', 'commit', 'file_put', 'pr_create', 'pr_review'] },
-            { label: 'Gists only', values: ['gist_list', 'gist_get', 'gist_create', 'gist_update'] },
-          ],
-        },
-      ],
-    },
-    {
       question: 'Where?',
       fields: [
         {
@@ -212,7 +193,7 @@ export const githubPolicy: PolicySchema = {
       ],
     },
     {
-      question: 'The three things that are off unless you say so',
+      question: 'Off unless you say so',
       fields: [
         {
           key: 'allow_merge',
@@ -254,17 +235,32 @@ export const githubPolicy: PolicySchema = {
       ],
     },
     {
-      question: 'Ask me before…',
-      note: 'The agent’s request waits in your inbox; nothing happens until you approve it there.',
+      question: 'What may it do?',
+      note: 'Automatically: the agent runs it within the rules above. Ask me first: it is prepared and waits in your inbox; your yes runs it. Neither: it does not run.',
       fields: [
         {
+          key: 'actions',
+          label: 'Actions',
+          kind: 'choices',
+          help: 'Each is one operation of the connector. The agent can run only what is ticked; a new operation added later is NOT included until you tick it.',
+          absentMeans: 'Nothing ticked: the agent cannot read or write anything.',
+          options: GITHUB_ACTIONS,
+          presets: [
+            { label: 'Read only', values: reads },
+            { label: 'Issues and reviews', values: [...reads, 'issue_create', 'issue_comment', 'issue_update', 'pr_review'] },
+            { label: 'Contributor (through pull requests)', values: [...reads, 'issue_create', 'issue_comment', 'branch_create', 'commit', 'file_put', 'pr_create', 'pr_review'] },
+            { label: 'Gists only', values: ['gist_list', 'gist_get', 'gist_create', 'gist_update'] },
+          ],
+        },
+        {
           key: 'confirm',
-          label: 'Ask me before',
+          label: 'Ask me first',
           kind: 'choices',
           help: 'A write ticked here is checked against the rules above, then prepared and left in your inbox instead of being made: you see every value it will use, and approving it takes one signature from your wallet — the agent then makes exactly what you were shown. Asking about a write allows it: ticking it here ticks it under Actions too.',
           absentMeans: 'Nothing ticked: the agent makes every write it is allowed without asking.',
           options: GITHUB_CONFIRMABLE,
           asksBefore: 'actions',
+          asks: true,
         },
       ],
     },
@@ -290,7 +286,7 @@ export const githubPolicy: PolicySchema = {
     // ask, so asking first about one is a setting that does nothing.
     const askedButNotAllowed = list(value.confirm).filter((op) => !actions.includes(op));
     if (askedButNotAllowed.length > 0) {
-      problems.push(`Ask me before: ${askedButNotAllowed.join(', ')} ${askedButNotAllowed.length === 1 ? 'is' : 'are'} not among the actions ticked — tick ${askedButNotAllowed.length === 1 ? 'it' : 'them'}, or untick it here`);
+      problems.push(`Ask me first: ${askedButNotAllowed.join(', ')} ${askedButNotAllowed.length === 1 ? 'is' : 'are'} not among the actions ticked — tick ${askedButNotAllowed.length === 1 ? 'it' : 'them'}, or untick it here`);
     }
     return problems;
   },

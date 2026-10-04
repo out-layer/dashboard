@@ -84,6 +84,15 @@ export interface PolicyField {
    * ticks it there; unticking it there unticks it here.
    */
   asksBefore?: string;
+  /**
+   * For choices: this field lists what WAITS for the owner — the "Ask me first"
+   * column of the decision table. Its rows are the options of the field
+   * `asksBefore` names (the actions the policy allows) when the connector has
+   * one, and its own options otherwise, each then allowed by default and only
+   * asked about or not. One such field per schema, in the same group as the
+   * field it asks over.
+   */
+  asks?: boolean;
 }
 
 /**
@@ -129,6 +138,12 @@ export interface PolicySchema {
    * and the editor shows this instead of the permissive default.
    */
   emptySummary?: string;
+  /**
+   * The connector runs fully open with no policy or an empty one (Polymarket,
+   * Hyperliquid): the editor's rules then name that exception instead of
+   * "everything else is refused".
+   */
+  emptyIsOpen?: boolean;
   /** Rules across fields, in the owner's words: a write allowed with no daily number, and the like. */
   check?(value: PolicyValue): string[];
 }

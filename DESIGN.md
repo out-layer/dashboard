@@ -1,7 +1,8 @@
 # OutLayer Dashboard — Design Guidelines
 
 Every page is built the same way. If a screen deviates from this file, the screen
-is wrong — fix the screen or propose a change here first.
+is wrong — fix the screen or propose a change here first. A connector's policy
+page follows `POLICY_DESIGN.md` on top of this file.
 
 ## Principles
 

@@ -868,17 +868,17 @@ export function ConnectorOwnerPage({ spec }: { spec: ConnectorSpec }) {
   const grantHref = `/secrets?project=${encodeURIComponent(projectId)}&profile=${encodeURIComponent(profile)}&access=1`;
 
   return (
-    <div className="max-w-2xl space-y-4">
+    <div className="w-full space-y-4">
       <PageHeader title={spec.title} description={spec.description} />
 
       {!spec.configured && <p className="text-sm text-red-600">{spec.notConfigured}</p>}
 
-      {notice && <p className="rounded border border-blue-200 bg-blue-50 p-3 text-sm text-blue-900">{notice}</p>}
+      {notice && <p className="max-w-3xl rounded border border-blue-200 bg-blue-50 p-3 text-sm text-blue-900">{notice}</p>}
 
       {row === 'loading' && stage === 'idle' && <p className="text-sm text-muted-foreground">Checking whether this account is connected…</p>}
 
       {row === 'unknown' && stage === 'idle' && (
-        <div className="rounded border border-gray-200 p-4 text-sm space-y-2">
+        <div className="max-w-3xl rounded border border-gray-200 p-4 text-sm space-y-2">
           <p>Whether this account is connected could not be read from the contract just now.</p>
           <button
             onClick={() => {
@@ -894,7 +894,7 @@ export function ConnectorOwnerPage({ spec }: { spec: ConnectorSpec }) {
       )}
 
       {published === false && stage === 'idle' && (
-        <div className="rounded border border-gray-200 p-4 text-sm space-y-2">
+        <div className="max-w-3xl rounded border border-gray-200 p-4 text-sm space-y-2">
           <p className="font-medium">
             The {spec.provider} connector is not published on {network} yet.
           </p>
@@ -909,7 +909,7 @@ export function ConnectorOwnerPage({ spec }: { spec: ConnectorSpec }) {
       {/* ---------------- a first connection ---------------- */}
       {published !== false && row === null && stage === 'idle' && !reconnectCredential && !policyOnly && (
         <>
-          <div className="text-sm space-y-2">{spec.intro}</div>
+          <div className="max-w-3xl text-sm space-y-2">{spec.intro}</div>
           {spec.paste ? (
             <PasteForm paste={spec.paste} disabled={!spec.configured} onContinue={(value) => void prepareWithCredential(value)} />
           ) : (
@@ -925,8 +925,8 @@ export function ConnectorOwnerPage({ spec }: { spec: ConnectorSpec }) {
       {/* Rule 19: for a policy-only connector the first screen is this stop. */}
       {(stage === 'ready' || stage === 'storing' || (policyOnly && stage === 'idle' && row === null && published !== false)) && (
         <>
-          {policyOnly && <div className="text-sm space-y-2">{spec.intro}</div>}
-          <div className="rounded border-2 border-amber-400 bg-amber-50 p-4 text-sm space-y-2">
+          {policyOnly && <div className="max-w-3xl text-sm space-y-2">{spec.intro}</div>}
+          <div className="max-w-3xl rounded border-2 border-amber-400 bg-amber-50 p-4 text-sm space-y-2">
             <p className="font-medium text-amber-900">
               {policyOnly
                 ? 'Nothing is stored yet.'
@@ -973,9 +973,9 @@ export function ConnectorOwnerPage({ spec }: { spec: ConnectorSpec }) {
               </p>
             </More>
           </div>
-          <PolicyEditor schema={spec.policy} value={policy} onChange={setPolicy} disabled={stage === 'storing'} defaultOpen />
+          <PolicyEditor schema={spec.policy} value={policy} onChange={setPolicy} disabled={stage === 'storing'} />
           {/* Rule 20: one line, closed; the agent chosen shows as a chip. */}
-          <div className="text-sm">
+          <div className="max-w-3xl text-sm">
             {grantAgentTrimmed && !grantAgentProblem ? (
               <p className="flex flex-wrap items-center gap-2">
                 <span>Readable by you and</span>
@@ -1053,7 +1053,7 @@ export function ConnectorOwnerPage({ spec }: { spec: ConnectorSpec }) {
       )}
 
       {stage === 'done' && (
-        <div className="space-y-4">
+        <div className="max-w-3xl space-y-4">
           <div className="rounded border border-green-300 bg-green-50 p-4 text-sm">
             <p className="font-medium text-green-800">{policyOnly ? `${spec.provider} policy stored.` : `${spec.provider} connected.`}</p>
             <p className="mt-1 text-green-900">
@@ -1100,20 +1100,20 @@ export function ConnectorOwnerPage({ spec }: { spec: ConnectorSpec }) {
       {/* ---------------- an existing connection ---------------- */}
       {published !== false && loaded && stage === 'idle' && (
         <div className="space-y-4">
-          <div className="rounded border border-green-300 bg-green-50 px-4 py-3 text-sm text-green-900">
+          <div className="max-w-3xl rounded border border-green-300 bg-green-50 px-4 py-3 text-sm text-green-900">
             <span className="font-medium text-green-800">{spec.provider} is connected.</span> Who may use it: <AccessChips access={loaded.access} />{' '}
             <a className="underline" href={grantHref}>
               Manage access
             </a>
           </div>
 
-          {saved && <div className="rounded border border-green-300 bg-green-50 px-4 py-3 text-sm text-green-900">✓ {saved}</div>}
+          {saved && <div className="max-w-3xl rounded border border-green-300 bg-green-50 px-4 py-3 text-sm text-green-900">✓ {saved}</div>}
 
           {mayAsk && <ConfirmNeedsInbox />}
 
           {/* Rule 4: while a signed change waits for its transaction, this block IS the page. */}
           {updateStage === 'ready-to-store' || updateStage === 'storing' ? (
-            <div className="rounded border-2 border-amber-400 bg-amber-50 p-4 text-sm space-y-3">
+            <div className="max-w-3xl rounded border-2 border-amber-400 bg-amber-50 p-4 text-sm space-y-3">
               <p className="text-base font-semibold text-amber-900">Step 2 of 2 — not saved yet</p>
               <p className="text-amber-900">
                 Your signature only encrypted the new {updatingPolicy ? 'policy' : 'credential'}. It takes effect when you save it on chain.
@@ -1137,7 +1137,7 @@ export function ConnectorOwnerPage({ spec }: { spec: ConnectorSpec }) {
           ) : (
             <>
               {statusView?.list && (
-                <div className="space-y-1 rounded border border-gray-200 p-3">
+                <div className="max-w-3xl space-y-1 rounded border border-gray-200 p-3">
                   <p className="text-sm">{statusView.list.heading}</p>
                   <div className="flex flex-wrap gap-1">
                     {statusView.list.values.map((value) => (
@@ -1157,7 +1157,7 @@ export function ConnectorOwnerPage({ spec }: { spec: ConnectorSpec }) {
 
               <div className="space-y-3">
                 {policyRead?.origin === 'read' && !policyRead.present && (
-                  <p className="rounded border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
+                  <p className="max-w-3xl rounded border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
                     The connector reports <strong>no policy at all</strong> in this row.
                   </p>
                 )}
@@ -1168,19 +1168,18 @@ export function ConnectorOwnerPage({ spec }: { spec: ConnectorSpec }) {
                   value={policy}
                   onChange={setPolicy}
                   disabled={busy}
-                  defaultOpen={!!policyRead}
                   headline={policyRead ? undefined : 'not loaded — what you save replaces what is stored'}
                 />
 
                 {policyRead?.origin === 'read' && policyRead.unknownKeys.length > 0 && (
-                  <p className="text-xs text-amber-800">
+                  <p className="max-w-3xl text-xs text-amber-800">
                     The stored policy also has {policyRead.unknownKeys.join(', ')} — a key this connector does not know, which makes it refuse to
                     act. Saving from here drops it.
                   </p>
                 )}
 
                 {!policyRead && (
-                  <p className="rounded border border-red-300 bg-red-50 p-3 text-sm text-red-800">
+                  <p className="max-w-3xl rounded border border-red-300 bg-red-50 p-3 text-sm text-red-800">
                     You have not read the policy stored now. Saving replaces it — whatever it allows — with what is in the form above.
                   </p>
                 )}
@@ -1223,14 +1222,14 @@ export function ConnectorOwnerPage({ spec }: { spec: ConnectorSpec }) {
                 )}
               </div>
 
-              {spec.connectedExtra && <div className="border-t border-gray-200 pt-3 text-sm">{spec.connectedExtra}</div>}
+              {spec.connectedExtra && <div className="max-w-3xl border-t border-gray-200 pt-3 text-sm">{spec.connectedExtra}</div>}
 
               {/* Rule 9: reconnecting is rare, so it sits last and closed — unless a
                   new credential is already in hand, when it opens itself. A
                   policy-only connector has nothing to reconnect (rule 19). */}
-              <div className="border-t border-gray-200 pt-3 space-y-3">
+              <div className="max-w-3xl border-t border-gray-200 pt-3 space-y-3">
                 {policyOnly ? null : reconnectCredential ? (
-                  <div className="rounded border-2 border-amber-400 bg-amber-50 p-4 text-sm space-y-2">
+                  <div className="max-w-3xl rounded border-2 border-amber-400 bg-amber-50 p-4 text-sm space-y-2">
                     <p className="font-medium text-amber-900">
                       {spec.paste ? 'The new token is in this tab and nowhere else. It is not in your row yet.' : `${spec.provider} granted a new credential. It is not in your row yet.`}
                     </p>

@@ -53,6 +53,7 @@ export function withdrawToProblem(entry: string): string | null {
 export const hyperliquidPolicy: PolicySchema = {
   connector: 'hyperliquid',
   envKey: 'HYPERLIQUID_POLICY',
+  emptyIsOpen: true,
   emptySummary: 'no caps — the built-in default: any coin, any size, leverage up to the market’s, deposits from the wallet, withdrawals only back to it',
   groups: [
     {

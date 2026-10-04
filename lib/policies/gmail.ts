@@ -134,11 +134,13 @@ export const gmailPolicy: PolicySchema = {
       ],
     },
     {
-      question: 'Ask me before…',
+      question: 'What may it do?',
+      note: 'Automatically: the agent sends within the rules above. Ask me first: the message is prepared and waits in your inbox; your yes sends it.',
       fields: [
         {
           key: 'confirm',
-          label: 'Ask me before',
+          label: 'Ask me first',
+          asks: true,
           kind: 'choices',
           help: 'An operation ticked here is prepared by the agent and waits for you: the message is checked against the rules above, you read it in your inbox, and it is sent by your own call — one transaction from your wallet. You are shown the whole message and given every attachment to open.',
           absentMeans: 'Nothing ticked: the agent sends within the rules above without asking.',

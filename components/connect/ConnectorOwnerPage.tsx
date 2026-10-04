@@ -12,7 +12,7 @@ import { useNearWallet } from '@/contexts/NearWalletContext';
 import { getCoordinatorApiUrl } from '@/lib/api';
 import { bytesToHex, eciesEncrypt, generateReplyKeypair, hexToBytes, openReply } from '@/lib/ecies';
 import { waitForTransactionOutcome } from '@/lib/near-rpc';
-import { emptyValue, fields, fromJson, toJson, validate } from '@/lib/policies/policy';
+import { emptyValue, fields, fromJson, rulesOf, strings, toJson, validate } from '@/lib/policies/policy';
 import type { PolicySchema, PolicyValue } from '@/lib/policies/types';
 import { formatAccessCondition } from '@/app/secrets/components/utils';
 import { isImplicitAccount, shortAccount } from '@/lib/short-account';
@@ -441,8 +441,15 @@ export function ConnectorOwnerPage({ spec }: { spec: ConnectorSpec }) {
   // A policy that asks the owner before an operation makes the agent leave
   // tasks in the inbox. Known once the policy is loaded or saved; until then a
   // connector that can ask may be asking.
-  const confirmOn = Array.isArray(policy.confirm) && policy.confirm.length > 0;
-  const mayAsk = fields(spec.policy).some((f) => f.key === 'confirm') && (policyRead === null ? true : confirmOn);
+  // The policy can leave writes for the owner — a `confirm` list, or a rule
+  // whose outcome is `ask` — and the owner needs an inbox to answer them.
+  const askField = fields(spec.policy).find((f) => f.asks);
+  const confirmOn = askField
+    ? askField.kind === 'rules'
+      ? rulesOf(policy[askField.key]).some((r) => r.then === 'ask')
+      : strings(policy[askField.key]).length > 0
+    : false;
+  const mayAsk = Boolean(askField) && (policyRead === null ? true : confirmOn);
 
   // ---- read the row -----------------------------------------------------
   const loadRow = useCallback(async () => {

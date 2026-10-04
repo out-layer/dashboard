@@ -28,7 +28,7 @@ function num(v: PolicyValue[string]): number | undefined {
 }
 
 function list(v: PolicyValue[string]): string[] {
-  return Array.isArray(v) ? v : [];
+  return Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : [];
 }
 
 function usd(n: number): string {

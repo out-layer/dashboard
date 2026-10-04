@@ -2,8 +2,8 @@
 
 import { useState } from 'react';
 import { InfoHint } from '@/components/ui/info-hint';
-import type { Choice, PolicyField, PolicySchema, PolicyValue } from '@/lib/policies/types';
-import { change, decide, decisionFields, decisionOf, fields, isUnrestricted, shownAsRows, validate, type Decision, type DecisionRow } from '@/lib/policies/policy';
+import type { Choice, PolicyField, PolicyRule, PolicySchema, PolicyValue, RuleCondition, RuleThen } from '@/lib/policies/types';
+import { change, conditionsOf, decide, decisionFields, decisionOf, fields, isUnrestricted, rulesOf, shownAsRows, strings, validate, type Decision, type DecisionRow } from '@/lib/policies/policy';
 
 function isEmptyValue(v: PolicyValue[string]): boolean {
   return v === undefined || v === '' || v === false || (Array.isArray(v) && v.length === 0);
@@ -133,6 +133,9 @@ export function PolicyEditor({
             goTo={goTo}
             disabled={disabled}
           />
+          {decision.ask?.kind === 'rules' && decision.ask.ruleSpec && (
+            <RulesList field={decision.ask} rules={rulesOf(value[decision.ask.key])} onChange={(v) => set(decision.ask!.key, v)} disabled={disabled} />
+          )}
         </section>
       )}
 
@@ -219,9 +222,9 @@ function Field({
         {hint}
       </label>
       {field.kind === 'list' ? (
-        <ListInput field={field} entries={Array.isArray(value) ? value : []} onChange={onChange} disabled={disabled} />
+        <ListInput field={field} entries={strings(value)} onChange={onChange} disabled={disabled} />
       ) : field.kind === 'choices' ? (
-        <ChoicesTable field={field} chosen={Array.isArray(value) ? value : []} onChange={onChange} disabled={disabled} />
+        <ChoicesTable field={field} chosen={strings(value)} onChange={onChange} disabled={disabled} />
       ) : field.kind === 'number' ? (
         <div className="flex items-center gap-2">
           <input
@@ -584,5 +587,216 @@ function ChoicesTable({
         );
       })}
     </div>
+  );
+}
+
+const THEN_LABEL: Record<RuleThen, string> = { allow: 'Auto-approve', ask: 'Manual approval', refuse: 'Refuse' };
+/** The outcome's tint: the table's two columns, and the destructive tone for a refusal. */
+const THEN_TINT: Record<RuleThen, string> = { allow: AUTO_TINT, ask: MANUAL_TINT, refuse: 'bg-destructive/[0.07]' };
+
+/**
+ * The owner's rules, in the order they are checked: each names an operation,
+ * the conditions it sets, and what happens — auto-approve, manual approval,
+ * refuse. A plain rule (no condition) is the same one the table's column
+ * writes; it is listed here too, so that the order the connector reads is
+ * the order on the page. Conditions are offered only where the operation
+ * carries them.
+ */
+function RulesList({
+  field,
+  rules,
+  onChange,
+  disabled,
+}: {
+  field: PolicyField;
+  rules: PolicyRule[];
+  onChange: (v: PolicyRule[] | undefined) => void;
+  disabled: boolean;
+}) {
+  const spec = field.ruleSpec!;
+  const put = (next: PolicyRule[]) => onChange(next.length > 0 ? next : undefined);
+  const at = (i: number, rule: PolicyRule) => put(rules.map((r, j) => (j === i ? rule : r)));
+  const move = (i: number, by: number) => {
+    const j = i + by;
+    if (j < 0 || j >= rules.length) return;
+    const next = [...rules];
+    [next[i], next[j]] = [next[j], next[i]];
+    put(next);
+  };
+  const conditionsFor = (op: string) => spec.conditions.filter((c) => c.ops.includes(op));
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center gap-1.5">
+        <h4 className="text-xs font-medium text-muted-foreground">Rules, checked top to bottom</h4>
+        <InfoHint text={<><span className="block">{field.help}</span><span className="mt-2 block border-t border-border pt-2"><strong className="font-medium text-foreground">Left empty:</strong> {field.absentMeans}</span></>} />
+      </div>
+      {rules.length > 0 && (
+        <ol className="space-y-1.5">
+          {rules.map((rule, i) => {
+            const set = conditionsOf(rule).map(([k]) => k);
+            const free = conditionsFor(rule.when.op).filter((c) => !set.includes(c.key));
+            return (
+              <li key={i} className="flex flex-wrap items-center gap-x-2 gap-y-1.5 rounded-md border border-border px-2 py-1.5">
+                <span className="w-5 shrink-0 text-xs tabular-nums text-faint-foreground">{i + 1}</span>
+                <select
+                  aria-label={`Rule ${i + 1}: operation`}
+                  value={rule.when.op}
+                  // A new operation keeps only the conditions it carries.
+                  onChange={(e) => {
+                    const op = e.target.value;
+                    const kept = Object.fromEntries(conditionsOf(rule).filter(([k]) => conditionsFor(op).some((c) => c.key === k)));
+                    at(i, { when: { op, ...kept }, then: rule.then });
+                  }}
+                  disabled={disabled}
+                  className={SELECT}
+                >
+                  {spec.ops.map((o) => (
+                    <option key={o.value} value={o.value}>
+                      {o.label}
+                    </option>
+                  ))}
+                </select>
+                {conditionsFor(rule.when.op)
+                  .filter((c) => set.includes(c.key))
+                  .map((c) => (
+                    <ConditionInput
+                      key={c.key}
+                      condition={c}
+                      value={rule.when[c.key]}
+                      onChange={(v) => at(i, { when: { ...rule.when, [c.key]: v }, then: rule.then })}
+                      onRemove={() => {
+                        const when = { ...rule.when };
+                        delete when[c.key];
+                        at(i, { when, then: rule.then });
+                      }}
+                      disabled={disabled}
+                    />
+                  ))}
+                {free.length > 0 && (
+                  <select
+                    aria-label={`Rule ${i + 1}: add a condition`}
+                    value=""
+                    onChange={(e) => {
+                      const c = free.find((x) => x.key === e.target.value);
+                      if (!c) return;
+                      const start = c.kind === 'usd' ? 100 : c.kind === 'set' ? [c.options![0].value] : c.options![0].value;
+                      at(i, { when: { ...rule.when, [c.key]: start }, then: rule.then });
+                    }}
+                    disabled={disabled}
+                    className={`${SELECT} text-muted-foreground`}
+                  >
+                    <option value="">+ condition</option>
+                    {free.map((c) => (
+                      <option key={c.key} value={c.key}>
+                        {c.label.replace(/\$$/, '').trim()} …
+                      </option>
+                    ))}
+                  </select>
+                )}
+                <span className="text-xs text-faint-foreground">→</span>
+                <div role="radiogroup" aria-label={`Rule ${i + 1}: outcome`} className="inline-flex overflow-hidden rounded-md border border-border-strong">
+                  {(['allow', 'ask', 'refuse'] as RuleThen[]).map((t) => (
+                    <button
+                      key={t}
+                      type="button"
+                      role="radio"
+                      aria-checked={rule.then === t}
+                      onClick={() => at(i, { when: rule.when, then: t })}
+                      disabled={disabled}
+                      className={`px-2 py-0.5 text-xs disabled:opacity-50 ${rule.then === t ? `${THEN_TINT[t]} font-semibold text-foreground` : 'text-muted-foreground hover:text-foreground'}`}
+                    >
+                      {THEN_LABEL[t]}
+                    </button>
+                  ))}
+                </div>
+                <span className="ml-auto inline-flex gap-1">
+                  <button type="button" aria-label={`Move rule ${i + 1} up`} onClick={() => move(i, -1)} disabled={disabled || i === 0} className="px-1 text-xs text-muted-foreground hover:text-foreground disabled:opacity-30">
+                    ↑
+                  </button>
+                  <button type="button" aria-label={`Move rule ${i + 1} down`} onClick={() => move(i, 1)} disabled={disabled || i === rules.length - 1} className="px-1 text-xs text-muted-foreground hover:text-foreground disabled:opacity-30">
+                    ↓
+                  </button>
+                  <button type="button" aria-label={`Remove rule ${i + 1}`} onClick={() => put(rules.filter((_, j) => j !== i))} disabled={disabled} className="px-1 text-xs text-muted-foreground hover:text-destructive-text disabled:opacity-50">
+                    ×
+                  </button>
+                </span>
+              </li>
+            );
+          })}
+        </ol>
+      )}
+      {rules.length < spec.max && (
+        <button
+          type="button"
+          onClick={() => put([...rules, { when: { op: spec.ops[0].value, min_usd: 500 }, then: 'ask' }])}
+          disabled={disabled}
+          className="rounded-md border border-dashed border-border-strong px-2.5 py-1 text-xs text-muted-foreground hover:border-accent hover:text-accent-text disabled:opacity-50"
+        >
+          + Add a rule
+        </button>
+      )}
+    </div>
+  );
+}
+
+const SELECT = 'rounded-md border border-border-strong px-1.5 py-0.5 text-xs outline-none focus:border-accent focus:ring-1 focus:ring-accent disabled:opacity-50';
+
+/** One condition of a rule, edited in place: an amount, some rails, one payee kind. */
+function ConditionInput({
+  condition: c,
+  value,
+  onChange,
+  onRemove,
+  disabled,
+}: {
+  condition: RuleCondition;
+  value: PolicyRule['when'][string];
+  onChange: (v: string | number | string[] | undefined) => void;
+  onRemove: () => void;
+  disabled: boolean;
+}) {
+  const chosen = Array.isArray(value) ? value : [];
+  return (
+    <span className="inline-flex items-center gap-1 rounded-md bg-card-muted px-1.5 py-0.5 text-xs">
+      <span className="text-muted-foreground">{c.label}</span>
+      {c.kind === 'usd' ? (
+        <input
+          type="number"
+          min={0.01}
+          step={1}
+          aria-label={c.label}
+          value={typeof value === 'number' ? value : ''}
+          onChange={(e) => onChange(e.target.value === '' ? undefined : Number(e.target.value))}
+          disabled={disabled}
+          className="w-20 rounded border border-border-strong px-1 py-0 text-xs tabular-nums outline-none focus:border-accent"
+        />
+      ) : c.kind === 'one' ? (
+        <select aria-label={c.label} value={typeof value === 'string' ? value : ''} onChange={(e) => onChange(e.target.value)} disabled={disabled} className={SELECT}>
+          {c.options!.map((o) => (
+            <option key={o.value} value={o.value}>
+              {o.label}
+            </option>
+          ))}
+        </select>
+      ) : (
+        c.options!.map((o) => (
+          <label key={o.value} className="inline-flex items-center gap-0.5">
+            <input
+              type="checkbox"
+              checked={chosen.includes(o.value)}
+              onChange={() => {
+                const next = chosen.includes(o.value) ? chosen.filter((x) => x !== o.value) : [...chosen, o.value];
+                onChange(c.options!.map((x) => x.value).filter((x) => next.includes(x)));
+              }}
+              disabled={disabled}
+            />
+            {o.label}
+          </label>
+        ))
+      )}
+      <button type="button" aria-label={`Remove the condition ${c.label.trim()}`} onClick={onRemove} disabled={disabled} className="text-muted-foreground hover:text-foreground">
+        ×
+      </button>
+    </span>
   );
 }

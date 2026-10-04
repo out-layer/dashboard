@@ -23,19 +23,23 @@ test('every schema has at most one ask field, in the same group as the actions i
     assert.ok(asks.length <= 1, `${schema.connector}: ${asks.length} ask fields`);
     const d = decisionFields(schema);
     if (!d?.ask) continue;
-    assert.equal(d.ask.kind, 'choices');
+    assert.ok(['choices', 'rules'].includes(d.ask.kind), `${schema.connector}: an ask field is a set of operations or a list of rules`);
     assert.ok(d.group.fields.includes(d.ask));
     if (d.allowed) {
       assert.ok(d.group.fields.includes(d.allowed), `${schema.connector}: the ask field and ${d.allowed.key} share a group`);
-      // Every row that can be asked about is a row of the table.
+      // Every operation that can be asked about is a row of the table.
       const rows = new Set(d.allowed.options.map((o) => o.value));
-      for (const o of d.ask.options) assert.ok(rows.has(o.value), `${schema.connector}: ${o.value} can be asked about but is not an action`);
+      const askable = d.ask.kind === 'rules' ? d.ask.ruleSpec.ops : d.ask.options;
+      for (const o of askable) assert.ok(rows.has(o.value), `${schema.connector}: ${o.value} can be asked about but is not an action`);
     }
   }
   assert.equal(decisionFields(githubPolicy).allowed.key, 'actions');
+  assert.equal(decisionFields(githubPolicy).rows.length, 25, 'every operation is a row, the reads included');
+  assert.equal(decisionFields(githubPolicy).rows.filter((r) => r.askable).length, 13, 'the writes can wait for the owner');
+  assert.equal(decisionFields(githubPolicy).group.question, 'What may it do?');
   assert.equal(decisionFields(gmailPolicy).allowed, undefined);
   assert.equal(decisionFields(mercuryPolicy).allowed.key, 'allowed_operations', 'Mercury: its operations are the rows');
-  assert.equal(decisionFields(mercuryPolicy).ask, undefined);
+  assert.equal(decisionFields(mercuryPolicy).ask.key, 'rules', 'Mercury: its rules are what waits for the owner');
   for (const s of [hyperliquidPolicy, polymarketPolicy]) {
     assert.deepEqual(
       decisionFields(s).rows.map((r) => r.id),
@@ -108,7 +112,8 @@ test('Gmail: every send is automatic unless asked about; refusing is not an outc
 test('Mercury: every operation is a row; a switch that is one decision with its operation follows it', () => {
   const m = mercuryPolicy;
   const d = decisionFields(m);
-  assert.ok(d.rows.every((r) => r.refusable && !r.askable), 'nothing waits for the owner: no manual column');
+  assert.ok(d.rows.every((r) => r.refusable), 'every operation can be refused');
+  assert.ok(d.rows.every((r) => r.askable === (r.group !== 'Read')), 'the writes can wait for the owner, the reads cannot');
   // Empty allows every operation — but one that needs its switch is refused while the switch is off.
   assert.equal(decisionOf(m, {}, 'accounts'), 'automatic');
   assert.equal(decisionOf(m, {}, 'add_recipient'), 'refused');

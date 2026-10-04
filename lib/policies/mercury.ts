@@ -1,4 +1,4 @@
-import type { Choice, PolicySchema, PolicyValue } from './types';
+import type { Choice, PolicyRule, PolicySchema, PolicyValue, RuleSpec } from './types';
 
 /**
  * The Mercury connector's policy — the owner's rule for what an agent may do
@@ -47,6 +47,61 @@ export const MERCURY_METHODS: Choice[] = [
 
 const reads = MERCURY_OPERATIONS.filter((o) => o.group === READ).map((o) => o.value);
 
+/**
+ * What a rule may name — the connector's `rules.rs`: the four writes, and the
+ * conditions each carries. An amount for a payment or an invoice (its lines
+ * before tax), a rail and a payee for a payment.
+ */
+export const MERCURY_RULES: RuleSpec = {
+  ops: [
+    { value: 'pay_invoice', label: 'Paying' },
+    { value: 'add_recipient', label: 'Saving a new payee' },
+    { value: 'send_invoice', label: 'Issuing an invoice' },
+    { value: 'cancel_invoice', label: 'Cancelling an invoice' },
+  ],
+  conditions: [
+    { key: 'min_usd', label: 'from $', kind: 'usd', ops: ['pay_invoice', 'send_invoice'] },
+    { key: 'max_usd', label: 'up to $', kind: 'usd', ops: ['pay_invoice', 'send_invoice'] },
+    { key: 'methods', label: 'by', kind: 'set', options: MERCURY_METHODS.map((m) => ({ value: m.value, label: m.label })), ops: ['pay_invoice'] },
+    {
+      key: 'payee',
+      label: 'to',
+      kind: 'one',
+      options: [
+        { value: 'saved', label: 'a payee saved in Mercury' },
+        { value: 'new', label: 'a new payee' },
+      ],
+      ops: ['pay_invoice'],
+    },
+  ],
+  max: 50,
+};
+
+const RULE_WORDS: Record<string, string> = {
+  pay_invoice: 'payments',
+  add_recipient: 'new payees',
+  send_invoice: 'invoices',
+  cancel_invoice: 'invoice cancellations',
+};
+
+/** A rule in the owner's words: "payments by Domestic wire from $500 wait for you". */
+export function ruleWords(rule: PolicyRule): string {
+  const w = rule.when;
+  let out = RULE_WORDS[w.op] ?? w.op;
+  if (Array.isArray(w.methods) && w.methods.length > 0) {
+    out += ` by ${joinAnd(w.methods.map((m) => MERCURY_METHODS.find((o) => o.value === m)?.label ?? m)).replace(/ and /, ' or ')}`;
+  }
+  const min = typeof w.min_usd === 'number' ? w.min_usd : undefined;
+  const max = typeof w.max_usd === 'number' ? w.max_usd : undefined;
+  if (min !== undefined && max !== undefined) out += ` from ${usd(min)} to ${usd(max)}`;
+  else if (min !== undefined) out += ` from ${usd(min)}`;
+  else if (max !== undefined) out += ` up to ${usd(max)}`;
+  if (w.payee === 'saved') out += ' to saved payees';
+  if (w.payee === 'new') out += ' to new payees';
+  const verb = rule.then === 'ask' ? 'wait for you' : rule.then === 'refuse' ? 'are refused' : 'run by themselves';
+  return `${out} ${verb}`;
+}
+
 /** A Mercury recipient id as `recipients` lists it: one token, no spaces. */
 export function recipientIdProblem(entry: string): string | null {
   const id = entry.trim();
@@ -55,7 +110,7 @@ export function recipientIdProblem(entry: string): string | null {
 }
 
 function list(v: PolicyValue[string]): string[] {
-  return Array.isArray(v) ? v : [];
+  return Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : [];
 }
 
 function num(v: PolicyValue[string]): number | undefined {
@@ -173,7 +228,7 @@ export const mercuryPolicy: PolicySchema = {
     },
     {
       question: 'What may it do?',
-      note: 'Auto-approve: the agent runs it within the limits below. Unticked: it does not run. Nothing here waits for your approval yet — Mercury’s connector has no manual approval. A group’s name turns the whole group on or off.',
+      note: 'Auto-approve: the agent runs it within the limits below. Manual approval: it is prepared, shown to you in your inbox, and made on your yes. Unticked: it does not run. Rules with conditions — from an amount, by a rail, to a new payee — go under the table. A group’s name turns the whole group on or off.',
       fields: [
         {
           key: 'allowed_operations',
@@ -185,12 +240,30 @@ export const mercuryPolicy: PolicySchema = {
           options: MERCURY_OPERATIONS,
           emptyMeansAll: true,
         },
+        {
+          key: 'rules',
+          label: 'Rules',
+          kind: 'rules',
+          asks: true,
+          asksBefore: 'allowed_operations',
+          ruleSpec: MERCURY_RULES,
+          help: 'For a write the rest of the policy allows: run it, wait for your yes, or refuse it. Checked top to bottom — the first rule that matches decides; with none matching, the write runs. A rule never lets through what the limits refuse. A write that waits is prepared and shown to you whole in your inbox, and nothing happens at the bank until you approve it with one signature.',
+          absentMeans: 'No rules: every allowed write runs without asking.',
+        },
       ],
     },
   ],
 
   check(value: PolicyValue): string[] {
     const problems: string[] = [];
+    // A rule about an operation the policy does not allow decides nothing.
+    const allowedOps = list(value.allowed_operations);
+    const rules = (Array.isArray(value.rules) ? value.rules : []).filter((r): r is PolicyRule => typeof r === 'object' && r !== null && 'when' in r);
+    rules.forEach((r, i) => {
+      if (allowedOps.length > 0 && !allowedOps.includes(r.when.op)) {
+        problems.push(`Rule ${i + 1} does nothing: ${r.when.op} is not allowed above — tick it, or remove the rule`);
+      }
+    });
     const perPayment = num(value.max_payment_usd);
     const perMonth = num(value.max_spend_usd_month);
     const ops = list(value.allowed_operations);
@@ -253,7 +326,11 @@ export const mercuryPolicy: PolicySchema = {
     if (value.count_all_outgoing === true && perPayment !== undefined && perMonth !== undefined) {
       parts.push('the 30-day budget counts every payment from the account');
     }
-    const sentence = `${parts.join('; ')}.`;
+    // The owner's rules, in their order: what waits for them and what is refused.
+    const rules = (Array.isArray(value.rules) ? value.rules : []).filter((r): r is PolicyRule => typeof r === 'object' && r !== null && 'when' in r);
+    const said = rules.map(ruleWords).join('; ');
+    const ruled = said ? ` ${said.charAt(0).toUpperCase()}${said.slice(1)}.` : '';
+    const sentence = `${parts.join('; ')}.${ruled}`;
     return value.sandbox === true ? `Mercury sandbox — no real money moves. ${sentence}` : sentence;
   },
 };

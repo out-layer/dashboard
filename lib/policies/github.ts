@@ -121,7 +121,7 @@ export function pathProblem(entry: string): string | null {
 }
 
 function list(v: PolicyValue[string]): string[] {
-  return Array.isArray(v) ? v : [];
+  return Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : [];
 }
 
 /** "a", "a and b", "a, b and c". */

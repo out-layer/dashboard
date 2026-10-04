@@ -38,7 +38,39 @@
  * may run); `toggle` is a permission that is off unless switched on. Both GRANT
  * rather than narrow, so their `absentMeans` says what is withheld.
  */
-export type FieldKind = 'list' | 'number' | 'text' | 'choices' | 'toggle';
+export type FieldKind = 'list' | 'number' | 'text' | 'choices' | 'toggle' | 'rules';
+
+/** What a rule does to a call it matches — the connector's `Then`, spelled as it parses it. */
+export type RuleThen = 'allow' | 'ask' | 'refuse';
+
+/**
+ * One of the owner's rules (`rules` in a policy): the first that matches a
+ * call decides whether it runs, waits for the owner, or is refused. `when`
+ * names the operation and the conditions the connector declares.
+ */
+export interface PolicyRule {
+  when: { op: string } & Record<string, string | number | string[] | undefined>;
+  then: RuleThen;
+}
+
+/** A condition a rule may name, and the operations that carry it. */
+export interface RuleCondition {
+  key: string;
+  /** The words before the value: "from $", "by", "to". */
+  label: string;
+  /** `usd`: an amount; `set`: some of `options`; `one`: one of `options`. */
+  kind: 'usd' | 'set' | 'one';
+  options?: { value: string; label: string }[];
+  ops: string[];
+}
+
+/** The vocabulary of a `rules` field: the operations a rule may name and the conditions it may set. */
+export interface RuleSpec {
+  ops: { value: string; label: string }[];
+  conditions: RuleCondition[];
+  /** Most rules a policy holds, as the connector reads it. */
+  max: number;
+}
 
 export interface Choice {
   value: string;
@@ -86,6 +118,8 @@ export interface PolicyField {
    * field it asks over.
    */
   asks?: boolean;
+  /** For rules: what a rule may name. A `rules` field with `asks` is the decision table's ask field. */
+  ruleSpec?: RuleSpec;
   /**
    * For choices: this field lists the operations the agent may run, and its
    * options are the rows of the decision table — for a connector that has no
@@ -130,7 +164,7 @@ export interface PolicyGroup {
 }
 
 /** A field's value as the editor holds it: lists as arrays, numbers as numbers, text as strings. Absent = empty. */
-export type PolicyValue = Record<string, string[] | number | string | boolean | undefined>;
+export type PolicyValue = Record<string, string[] | number | string | boolean | PolicyRule[] | undefined>;
 
 export interface PolicySchema {
   /** The connector id, e.g. `gmail`. */

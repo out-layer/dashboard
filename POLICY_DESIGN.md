@@ -243,91 +243,94 @@ Every connector opens with ① What may it do?. A row of the table is one of:
 |---|---|---|---|---|
 | **Gmail** | Mail: Send a message (radios), Attach files | Send only | Who can it write to? · How much? · What else? (attachment size, subject prefix) | anyone, no limits, no files |
 | **GitHub** | 25 operations in 6 groups; merge carries `allow_merge` | writes; the Read group has none | Where? · How much? · Off unless you say so (approve, public gists) · How are its words told from yours? | nothing is allowed yet |
-| **Mercury** | 12 operations in Read / Money out / Invoicing; save-a-payee and invoicing carry their switches; pay needs both amounts | — (no `confirm` yet) | How much may it pay? · To whom? · How? (rails, account) · Off unless you say so (count all, sandbox) | read-only |
+| **Mercury** | 12 operations in Read / Money out / Invoicing; save-a-payee and invoicing carry their switches; pay needs both amounts; the rules list under the table (§8) | the four writes (a plain rule) | How much may it pay? · To whom? · How? (rails, account) · Off unless you say so (count all, sandbox) | read-only |
 | **Hyperliquid** | Trading: Place orders (derived, three caps); Money: Fund the venue, Withdraw back | — | How much may it trade? · Which coins? · Deposits and withdrawals (deposit cap, destination) | the built-in default: fully open |
 | **Polymarket** | Trading: Place orders (derived, two caps); Money: Fund the venue, Withdraw back | — | How much may it trade? · Which markets? · Deposits and withdrawals (deposit cap, destination) | the built-in default: fully open |
 
-When Mercury, Hyperliquid or Polymarket gain a `confirm` member in their
-`policy.rs`, the dashboard change is one field: `{ key: 'confirm', kind:
-'choices', asks: true }` (with `asksBefore` where an allowed-actions field
-exists) — and the manual column appears beside the rows it names.
+When Hyperliquid or Polymarket gain a `confirm` or `rules` member in their
+`policy.rs`, the dashboard change is one field (`asks: true`, with
+`asksBefore` where an allowed-actions field exists) — and the manual column
+appears beside the rows it names.
 
-## 8. Conditional rules (next)
+## 8. Rules with conditions
 
-Owners will want decisions that depend on the call: *ask me before a sports
-bet over $100; place political bets under $500 by itself; ask before any mail
-to a domain not in the list; ask before writing to `main`*. The anatomy above
-already has the place for it — the decision table — and this is how it grows
-without becoming a second kind of page.
+A decision that depends on what the call carries — *ask me before a wire;
+payments from $500 wait for me; refuse new payees; cancelling an invoice waits
+for me* — is a rule. Mercury reads them today (`connectors/mercury-connector/
+src/rules.rs`); the editor draws them for any connector whose schema declares
+a `rules` field.
 
-**Model.** A rule is `when` → `then`:
+**Model.** A policy's `rules` is an ordered list of `when` → `then`:
 
 ```jsonc
 "rules": [
-  { "when": { "op": "order", "category": "sports",   "min_usd": 100 }, "then": "ask" },
-  { "when": { "op": "order", "category": "politics", "max_usd": 500 }, "then": "allow" },
-  { "when": { "op": "order" },                                          "then": "refuse" }
+  { "when": { "op": "pay_invoice", "methods": ["domesticWire"] }, "then": "ask" },
+  { "when": { "op": "pay_invoice", "min_usd": 500 },              "then": "ask" },
+  { "when": { "op": "pay_invoice", "payee": "new" },              "then": "refuse" },
+  { "when": { "op": "cancel_invoice" },                           "then": "ask" }
 ]
 ```
 
-- `then` is one of the three outcomes of §1; the connector spells them as a
-  serde enum (`allow | ask | refuse`), exhaustive `match`, unknown spelling
+- `then` is one of the outcomes of §1 — `allow` (auto-approve), `ask` (manual
+  approval), `refuse` — a serde enum in the connector: an unknown spelling
   fails to parse.
-- `when` names an operation (or an operation class the connector defines, such
-  as `write`) and zero or more **conditions** from a vocabulary each connector
-  declares — a market category, a notional range, a recipient domain, a
-  repository or branch pattern, a payee. Every condition is a typed field in
-  `policy.rs` under `deny_unknown_fields`; a condition the build does not know
-  makes the policy unreadable, as today.
-- **First match wins, in the owner's order.** The last row is the default for
-  the operation; with no matching rule the operation is refused (rule 3 of §1).
-- **Limits always apply.** Rules pick the outcome; they never widen a cap. An
-  order asked about that exceeds `max_order_usd` is still refused, and the
-  sentence says so.
-- A plain `actions`/`confirm` policy is the degenerate case: one rule per
-  operation with no conditions. The connector reads either form; the editor
-  writes `actions`/`confirm` until a rule carries a condition.
+- `when` names an operation and zero or more **conditions** from the
+  connector's vocabulary, each a typed member under `deny_unknown_fields`. A
+  condition the operation does not carry (an amount on a cancellation) makes
+  the policy unreadable, like a misspelt field.
+- **The first rule that matches decides, in the owner's order. No rule
+  matches: the call runs** as the rest of the policy allows it — rules decide
+  among allowed calls, they do not add a second allow-list.
+- **Limits always apply.** Rules are asked last, of a call every other check
+  passed: an `allow` never lifts a cap, and a payment over the per-payment
+  limit is refused whatever a rule says.
 
-**Page.** The decision table gains a **When** column, and a row is a rule
-rather than an operation:
+**The table and the list are one model.** A *plain* rule — an operation and
+nothing else — is what the table's columns read and write: Manual approval
+ticked is `{when:{op}, then:"ask"}`; a plain `refuse` reads as refused.
+Ticking adds the plain rule **last**, after the conditional rules it is the
+fallback of; Auto-approve removes it and leaves the conditional ones. The
+operations that can carry a rule have the manual column; reads do not.
+
+**The list**, under the table, titled "Rules, checked top to bottom", with the
+field's (i):
 
 ```
-① What may it do?
-  [ORDERS 3/3]                  WHEN                               AUTO-APPROVE   MANUAL APPROVAL
-  order                         sports · from $100                      ☐             ☑
-  order                         politics · up to $500                   ☑             ☐
-  order                         everything else                         ☐             ☐     ← the default row, always last
-  + add a rule for orders
+1  [Paying ▾]  by ☑ Domestic wire ☐ ACH …  ×          →  [Auto-approve | Manual approval | Refuse]   ↑ ↓ ×
+2  [Paying ▾]  from $ [500] ×  [+ condition ▾]         →  [Auto-approve | Manual approval | Refuse]   ↑ ↓ ×
+3  [Cancelling an invoice ▾]                           →  [Auto-approve | Manual approval | Refuse]   ↑ ↓ ×
++ Add a rule
 ```
 
-- The schema declares `conditions` for a decision field: each a `PolicyField`
-  of kind `choices` (category), `number` (a range end), `list` (domains,
-  patterns) — the same controls as the limits, rendered inline in the When
-  cell as chips, with "+ add a condition" opening the one picker.
-- Rows of one operation are ordered by drag handle (↕) and by "move up/down"
-  buttons for the keyboard; the default row cannot move or be deleted.
-- The sentence lists the conditional rows after the plain ones: "…orders in
-  sports from $100 wait for you; orders in politics up to $500 run by
-  themselves; other orders are refused."
-- `validate()` gains two checks: a rule shadowed by an earlier wider one
-  ("rule 2 never runs: rule 1 already decides every politics order"), and a
-  conditional ask on an operation the limits refuse anyway.
+- One row per rule, in the order the connector reads them, plain rules
+  included, numbered as the connector's refusals number them ("rule 2").
+- The operation is a select; changing it keeps only the conditions the new
+  operation carries. Conditions are chips in place — an amount, a set of
+  rails, one payee kind — each removable; "+ condition" offers only what the
+  operation carries and the rule does not set yet.
+- The outcome is a three-way switch tinted like the table's columns, and
+  `refuse` in the destructive tint.
+- ↑ ↓ reorder; × removes. At most `ruleSpec.max` rules (50 for Mercury).
+- An emptied condition is no condition: it is not written.
+- `validate()` mirrors the connector and adds the one thing it cannot see: a
+  rule shadowed by an earlier plain rule for the same operation ("rule 2
+  never decides anything: rule 1 already decides every call of its
+  operation"). The schema's `check()` names a rule about an operation the
+  policy does not allow.
+- The sentence lists the rules in order after the rest: "…Payments from $500
+  wait for you; new payees are refused."
 
 **Per connector, the conditions worth having** (each is a connector change
-first — the field must exist in `policy.rs` and be judged in the enclave —
-then one schema entry here):
+first — the member must exist in `policy.rs` and be judged in the enclave —
+then one `ruleSpec` here):
 
-| Connector | Operation | Conditions | Example rule |
+| Connector | Operations | Conditions | State |
 |---|---|---|---|
-| Polymarket | `order` | category (needs the market's tags from the venue), notional range, side (yes/no), market id | *sports from $100 → ask* |
-| Hyperliquid | `order`, `set_leverage` | coin, notional range, leverage range, reduce-only | *BTC and ETH up to $500 → automatically; anything else → ask* |
-| Mercury | `pay_invoice`, `add_recipient` | amount range, payee (saved or new), rail | *wires → ask; ACH up to $1,000 to saved payees → automatically* |
-| Gmail | `send` | recipient domain in / not in a list, attachments present, recipient count | *mail outside example.com → ask* |
-| GitHub | writes | repository pattern, branch pattern (default branch), path pattern | *writes to main → ask; writes under docs/* on agent/* → automatically* |
-
-Whether Polymarket's categories are reliably available at order time is
-unknown until the connector reads them; that row is the one with a research
-step before a plan.
+| Mercury | `pay_invoice`, `add_recipient`, `send_invoice`, `cancel_invoice` | `min_usd`, `max_usd` (payment amount, invoice lines before tax), `methods`, `payee` (`saved`/`new`) | live on testnet |
+| Polymarket | `order` | category (needs the market's tags from the venue), notional range, side, market id | category availability at order time unknown — research first |
+| Hyperliquid | `order`, `set_leverage` | coin, notional range, leverage range, reduce-only | not started |
+| Gmail | `send` | recipient domain in / not in a list, attachments present, recipient count | not started |
+| GitHub | writes | repository, branch (default branch), path patterns | not started |
 
 ## 9. Checklist for a policy page
 

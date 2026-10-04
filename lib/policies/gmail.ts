@@ -44,7 +44,7 @@ export function domainProblem(entry: string): string | null {
 
 function list(value: PolicyValue, key: string): string[] {
   const v = value[key];
-  return Array.isArray(v) ? v : [];
+  return Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : [];
 }
 
 function num(value: PolicyValue, key: string): number | undefined {

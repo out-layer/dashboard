@@ -1,4 +1,4 @@
-import type { PolicyField, PolicyGroup, PolicySchema, PolicyValue, SwitchLink } from './types';
+import type { PolicyField, PolicyGroup, PolicyRule, PolicySchema, PolicyValue, RuleSpec, RuleThen, SwitchLink } from './types';
 
 /** Every field of the schema, flat. */
 export function fields(schema: PolicySchema): PolicyField[] {
@@ -29,7 +29,9 @@ export function toJson(schema: PolicySchema, value: PolicyValue): string {
   for (const f of fields(schema)) {
     const v = value[f.key];
     if (isEmpty(v)) continue;
-    out[f.key] = v;
+    // A rule is written with only the conditions it sets: an emptied field
+    // is no condition, and the connector would refuse an empty list as one.
+    out[f.key] = f.kind === 'rules' ? rulesOf(v).map((r) => ({ when: { op: r.when.op, ...Object.fromEntries(conditionsOf(r)) }, then: r.then })) : v;
   }
   return JSON.stringify(out);
 }
@@ -55,7 +57,11 @@ export function fromJson(
       continue;
     }
     if (raw === null || raw === undefined) continue;
-    if (f.kind === 'list' || f.kind === 'choices') {
+    if (f.kind === 'rules') {
+      // Read as written, in order: what the editor cannot read is kept for
+      // `validate` to name, never dropped on a re-save.
+      if (Array.isArray(raw)) value[k] = raw as PolicyRule[];
+    } else if (f.kind === 'list' || f.kind === 'choices') {
       value[k] = Array.isArray(raw) ? raw.map(String) : [String(raw)];
     } else if (f.kind === 'toggle') {
       if (raw === true) value[k] = true;
@@ -69,8 +75,13 @@ export function fromJson(
   return { value, unknownKeys };
 }
 
+/** The strings of a list or choices value. */
+export function strings(v: PolicyValue[string]): string[] {
+  return chosen(v);
+}
+
 function chosen(v: PolicyValue[string]): string[] {
-  return Array.isArray(v) ? v : [];
+  return Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : [];
 }
 
 /** The toggles that act through a choices field, each with that field. */
@@ -187,17 +198,21 @@ export function decisionFields(
   schema: PolicySchema,
 ): { ask?: PolicyField; allowed?: PolicyField; gates: PolicyField[]; group?: PolicyGroup; rows: DecisionRow[] } | null {
   const all = fields(schema);
-  const ask = all.find((f) => f.kind === 'choices' && f.asks);
+  const ask = all.find((f) => (f.kind === 'choices' || f.kind === 'rules') && f.asks);
   const allowed = ask?.asksBefore
     ? all.find((f) => f.key === ask.asksBefore && f.kind === 'choices')
     : all.find((f) => f.kind === 'choices' && f.actions);
   const gates = all.filter((f) => f.row);
   const derived = schema.derivedRows ?? [];
   if (!ask && !allowed && gates.length === 0 && derived.length === 0) return null;
-  const holder = ask ?? allowed;
-  const group = holder ? schema.groups.find((g) => g.fields.includes(holder)) : undefined;
-  const askable = new Set((ask?.options ?? []).map((o) => o.value));
-  const rows: DecisionRow[] = (holder?.options ?? []).map((o) => ({
+  // The table's title and note are the group of the ask field, or of the
+  // allowed-actions field; its rows are every allowed-actions option, or —
+  // with no such field — every option of a choices ask field (Gmail's send).
+  const titled = ask ?? allowed;
+  const group = titled ? schema.groups.find((g) => g.fields.includes(titled)) : undefined;
+  const listed = allowed ?? (ask?.kind === 'choices' ? ask : undefined);
+  const askable = new Set((ask?.kind === 'rules' ? ask.ruleSpec?.ops : ask?.options)?.map((o) => o.value) ?? []);
+  const rows: DecisionRow[] = (listed?.options ?? []).map((o) => ({
     id: o.value,
     label: o.label,
     group: o.group,
@@ -243,7 +258,13 @@ export function decisionOf(schema: PolicySchema, value: PolicyValue, op: string)
   const d = decisionFields(schema);
   if (!d) return 'refused';
   let decision: Decision;
-  if (d.ask && chosen(value[d.ask.key]).includes(op)) decision = 'asked';
+  // A plain rule (the operation and nothing else) is what the table's columns
+  // read: `ask` waits, `refuse` refuses. Conditional rules are shown below
+  // the table and do not move the row.
+  const plain = d.ask?.kind === 'rules' ? rulesOf(value[d.ask.key]).find((r) => r.when.op === op && isPlain(r)) : undefined;
+  if (plain?.then === 'refuse') return 'refused';
+  if (plain?.then === 'ask') decision = 'asked';
+  else if (d.ask?.kind === 'choices' && chosen(value[d.ask.key]).includes(op)) decision = 'asked';
   else if (!d.allowed) decision = d.ask ? 'automatic' : 'refused';
   else {
     const allowed = chosen(value[d.allowed.key]);
@@ -283,8 +304,16 @@ export function decide(schema: PolicySchema, value: PolicyValue, op: string, dec
     const kept = values.filter((v) => v !== op);
     return kept.length > 0 ? kept : undefined;
   };
-  const ask = d.ask && (d.ask.options ?? []).some((o) => o.value === op) ? d.ask : undefined;
   let next = value;
+  if (d.ask?.kind === 'rules') {
+    // The plain rule for `op` follows the column: asked → `ask`, last, after
+    // the conditional rules it is the fallback of; otherwise none.
+    const canAsk = d.ask.ruleSpec?.ops.some((o) => o.value === op) ?? false;
+    const rules = rulesOf(next[d.ask.key]);
+    const wanted = decision === 'asked' && canAsk ? withPlainRule(rules, op, 'ask') : withPlainRule(rules, op, null);
+    if (JSON.stringify(wanted) !== JSON.stringify(rules)) next = { ...next, [d.ask.key]: wanted.length > 0 ? wanted : undefined };
+  }
+  const ask = d.ask?.kind === 'choices' && (d.ask.options ?? []).some((o) => o.value === op) ? d.ask : undefined;
   if (decision === 'asked' && ask) {
     const asked = chosen(next[ask.key]);
     if (!asked.includes(op)) next = change(schema, next, ask.key, inOrder(ask, [...asked, op]));
@@ -312,6 +341,78 @@ export function decide(schema: PolicySchema, value: PolicyValue, op: string, dec
   return next;
 }
 
+// ==================== Rules ====================
+
+/** The rules of a value, in order. */
+export function rulesOf(v: PolicyValue[string]): PolicyRule[] {
+  return Array.isArray(v) ? v.filter((r): r is PolicyRule => typeof r === 'object' && r !== null && 'when' in r) : [];
+}
+
+/** A rule's conditions: every member of `when` but the operation, set. */
+export function conditionsOf(rule: PolicyRule): [string, string | number | string[]][] {
+  return Object.entries(rule.when).filter(
+    (e): e is [string, string | number | string[]] => e[0] !== 'op' && e[1] !== undefined && e[1] !== '' && !(Array.isArray(e[1]) && e[1].length === 0),
+  );
+}
+
+/** A rule that names an operation and nothing else: what the table's columns read and write. */
+export function isPlain(rule: PolicyRule): boolean {
+  return conditionsOf(rule).length === 0;
+}
+
+const THENS: RuleThen[] = ['allow', 'ask', 'refuse'];
+
+/**
+ * What is wrong with `rules`, as the connector would refuse it: an operation
+ * or an outcome it does not know, a condition the operation does not carry,
+ * an amount that is not one, a range that matches nothing, an empty list. A
+ * policy with any of these is unreadable to the connector, which refuses
+ * everything but `status`.
+ */
+export function ruleProblems(spec: RuleSpec, rules: PolicyRule[]): string[] {
+  const out: string[] = [];
+  if (rules.length > spec.max) out.push(`Rules: ${rules.length} rules, at most ${spec.max}`);
+  rules.forEach((rule, at) => {
+    const n = at + 1;
+    const op = rule.when?.op;
+    if (!spec.ops.some((o) => o.value === op)) {
+      out.push(`Rule ${n}: "${op}" is not an operation a rule can name`);
+      return;
+    }
+    if (!THENS.includes(rule.then)) out.push(`Rule ${n}: "${rule.then}" is not an outcome`);
+    for (const [key, v] of conditionsOf(rule)) {
+      const c = spec.conditions.find((x) => x.key === key);
+      if (!c) {
+        out.push(`Rule ${n}: "${key}" is not a condition`);
+      } else if (!c.ops.includes(op)) {
+        out.push(`Rule ${n}: "${c.label.trim()}" does not apply to ${spec.ops.find((o) => o.value === op)?.label ?? op}`);
+      } else if (c.kind === 'usd' && !(typeof v === 'number' && Number.isFinite(v) && v >= 0.01 && v <= 1_000_000_000)) {
+        out.push(`Rule ${n}: ${c.label.trim()} needs an amount of at least $0.01`);
+      } else if (c.kind === 'set' && (!Array.isArray(v) || v.some((x) => !c.options?.some((o) => o.value === x)))) {
+        out.push(`Rule ${n}: ${c.label.trim()} names something unknown`);
+      } else if (c.kind === 'one' && !c.options?.some((o) => o.value === v)) {
+        out.push(`Rule ${n}: ${c.label.trim()} names something unknown`);
+      }
+    }
+    const min = rule.when.min_usd;
+    const max = rule.when.max_usd;
+    if (typeof min === 'number' && typeof max === 'number' && Math.round(min * 100) > Math.round(max * 100)) {
+      out.push(`Rule ${n}: matches nothing — from $${min} is above up to $${max}`);
+    }
+    // A plain rule before another for the same operation decides every call
+    // of it: the later one never runs.
+    const earlier = rules.slice(0, at).findIndex((r) => r.when?.op === op && isPlain(r));
+    if (earlier >= 0) out.push(`Rule ${n} never decides anything: rule ${earlier + 1} already decides every call of its operation`);
+  });
+  return out;
+}
+
+/** `rules` with the plain rule for `op` set to `then`, or removed with `null`. A new plain rule goes last, after the conditional ones it is the fallback of. */
+export function withPlainRule(rules: PolicyRule[], op: string, then: RuleThen | null): PolicyRule[] {
+  const kept = rules.filter((r) => !(r.when.op === op && isPlain(r)));
+  return then ? [...kept, { when: { op }, then }] : kept;
+}
+
 /** Everything wrong with a value, in the owner's words. Empty when it can be saved. */
 export function validate(schema: PolicySchema, value: PolicyValue): string[] {
   const errors: string[] = [];
@@ -319,7 +420,7 @@ export function validate(schema: PolicySchema, value: PolicyValue): string[] {
     const v = value[f.key];
     if (isEmpty(v)) continue;
     if (f.kind === 'list' && Array.isArray(v)) {
-      for (const entry of v) {
+      for (const entry of chosen(v)) {
         const why = f.validateEntry?.(entry);
         if (why) errors.push(`${f.label}: ${why}`);
       }
@@ -327,9 +428,11 @@ export function validate(schema: PolicySchema, value: PolicyValue): string[] {
       const n = typeof v === 'number' ? v : Number(v);
       const min = f.min ?? 1;
       if (!Number.isInteger(n) || n < min) errors.push(`${f.label}: a whole number of at least ${min}`);
+    } else if (f.kind === 'rules' && f.ruleSpec) {
+      errors.push(...ruleProblems(f.ruleSpec, rulesOf(v)));
     } else if (f.kind === 'choices' && Array.isArray(v)) {
       const known = new Set((f.options ?? []).map((o) => o.value));
-      for (const entry of v) if (!known.has(entry)) errors.push(`${f.label}: "${entry}" is not something this connector does`);
+      for (const entry of chosen(v)) if (!known.has(entry)) errors.push(`${f.label}: "${entry}" is not something this connector does`);
     }
   }
   for (const { toggle, link, choices } of links(schema)) {

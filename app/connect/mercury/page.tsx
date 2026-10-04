@@ -107,8 +107,9 @@ const spec: ConnectorSpec = {
       <More label="How you keep the agent in check">
         <p>
           Two controls, both yours. The policy below sets limits — how much per payment and per 30 days, to which payees, by which
-          rails, whether it may send invoices. And with an Approval token, every payment waits for a person to confirm it in
-          Mercury&apos;s app. With an empty policy the agent can only read.
+          rails, whether it may send invoices — and its rules say which writes wait for you: a payment from an amount, by a wire, to
+          a new payee waits in your OutLayer inbox, and nothing reaches Mercury until you approve it. And with an Approval token,
+          every payment also waits for a person to confirm it in Mercury&apos;s app. With an empty policy the agent can only read.
         </p>
       </More>
       <More label="For queued payments to ever clear, two things on Mercury’s side">

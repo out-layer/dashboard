@@ -99,7 +99,7 @@ test('the pages give the editor the width of the screen and keep prose in a read
 
 test('the design doc exists, is separate from DESIGN.md, and fixes what the editor does', () => {
   assert.match(design, /# Policy pages/);
-  for (const must of ['Auto-approve', 'Manual approval', 'refused', 'How a policy decides', 'auto-fit', 'First match wins', 'Polymarket', 'Hyperliquid', 'Mercury', 'Gmail', 'GitHub']) {
+  for (const must of ['Auto-approve', 'Manual approval', 'refused', 'How a policy decides', 'auto-fit', 'The first rule that matches decides', 'Polymarket', 'Hyperliquid', 'Mercury', 'Gmail', 'GitHub']) {
     assert.ok(design.includes(must), `POLICY_DESIGN.md names ${must}`);
   }
   const base = readFileSync(new URL('../DESIGN.md', import.meta.url), 'utf8');
@@ -143,4 +143,16 @@ test('the open default, the way back, and rows that say what they still need', (
   assert.match(editor, /const settable = r\.derived && now === 'refused';/);
   assert.match(editor, /set ↓/);
   assert.match(editor, /shownAsRows\(f\)/, 'a switch that is a row is not drawn twice');
+});
+
+// A connector with rules gets the list under the table, in the connector's order.
+test('the rules list: under the table, numbered, three outcomes, reorderable, conditions in place', () => {
+  assert.match(editor, /decision\.ask\?\.kind === 'rules' && decision\.ask\.ruleSpec && \(\s*<RulesList/);
+  assert.match(editor, /Rules, checked top to bottom/);
+  assert.match(editor, /const THEN_LABEL: Record<RuleThen, string> = \{ allow: 'Auto-approve', ask: 'Manual approval', refuse: 'Refuse' \}/);
+  assert.match(editor, /aria-label=\{`Move rule \$\{i \+ 1\} up`\}/);
+  assert.match(editor, /\+ condition/);
+  assert.match(editor, /\+ Add a rule/);
+  // Changing the operation keeps only the conditions it carries.
+  assert.match(editor, /conditionsOf\(rule\)\.filter\(\(\[k\]\) => conditionsFor\(op\)\.some/);
 });

@@ -73,8 +73,8 @@ In order, nothing above the sentence and nothing between the sections:
    described by the connector (`emptySummary`), never assumed: "nothing is
    allowed yet" for one that fails closed, "the built-in default" for one that
    runs open, "anyone, no limits" for one that narrows a consent already given.
-   A page that has not loaded the stored policy passes `headline` and the line
-   says so instead of describing a value it does not have. Under the sentence,
+   A page that has not loaded the stored policy passes `notLoaded`, and an
+   untouched form then shows no sentence at all. Under the sentence,
    closed, the rules — in the words of §1, with the open-default exception
    named only on a connector that has it (`emptyIsOpen`).
 2. **Decisions first**: the group that holds the ask field (`asks: true`),
@@ -92,17 +92,18 @@ In order, nothing above the sentence and nothing between the sections:
 4. **Errors**: `validate()`'s list, `text-xs text-destructive-text`, only when
    there are any. The page's Save button is disabled while there are.
 
-**An existing connection whose policy is not loaded** shows one plate above
-the editor (`LoadPolicyBar`): "You already have a policy. It is stored
-encrypted on the contract, last changed <date>." and the button **Load and
-decrypt it**. Above, never under the form: the form is taller than a screen,
+**An existing connection whose policy is not loaded** shows one line above
+the editor (`LoadPolicyBar`): the button **Load and decrypt your existing policy** and "stored
+encrypted on the contract, changed <date>", with an (i) saying why loading is a
+transaction. Above, never under the form: the form is taller than a screen,
 and an owner who misses the button edits an empty form and overwrites the
 policy they have. The chain shows only that the row exists and when it
 changed — the keys are sealed inside it — and a connector page always stores
 the policy with the credential, so the row stands for the policy; a row made
-elsewhere without one says so once loaded. Save stays under the form, with a
-one-line warning while nothing is loaded: "Not loaded: saving replaces your
-current policy, whatever it allows, with this form."
+elsewhere without one says so once loaded. While the form is untouched and
+unloaded it has no sentence (it would describe a value nobody has). Save stays
+under the form, with a one-line warning while nothing is loaded: "Not loaded:
+saving replaces your current policy, whatever it allows, with this form."
 
 Nothing on the page folds away: no "Customize", no "Show all 25", no preset
 that stands in for the table. A field's explanation and what leaving it empty
@@ -210,20 +211,46 @@ Code…), two outcome columns. Behaviour:
 
 ## 7. The five connectors on this anatomy
 
-| Connector | Limits (sections after ①) | Decision rows (①) | Manual column | Empty policy |
+Every connector opens with ① What may it do?. A row of the table is one of:
+
+| Row | Ticked means | Example |
+|---|---|---|
+| an operation of the allowed-actions field | listed in it | GitHub `issue_comment`; Mercury `accounts` |
+| an operation of the ask field only | always allowed; radios choose auto or manual | Gmail `send` |
+| a field that grants by being set (`row`) | the field is set; ticking sets `enable` | Gmail `max_attachment_kb` (2048); HL/PM `allow_deposit`, `allow_withdraw` |
+| a derived row (`derivedRows`) | every field it `requires` is set | HL orders (order, volume, leverage caps); PM orders (order, volume) |
+
+- **A switch that is one decision with an operation** (`link.onlyWith`: GitHub
+  `allow_merge`, Mercury `allow_new_recipients`, `allow_invoicing`) is not
+  drawn as a switch: its operation's row turns it on and off, and the row
+  carries its explanation as a tooltip. A switch with a `row` is drawn only as
+  that row.
+- **A row that needs fields** (`needs`: Mercury's payments need both amounts;
+  a derived row needs its `requires`) says under its label "runs once *Most per
+  payment* and *Budget per 30 days* are set", each name a link that scrolls to
+  the field and focuses it. A derived row that is off has no checkbox — ticking
+  it would have to invent amounts — but "set ↓", which leads to the first
+  missing limit. Unticking it clears its fields.
+- **The open default** (HL/PM, `emptyIsOpen`): with nothing set, every row
+  shows ticked and a line says "Built-in default: everything here runs, with no
+  caps." The first change starts the owner's own rules from `ownStart` — the
+  default's permissions without its "no caps": deposits on, withdrawals on and,
+  for Hyperliquid, `withdraw_to: "intents"`, because an own policy with an
+  empty destination lets the agent name any. Under own rules a link "Back to
+  the built-in default" clears the policy.
+
+| Connector | ① rows | Manual column | Limits after ① | Empty policy |
 |---|---|---|---|---|
-| **Gmail** | ② Who can it write to? (domains, addresses) ③ How much? (a day, recipients) ④ What else? (attachments, subject prefix) | Send a message | radios: auto-approve / manual approval | anyone, no limits (a consent already given) |
-| **GitHub** | ② Where? (repos, branches, paths) ③ How much? (writes a day) ④ Off unless you say so (merge, approve, public gists) ⑤ How are its words told from yours? (marker) | 25 operations in 6 groups; the Read group has no manual column | checkboxes, exclusive | nothing is allowed yet |
-| **Mercury** | ① How much may it pay? ② To whom? ③ How? (rails, account) ④ Off unless you say so (invoicing, count all, sandbox) ⑤ Which operations at all? (one-column table, empty = all) — no ① decisions until it has `confirm` | — (no `confirm` yet) | — | read-only |
-| **Hyperliquid** | ① How much may it trade? ② Which coins? ③ May money move in and out? | — | — | the built-in default: fully open |
-| **Polymarket** | ① How much may it trade? ② Which markets? ③ May money move in and out? | — | — | the built-in default: fully open |
+| **Gmail** | Mail: Send a message (radios), Attach files | Send only | Who can it write to? · How much? · What else? (attachment size, subject prefix) | anyone, no limits, no files |
+| **GitHub** | 25 operations in 6 groups; merge carries `allow_merge` | writes; the Read group has none | Where? · How much? · Off unless you say so (approve, public gists) · How are its words told from yours? | nothing is allowed yet |
+| **Mercury** | 12 operations in Read / Money out / Invoicing; save-a-payee and invoicing carry their switches; pay needs both amounts | — (no `confirm` yet) | How much may it pay? · To whom? · How? (rails, account) · Off unless you say so (count all, sandbox) | read-only |
+| **Hyperliquid** | Trading: Place orders (derived, three caps); Money: Fund the venue, Withdraw back | — | How much may it trade? · Which coins? · Deposits and withdrawals (deposit cap, destination) | the built-in default: fully open |
+| **Polymarket** | Trading: Place orders (derived, two caps); Money: Fund the venue, Withdraw back | — | How much may it trade? · Which markets? · Deposits and withdrawals (deposit cap, destination) | the built-in default: fully open |
 
 When Mercury, Hyperliquid or Polymarket gain a `confirm` member in their
 `policy.rs`, the dashboard change is one field: `{ key: 'confirm', kind:
-'choices', asks: true, asksBefore: 'allowed_operations' }` in a group named
-"What may it do?" — and the table appears, first. For the trading connectors the rows
-would be their operations (`order`, `cancel`, `deposit`, `withdraw`, …) with
-no allowed-actions field, so radios, like Gmail.
+'choices', asks: true }` (with `asksBefore` where an allowed-actions field
+exists) — and the manual column appears beside the rows it names.
 
 ## 8. Conditional rules (next)
 

@@ -74,6 +74,7 @@ function usd(n: number): string {
 export const mercuryPolicy: PolicySchema = {
   connector: 'mercury',
   envKey: 'MERCURY_POLICY',
+  needs: { pay_invoice: ['max_payment_usd', 'max_spend_usd_month'] },
   emptySummary: 'read-only — the agent can look at accounts, payees, the ledger and invoices, and cannot pay, add a payee or send an invoice',
   groups: [
     {
@@ -171,12 +172,14 @@ export const mercuryPolicy: PolicySchema = {
       ],
     },
     {
-      question: 'Which operations at all?',
+      question: 'What may it do?',
+      note: 'Auto-approve: the agent runs it within the limits below. Unticked: it does not run. Nothing here waits for your approval yet — Mercury’s connector has no manual approval. A group’s name turns the whole group on or off.',
       fields: [
         {
           key: 'allowed_operations',
           label: 'Operations',
           kind: 'choices',
+          actions: true,
           help: 'When anything is ticked, the agent may run only that — reads included — and status always answers. An operation added to the connector later is NOT included until you tick it.',
           absentMeans: 'Nothing ticked: every operation, subject to the rules above.',
           options: MERCURY_OPERATIONS,
@@ -204,10 +207,10 @@ export const mercuryPolicy: PolicySchema = {
       problems.push('pay_invoice is ticked but there is no budget — set both amounts, or untick it');
     }
     if (ops.includes('add_recipient') && value.allow_new_recipients !== true) {
-      problems.push('add_recipient is ticked but "Add new payees" is off — turn it on, or untick add_recipient');
+      problems.push('add_recipient is ticked but its switch (allow_new_recipients) is off — tick “save a new payee” in the table again to allow it, or untick it');
     }
     if (ops.some((o) => o === 'send_invoice' || o === 'cancel_invoice') && value.allow_invoicing !== true) {
-      problems.push('Invoicing operations are ticked but "Issue and cancel invoices" is off — turn it on, or untick them');
+      problems.push('Invoicing operations are ticked but their switch (allow_invoicing) is off — tick them in the table again to allow them, or untick them');
     }
     return problems;
   },

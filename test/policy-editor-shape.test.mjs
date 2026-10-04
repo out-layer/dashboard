@@ -38,17 +38,19 @@ test('the decision table: Auto-approve | Manual approval, tinted, no (i) in the 
   assert.match(editor, /const MANUAL_TINT = 'bg-info\/\[0\.08\]'/);
   const table = editor.slice(editor.indexOf('function DecisionTable'), editor.indexOf('function ChoicesTable'));
   assert.doesNotMatch(table, /<InfoHint/, 'column headers carry no (i)');
-  assert.match(table, /const manual = group\.rows\.some\(\(o\) => askable\.has\(o\.value\)\)/);
+  assert.match(table, /const manual = group\.rows\.some\(\(r\) => r\.askable\)/);
+  assert.match(table, /const radios = !r\.refusable;/, 'radios per row: only a row that cannot be refused');
   assert.match(table, /\{manual && \(/);
   assert.match(editor, /now === 'automatic' && !radios \? 'refused' : 'automatic'/);
   assert.match(editor, /now === 'asked' && !radios \? 'automatic' : 'asked'/);
   assert.match(editor, /type=\{radios \? 'radio' : 'checkbox'\}/, 'two outcomes only where nothing can be refused');
-  assert.match(editor, /changes\.reduce\(\(v, \[op, d\]\) => decide\(schema, v, op, d\), value\)/);
+  assert.match(editor, /changes\.reduce\(\(v, \[op, d\]\) => decide\(schema, v, op, d\), base\)/);
 });
 
 test('a group name is its switch: on, then off; no presets anywhere', () => {
   assert.match(editor, /function GroupSwitch/);
-  assert.match(editor, /on === group\.rows\.length\s*\? group\.rows\.map\(\(o\) => \[o\.value, 'refused'\]\)\s*: group\.rows\.filter\(\(o\) => decisionOf\(o\.value\) === 'refused'\)\.map\(\(o\) => \[o\.value, 'automatic'\]\)/);
+  assert.match(editor, /on === group\.rows\.length\s*\? group\.rows\.map\(\(r\) => \[r\.id, 'refused'\]\)\s*: group\.rows\.filter\(\(r\) => decisionOf\(r\.id\) === 'refused'\)\.map\(\(r\) => \[r\.id, 'automatic'\]\)/);
+  assert.match(editor, /const switchable = group\.rows\.every\(\(r\) => r\.refusable && !r\.derived\);/, 'a group with a row that cannot be refused has a plain heading');
   assert.match(editor, /aria-pressed=\{all\}/);
   assert.doesNotMatch(editor, /presets|Start from|>whole group</);
   for (const f of ['github', 'mercury', 'gmail', 'hyperliquid', 'polymarket', 'types']) {
@@ -106,17 +108,39 @@ test('the design doc exists, is separate from DESIGN.md, and fixes what the edit
 
 // The form is tall: the button that loads the stored policy sits ABOVE it, and
 // says a policy exists — read off the row, the only thing the chain shows.
-test('"Load and decrypt it" is above the form, on both pages, and nowhere below', () => {
+test('the load button is one line above the form, on both pages, and nowhere below', () => {
   const bar = readFileSync(new URL('../components/policy/LoadPolicyBar.tsx', import.meta.url), 'utf8');
-  assert.match(bar, /You already have a policy\./);
+  assert.match(bar, /'Load and decrypt your existing policy'/);
   assert.match(bar, /stored encrypted on the contract/);
-  assert.match(bar, /'Load and decrypt it'/);
+  assert.match(bar, /<InfoHint/, 'why it takes a transaction is in the (i), not a block');
+  assert.doesNotMatch(bar, /<details|bg-card-muted/, 'one line, not a plate');
+  // An untouched, unloaded form has no sentence above it: the bar and the Save warning say it.
+  assert.match(editor, /const untouched = notLoaded && isUnrestricted\(value\);/);
+  assert.doesNotMatch(editor, /headline/);
   for (const [name, src] of [['owner page', ownerPage], ['gmail page', gmailPage]]) {
     const at = src.indexOf('<LoadPolicyBar');
     const editor = src.indexOf('<PolicyEditor\n');
     assert.ok(at > 0 && at < editor, `${name}: the bar comes before the editor`);
     assert.match(src, /<LoadPolicyBar saved=\{policyRead\?\.origin === 'saved'\} updatedAt=\{updatedAt\}/);
+    assert.match(src, /notLoaded=\{!policyRead\}/);
     assert.doesNotMatch(src, /'Load current policy'/, `${name}: no second load button under the form`);
     assert.doesNotMatch(src, /You have not read the policy stored now/);
   }
+});
+
+// Hyperliquid and Polymarket run open with no policy: the table shows the
+// default as allowed, the first change starts from `ownStart`, and the way
+// back is one click. A row that needs fields says which, and leads to them.
+test('the open default, the way back, and rows that say what they still need', () => {
+  assert.match(editor, /const openDefault = schema\.emptyIsOpen === true && isUnrestricted\(value\);/);
+  assert.match(editor, /const base = openDefault \? \{ \.\.\.\(schema\.ownStart \?\? \{\}\) \} : value;/);
+  assert.match(editor, /onChange\(change\(schema, base, key, v\)\)/, 'fields change from the same base');
+  assert.match(editor, /Built-in default:/);
+  assert.match(editor, /Back to the built-in default/);
+  assert.match(editor, /onClick=\{\(\) => onChange\(\{\}\)\}/);
+  assert.match(editor, /runs once/);
+  assert.match(editor, /id=\{`policy-field-\$\{field\.key\}`\}/, 'every field has an anchor to be led to');
+  assert.match(editor, /const settable = r\.derived && now === 'refused';/);
+  assert.match(editor, /set ↓/);
+  assert.match(editor, /shownAsRows\(f\)/, 'a switch that is a row is not drawn twice');
 });

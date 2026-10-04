@@ -56,6 +56,12 @@ export const polymarketPolicy: PolicySchema = {
   connector: 'polymarket',
   envKey: 'POLYMARKET_POLICY',
   emptyIsOpen: true,
+  // The open default's permissions without its "no caps": deposits from the
+  // wallet, withdrawals back to its intents (an empty `withdraw_to` here).
+  ownStart: { allow_deposit: true, allow_withdraw: true },
+  derivedRows: [{ id: 'orders', label: 'Place orders', group: 'Trading', requires: ['max_order_usd', 'max_daily_volume_usd'] }],
+  decisionNote:
+    'Auto-approve: the agent does it within the limits below. Unticked: it does not. Orders run once both limits are set; cancelling an order is always allowed. Nothing here waits for your approval yet.',
   emptySummary: 'no caps — the built-in default: any market, any size, deposits from the wallet, withdrawals only back to it',
   groups: [
     {
@@ -106,12 +112,13 @@ export const polymarketPolicy: PolicySchema = {
       ],
     },
     {
-      question: 'May money move in and out?',
+      question: 'Deposits and withdrawals',
       fields: [
         {
           key: 'allow_deposit',
           label: 'Fund the venue from the wallet',
           kind: 'toggle',
+          row: { label: 'Fund the venue from the wallet', group: 'Money', enable: true },
           help: 'Lets the agent move USDC from the wallet’s intents balance to its Polymarket deposit wallet. The cap below bounds one deposit.',
           absentMeans: 'Off: nothing moves to the venue.',
         },
@@ -128,6 +135,7 @@ export const polymarketPolicy: PolicySchema = {
           key: 'allow_withdraw',
           label: 'Withdraw back',
           kind: 'toggle',
+          row: { label: 'Withdraw back', group: 'Money', enable: true },
           help: 'Lets the agent move USDC from Polymarket back out.',
           absentMeans: 'Off: nothing leaves the venue.',
         },

@@ -54,6 +54,13 @@ export const hyperliquidPolicy: PolicySchema = {
   connector: 'hyperliquid',
   envKey: 'HYPERLIQUID_POLICY',
   emptyIsOpen: true,
+  // The open default's permissions without its "no caps": deposits from the
+  // wallet, withdrawals only back to its intents. An own policy that left
+  // `withdraw_to` empty would let the agent name any destination.
+  ownStart: { allow_deposit: true, allow_withdraw: true, withdraw_to: 'intents' },
+  derivedRows: [{ id: 'orders', label: 'Place orders', group: 'Trading', requires: ['max_order_usd', 'max_daily_volume_usd', 'max_leverage'] }],
+  decisionNote:
+    'Auto-approve: the agent does it within the limits below. Unticked: it does not. Orders run once their three limits are set; cancelling an order is always allowed. Nothing here waits for your approval yet.',
   emptySummary: 'no caps — the built-in default: any coin, any size, leverage up to the market’s, deposits from the wallet, withdrawals only back to it',
   groups: [
     {
@@ -113,12 +120,13 @@ export const hyperliquidPolicy: PolicySchema = {
       ],
     },
     {
-      question: 'May money move in and out?',
+      question: 'Deposits and withdrawals',
       fields: [
         {
           key: 'allow_deposit',
           label: 'Fund the venue from the wallet',
           kind: 'toggle',
+          row: { label: 'Fund the venue from the wallet', group: 'Money', enable: true },
           help: 'Lets the agent move USDC from the wallet’s intents balance to Hyperliquid. Each deposit is one request the agent makes; the cap below bounds it.',
           absentMeans: 'Off: nothing moves to the venue.',
         },
@@ -135,6 +143,7 @@ export const hyperliquidPolicy: PolicySchema = {
           key: 'allow_withdraw',
           label: 'Withdraw back',
           kind: 'toggle',
+          row: { label: 'Withdraw back', group: 'Money', enable: true },
           help: 'Lets the agent move USDC from Hyperliquid back out.',
           absentMeans: 'Off: nothing leaves the venue.',
         },

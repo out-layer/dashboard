@@ -156,62 +156,158 @@ export function change(schema: PolicySchema, value: PolicyValue, key: string, v:
  */
 export type Decision = 'refused' | 'automatic' | 'asked';
 
+/** One row of the decision table: an operation, a field that grants by being set, or an operation made of fields. */
+export interface DecisionRow {
+  /** The operation's name, `field:<key>` for a field with a `row`, or a derived row's id. */
+  id: string;
+  label: string;
+  group: string;
+  /** The row can be refused: unticking "Auto-approve" refuses it. */
+  refusable: boolean;
+  /** The row can wait for the owner: it has a "Manual approval" box. */
+  askable: boolean;
+  /** Fields that must be set for the row to run (`needs`, or a derived row's `requires`). */
+  needs: string[];
+  /** Made of its fields: ticked when they are set, and ticked by setting them. */
+  derived: boolean;
+  /** What the row does, for its tooltip: the help of the field behind it. */
+  help?: string;
+}
+
+const FIELD_ROW = 'field:';
+
 /**
  * The schema's decision table: the field listing what waits for the owner
- * (`asks`), the field listing what is allowed (`asksBefore`) when the connector
- * has one, and the group they share. Null for a connector with nothing to ask.
+ * (`asks`), the field listing what is allowed (`asksBefore`'s target, or a
+ * field marked `actions`), the fields that grant by being set (`row`), the
+ * group the table is titled by, and its rows in order. Null when there is
+ * nothing to decide.
  */
-export function decisionFields(schema: PolicySchema): { ask: PolicyField; allowed?: PolicyField; group: PolicyGroup } | null {
-  for (const group of schema.groups) {
-    const ask = group.fields.find((f) => f.kind === 'choices' && f.asks);
-    if (!ask) continue;
-    const allowed = ask.asksBefore ? fields(schema).find((f) => f.key === ask.asksBefore && f.kind === 'choices') : undefined;
-    return { ask, allowed, group };
+export function decisionFields(
+  schema: PolicySchema,
+): { ask?: PolicyField; allowed?: PolicyField; gates: PolicyField[]; group?: PolicyGroup; rows: DecisionRow[] } | null {
+  const all = fields(schema);
+  const ask = all.find((f) => f.kind === 'choices' && f.asks);
+  const allowed = ask?.asksBefore
+    ? all.find((f) => f.key === ask.asksBefore && f.kind === 'choices')
+    : all.find((f) => f.kind === 'choices' && f.actions);
+  const gates = all.filter((f) => f.row);
+  const derived = schema.derivedRows ?? [];
+  if (!ask && !allowed && gates.length === 0 && derived.length === 0) return null;
+  const holder = ask ?? allowed;
+  const group = holder ? schema.groups.find((g) => g.fields.includes(holder)) : undefined;
+  const askable = new Set((ask?.options ?? []).map((o) => o.value));
+  const rows: DecisionRow[] = (holder?.options ?? []).map((o) => ({
+    id: o.value,
+    label: o.label,
+    group: o.group,
+    refusable: Boolean(allowed),
+    askable: askable.has(o.value),
+    needs: schema.needs?.[o.value] ?? [],
+    derived: false,
+  }));
+  for (const d of derived) rows.push({ id: d.id, label: d.label, group: d.group, refusable: true, askable: false, needs: d.requires, derived: true });
+  for (const f of gates) rows.push({ id: FIELD_ROW + f.key, label: f.row!.label, group: f.row!.group, refusable: true, askable: false, needs: [], derived: false, help: f.help });
+  // An operation that is one decision with its switch carries the switch's explanation.
+  for (const r of rows) {
+    const t = all.find((f) => f.kind === 'toggle' && f.link?.onlyWith?.includes(r.id));
+    if (t && !r.help) r.help = t.help;
   }
-  return null;
+  return { ask, allowed, gates, group, rows };
 }
 
-/** The decision the value holds for `op` — see {@link Decision}. */
+/** A switch shown only through rows of the table: one with a `row`, or one that is a single decision with its operations (`link.onlyWith`). */
+export function shownAsRows(field: PolicyField): boolean {
+  return field.kind === 'toggle' && (Boolean(field.row) || (field.link?.onlyWith?.length ?? 0) > 0);
+}
+
+function gateOf(schema: PolicySchema, id: string): PolicyField | undefined {
+  return id.startsWith(FIELD_ROW) ? fields(schema).find((f) => f.key === id.slice(FIELD_ROW.length) && f.row) : undefined;
+}
+
+function derivedOf(schema: PolicySchema, id: string) {
+  return schema.derivedRows?.find((d) => d.id === id);
+}
+
+/** The switches that `op` does nothing without (`link.onlyWith`). */
+function switchesOf(schema: PolicySchema, op: string): PolicyField[] {
+  return fields(schema).filter((f) => f.kind === 'toggle' && f.link?.onlyWith?.includes(op));
+}
+
+/** The decision the value holds for row `op` — see {@link Decision}. */
 export function decisionOf(schema: PolicySchema, value: PolicyValue, op: string): Decision {
+  const gate = gateOf(schema, op);
+  if (gate) return isEmpty(value[gate.key]) ? 'refused' : 'automatic';
+  const made = derivedOf(schema, op);
+  if (made) return made.requires.every((k) => !isEmpty(value[k])) ? 'automatic' : 'refused';
   const d = decisionFields(schema);
   if (!d) return 'refused';
-  if (chosen(value[d.ask.key]).includes(op)) return 'asked';
-  if (!d.allowed) return 'automatic';
-  const allowed = chosen(value[d.allowed.key]);
-  if (allowed.length === 0) return d.allowed.emptyMeansAll ? 'automatic' : 'refused';
-  return allowed.includes(op) ? 'automatic' : 'refused';
+  let decision: Decision;
+  if (d.ask && chosen(value[d.ask.key]).includes(op)) decision = 'asked';
+  else if (!d.allowed) decision = d.ask ? 'automatic' : 'refused';
+  else {
+    const allowed = chosen(value[d.allowed.key]);
+    decision = (allowed.length === 0 ? d.allowed.emptyMeansAll === true : allowed.includes(op)) ? 'automatic' : 'refused';
+  }
+  // An operation that does nothing without its switch is refused while the switch is off.
+  if (decision !== 'refused' && switchesOf(schema, op).some((t) => value[t.key] !== true)) return 'refused';
+  return decision;
 }
 
 /**
- * `value` with `op` decided as `decision`, through {@link change} so every
+ * `value` with row `op` decided as `decision`, through {@link change} so every
  * switch follows. Asking allows: `asked` ticks the operation among the allowed
  * ones. `automatic` keeps it allowed and drops the ask. `refused` unticks it,
  * which drops the ask too; a connector with no allowed-actions field cannot
- * refuse here, so `refused` there reads as `automatic`.
+ * refuse an operation, so `refused` there reads as `automatic`. A field row is
+ * set to its `enable` value when allowed and cleared when refused; a derived
+ * row is cleared when refused, and allowed only by setting its fields. A
+ * switch the operation does nothing without is turned on with it, and off
+ * when none of its operations is allowed any more.
  */
 export function decide(schema: PolicySchema, value: PolicyValue, op: string, decision: Decision): PolicyValue {
+  const gate = gateOf(schema, op);
+  if (gate) {
+    if (decision === 'refused') return isEmpty(value[gate.key]) ? value : change(schema, value, gate.key, undefined);
+    return isEmpty(value[gate.key]) ? change(schema, value, gate.key, gate.row!.enable) : value;
+  }
+  const made = derivedOf(schema, op);
+  if (made) {
+    if (decision !== 'refused') return value;
+    return made.requires.reduce((v, k) => (isEmpty(v[k]) ? v : change(schema, v, k, undefined)), value);
+  }
   const d = decisionFields(schema);
-  if (!d) return value;
+  if (!d || (!d.ask && !d.allowed)) return value;
   const inOrder = (field: PolicyField, values: string[]) => (field.options ?? []).map((o) => o.value).filter((v) => values.includes(v));
-  const without = (field: PolicyField, values: string[]) => {
+  const without = (values: string[]) => {
     const kept = values.filter((v) => v !== op);
     return kept.length > 0 ? kept : undefined;
   };
-  const asked = chosen(value[d.ask.key]);
-  if (decision === 'asked') {
-    return asked.includes(op) ? value : change(schema, value, d.ask.key, inOrder(d.ask, [...asked, op]));
+  const ask = d.ask && (d.ask.options ?? []).some((o) => o.value === op) ? d.ask : undefined;
+  let next = value;
+  if (decision === 'asked' && ask) {
+    const asked = chosen(next[ask.key]);
+    if (!asked.includes(op)) next = change(schema, next, ask.key, inOrder(ask, [...asked, op]));
+  } else if (ask) {
+    const asked = chosen(next[ask.key]);
+    if (asked.includes(op)) next = change(schema, next, ask.key, without(asked));
   }
-  let next = asked.includes(op) ? change(schema, value, d.ask.key, without(d.ask, asked)) : value;
-  if (!d.allowed) return next;
-  const allowed = chosen(next[d.allowed.key]);
-  const every = (d.allowed.options ?? []).map((o) => o.value);
-  const allowsAll = allowed.length === 0 && d.allowed.emptyMeansAll === true;
-  if (decision === 'automatic') {
-    if (!allowsAll && !allowed.includes(op)) next = change(schema, next, d.allowed.key, inOrder(d.allowed, [...allowed, op]));
-  } else if (allowsAll) {
-    next = change(schema, next, d.allowed.key, every.filter((v) => v !== op));
-  } else if (allowed.includes(op)) {
-    next = change(schema, next, d.allowed.key, without(d.allowed, allowed));
+  if (d.allowed) {
+    const allowed = chosen(next[d.allowed.key]);
+    const every = (d.allowed.options ?? []).map((o) => o.value);
+    const allowsAll = allowed.length === 0 && d.allowed.emptyMeansAll === true;
+    if (decision !== 'refused') {
+      if (!allowsAll && !allowed.includes(op)) next = change(schema, next, d.allowed.key, inOrder(d.allowed, [...allowed, op]));
+    } else if (allowsAll) {
+      next = change(schema, next, d.allowed.key, every.filter((v) => v !== op));
+    } else if (allowed.includes(op)) {
+      next = change(schema, next, d.allowed.key, without(allowed));
+    }
+  }
+  for (const t of switchesOf(schema, op)) {
+    const others = (t.link?.onlyWith ?? []).filter((o) => o !== op && decisionOf(schema, next, o) !== 'refused');
+    if (decision !== 'refused' && next[t.key] !== true) next = change(schema, next, t.key, true);
+    else if (decision === 'refused' && next[t.key] === true && others.length === 0) next = { ...next, [t.key]: undefined };
   }
   return next;
 }

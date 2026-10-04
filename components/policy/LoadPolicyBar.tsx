@@ -1,5 +1,7 @@
 'use client';
 
+import { InfoHint } from '@/components/ui/info-hint';
+
 /**
  * Above a connector's policy form, while the stored policy is not in it: that
  * a policy exists, and the button that loads it. It sits ABOVE the form
@@ -27,38 +29,29 @@ export function LoadPolicyBar({
   onLoad: () => void;
 }) {
   return (
-    <div className="max-w-3xl space-y-2 rounded-md border border-border bg-card-muted p-3 text-sm">
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-        <p className="min-w-0 flex-1">
-          {saved ? (
-            <>Saved just now. Load it to see what the connector reads back.</>
-          ) : (
+    <div className="flex max-w-3xl flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+      <button
+        type="button"
+        onClick={onLoad}
+        disabled={disabled}
+        className="shrink-0 rounded-lg border border-border-strong px-3 py-1.5 text-sm font-semibold text-foreground hover:border-accent hover:text-accent-text disabled:opacity-50"
+      >
+        {reading ? 'Waiting for your wallet…' : saved ? 'Load and decrypt what was saved' : 'Load and decrypt your existing policy'}
+      </button>
+      <span className="inline-flex items-center gap-1.5 text-muted-foreground">
+        {saved ? 'to see what the connector reads back' : `stored encrypted on the contract${updatedAt ? `, changed ${updatedAt.toLocaleDateString()}` : ''}`}
+        <InfoHint
+          text={
             <>
-              <span className="font-medium">You already have a policy.</span> It is stored encrypted on the contract
-              {updatedAt ? `, last changed ${updatedAt.toLocaleDateString()}` : ''}. The form below stays empty until you load it.
+              <span className="block">
+                Your policy is sealed with the credential, and only the keystore enclave can open it. Loading runs the connector, which on chain is
+                a transaction: it attaches 0.1 NEAR, keeps the run&apos;s cost — about 0.0013 NEAR — and returns the rest.
+              </span>
+              <span className="mt-2 block">The answer is sealed to a key this page has just made, so the chain records only ciphertext.</span>
             </>
-          )}
-        </p>
-        <button
-          type="button"
-          onClick={onLoad}
-          disabled={disabled}
-          className="shrink-0 rounded-lg border border-border-strong px-4 py-2 text-sm font-semibold text-foreground hover:border-accent hover:text-accent-text disabled:opacity-50"
-        >
-          {reading ? 'Waiting for your wallet…' : 'Load and decrypt it'}
-        </button>
-      </div>
-      <details className="text-xs text-muted-foreground">
-        <summary className="select-none hover:text-foreground">Why does loading it need a transaction?</summary>
-        <div className="mt-2 space-y-2">
-          <p>
-            Your policy is stored sealed, together with the credential, and only the keystore enclave can open it — this page cannot read it
-            back. The one door into the enclave is running the connector, and on chain a run is a transaction: it attaches 0.1 NEAR, keeps the
-            run&apos;s cost — about 0.0013 NEAR — and returns the rest.
-          </p>
-          <p>The connector answers with the policy sealed to a key this page has just created and never sends anywhere, so the chain records only ciphertext.</p>
-        </div>
-      </details>
+          }
+        />
+      </span>
     </div>
   );
 }

@@ -13,7 +13,7 @@ import { gmailPolicy } from '../lib/policies/gmail.ts';
 import { mercuryPolicy } from '../lib/policies/mercury.ts';
 import { hyperliquidPolicy } from '../lib/policies/hyperliquid.ts';
 import { polymarketPolicy } from '../lib/policies/polymarket.ts';
-import { decide, decisionFields, decisionOf, fields, toJson } from '../lib/policies/policy.ts';
+import { decide, decisionFields, decisionOf, fields, toJson, validate } from '../lib/policies/policy.ts';
 
 const all = [githubPolicy, gmailPolicy, mercuryPolicy, hyperliquidPolicy, polymarketPolicy];
 
@@ -22,7 +22,7 @@ test('every schema has at most one ask field, in the same group as the actions i
     const asks = fields(schema).filter((f) => f.asks);
     assert.ok(asks.length <= 1, `${schema.connector}: ${asks.length} ask fields`);
     const d = decisionFields(schema);
-    if (!d) continue;
+    if (!d?.ask) continue;
     assert.equal(d.ask.kind, 'choices');
     assert.ok(d.group.fields.includes(d.ask));
     if (d.allowed) {
@@ -34,8 +34,15 @@ test('every schema has at most one ask field, in the same group as the actions i
   }
   assert.equal(decisionFields(githubPolicy).allowed.key, 'actions');
   assert.equal(decisionFields(gmailPolicy).allowed, undefined);
-  assert.equal(decisionFields(mercuryPolicy), null);
-  assert.equal(decisionFields(hyperliquidPolicy), null);
+  assert.equal(decisionFields(mercuryPolicy).allowed.key, 'allowed_operations', 'Mercury: its operations are the rows');
+  assert.equal(decisionFields(mercuryPolicy).ask, undefined);
+  for (const s of [hyperliquidPolicy, polymarketPolicy]) {
+    assert.deepEqual(
+      decisionFields(s).rows.map((r) => r.id),
+      ['orders', 'field:allow_deposit', 'field:allow_withdraw'],
+      `${s.connector}: orders, then money in and out`,
+    );
+  }
 });
 
 test('only the trading connectors run open on an empty policy, and say so', () => {
@@ -98,8 +105,82 @@ test('Gmail: every send is automatic unless asked about; refusing is not an outc
   assert.equal(decisionOf(g, decide(g, asked, 'send', 'refused'), 'send'), 'automatic');
 });
 
-test('a connector with nothing to ask decides nothing', () => {
-  assert.equal(decisionOf(mercuryPolicy, {}, 'pay_invoice'), 'refused');
-  const v = { max_payment_usd: 10 };
-  assert.equal(decide(mercuryPolicy, v, 'pay_invoice', 'asked'), v);
+test('Mercury: every operation is a row; a switch that is one decision with its operation follows it', () => {
+  const m = mercuryPolicy;
+  const d = decisionFields(m);
+  assert.ok(d.rows.every((r) => r.refusable && !r.askable), 'nothing waits for the owner: no manual column');
+  // Empty allows every operation — but one that needs its switch is refused while the switch is off.
+  assert.equal(decisionOf(m, {}, 'accounts'), 'automatic');
+  assert.equal(decisionOf(m, {}, 'add_recipient'), 'refused');
+  assert.equal(decisionOf(m, {}, 'send_invoice'), 'refused');
+  // Payments are allowed and need both amounts: the row says what it waits for.
+  assert.equal(decisionOf(m, {}, 'pay_invoice'), 'automatic');
+  assert.deepEqual(d.rows.find((r) => r.id === 'pay_invoice').needs, ['max_payment_usd', 'max_spend_usd_month']);
+  // Ticking add_recipient turns its switch on; refusing it turns the switch off again.
+  const added = decide(m, {}, 'add_recipient', 'automatic');
+  assert.equal(added.allow_new_recipients, true);
+  assert.equal(decisionOf(m, added, 'add_recipient'), 'automatic');
+  const removed = decide(m, added, 'add_recipient', 'refused');
+  assert.equal(decisionOf(m, removed, 'add_recipient'), 'refused');
+  assert.equal(removed.allow_new_recipients, undefined);
+  // Invoicing: one switch, two operations — it stays on while either is allowed.
+  let inv = decide(m, decide(m, {}, 'send_invoice', 'automatic'), 'cancel_invoice', 'automatic');
+  assert.equal(inv.allow_invoicing, true);
+  inv = decide(m, inv, 'send_invoice', 'refused');
+  assert.equal(inv.allow_invoicing, true, 'cancel is still allowed');
+  assert.equal(decisionOf(m, inv, 'cancel_invoice'), 'automatic');
+  inv = decide(m, inv, 'cancel_invoice', 'refused');
+  assert.equal(inv.allow_invoicing, undefined);
+  // Asking is not offered: it reads as allowing.
+  assert.equal(decisionOf(m, decide(m, { allowed_operations: ['accounts'] }, 'recipients', 'asked'), 'recipients'), 'automatic');
+});
+
+test('Hyperliquid and Polymarket: orders are made of their limits; money in and out are switches', () => {
+  for (const [s, caps] of [
+    [hyperliquidPolicy, { max_order_usd: 100, max_daily_volume_usd: 500, max_leverage: 3 }],
+    [polymarketPolicy, { max_order_usd: 10, max_daily_volume_usd: 50 }],
+  ]) {
+    assert.equal(decisionOf(s, {}, 'orders'), 'refused', `${s.connector}: no limits, no orders under own rules`);
+    assert.equal(decisionOf(s, caps, 'orders'), 'automatic');
+    // Ticking cannot invent amounts; unticking clears them.
+    assert.deepEqual(decide(s, {}, 'orders', 'automatic'), {});
+    const off = decide(s, { ...caps, allow_deposit: true }, 'orders', 'refused');
+    for (const k of Object.keys(caps)) assert.equal(off[k], undefined, `${s.connector}: ${k} cleared`);
+    assert.equal(off.allow_deposit, true, 'money in and out untouched');
+    assert.equal(decisionOf(s, decide(s, {}, 'field:allow_withdraw', 'automatic'), 'field:allow_withdraw'), 'automatic');
+    assert.deepEqual(decide(s, { allow_withdraw: true }, 'field:allow_withdraw', 'refused'), { allow_withdraw: undefined });
+    assert.equal(decisionFields(s).rows.find((r) => r.id === 'orders').derived, true);
+  }
+  // The owner's own rules start from the default's permissions, not from nothing.
+  assert.deepEqual(hyperliquidPolicy.ownStart, { allow_deposit: true, allow_withdraw: true, withdraw_to: 'intents' });
+  assert.deepEqual(polymarketPolicy.ownStart, { allow_deposit: true, allow_withdraw: true });
+  assert.deepEqual(validate(polymarketPolicy, polymarketPolicy.ownStart), []);
+  assert.deepEqual(validate(hyperliquidPolicy, hyperliquidPolicy.ownStart), []);
+});
+
+test('Gmail: Attach files is a row of its own — the attachment size grants by being set', () => {
+  const g = gmailPolicy;
+  const d = decisionFields(g);
+  assert.deepEqual(
+    d.rows.map((r) => [r.id, r.label, r.group, r.refusable, r.askable]),
+    [
+      ['send', 'Send a message', 'Mail', false, true],
+      ['field:max_attachment_kb', 'Attach files', 'Mail', true, false],
+    ],
+  );
+  const id = 'field:max_attachment_kb';
+  assert.equal(decisionOf(g, {}, id), 'refused', 'no size: no files, as the connector reads it');
+  const on = decide(g, {}, id, 'automatic');
+  assert.deepEqual(on, { max_attachment_kb: 2048 });
+  assert.equal(decisionOf(g, on, id), 'automatic');
+  // A size the owner typed is kept when the row is ticked again.
+  assert.deepEqual(decide(g, { max_attachment_kb: 500 }, id, 'automatic'), { max_attachment_kb: 500 });
+  assert.equal(decisionOf(g, { max_attachment_kb: 500 }, id), 'automatic', 'typing a size ticks the row');
+  assert.equal(decide(g, on, id, 'refused').max_attachment_kb, undefined);
+  assert.equal(toJson(g, decide(g, on, id, 'refused')), '{}');
+  // It cannot wait on its own: asking reads as allowing.
+  assert.deepEqual(decide(g, {}, id, 'asked'), { max_attachment_kb: 2048 });
+  // Send and files are independent rows.
+  const both = decide(g, decide(g, {}, 'send', 'asked'), id, 'automatic');
+  assert.deepEqual(JSON.parse(toJson(g, both)), { max_attachment_kb: 2048, confirm: ['send'] });
 });

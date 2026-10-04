@@ -3,7 +3,11 @@
 import { useState } from 'react';
 import { InfoHint } from '@/components/ui/info-hint';
 import type { Choice, PolicyField, PolicySchema, PolicyValue } from '@/lib/policies/types';
-import { change, decide, decisionFields, decisionOf, isUnrestricted, validate, type Decision } from '@/lib/policies/policy';
+import { change, decide, decisionFields, decisionOf, fields, isUnrestricted, shownAsRows, validate, type Decision, type DecisionRow } from '@/lib/policies/policy';
+
+function isEmptyValue(v: PolicyValue[string]): boolean {
+  return v === undefined || v === '' || v === false || (Array.isArray(v) && v.length === 0);
+}
 
 /**
  * One editor for every connector's policy, driven by its schema. The page it
@@ -32,7 +36,9 @@ import { change, decide, decisionFields, decisionOf, isUnrestricted, validate, t
  *    auto-approve, info for manual approval — the same on every connector.
  * 6. **The summary states permissions, never restrictions**, and an empty
  *    policy is described by the connector (`emptySummary`). A caller that has
- *    not read the stored policy passes `headline` instead.
+ *    not read the stored policy passes `notLoaded`: an untouched form then has
+ *    no sentence — it would describe a value nobody has — and the page's own
+ *    load button and Save warning say the rest.
  * 7. **A switch and the operations it qualifies move together** (`change`).
  */
 export function PolicyEditor({
@@ -40,37 +46,49 @@ export function PolicyEditor({
   value,
   onChange,
   disabled = false,
-  headline,
+  notLoaded = false,
 }: {
   schema: PolicySchema;
   value: PolicyValue;
   onChange: (next: PolicyValue) => void;
   disabled?: boolean;
-  /** Shown instead of the summary while the value is not the stored one — a
-   *  page that has not loaded the policy must not describe it. */
-  headline?: string;
+  /** The value is not the stored one: an untouched form is not described. */
+  notLoaded?: boolean;
 }) {
   const summary = schema.summarize(value);
+  const untouched = notLoaded && isUnrestricted(value);
   const errors = validate(schema, value);
   const decision = decisionFields(schema);
-  const bounds = schema.groups.filter((g) => g !== decision?.group);
+  // A switch shown as a row is that row; a number with one keeps its input here.
+  const inTable = (f: PolicyField) => f === decision?.ask || f === decision?.allowed || shownAsRows(f);
+  // A connector that runs open with no policy shows its default as allowed, and
+  // the first change starts the owner's own rules from `ownStart` — never from
+  // nothing, which would switch off what the owner did not touch.
+  const openDefault = schema.emptyIsOpen === true && isUnrestricted(value);
+  const base = openDefault ? { ...(schema.ownStart ?? {}) } : value;
+  const labelOf = (key: string) => fields(schema).find((f) => f.key === key)?.label ?? key;
+  const goTo = (key: string) => {
+    const el = document.getElementById(`policy-field-${key}`);
+    el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    el?.querySelector('input')?.focus({ preventScroll: true });
+  };
+  const bounds = schema.groups
+    .filter((g) => g !== decision?.group)
+    .map((g) => ({ ...g, fields: g.fields.filter((f) => !inTable(f)) }))
+    .filter((g) => g.fields.length > 0);
 
-  const set = (key: string, v: PolicyValue[string]) => onChange(change(schema, value, key, v));
+  const set = (key: string, v: PolicyValue[string]) => onChange(change(schema, base, key, v));
 
   return (
     <div className="w-full space-y-6 text-sm" data-policy-editor>
-      <div className="rounded-md border border-border bg-card-muted p-3">
-        <p>
-          <span className="font-medium">This policy: </span>
-          {headline && isUnrestricted(value) ? (
-            <span className="text-muted-foreground">{headline}</span>
-          ) : isUnrestricted(value) ? (
-            <span>{schema.emptySummary ?? 'anyone, no limits'}</span>
-          ) : (
-            <span>{summary}</span>
-          )}
-        </p>
-        <details className="mt-2 text-xs text-muted-foreground">
+      <div className={untouched ? '' : 'rounded-md border border-border bg-card-muted p-3'}>
+        {!untouched && (
+          <p className="mb-2">
+            <span className="font-medium">This policy: </span>
+            {isUnrestricted(value) ? <span>{schema.emptySummary ?? 'anyone, no limits'}</span> : <span>{summary}</span>}
+          </p>
+        )}
+        <details className="text-xs text-muted-foreground">
           <summary className="select-none hover:text-foreground">How a policy decides</summary>
           <ol className="mt-1.5 list-decimal space-y-1 pl-4">
             <li>Your settings decide first: the actions ticked, the limits typed, the switches turned on. The agent gets nothing wider.</li>
@@ -80,26 +98,39 @@ export function PolicyEditor({
                 ? 'Everything else is refused — except that with no policy at all, or an empty one, this connector runs fully open.'
                 : 'Everything else is refused.'}
             </li>
-            {decision && <li>Manual approval takes an allowed action and makes it wait for your yes in the inbox. An action that needs your approval is an action allowed.</li>}
+            {decision?.ask && <li>Manual approval takes an allowed action and makes it wait for your yes in the inbox. An action that needs your approval is an action allowed.</li>}
           </ol>
         </details>
       </div>
 
       {decision && (
         <section className="space-y-3">
-          <SectionTitle n={1}>{decision.group.question}</SectionTitle>
-          {decision.group.note && <p className="text-xs text-muted-foreground">{decision.group.note}</p>}
-          {decision.group.fields
-            .filter((f) => f !== decision.ask && f !== decision.allowed)
+          <SectionTitle n={1}>{decision.group?.question ?? 'What may it do?'}</SectionTitle>
+          {(decision.group?.note ?? schema.decisionNote) && <p className="text-xs text-muted-foreground">{decision.group?.note ?? schema.decisionNote}</p>}
+          {schema.emptyIsOpen &&
+            (openDefault ? (
+              <p className="max-w-3xl text-xs text-muted-foreground">
+                <span className="font-medium text-foreground">Built-in default:</span> everything here runs, with no caps. Change anything to set
+                your own rules — orders then need their limits.
+              </p>
+            ) : (
+              <button type="button" onClick={() => onChange({})} disabled={disabled} className="text-xs text-muted-foreground underline hover:text-foreground disabled:opacity-50">
+                Back to the built-in default
+              </button>
+            ))}
+          {(decision.group?.fields ?? [])
+            .filter((f) => !inTable(f))
             .map((field) => (
               <Field key={field.key} field={field} value={value[field.key]} onChange={(v) => set(field.key, v)} disabled={disabled} />
             ))}
           <DecisionTable
-            rows={decision.allowed ?? decision.ask}
-            ask={decision.ask}
-            allowed={decision.allowed}
-            decisionOf={(op) => decisionOf(schema, value, op)}
-            decide={(changes) => onChange(changes.reduce((v, [op, d]) => decide(schema, v, op, d), value))}
+            rows={decision.rows}
+            radioName={decision.ask?.key ?? 'decision'}
+            decisionOf={(op) => (openDefault ? 'automatic' : decisionOf(schema, value, op))}
+            decide={(changes) => onChange(changes.reduce((v, [op, d]) => decide(schema, v, op, d), base))}
+            missing={(row) => (openDefault ? [] : row.needs.filter((k) => isEmptyValue(value[k])))}
+            labelOf={labelOf}
+            goTo={goTo}
             disabled={disabled}
           />
         </section>
@@ -167,10 +198,10 @@ function Field({
       }
     />
   );
-  // A switch is one line: the box, its name, the (i); what "off" means under it while it is off.
+  // A switch is one line: the box, its name, the (i).
   if (field.kind === 'toggle') {
     return (
-      <div className="space-y-0.5">
+      <div id={`policy-field-${field.key}`} className="space-y-0.5">
         <div className="flex items-center gap-1.5">
           <label className="flex items-center gap-2">
             <input type="checkbox" checked={value === true} onChange={(e) => onChange(e.target.checked ? true : undefined)} disabled={disabled} />
@@ -182,7 +213,7 @@ function Field({
     );
   }
   return (
-    <div className="space-y-1">
+    <div id={`policy-field-${field.key}`} className="space-y-1">
       <label className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
         <span>{field.label}</span>
         {hint}
@@ -344,46 +375,50 @@ function GroupSwitch({ name, on, of, toggle, disabled }: { name: string; on: num
 }
 
 /**
- * The decision table: one small table per group of operations, one row per
- * operation, two outcome columns. A row with nothing ticked is refused;
- * auto-approve and manual approval exclude each other. A group none of whose
- * rows can wait for the owner (reads) has no manual column. A connector with
- * no allowed-actions field (Gmail) allows every row, so each row is a pair of
- * radios and its group name is a plain heading.
+ * The decision table: one small table per group of rows, two outcome columns.
+ * A row with nothing ticked is refused; auto-approve and manual approval
+ * exclude each other. A row that cannot be refused (Gmail's send: the
+ * connector has no list of allowed operations) is a pair of radios. A group
+ * none of whose rows can wait for the owner (reads) has no manual column. A
+ * group's name is its switch when every row of it can be refused.
  */
 function DecisionTable({
   rows,
-  ask,
-  allowed,
+  radioName,
   decisionOf,
   decide,
+  missing,
+  labelOf,
+  goTo,
   disabled,
 }: {
-  rows: PolicyField;
-  ask: PolicyField;
-  allowed?: PolicyField;
+  rows: DecisionRow[];
+  radioName: string;
   decisionOf: (op: string) => Decision;
   /** Several rows decided at once, each on the value the one before produced. */
   decide: (changes: [string, Decision][]) => void;
+  /** The fields a row still needs set before it runs. */
+  missing: (row: DecisionRow) => string[];
+  labelOf: (key: string) => string;
+  goTo: (key: string) => void;
   disabled: boolean;
 }) {
-  const options = rows.options ?? [];
-  const askable = new Set((ask.options ?? []).map((o) => o.value));
   const one = (op: string, d: Decision) => decide([[op, d]]);
-  const label = (o: Choice) => o.label.replace(/ \(.*\)$/, '');
-  const radios = !allowed;
+  const label = (r: DecisionRow) => r.label.replace(/ \(.*\)$/, '');
+  const groups = [...new Set(rows.map((r) => r.group))].map((name) => ({ name, rows: rows.filter((r) => r.group === name) }));
 
   return (
     <div className="gap-8 md:columns-2 xl:columns-3">
-      {groupsOf(options).map((group) => {
-        const manual = group.rows.some((o) => askable.has(o.value));
-        const on = group.rows.filter((o) => decisionOf(o.value) !== 'refused').length;
+      {groups.map((group) => {
+        const manual = group.rows.some((r) => r.askable);
+        const switchable = group.rows.every((r) => r.refusable && !r.derived);
+        const on = group.rows.filter((r) => decisionOf(r.id) !== 'refused').length;
         return (
           <table key={group.name} className="mb-4 w-full break-inside-avoid border-collapse text-sm">
             <thead>
               <tr className="border-b border-border">
                 <th scope="col" className="pb-1.5 text-left">
-                  {allowed ? (
+                  {switchable && group.rows.length > 1 ? (
                     <GroupSwitch
                       name={group.name}
                       on={on}
@@ -392,8 +427,8 @@ function DecisionTable({
                       toggle={() =>
                         decide(
                           on === group.rows.length
-                            ? group.rows.map((o) => [o.value, 'refused'])
-                            : group.rows.filter((o) => decisionOf(o.value) === 'refused').map((o) => [o.value, 'automatic']),
+                            ? group.rows.map((r) => [r.id, 'refused'])
+                            : group.rows.filter((r) => decisionOf(r.id) === 'refused').map((r) => [r.id, 'automatic']),
                         )
                       }
                       disabled={disabled}
@@ -413,36 +448,67 @@ function DecisionTable({
               </tr>
             </thead>
             <tbody>
-              {group.rows.map((o) => {
-                const now = decisionOf(o.value);
+              {group.rows.map((r) => {
+                const now = decisionOf(r.id);
+                const radios = !r.refusable;
+                const lacking = missing(r);
+                // A derived row is ticked by setting its fields: off, it offers the way there.
+                const settable = r.derived && now === 'refused';
                 return (
-                  <tr key={o.value} className="border-b border-border/60 last:border-0">
-                    <td className="py-1.5 pr-2" title={o.value}>
-                      {label(o)}
+                  <tr key={r.id} className="border-b border-border/60 last:border-0">
+                    <td className="py-1.5 pr-2" title={r.help ?? r.id}>
+                      {label(r)}
+                      {lacking.length > 0 && (now !== 'refused' || r.derived) && (
+                        <span className="block text-xs text-faint-foreground">
+                          runs once{' '}
+                          {lacking.map((k, i) => (
+                            <span key={k}>
+                              {i > 0 && (i === lacking.length - 1 ? ' and ' : ', ')}
+                              <button type="button" onClick={() => goTo(k)} className="underline hover:text-foreground">
+                                {labelOf(k)}
+                              </button>
+                            </span>
+                          ))}{' '}
+                          {lacking.length === 1 ? 'is' : 'are'} set
+                        </span>
+                      )}
                     </td>
                     <td className={`${AUTO_TINT} py-1.5 text-center`}>
-                      <input
-                        type={radios ? 'radio' : 'checkbox'}
-                        name={radios ? `${ask.key}:${o.value}` : undefined}
-                        aria-label={`${label(o)}: auto-approve`}
-                        checked={now === 'automatic'}
-                        onChange={() => one(o.value, now === 'automatic' && !radios ? 'refused' : 'automatic')}
-                        disabled={disabled}
-                      />
+                      {settable ? (
+                        <button
+                          type="button"
+                          onClick={() => lacking[0] && goTo(lacking[0])}
+                          disabled={disabled}
+                          title="Set its limits below"
+                          aria-label={`${label(r)}: set its limits`}
+                          className="text-xs text-accent-text hover:underline disabled:opacity-50"
+                        >
+                          set ↓
+                        </button>
+                      ) : (
+                        <input
+                          type={radios ? 'radio' : 'checkbox'}
+                          name={radios ? `${radioName}:${r.id}` : undefined}
+                          aria-label={`${label(r)}: auto-approve`}
+                          checked={now === 'automatic'}
+                          onChange={() => one(r.id, now === 'automatic' && !radios ? 'refused' : 'automatic')}
+                          disabled={disabled}
+                        />
+                      )}
                     </td>
                     {manual && (
                       <td className={`${MANUAL_TINT} py-1.5 text-center`}>
-                        {askable.has(o.value) ? (
+                        {r.askable ? (
                           <input
                             type={radios ? 'radio' : 'checkbox'}
-                            name={radios ? `${ask.key}:${o.value}` : undefined}
-                            aria-label={`${label(o)}: manual approval`}
+                            name={radios ? `${radioName}:${r.id}` : undefined}
+                            aria-label={`${label(r)}: manual approval`}
                             checked={now === 'asked'}
-                            onChange={() => one(o.value, now === 'asked' && !radios ? 'automatic' : 'asked')}
+                            onChange={() => one(r.id, now === 'asked' && !radios ? 'automatic' : 'asked')}
                             disabled={disabled}
                           />
                         ) : (
-                          <span className="text-faint-foreground" title="Cannot wait for you: it changes nothing">
+                          <span className="text-faint-foreground" title="Cannot wait for you on its own">
                             —
                           </span>
                         )}

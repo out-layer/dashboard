@@ -274,7 +274,7 @@ export const githubPolicy: PolicySchema = {
       problems.push('Branches it may write to: name one (agent/* is usual) — writing files and opening pull requests need it');
     }
     if (actions.includes('pr_merge') && value.allow_merge !== true) {
-      problems.push('Merge is ticked but its switch is off — turn on "Merge pull requests", or untick merge');
+      problems.push('Merge is listed but its switch (allow_merge) is off — tick “merge” in the table again to allow it, or untick it');
     }
     // The connector refuses an action the policy does not allow before it would
     // ask, so asking first about one is a setting that does nothing.

@@ -57,7 +57,7 @@ function plural(n: number, one: string, many: string): string {
 }
 
 /** The operations the owner may ask to confirm, in the manifest's order. */
-export const GMAIL_CONFIRMABLE: Choice[] = [{ value: 'send', label: 'Send a message', group: 'Writes' }];
+export const GMAIL_CONFIRMABLE: Choice[] = [{ value: 'send', label: 'Send a message', group: 'Mail' }];
 
 export const gmailPolicy: PolicySchema = {
   connector: 'gmail',
@@ -122,6 +122,9 @@ export const gmailPolicy: PolicySchema = {
           absentMeans: 'Empty: no attachments at all.',
           unit: 'KB',
           min: 1,
+          // A file is a grant of its own: ticked in the table, it allows 2 MB a
+          // message, the size the connector's README uses; the size is set here.
+          row: { label: 'Attach files', group: 'Mail', enable: 2048 },
         },
         {
           key: 'subject_prefix',
@@ -135,7 +138,7 @@ export const gmailPolicy: PolicySchema = {
     },
     {
       question: 'What may it do?',
-      note: 'Auto-approve: the agent sends within the limits below. Manual approval: the message is prepared and waits in your inbox; your yes sends it.',
+      note: 'Auto-approve: the agent sends within the limits below. Manual approval: the message is prepared and waits in your inbox; your yes sends it, files included. Attach files unticked: no message carries a file.',
       fields: [
         {
           key: 'confirm',

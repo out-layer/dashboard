@@ -1173,7 +1173,7 @@ export function ConnectorOwnerPage({ spec }: { spec: ConnectorSpec }) {
                   value={policy}
                   onChange={setPolicy}
                   disabled={busy}
-                  headline={policyRead ? undefined : 'not loaded — what you save replaces what is stored'}
+                  notLoaded={!policyRead}
                 />
 
                 {policyRead?.origin === 'read' && policyRead.unknownKeys.length > 0 && (

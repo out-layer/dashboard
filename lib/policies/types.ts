@@ -86,6 +86,21 @@ export interface PolicyField {
    * field it asks over.
    */
   asks?: boolean;
+  /**
+   * For choices: this field lists the operations the agent may run, and its
+   * options are the rows of the decision table — for a connector that has no
+   * "ask me" field to name it through `asksBefore` (Mercury).
+   */
+  actions?: boolean;
+  /**
+   * For a field that GRANTS by being set — a switch, or a number whose absence
+   * refuses (Gmail's attachment size): its row in the decision table, under
+   * `group`. Ticking the row sets `enable` when the field is empty; unticking
+   * clears the field. A switch with a row is shown only as that row; a number
+   * keeps its input among the limits, where its size is set. A switch whose
+   * `link.onlyWith` names its operations is shown only through their rows too.
+   */
+  row?: { label: string; group: string; enable: string[] | number | string | boolean };
 }
 
 /**
@@ -137,6 +152,23 @@ export interface PolicySchema {
    * "everything else is refused".
    */
   emptyIsOpen?: boolean;
+  /**
+   * With `emptyIsOpen`: where the owner's own rules start from when they first
+   * change anything — the open default's permissions without its "no caps",
+   * so the first edit narrows the default rather than switching off what the
+   * owner did not touch.
+   */
+  ownStart?: PolicyValue;
+  /**
+   * Rows of the decision table that are no field of their own: an operation
+   * that runs when every field in `requires` is set (Hyperliquid's orders need
+   * three caps). Unticking the row clears those fields; ticking it is setting them.
+   */
+  derivedRows?: { id: string; label: string; group: string; requires: string[] }[];
+  /** Operations that run only once these fields are set, beside being allowed (Mercury's payments need both amounts). */
+  needs?: Record<string, string[]>;
+  /** The decision table's note when no group of the schema holds it. */
+  decisionNote?: string;
   /** Rules across fields, in the owner's words: a write allowed with no daily number, and the like. */
   check?(value: PolicyValue): string[];
 }

@@ -431,7 +431,7 @@ base URL that matches the network your project / wallet is deployed on.
 |--------|----------|------|-------------|
 | POST | `/call/{owner}/{project}` | `X-Payment-Key` | Execute a WASI module (sync response) |
 | GET | `/calls/{call_id}` | — | Poll an async execution by id |
-| POST | `/trial-key` | `Bearer wk_...` / `near:...` | Claim the wallet's trial: ten connector calls in its first week; the key is derived and read again below |
+| POST | `/trial-key` | `Bearer wk_...` / `near:...` | Claim the wallet's trial: fifty connector calls in its first week; the key is derived and read again below |
 | GET | `/wallet/v1/payment-key` | `Bearer wk_...` / `near:...` | The wallet's nonce-0 key (trial or sponsored), derived again; only the credential that claimed it reads it |
 | POST | `/wallet/v1/sponsorship` | `Bearer wk_...` / `near:...` | Redeem a sponsor code (`spn_…`): a subscription, paid by the sponsor, on the nonce-0 key |
 | GET | `/subscription/status` | `X-Payment-Key` | What a key has left — for a trial key, `trial.calls_left` |
@@ -1140,7 +1140,7 @@ Payment keys are required for HTTPS API calls.
 | `outlayer keys topup <nonce> <amount>` | Top up with NEAR (mainnet, auto-swaps to USDC) |
 | `outlayer keys delete <nonce>` | Delete key: the storage deposit is refunded, the remaining balance is forfeited |
 | `outlayer keys trial-key [--api-key wk_...]` | Print a custody wallet's nonce-0 key (trial or sponsored); it is derived, so it is read again rather than stored |
-| `outlayer redeem <spn_...> [--api-key wk_...]` | Redeem a sponsor code: a subscription on the wallet's nonce-0 key, paid by the sponsor; stdout is the key |
+| `outlayer redeem <spn_...> [--api-key wk_...] [--payment-key owner:0:key]` | Redeem a sponsor code: a subscription on the wallet's nonce-0 key, paid by the sponsor; stdout is the key. `--payment-key` sends a nonce-0 key issued at random, which cannot be read again, as the proof that binds it; the answer is the derived key that replaces it |
 
 ```bash
 outlayer keys create
@@ -1610,7 +1610,7 @@ NEAR OutLayer executes WASM modules off-chain using wasmtime runtime. Your code 
 - **Target**: `wasm32-wasip2`
 - **Format**: Component model with typed interfaces
 - **Use case**: HTTP requests, complex I/O, modern features
-- **Features**: HTTP client, advanced filesystem, sockets
+- **Features**: HTTP client and the OutLayer host interfaces. No files and no raw sockets: keep a run's data in memory, which `max_memory_mb` bounds
 - **Size**: Larger binaries (~500KB-1MB)
 - **Example**: [ai-example](https://github.com/out-layer/ai-example)
 
@@ -2969,15 +2969,13 @@ cargo build --target wasm32-wasip2 --release
 ```rust
 // In your src/main.rs or src/lib.rs
 
-// Option 1: Embed at compile time (increases WASI binary size)
+// Embed at compile time (increases WASI binary size)
 const CONTRACT_WASM: &[u8] = include_bytes!(
     "../your-contract/res/local/your_contract.wasm"
 );
 
-// Option 2: Read from filesystem (if available in WASI env)
-fn load_contract() -> Result<Vec<u8>, std::io::Error> {
-    std::fs::read("./your-contract/res/local/your_contract.wasm")
-}
+// A guest has no filesystem: embed the bytes as above, or fetch them over
+// HTTP inside the run.
 
 // Use the contract WASM
 fn deploy_contract(contract_wasm: &[u8]) {
@@ -5638,12 +5636,23 @@ A connector whose writes the wallet's OWNER caps declares it in the registry
 * the coordinator reads the wallet's owner from the chain on every call
   (`get_wallet_policy`, never cached, so a policy the owner just stored applies
   to the next call);
-* with an owner, a call that names no `secrets_ref` gets the owner's row
-  `{owner, <profile>}`; a call that names a row of the owner's keeps it; any
-  other account's row — the agent's own included — is refused
-  `403 policy_row_not_owner`, and doing that again blocks the wallet on these
-  connectors for a while (`403 calls_suspended`);
+* with an owner, the owner's row `{owner, <connector>}` is attached when the
+  call names no `secrets_ref`, and a row of the owner's the call names is
+  kept — so an owner gives different wallets different limits with a profile
+  per wallet, whitelisting each wallet on its row. Those limits bind only
+  while `{owner, <connector>}` exists too: a call that names no row runs that
+  one, and with none stored, the built-in default — no caps. An owner who caps
+  per wallet stores it as well, strict or whitelisting no wallet (then a call
+  that names nothing is `Access denied`); any other account's row —
+  the agent's own included — is refused `403 policy_row_not_owner`, and naming
+  such rows can block the wallet on both these connectors for a while
+  (`403 calls_suspended`, `terminal: false`);
 * without an owner, the call's own reference is used as it is;
+* a named row that does not exist is refused by the worker
+  (`policy_row_missing`), never run with no policy: naming a profile nobody
+  stored would otherwise run the connector open, past the owner's real caps.
+  Only the owner's own row under the connector's profile, the one the
+  coordinator attaches, may be absent — then the built-in default applies;
 * the owner's row with an access rule that does not name the calling wallet
   refuses the call (`Access denied by access condition`) — the owner adds the
   wallet to it.
@@ -6384,7 +6393,7 @@ bytes whatever type the task says it is.
 | `approved` | the owner approved; the platform queued the preparer's run, named in `run`, which has not taken the answer yet |
 | `answering` | that run took the answer and acts |
 | `done` | that run ended well and the project reported |
-| `failed` | the run could not be started, did not start, refused the task, or ended any other way. `failure_reason` says which: `preparer_key_unavailable`, `operation_priced`, `operation_unknown`, `operation_limit_reached`, `wallet_unresolved`, `queue_unavailable`, `run_not_started`, or `run_refused:<reason>` with the host's reason — `hash-mismatch`, `answer-invalid`, `not-the-preparer`, `approval-invalid`, `expired`, `void`, `unreadable`, `unavailable`, `not-found`, `unreported` |
+| `failed` | the run could not be started, did not start, refused the task, or ended any other way. `failure_reason` says which. Before the run took the answer: `preparer_key_unavailable`, `operation_priced`, `operation_unknown`, `operation_limit_reached`, `wallet_unresolved`, `build_changed` (the connector published a new build since the task was made; decided at the approval before the owner's signature is spent, and nothing was charged), `queue_unavailable`, `run_not_started`, or `run_refused:<reason>` with the host's reason — `hash-mismatch`, `answer-invalid`, `not-the-preparer`, `approval-invalid`, `expired`, `void`, `unreadable`, `unavailable`, `not-found`, `unreported`. After: `run_failed` — the project said, with `report-failure`, that it did not carry the task out, and `result` holds why (a connector's refusal as `{"error": …}`); `run_unreported` — the run ended without a word on the task: it may have acted; `run_unfinished` — no word of the run's end within thirty minutes: it may have acted. `run_trapped` — the run reported the task carried out and then failed (trapped, ran out of time): `result` holds what it reported, and the action most likely happened |
 | `rejected`, `cancelled` | the owner said no; the preparer withdrew it |
 | `expired` | past its life |
 | `void` | the policy changed since it was made, or the run that answered was of another build of the project than the one that made it; found when it is answered |
@@ -6397,8 +6406,10 @@ Each move is made once. A task never returns to `open`: a run that failed may
 have acted in part, so the owner sees `failed` and the agent prepares a new
 task if the work is still wanted. A task `approved` for thirty minutes without
 a run taking its answer, and one `answering` for thirty minutes without a
-report, are ended `failed` by the platform (`run_not_started`, and the run's
-status).
+report, are ended `failed` by the platform (`run_not_started` and
+`run_unfinished`). An approval in a task's last five minutes is refused
+(`409 task_ending`) before the owner's signature is spent: the run it would
+start, paid by the agent, could not take the task in time.
 
 A task that leaves `open` loses what it showed at once — the sealed copy and
 every device's copy. Its outcome is kept 30 days.
@@ -6633,7 +6644,7 @@ is `ok([])`.
 |---|---|---|
 | `open(request)` | preparer | makes the task |
 | `mine()`, `status(id)` | preparer | its tasks — a turn is the preparer's of its conversation — or one of them; `status` also reads a task this run opened |
-| `cancel(id)`, `delete(id)` | preparer; or the run that opened the task | withdraws, deletes |
+| `cancel(id)`, `delete(id)` | preparer; or the run that opened the task | withdraws; deletes one nothing was carried out on (open, cancelled, rejected, expired, void, or failed with a reason that says nothing was done: `run_failed`, `run_not_started`, `run_refused:*`, a run never started) — one the owner's yes acted on, or may have, is refused `closed` |
 | `answered(id, hash, operation, policy, approval, supplied, note)` | the preparer's run the platform started for the task | verifies the owner's approval over this task, this hash and these words, and takes the answer; hands back `state`, the files, `supplied` and `note` opened |
 | `report(id, result)` | the same run | leaves the result for the preparer |
 | `unlock()` | owner | writes the copies for the devices now in force |

@@ -2,8 +2,8 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: "Building a Connector",
-  description: "The author side of a connector: the curated namespace and connector_id manifest that make one, the required top-level operation and its fail-closed pricing…",
+  title: "Connectors",
+  description: "What a connector is for the owner who connects an account, the agent that calls it and the enclave that runs it; how a call works, with the diagram; the…",
 };
 
 export default function Layout({ children }: { children: React.ReactNode }) {

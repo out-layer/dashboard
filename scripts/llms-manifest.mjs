@@ -189,16 +189,10 @@ export const SECTIONS = [
           'The calls a bound-account integration makes: which of the two account identities each endpoint is about (everything under /binding/ is the asset account, everything else is the wallet own account), the arguments of every binding endpoint and how they differ between the leased and personal modes, running a job under the bound name on both doors, the single per-wallet velocity purse both doors share, the agent_connect_denied refusal classes with which are terminal, and which HTTP failures are worth retrying (Retry-After, not the status code, is the signal)',
       },
       {
-        title: 'Building a Connector',
+        title: 'Connectors',
         path: '/docs/connectors',
         summary:
-          'The author side of a connector: the curated namespace and connector_id manifest that make one, the required top-level operation and its fail-closed pricing, the network allowlist declared in the wasm and enforced by the worker, the two different secrets (the author own credential versus one left for the calling agent), and the four mechanisms that can refuse a call',
-      },
-      {
-        title: 'Connectors & Subscriptions',
-        path: '/docs/subscriptions',
-        summary:
-          'What a connector is and how its operations are priced on chain, the per-operation author share, subscriptions as a flat allowance for a payment key, and the trial — ten connector calls in the first week of a wallet, with no call quota for a caller who pays',
+          'What a connector is for the owner who connects an account, the agent that calls it and the enclave that runs it; how a call works, with the diagram; the skills that teach an agent; the author side (the curated namespace and connector_id manifest, the required top-level operation and its fail-closed pricing, the network allowlist enforced by the worker, the two secrets, what can refuse a call); and what a call costs — operation prices on chain, the per-operation author share, subscriptions as a flat allowance for a payment key, the trial, sponsor codes, and no call quota for a caller who pays',
       },
       {
         title: 'Earnings',

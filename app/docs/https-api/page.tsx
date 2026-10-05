@@ -224,8 +224,8 @@ curl -X POST https://api.outlayer.ai/call/alice.near/my-assistant \\
                   Which of the project&apos;s priced operations this call is. A project that
                   publishes prices charges the exact operation named here, so a request without it
                   is refused rather than run at some default price — see{' '}
- <Link href="/docs/subscriptions" className="text-accent-text hover:underline">
-                    Connectors &amp; Subscriptions
+ <Link href="/docs/connectors" className="text-accent-text hover:underline">
+                    Connectors
  </Link>
                   . Projects with no published prices ignore the field.
                 </td>

@@ -394,8 +394,8 @@ near call usdt.tether-token.near ft_transfer_call '{
  <td className="px-4 py-3 text-sm text-muted-foreground">
                   In the wallet&apos;s first week, connectors only; then{' '}
  <code>402 trial_exhausted</code>. A key with money on it has no call limit — see{' '}
- <Link href="/docs/subscriptions#trial-keys" className="text-accent-text hover:underline">
-                    Connectors &amp; Subscriptions
+ <Link href="/docs/connectors#trial-keys" className="text-accent-text hover:underline">
+                    Connectors
  </Link>
                   .
                 </td>

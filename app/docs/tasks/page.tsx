@@ -228,6 +228,14 @@ export default function TasksDocsPage() {
                   <C>repo_star</C>, <C>repo_unstar</C>
                 </>,
               ],
+              [
+                'Mercury',
+                <>
+                  <C>pay_invoice</C>, <C>add_recipient</C>, <C>send_invoice</C>, <C>cancel_invoice</C> — by rule, with
+                  conditions: the amount (<C>min_usd</C>, <C>max_usd</C>), the payment rail (<C>methods</C>), a saved or a new
+                  payee (<C>payee</C>)
+                </>,
+              ],
             ]}
           />
           <p className="text-foreground">
@@ -243,6 +251,15 @@ export default function TasksDocsPage() {
             policy as <C>confirm</C>:
           </p>
           <CodeBlock language="json" code={POLICY_CONFIRM} />
+          <p className="text-foreground">
+            <Link href="/connect/mercury" className="text-accent-text underline">
+              Mercury
+            </Link>{' '}
+            decides per call instead: its policy&apos;s <C>rules</C> are a list of <C>{'{when, then}'}</C>, read in order, and the
+            first rule whose <C>when</C> matches decides — <C>allow</C>, <C>ask</C> or <C>refuse</C>. A payment above $500,
+            every wire, every cancellation can wait while a small ACH payment to a saved payee runs at once. A rule never
+            widens the policy: it is asked last, of a write every other check passed.
+          </p>
           <p className="text-foreground mt-3">
             A name that is not one of the connector&apos;s writes — a read, a misspelling, another case — makes the policy
             unreadable, and an unreadable policy refuses the connector&apos;s writes. Asking before a write allows nothing by
@@ -541,6 +558,35 @@ export default function TasksDocsPage() {
             approval must name its hash. The run that carried a task out is named by <C>run</C> once there is one,
             and its attestation is public too: the page holds it to the task — a call of the agent, of the
             task&apos;s project, of the build the task names.
+          </p>
+        </section>
+
+        <section id="events">
+          <AnchorHeading id="events">Being told</AnchorHeading>
+          <p className="text-foreground">
+            The owner sees every task in the{' '}
+            <Link href="/inbox" className="text-accent-text underline">
+              inbox
+            </Link>
+            , on any device they signed in. To hear of it elsewhere they name a URL of their own on the inbox&apos;s{' '}
+            <Link href="/inbox/settings" className="text-accent-text underline">
+              settings
+            </Link>{' '}
+            — an HTTPS URL on a public host, with no credentials in it — with one signature of their wallet. The URL stays in
+            force after the session that named it ends.
+          </p>
+          <p className="text-foreground mt-3">
+            It is sent <C>task_created</C>, <C>task_approved</C> (with the <C>run</C> queued for it), <C>task_answered</C>,{' '}
+            <C>task_failed</C> (with its <C>failure_reason</C>) and <C>task_expired</C>; a notice arrives as <C>task_created</C>{' '}
+            with <C>&quot;kind&quot;: &quot;notice&quot;</C>, and Got it sends nothing. A body says who asked whom, of what kind and
+            when, and links to the inbox. It carries nothing of what the task shows: what the owner is shown is sealed for their
+            devices, and a URL is not one of them.
+          </p>
+          <p className="text-foreground mt-3">
+            Each request carries <C>X-Wallet-Id: owner:&lt;account&gt;</C> and <C>X-Webhook-Signature</C>, the HMAC-SHA256 of
+            the body in hex under a secret made when the URL was named and shown to the owner once; naming a URL again makes a
+            new one. The sender follows no redirect and connects only to a public address. The agent is told nothing: it learns
+            a task&apos;s outcome from <C>task_status</C> the next time it asks.
           </p>
         </section>
 

@@ -392,6 +392,20 @@ export default function AgentCustodyPage() {
           This means neither the API gateway operator nor the agent can see or tamper with the raw policy rules.
         </p>
 
+ <p className="text-foreground mb-4">
+ <strong>Sponsored storage.</strong> Storing a policy takes a NEAR storage deposit, attached to{' '}
+ <code className="bg-card-muted px-1 rounded">store_wallet_policy</code> on the OutLayer contract. When someone else
+          pays it for the owner &mdash; a relayer, or an app that funds the owner&apos;s account &mdash; the owner names that
+          payer in <code className="bg-card-muted px-1 rounded">storage_refund_to</code> when the policy is created. Every
+          refund of the deposit then goes to the payer: the excess at creation, the difference when the policy shrinks, and
+          the whole deposit when it is deleted. The owner still updates, freezes and deletes the policy as before, but
+          cannot change where the deposit goes; only the payer can, with{' '}
+ <code className="bg-card-muted px-1 rounded">set_storage_refund_to</code>, for example to hand it to the owner. A payer
+          can only be named when the policy is created.{' '}
+ <code className="bg-card-muted px-1 rounded">get_wallet_policy</code> shows the payer and the deposit held. Without
+          the argument, refunds go to the owner.
+        </p>
+
  <div className="rounded-lg border border-border bg-card-muted p-4 mb-4">
  <p className="text-sm font-semibold text-foreground mb-1">Velocity limits are best-effort under concurrency</p>
  <p className="text-sm text-foreground">

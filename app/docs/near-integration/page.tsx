@@ -225,7 +225,7 @@ impl Contract {
  <li>Base fee + (instructions used × per-instruction fee) + (execution time × per-millisecond fee)</li>
  <li>Unused funds automatically refunded to <code className="bg-card-muted px-2 py-1 rounded">payer_account_id</code></li>
  <li>No refunds on execution failure (anti-DoS protection)</li>
- <li>Query <code className="bg-card-muted px-2 py-1 rounded">estimate_execution_cost()</code> before calling to estimate required deposit</li>
+ <li>Query <code className="bg-card-muted px-2 py-1 rounded">estimate_execution_cost(resource_limits, input_len)</code> before calling: the compute estimate plus, for an <code className="bg-card-muted px-2 py-1 rounded">input_data</code> longer than 32 KB, 0.00001 NEAR per byte above that, held while the request is pending and returned at settlement</li>
           </ul>
         </section>
 

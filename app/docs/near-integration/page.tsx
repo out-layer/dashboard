@@ -85,7 +85,7 @@ export default function NearIntegrationPage() {
  <p className="text-sm text-muted-foreground mb-2">Maximum resources to allocate. Defaults shown below:</p>
  <ul className="list-disc list-inside text-sm text-foreground ml-4 space-y-1">
  <li><code className="bg-card-muted px-2 py-1 rounded">max_instructions</code>: u64 (default: 1 billion, max: 500 billion)</li>
- <li><code className="bg-card-muted px-2 py-1 rounded">max_memory_mb</code>: u32 (default: 128 MB)</li>
+ <li><code className="bg-card-muted px-2 py-1 rounded">max_memory_mb</code>: u32 (default: 128 MB, max 4096)</li>
  <li><code className="bg-card-muted px-2 py-1 rounded">max_execution_seconds</code>: u64 (default: 60s, max: 180s)</li>
                 </ul>
               </div>
@@ -224,7 +224,7 @@ impl Contract {
  <ul className="list-disc list-inside space-y-2 text-foreground ml-4">
  <li>Base fee + (instructions used × per-instruction fee) + (execution time × per-millisecond fee)</li>
  <li>Unused funds automatically refunded to <code className="bg-card-muted px-2 py-1 rounded">payer_account_id</code></li>
- <li>No refunds on execution failure (anti-DoS protection)</li>
+ <li>A failed execution is charged for the resources it used; the rest of the deposit is refunded</li>
  <li>Query <code className="bg-card-muted px-2 py-1 rounded">estimate_execution_cost(resource_limits, input_len)</code> before calling: the compute estimate plus, for an <code className="bg-card-muted px-2 py-1 rounded">input_data</code> longer than 32 KB, 0.00001 NEAR per byte above that, held while the request is pending and returned at settlement</li>
           </ul>
         </section>

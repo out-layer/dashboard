@@ -85,7 +85,7 @@ const WORLD_WIT = `package my:sealed-notes;
 
 world guest {
     import outlayer:encryption-keys/api@0.1.0;
-    import near:storage/api@0.1.0;
+    import near:storage/api@0.2.0;
 }`;
 
 const MAIN_RS = `use serde::Deserialize;

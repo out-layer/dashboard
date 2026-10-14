@@ -115,7 +115,7 @@ fn main() {
  <AnchorHeading id="api">Storage API</AnchorHeading>
 
  <p className="text-foreground mb-4">
- The storage interface is defined in <code>worker/wit/deps/storage.wit</code> and imported as <code>near:storage/api@0.1.0</code>:
+ The storage interface is defined in <code>worker/wit/deps/storage.wit</code> and imported as <code>near:storage/api@0.2.0</code>:
         </p>
 
  <SyntaxHighlighter language="text" style={vscDarkPlus} className="rounded-lg mb-4">
@@ -156,6 +156,9 @@ fn main() {
     clear-version: func(wasm-hash: string) -> string;
 }`}
         </SyntaxHighlighter>
+        <p className="text-foreground mt-4">
+          A binary built on SDK 0.1 imports <code>near:storage/api@0.1.0</code> and keeps running: the worker serves that version too, in its own shape, where <code>has</code> and <code>delete</code> answer a bare <code>bool</code> (also <code>false</code> when the call fails) and <code>has-checked</code> / <code>delete-checked</code> carry the error.
+        </p>
       </section>
 
       {/* Methods Reference */}

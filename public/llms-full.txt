@@ -1610,7 +1610,7 @@ NEAR OutLayer executes WASM modules off-chain using wasmtime runtime. Your code 
 - **Target**: `wasm32-wasip2`
 - **Format**: Component model with typed interfaces
 - **Use case**: HTTP requests, complex I/O, modern features
-- **Features**: HTTP client and the OutLayer host interfaces. No files and no raw sockets: keep a run's data in memory, which `max_memory_mb` bounds
+- **Features**: HTTP client and the OutLayer host interfaces. No files and no raw sockets: keep a run's data in memory, which `max_memory_mb` bounds (a run is given at least 1 GB whatever it asks and at most 4 GB; stdout holds up to 10 MiB)
 - **Size**: Larger binaries (~500KB-1MB)
 - **Example**: [ai-example](https://github.com/out-layer/ai-example)
 
@@ -6610,10 +6610,11 @@ and no list, and the session of a device that a later sign-in retired is 401
 `session_replaced`; a store or a chain that did not answer is 503
 `upstream_unavailable` with `Retry-After`. A refusal is never an empty list.
 
-What waits for approval on a wallet is listed inside the same session, to the
-owner of the wallet's policy only
-(`GET /wallet/v1/pending_approvals_by_pubkey`). One approval is told by its id
-to whoever holds it (`GET /wallet/v1/approval/{id}`).
+What waits for approval on a wallet is listed two ways: to the wallet's own
+key (`GET /wallet/v1/pending_approvals`, `Authorization: Bearer wk_…`, its own
+wallet only), and inside an owner's session to the owner of the wallet's
+policy (`GET /wallet/v1/pending_approvals_by_pubkey`). One approval is told by
+its id to whoever holds it (`GET /wallet/v1/approval/{id}`).
 
 ### Events
 
@@ -6765,8 +6766,40 @@ applies to a profile name — 1–64 bytes of letters, digits, `-` or `_` — an
 reference no row could match is refused before the request yields, naming
 that rule.
 
+**Deposit.** `estimate_execution_cost(resource_limits, input_len)` is what to
+attach: the compute estimate for the limits, plus — for an `input_data` longer
+than 32 KB — 0.00001 NEAR per byte above that, held while the request is
+pending and returned at settlement with the rest of the refund. Up to 32 KB
+the deposit is the compute estimate alone. The settlement callback is given
+gas in proportion to the input it will remove from state, out of the gas
+attached to the call, so a call carrying megabytes needs more gas as well
+(25 MGas per byte above 32 KB, about 52 TGas for 2 MiB; within 32 KB nothing changes).
+
+**Return value.** The calling contract receives the output as a JSON value:
+the guest's JSON for `Json`, a string for `Text`, base64 for `Bytes`, and
+`null` when the run failed or produced nothing.
+
+**Limits.** `get_max_limits` answers `max_instructions` (500 billion),
+`max_execution_seconds` (180) and the compile cap; `max_memory_mb` is capped
+at 4096 (wasm32's bound). A request above a cap is refused at the door.
+
+**What a run is charged.** A success pays `base_fee + instructions + time +
+compile`, capped at the compute deposit. A failed run pays the same formula on
+what the worker reports it used, capped the same way; a failure before the
+guest ran reports little or nothing and costs about the base fee. A run the
+chain's yield window (200 blocks) outlived pays the base fee. The storage part
+of a large input always comes back; the stablecoin comes back whole when the
+run fails or times out, and on a success goes to the developer less any change
+and the guest's own refund.
+
 #### `cancel_stale_execution`
-Cancel execution request after timeout (10 minutes).
+Cancel a request still pending after the timeout (10 minutes). Returns the
+whole of the stablecoin and the NEAR above the charge, the storage part of a
+large input always included. The charge is the base fee when no output was
+delivered — as a timed-out request pays — and the compute estimate
+for the limits when the worker has delivered the output through the 2-call
+flow and the callback never settled it: the run happened and its output is
+readable with `get_pending_output`.
 
 ```bash
 near call outlayer.testnet cancel_stale_execution '{
@@ -6878,6 +6911,69 @@ Get contract configuration.
 ```bash
 near view outlayer.testnet get_config '{}'
 ```
+
+### Project Functions
+
+A project is `{owner}/{name}`: the name is 1–64 bytes of ASCII letters,
+digits, `-` or `_` (a Cyrillic `а` in `polymаrket` is not a name — it would
+read as the real one). `create_project`, `add_version`, `set_active_version`,
+`remove_version` and `delete_project` are the owner's; see
+[PROJECT.md](https://github.com/out-layer/outlayer/blob/main/PROJECT.md) for their arguments.
+
+#### `accept_project_transfer`
+
+A project moves only onto an acceptance given by the account that will own
+it, for exactly that project and that owner. Without one, `transfer_project`
+is refused — so nobody can put their code under a name in another account's
+namespace (`connectors.outlayer.near/<name>` before the real one exists)
+without that account asking for it.
+
+```bash
+# bob agrees to take alice.testnet/my-app. The deposit pays for the record and
+# comes back when it is consumed or revoked; estimate_transfer_acceptance_cost
+# quotes it (about 0.002 NEAR).
+near call outlayer.testnet accept_project_transfer '{"from": "alice.testnet", "name": "my-app"}' --accountId bob.testnet --deposit 0.01
+```
+
+The project need not exist yet. Refused when `bob.testnet/my-app` already
+exists, or when bob has already accepted that project. An acceptance pins the
+name and the owner, not the code: alice keeps every right over the project
+until the transfer lands, and bob checks what arrived with `get_version`
+afterwards. Emits `system_event` `ProjectTransferAccepted { new_owner, from, name }`.
+
+```bash
+# The acceptance bob holds, as the deposit held for it; null when there is none.
+near view outlayer.testnet get_project_transfer_acceptance '{"new_owner": "bob.testnet", "from": "alice.testnet", "name": "my-app"}'
+```
+
+#### `revoke_project_transfer`
+
+```bash
+near call outlayer.testnet revoke_project_transfer '{"from": "alice.testnet", "name": "my-app"}' --accountId bob.testnet
+```
+
+Only the account that gave the acceptance can take it back; the record's
+deposit returns to it. Emits `ProjectTransferRevoked { new_owner, from, name }`.
+
+#### `transfer_project`
+
+```bash
+near call outlayer.testnet transfer_project '{"project_name": "my-app", "new_owner": "bob.testnet"}' --accountId alice.testnet
+```
+
+Renames `alice.testnet/my-app` to `bob.testnet/my-app`; the uuid, the versions
+and the storage stay. Requires bob's acceptance, consumes it and returns its
+deposit to bob. A priced project does not move: pricing is the contract
+owner's, so the OutLayer operator unprices it (`remove_project_pricing`)
+first. Emits `ProjectTransferred`.
+
+#### `estimate_transfer_acceptance_cost`
+
+```bash
+near view outlayer.testnet estimate_transfer_acceptance_cost '{"new_owner": "bob.testnet", "from": "alice.testnet", "name": "my-app"}'
+```
+
+The deposit `accept_project_transfer` will charge, in yoctoNEAR.
 
 ### Wallet Policy Functions
 
@@ -7200,7 +7296,7 @@ near contract call-function as-transaction usdc.fakes.testnet storage_deposit js
 
 A deploy that changes the state shape runs `migrate` in the same transaction
 (or straight after). `get_storage_version` answers the shape the code expects:
-`"10"` adds `storage_refund_to` (from `"9"`).
+`"11"` adds `project_transfer_acceptances` (from `"10"`).
 
 ```bash
 near contract deploy dev.outlayer.testnet use-file res/local/outlayer_contract.wasm without-init-call network-config testnet sign-with-keychain send

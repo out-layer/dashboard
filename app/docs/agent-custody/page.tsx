@@ -276,11 +276,17 @@ export default function AgentCustodyPage() {
  <td className="px-4 py-2 text-foreground">&#10003; via Intents (gasless)</td>
  <td className="px-4 py-2 text-foreground">&#10003; base58 address + signing via /wallet/v1/solana/* (client broadcasts)</td>
               </tr>
-              <tr>
+              <tr className="border-b">
  <td className="px-4 py-2 font-semibold">Base, Arbitrum, BSC, Polygon, Optimism, Avalanche</td>
  <td className="px-4 py-2 text-foreground">&#10003; cross-chain (1Click)</td>
  <td className="px-4 py-2 text-foreground">&#10003; via Intents (gasless)</td>
  <td className="px-4 py-2 text-foreground">&#10003; same shared 0x address + /wallet/v1/evm/* signing</td>
+              </tr>
+              <tr>
+ <td className="px-4 py-2 font-semibold">Every other chain in the 1Click catalog (TON, XRP, Tron, Aptos, Sui, Stellar, Zcash, Dogecoin, Litecoin, Cardano, &hellip;)</td>
+ <td className="px-4 py-2 text-foreground">&#10003; cross-chain (1Click)</td>
+ <td className="px-4 py-2 text-foreground">&#10003; via Intents (gasless)</td>
+ <td className="px-4 py-2 text-faint-foreground">&mdash; no derived address; <code className="bg-card-muted px-1 rounded">to</code> is judged by 1Click at the quote</td>
               </tr>
             </tbody>
           </table>
@@ -292,6 +298,71 @@ export default function AgentCustodyPage() {
             it does not need ETH or SOL for gas. The NEAR Intents protocol handles execution and fee settlement natively.
           </p>
         </div>
+
+ <p className="text-foreground mb-4">
+ <strong>The chains are the catalog&apos;s.</strong> The deposit and withdraw endpoints accept every chain the 1Click token catalog
+          lists (<code className="bg-card-muted px-1 rounded">GET /wallet/v1/tokens</code>, the <code className="bg-card-muted px-1 rounded">chains</code> of its entries &mdash; 37 chains on 2026-10-14),
+          read from 1Click every hour, so a chain 1Click adds is served without a release. Spell <code className="bg-card-muted px-1 rounded">chain</code> as 1Click&apos;s id
+          (<code className="bg-card-muted px-1 rounded">eth</code>, <code className="bg-card-muted px-1 rounded">sol</code>, <code className="bg-card-muted px-1 rounded">ton</code>) or, where one exists, the long name
+          (<code className="bg-card-muted px-1 rounded">ethereum</code>, <code className="bg-card-muted px-1 rounded">solana</code>, <code className="bg-card-muted px-1 rounded">zcash</code>). A chain the catalog does not list answers
+          <code className="bg-card-muted px-1 rounded">400 unsupported_chain</code>, naming what it does list. On the chains the wallet derives an address on (EVM, Solana, NEAR, Bitcoin) the
+          destination address is checked for shape before anything is quoted; on any other chain 1Click judges it at the quote, before anything moves, and a refusal comes back as
+          <code className="bg-card-muted px-1 rounded">upstream_rejected</code> in 1Click&apos;s words.
+        </p>
+ <p className="text-foreground mb-4">
+ <strong>Asset ids.</strong> A source asset (<code className="bg-card-muted px-1 rounded">token</code>, <code className="bg-card-muted px-1 rounded">token_in</code>) is named by its id on
+          <code className="bg-card-muted px-1 rounded">intents.near</code> as the catalog lists it: <code className="bg-card-muted px-1 rounded">nep141:&hellip;</code>, <code className="bg-card-muted px-1 rounded">nep245:&hellip;</code> (HOT-bridged), or its NEAR-side 1Click id
+          <code className="bg-card-muted px-1 rounded">1cs_v1:near:nep141:&hellip;</code>, which is the same balance. A <code className="bg-card-muted px-1 rounded">1cs_v1:</code> id on another chain names a delivery, not a balance: as a
+          source it is refused (<code className="bg-card-muted px-1 rounded">unsupported_token</code>); as a destination (<code className="bg-card-muted px-1 rounded">token_out</code>, a withdraw&apos;s delivery) it goes to 1Click as given, and 1Click
+          decides which id lands on <code className="bg-card-muted px-1 rounded">intents.near</code>.
+        </p>
+
+ <div className="overflow-x-auto mb-4">
+ <table className="min-w-full text-sm border border-border">
+ <thead className="bg-card-muted">
+              <tr>
+ <th className="px-4 py-2 text-left font-semibold border-b">Refusal (<code>error</code>)</th>
+ <th className="px-4 py-2 text-left font-semibold border-b">HTTP</th>
+ <th className="px-4 py-2 text-left font-semibold border-b">What it means, and what to do</th>
+              </tr>
+            </thead>
+            <tbody>
+ <tr className="border-b">
+ <td className="px-4 py-2 font-mono text-xs">unsupported_chain</td>
+ <td className="px-4 py-2">400</td>
+ <td className="px-4 py-2">The chain is not in the 1Click catalog right now; the message names what is. Do not retry the same request.</td>
+              </tr>
+ <tr className="border-b">
+ <td className="px-4 py-2 font-mono text-xs">unsupported_token</td>
+ <td className="px-4 py-2">400</td>
+ <td className="px-4 py-2">The asset is not one this route carries: not in the catalog, no listing of its symbol on that chain, or a <code className="bg-card-muted px-1 rounded">1cs_v1:</code> id on another chain given as a source.</td>
+              </tr>
+ <tr className="border-b">
+ <td className="px-4 py-2 font-mono text-xs">no_liquidity</td>
+ <td className="px-4 py-2">400</td>
+ <td className="px-4 py-2">1Click found no route with liquidity for this pair at this amount. Try another amount or route.</td>
+              </tr>
+ <tr className="border-b">
+ <td className="px-4 py-2 font-mono text-xs">upstream_rejected</td>
+ <td className="px-4 py-2">400</td>
+ <td className="px-4 py-2">1Click refused on grounds of its own (an amount under the bridge minimum, for one); <code className="bg-card-muted px-1 rounded">message</code> is its text, verbatim. The same request fails the same way again.</td>
+              </tr>
+ <tr className="border-b">
+ <td className="px-4 py-2 font-mono text-xs">route_unavailable</td>
+ <td className="px-4 py-2">503 + <code className="bg-card-muted px-1 rounded">Retry-After</code></td>
+ <td className="px-4 py-2">1Click did not answer (a 5xx, a timeout, &ldquo;Failed to get quote&rdquo;). Nothing is known about the route; retry after the header.</td>
+              </tr>
+              <tr>
+ <td className="px-4 py-2 font-mono text-xs">operation_limit_reached</td>
+ <td className="px-4 py-2">429 + <code className="bg-card-muted px-1 rounded">Retry-After</code></td>
+ <td className="px-4 py-2">The wallet&apos;s custody ceiling: the free tier allows <strong>100 custody operations per wallet per day</strong>, dry-runs included (swap quotes are not counted). The body carries <code className="bg-card-muted px-1 rounded">limit</code>, <code className="bg-card-muted px-1 rounded">window</code>, <code className="bg-card-muted px-1 rounded">operation</code> and <code className="bg-card-muted px-1 rounded">retry_after_seconds</code>. Wait it out, or lift it with a subscription on the wallet&apos;s own key.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+ <p className="text-sm text-muted-foreground mb-4">
+ A withdraw dry-run reports a bridge refusal as <code className="bg-card-muted px-1 rounded">would_succeed: false</code> with the same name in <code className="bg-card-muted px-1 rounded">reason</code>; a 1Click that did not answer, or a reached ceiling, is the error itself, since nothing was learned about the route.
+        </p>
 
  <div className="bg-destructive/10 border-l-4 border-red-500 p-4 mb-4">
  <p className="text-sm text-foreground font-semibold mb-1"> Only send whitelisted Intents assets &mdash; anything else is lost permanently</p>

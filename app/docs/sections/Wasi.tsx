@@ -415,60 +415,29 @@ world rpc-host {
         <section id="testing-locally">
  <AnchorHeading id="testing-locally">Testing Locally</AnchorHeading>
 
- <h4 className="text-lg font-semibold mb-2 mt-4">Option 1: Test Compiler Script (Quick Compilation Test)</h4>
+ <h4 className="text-lg font-semibold mb-2 mt-4">Option 1: Reproducible Build (Know the Hash Before Publishing)</h4>
  <p className="text-foreground mb-3">
- Use <strong>test_compiler.sh</strong> to test compilation of your GitHub repository locally without running the full worker infrastructure.
- This script uses the same Docker image (<code className="bg-card-muted px-1 rounded">outlayer/wasmedge-compiler:rust1.85-wasi25</code>, pinned by digest) and compilation logic as the production worker.
+ OutLayer runs a published <code className="bg-card-muted px-1 rounded">.wasm</code> named by its sha256. Any toolchain gives a valid binary, but a different
+ toolchain gives different bytes and a different hash. <strong>build_github_wasm.sh</strong> from the <a href="https://github.com/out-layer/outlayer" target="_blank" rel="noopener noreferrer" className="text-accent-text hover:underline">OutLayer repository</a> builds
+ your project in a pinned Docker image, so anyone gets the same hash every time — and you can lock a secret to that build before you publish it.
           </p>
-
- <div className="bg-card-muted border-l-4 border-border p-4 mb-3">
- <p className="text-sm text-foreground mb-2">
- <strong>Perfect for:</strong> Testing if your repository compiles correctly before deploying to OutLayer.
-            </p>
-          </div>
 
  <pre className="bg-gray-900 text-gray-100 p-4 rounded-lg overflow-x-auto text-sm mb-3">
-{`# Test compilation for WASI Preview 1
-./scripts/test_compiler.sh \\
-  https://github.com/out-layer/random-example main wasm32-wasip1
+{`# Build a local project for WASI Preview 2 (default target: wasm32-wasip1)
+./scripts/build_github_wasm.sh --dir ./my-project --target wasm32-wasip2
 
-# Test compilation for WASI Preview 2
-./scripts/test_compiler.sh \\
-  https://github.com/out-layer/ai-example main wasm32-wasip2
+# Build twice from scratch and check the bytes match
+./scripts/build_github_wasm.sh --dir ./my-project --target wasm32-wasip2 --twice
 
-# Custom output file
-./scripts/test_compiler.sh \\
-  https://github.com/user/myproject main wasm32-wasip1 myapp.wasm
-
-# The script will:
-# 1. Pull the pinned compiler image by digest (instant if already up to date)
-# 2. Clone your repository and checkout the commit
-# 3. Run cargo build with the exact same flags as worker
-# 4. Optimize WASM (wasm-opt for P1, wasm-tools for P2)
-# 5. Output compiled WASM with SHA256 checksum`}
+# Prints the SHA256 of the built wasm; --keep leaves the .wasm on disk to upload`}
           </pre>
 
- <p className="text-foreground mb-3">
- <strong>Key features:</strong>
-          </p>
- <ul className="list-disc list-inside text-foreground ml-4 space-y-1 mb-3">
- <li>Uses official Docker image from Docker Hub (no local builds needed)</li>
- <li>Exactly mirrors worker compiler behavior</li>
- <li>Supports all three targets: <code className="bg-card-muted px-1 rounded">wasm32-wasip1</code>, <code className="bg-card-muted px-1 rounded">wasm32-wasip2</code>, <code className="bg-card-muted px-1 rounded">wasm32-wasi</code></li>
- <li>Shows compilation time, file size, and SHA256 checksum</li>
- <li>Configurable memory/CPU limits via environment variables</li>
-          </ul>
-
  <div className="bg-card-muted border-l-4 border-border p-3 mb-4">
- <p className="text-sm text-foreground mb-2">
+ <p className="text-sm text-foreground">
  <strong>Troubleshooting:</strong> If you get <code className="bg-card-muted px-1 rounded">cabi_realloc</code> error with wasm32-wasip2,
               it means the project is not configured as a WASI P2 component. WASI Preview 2 requires projects to be built as components
               (using cargo-component) and export special memory management functions. Most existing projects are written for WASI P1.
  Solution: Use <code className="bg-card-muted px-1 rounded">wasm32-wasip1</code> instead.
-            </p>
- <p className="text-sm text-foreground">
- <strong>Note on Rust version:</strong> The Docker image uses Rust 1.85 for maximum compatibility. While newer Rust versions (1.88+)
-              exist, they may have breaking changes with certain dependencies. The production worker uses 1.85 to ensure broad compatibility.
             </p>
           </div>
 
@@ -480,7 +449,7 @@ world rpc-host {
 
  <div className="bg-card-muted border-l-4 border-border p-4 mb-3">
  <p className="text-sm text-foreground mb-2">
- <strong>GitHub Repository:</strong> <a href="https://github.com/out-layer/outlayer/tree/main/wasi-examples/wasi-test-runner" target="_blank" rel="noopener noreferrer" className="underline hover:text-foreground">wasi-examples/wasi-test-runner</a>
+ <strong>Source:</strong> <a href="https://github.com/out-layer/outlayer/tree/main/wasi-examples/wasi-test-runner" target="_blank" rel="noopener noreferrer" className="underline hover:text-foreground">wasi-examples/wasi-test-runner</a>
             </p>
           </div>
 

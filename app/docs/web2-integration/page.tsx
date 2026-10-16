@@ -98,7 +98,7 @@ export default function Web2IntegrationPage() {
  <h4 className="font-semibold text-foreground">Create Project</h4>
  <p className="text-sm text-muted-foreground mt-1">
  Go to <Link href="/projects" className="text-accent-text hover:underline">/projects</Link> →
-                &quot;New Project&quot; → Enter GitHub URL or WASM file.
+                &quot;New Project&quot; → Enter the WASM URL and its SHA256.
               </p>
  <Link href="/docs/projects#creating-project" className="text-accent-text text-xs hover:underline">
                 Detailed guide →

@@ -235,7 +235,7 @@ print(f"Signed commitment matches: {td['report_data'][:64] == final_hash}")`
  <li><strong>Identity</strong> — the measurements are an on-chain approved worker build</li>
  <li><strong>Binding</strong> — the signed quote commits to this exact input, output and code</li>
  <li>Input/Output — recompute the hashes from the data you sent and received</li>
- <li>Source Code — the exact GitHub commit that was built</li>
+ <li>Code — the sha256 of the WASM that ran</li>
               </ul>
             </div>
           </div>

@@ -42,25 +42,17 @@ export function isWasmUrlSource(source: CodeSource): source is { WasmUrl: NonNul
 // Form data for creating a new project
 export interface CreateProjectFormData {
   name: string;
-  sourceType: 'github' | 'wasm_url';
-  // GitHub source
-  repo: string;
-  commit: string;
-  buildTarget: string;
-  // WasmUrl source
   wasmUrl: string;
   wasmHash: string;
+  buildTarget: string;
 }
 
 // Form data for adding a version
 export interface AddVersionFormData {
   projectName: string;
-  sourceType: 'github' | 'wasm_url';
-  repo: string;
-  commit: string;
-  buildTarget: string;
   wasmUrl: string;
   wasmHash: string;
+  buildTarget: string;
   setActive: boolean;
 }
 

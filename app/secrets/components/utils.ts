@@ -597,8 +597,7 @@ export function implicitAccountOf(pubkey: string): string | null {
 // Kept here, beside the format converters, so each can be asserted as the plan
 // words it without rendering:
 //   - a NEW row under a project admits only the connected account until its
-//     owner says otherwise; repository- and hash-bound rows are an app's own
-//     and stay open;
+//     owner says otherwise; hash-bound rows are an app's own and stay open;
 //   - a row that EXISTS keeps the condition it has — replacing its values must
 //     neither widen a whitelist to everyone nor narrow an app's AllowAll
 //     credential to its author;

@@ -1,6 +1,6 @@
 # NEAR OutLayer — Full Documentation
 
-> Verifiable compute and custody for AI agents, on NEAR. An agent gets a TEE-held wallet that signs for NEAR, EVM and Solana without a key ever leaving the enclave, spends it under a policy its owner sets, and calls priced connectors — named operations that run inside that same enclave. The compute layer is also callable directly: you publish a WASI program to GitHub, OutLayer compiles it, runs it inside an Intel TDX enclave, and returns the result signed by the enclave — from a NEAR smart contract or over HTTPS. Agents also get encrypted secrets and persistent storage.
+> Verifiable compute and custody for AI agents, on NEAR. An agent gets a TEE-held wallet that signs for NEAR, EVM and Solana without a key ever leaving the enclave, spends it under a policy its owner sets, and calls priced connectors — named operations that run inside that same enclave. The compute layer is also callable directly: you build a WASI program, publish the .wasm named by its sha256, and OutLayer runs it inside an Intel TDX enclave and returns the result signed by the enclave — from a NEAR smart contract or over HTTPS. Agents also get encrypted secrets and persistent storage.
 
 Two integration modes. **On-chain:** a NEAR contract calls `request_execution` and receives the result in a callback. **Web2:** a backend calls `POST https://api.outlayer.ai/call/{project_owner}/{project_name}` over HTTPS.
 
@@ -68,7 +68,7 @@ The same compute layer is callable directly: a NEAR smart contract can request a
 ## How It Works
 
 1. A NEAR smart contract (or HTTP client) submits a computation request
-2. A TEE worker picks up the task, compiles/executes the WASI binary with resource limits
+2. A TEE worker picks up the task, fetches the published WASI binary, checks its sha256 and executes it with resource limits
 3. The verified result is returned on-chain (via yield/resume) or via HTTP response
 
 ## Project Structure
@@ -124,8 +124,7 @@ curl -X POST https://api.outlayer.ai/call/alice.near/my-project \
 - **Intel TDX**: Hardware-level memory encryption and isolation — the host operator cannot read TEE memory
 - **5-Measurement Verification**: Workers are verified using all 5 TDX measurements (MRTD + RTMR0-3), preventing dev/debug images from passing attestation
 - **Sigstore Certification**: Release binaries are cryptographically linked to source code via [Sigstore](https://www.sigstore.dev/)
-- **Phala Trust Center**: Independently verify the exact image hash running in each TEE worker
-- **No Compilation in TEE**: TEE workers with access to secrets only execute pre-compiled WASM, preventing supply chain attacks via malicious build scripts
+- **Only Published WASM Runs**: TEE workers with access to secrets execute a published `.wasm` named by its sha256 and run no build scripts, preventing supply chain attacks via malicious build scripts
 
 ## Development
 
@@ -961,14 +960,15 @@ Command-line tool for deploying, running, and managing OutLayer agents.
 ```bash
 outlayer login                                              # Import NEAR full access key
 outlayer create my-agent                                    # Create project from template
-outlayer deploy my-agent                                    # Deploy agent to OutLayer
+outlayer upload my-agent.wasm                               # Publish the built .wasm to FastFS
+outlayer deploy my-agent <FastFS URL>                       # Deploy it to OutLayer
 outlayer run alice.near/my-agent '{"command": "hello"}'     # Execute agent
 ```
 
 ## Install
 
 ```bash
-# From GitHub (requires Rust)
+# From source (requires Rust)
 cargo install --git https://github.com/out-layer/outlayer-cli
 
 # From local checkout
@@ -987,10 +987,10 @@ outlayer create my-agent                    # basic template (stdin/stdout)
 outlayer create my-agent --template contract # with OutLayer SDK (VRF, storage, RPC)
 cd my-agent
 
-# 3. Edit src/main.rs, push to GitHub, then deploy
-git init && git remote add origin <your-repo-url>
-git push
-outlayer deploy my-agent
+# 3. Edit src/main.rs, build, publish the .wasm and deploy it
+./build.sh
+outlayer upload out/my-agent.wasm
+outlayer deploy my-agent <FastFS URL printed by upload>
 
 # 4. Create a payment key for HTTPS calls
 outlayer keys create
@@ -1026,12 +1026,19 @@ The active network is saved to `~/.outlayer/default-network`. If not set, the CL
 | `outlayer create <name>` | Create project from template (basic) in `./<name>/` |
 | `outlayer create <name> --template contract` | Create with OutLayer SDK (VRF, storage, RPC) |
 | `outlayer create <name> --dir /path` | Create in a custom directory |
-| `outlayer deploy <name>` | Deploy from current git repo (origin + HEAD) |
-| `outlayer deploy <name> <wasm-url>` | Deploy from WASM URL (FastFS, etc.) |
-| `outlayer deploy <name> --no-activate` | Deploy without activating |
+| `outlayer deploy <name> <wasm-url>` | Deploy a published .wasm (the FastFS URL `outlayer upload` prints, or any https URL): creates the project or adds a version, and activates it |
+| `outlayer deploy <name> <wasm-url> --no-activate` | Deploy without activating |
 | `outlayer run <project> [input]` | Execute agent (HTTPS or on-chain fallback) |
 | `outlayer projects [account]` | List projects for a user |
 | `outlayer status [call_id]` | Project info or poll async call |
+
+A version is a published `.wasm`, named by its sha256, so what a caller runs and
+pays for cannot change under that version afterwards — a repository can change
+under the same name and commit history can be rewritten. `deploy` computes the
+hash from the URL (or takes `--hash`); the worker refuses a file whose bytes do
+not match it. For a reproducible build — the same pinned Docker image, the same
+hash every time — use `scripts/build_github_wasm.sh --dir ./my-project --target
+wasm32-wasip2` from the [OutLayer repository](https://github.com/out-layer/outlayer).
 
 ### Run
 
@@ -1047,12 +1054,8 @@ outlayer run alice.near/my-agent '{}' --version abc123            # specific ver
 # Attach secrets to execution
 outlayer run alice.near/my-agent '{}' --secrets-profile default --secrets-account alice.near
 
-# Run from GitHub repo (on-chain)
-outlayer run --github github.com/user/repo '{"command": "hello"}'
-outlayer run --github github.com/user/repo --commit abc123 '{"input": 1}'
-
-# Run from WASM URL (on-chain)
-outlayer run --wasm https://alice.near.fastfs.io/outlayer.near/abc.wasm '{"cmd": "hi"}'
+# Run a published WASM URL directly (on-chain)
+outlayer run --wasm https://main.fastfs.io/alice.near/outlayer.near/<sha256>.wasm '{"cmd": "hi"}'
 outlayer run --wasm https://example.com/file.wasm --hash abc123... '{}'
 ```
 
@@ -1083,7 +1086,6 @@ Encrypted client-side, decrypted only inside TEE.
 # Set secrets (JSON object, overwrites existing)
 outlayer secrets set '{"API_KEY":"sk-...","DB_URL":"postgres://..."}'
 outlayer secrets set '{"API_KEY":"sk-..."}' --project alice.near/my-agent
-outlayer secrets set '{"API_KEY":"sk-..."}' --repo github.com/user/repo --branch main
 outlayer secrets set '{"API_KEY":"sk-..."}' --wasm-hash abc123...   # the row a raw WASM URL run reads under
 outlayer secrets set '{"SIGNING_KEY":"..."}' --project alice.near/oracle --build <sha256>   # locked to one build
 outlayer secrets access --project alice.near/oracle --access whitelist:alice.near --build <new sha256>   # move to the next release
@@ -1096,8 +1098,10 @@ outlayer secrets set --generate PROTECTED_MASTER_KEY:hex32
 outlayer secrets set '{"API_KEY":"sk-..."}' --generate PROTECTED_DB:hex64   # mixed
 
 # Access control
-outlayer secrets set '{"KEY":"val"}' --access allow-all                      # default
+outlayer secrets set '{"KEY":"val"}' --access allow-all                      # everyone who names it
 outlayer secrets set '{"KEY":"val"}' --access whitelist:alice.near,bob.near
+# Without --access: a row that exists keeps its condition; a new project row admits only you;
+# a new hash row admits everyone.
 
 # Update (merge with existing, preserves all PROTECTED_* variables)
 outlayer secrets update '{"NEW_KEY":"val"}' --project alice.near/my-agent
@@ -1113,7 +1117,12 @@ outlayer secrets delete --profile production
 
 Default accessor: `--project` auto-resolved from `outlayer.toml` if present.
 
-`--build <sha256>` locks a project's or repository's row to one build: the
+A row is bound to a project (`--project`) or to a build (`--wasm-hash`). A row
+bound to a repository, stored earlier, is listed by `secrets list` and can be
+deleted (`secrets delete --repo <repo> --branch <branch>`); nothing new is
+stored, updated or re-scoped for a repository.
+
+`--build <sha256>` locks a project's row to one build: the
 condition becomes `And[<access>, WasmHash(hash)]` (or the `WasmHash` leaf alone
 under `allow-all`), and the keystore admits only a run whose bytes hash to it.
 A rebuild is refused with the build named. The value stays; `secrets access
@@ -1171,10 +1180,11 @@ Upload files to on-chain storage via NEAR transactions.
 
 ```bash
 outlayer upload ./target/wasm32-wasip2/release/my-agent.wasm
-# → FastFS URL: https://alice.near.fastfs.io/outlayer.near/abcdef.wasm
+# → SHA256: <sha256>
+#   FastFS URL: https://main.fastfs.io/alice.near/outlayer.near/<sha256>.wasm
 ```
 
-Files >1MB are automatically chunked.
+The host is `main.fastfs.io` on mainnet and `test.fastfs.io` on testnet. Files >1MB are automatically chunked.
 
 > **Note:** FastFS upload transactions are **expected to fail** with "Exceeded the prepaid gas" — this is by design. Gas is intentionally set to 1 to minimize costs. No contract execution is needed — the NEAR indexer picks up the file data from the transaction arguments regardless of execution status. The file will be available at its FastFS URL after indexing, which takes 1–2 minutes. Chunked uploads (files >1MB) may take longer since all chunks must be indexed before the file is assembled.
 
@@ -1221,7 +1231,7 @@ owner = "alice.near"
 
 [build]
 target = "wasm32-wasip2"
-source = "github"
+source = "wasm_url"
 
 [run]
 payment_key_nonce = 1
@@ -1373,12 +1383,21 @@ cd wasi-test-runner
 
 ### 4. Deploy to NEAR OutLayer
 
+OutLayer runs a published `.wasm`, named by its sha256. Publish the file you
+built and register it as a project version:
+
+```bash
+outlayer upload your-app.wasm
+# prints SHA256 and: FastFS URL: https://test.fastfs.io/your.testnet/outlayer.testnet/<sha256>.wasm
+outlayer deploy your-app <FastFS URL> --target wasm32-wasip1
+```
+
+Then call it:
+
 ```bash
 near call outlayer.testnet request_execution '{
-  "code_source": {
-    "repo": "https://github.com/user/repo",
-    "commit": "main",
-    "build_target": "wasm32-wasip1"
+  "source": {
+    "Project": {"project_id": "your.testnet/your-app", "version_key": null}
   },
   "resource_limits": {
     "max_instructions": 10000000,
@@ -2366,7 +2385,7 @@ same address either way.
 
 Three kinds of secret can reach a run, and every project — not only a
 connector — may use all three. All of them are rows stored on chain with
-`store_secrets` under an **accessor** (`Project`, `Repo` or `WasmHash`), a
+`store_secrets` under an **accessor** (`Project` or `WasmHash`), a
 **profile** and an **owner**, encrypted to the keystore; the keystore decrypts
 them inside the TEE and the worker hands them to your module as environment
 variables.
@@ -2388,7 +2407,7 @@ that called the contract — which makes it the project's admission gate: `Allow
 refused run before anything executes. A declared profile nobody stored refuses
 the run too, with a message saying what to store. Two cautions: a manifest that
 carries `connector_id` turns the outbound allowlist mandatory (a connector's
-rule), so leave it out; and a run that has no project — a `Repo` source
+rule), so leave it out; and a run that has no project — a `WasmUrl` source
 executed directly — has nowhere to hold an author secret, so build the
 manifest into the artefact you publish as a project only
 (`test-secrets-example` does this with a cargo feature).
@@ -2759,17 +2778,30 @@ echo '{"value":21}' | wasmtime target/wasm32-wasip1/release/example.wasm
 
 ## Deployment to NEAR OutLayer
 
+OutLayer runs a published `.wasm`, named by its sha256: build it, publish it,
+and register it as a project version. The worker refuses a file whose bytes do
+not match the hash.
+
+```bash
+cargo build --target wasm32-wasip1 --release
+outlayer upload target/wasm32-wasip1/release/example.wasm
+# prints SHA256 and: FastFS URL: https://test.fastfs.io/your.testnet/outlayer.testnet/<sha256>.wasm
+outlayer deploy example <FastFS URL> --target wasm32-wasip1   # creates the project or adds a version, activates it
+```
+
+Any https URL works for `outlayer deploy`; FastFS is the default. On the
+dashboard, Projects → Create Project / Add Version take the WASM URL and its
+SHA256.
+
 ### Option 1: Blockchain Mode (via NEAR transaction)
 
-1. **Push code to GitHub**
+1. **Deploy the project** (above)
 2. **Call contract**:
 
 ```bash
 near call outlayer.testnet request_execution '{
-  "code_source": {
-    "repo": "https://github.com/username/repo",
-    "commit": "main",
-    "build_target": "wasm32-wasip1"
+  "source": {
+    "Project": {"project_id": "your.testnet/example", "version_key": null}
   },
   "resource_limits": {
     "max_instructions": 10000000,
@@ -3167,7 +3199,7 @@ See [OutLayer SDK](https://github.com/out-layer/outlayer/blob/main/wasi-examples
 | `OUTLAYER_PROJECT_NAME` | Project name: `my-app` | Only via Project |
 | `OUTLAYER_PROJECT_UUID` | Internal UUID for storage | Only via Project |
 
-**NOT SET** when running directly with GitHub URL or WASM hash (without project).
+**NOT SET** when a `WasmUrl` source runs directly (without a project).
 
 ```rust
 // Safe pattern for project vars
@@ -4096,7 +4128,7 @@ const OUTLAYER_CONTRACT_ID: &str = "outlayer.near"; // or "outlayer.testnet"
 trait OutLayer {
     fn request_execution(
         &mut self,
-        code_source: serde_json::Value,
+        source: serde_json::Value,
         resource_limits: serde_json::Value,
         input_data: String,
         secrets_ref: Option<serde_json::Value>,
@@ -4110,11 +4142,11 @@ trait OutLayer {
 
 | Parameter | Type | Description |
 |-----------|------|-------------|
-| `code_source` | JSON | GitHub URL or WASM hash |
-| `resource_limits` | JSON | Memory, instructions, time limits |
+| `source` | JSON | The code to run: a `Project` or a `WasmUrl` (see [Code Source Formats](#code-source-formats)) |
+| `resource_limits` | JSON | Memory, instructions, time limits. Always pass it (`{}` takes the defaults): a request without it runs nothing |
 | `input_data` | String | JSON input for your WASM |
-| `secrets_ref` | Option<JSON> | Reference to encrypted secrets |
-| `response_format` | String | `"String"` or `"Json"` |
+| `secrets_ref` | Option<JSON> | `{"profile": "...", "account_id": "..."}` — the stored secrets to decrypt for the run |
+| `response_format` | String | `"Text"` (default), `"Json"` or `"Bytes"` |
 | `payer_account_id` | Option<AccountId> | Who gets refund on failure |
 
 ## Simple Example: Coin Flip
@@ -4133,7 +4165,7 @@ const CALLBACK_GAS: Gas = Gas::from_tgas(5);
 trait OutLayer {
     fn request_execution(
         &mut self,
-        code_source: serde_json::Value,
+        source: serde_json::Value,
         resource_limits: serde_json::Value,
         input_data: String,
         secrets_ref: Option<serde_json::Value>,
@@ -4163,11 +4195,11 @@ impl CoinFlip {
 
         let player = env::predecessor_account_id();
 
-        // Code source - GitHub URL
-        let code_source = serde_json::json!({
-            "GitHub": {
-                "url": "https://github.com/example/random-wasm",
-                "hash": null
+        // Code source - the active version of a project
+        let source = serde_json::json!({
+            "Project": {
+                "project_id": "alice.near/random-wasm",
+                "version_key": null
             }
         });
 
@@ -4191,11 +4223,11 @@ impl CoinFlip {
             .with_static_gas(remaining_gas)
             .with_unused_gas_weight(1)
             .request_execution(
-                code_source,
+                source,
                 resource_limits,
                 input_data,
                 None,           // no secrets
-                "String".into(),
+                "Text".into(),
                 Some(player.clone()), // refund to player on failure
             )
             .then(
@@ -4240,36 +4272,34 @@ impl CoinFlip {
 
 ## Code Source Formats
 
-### GitHub URL
+OutLayer runs a published `.wasm`, named by its sha256; the worker refuses a
+file whose bytes do not match the hash. A project version's source is always a
+`WasmUrl`.
+
+### Project (normal case)
 
 ```rust
-let code_source = serde_json::json!({
-    "GitHub": {
-        "url": "https://github.com/owner/repo",
-        "hash": null  // or specific commit hash
-    }
-});
-```
-
-### Project ID
-
-```rust
-let code_source = serde_json::json!({
+let source = serde_json::json!({
     "Project": {
-        "project_id": "alice.near/my-app"
+        "project_id": "alice.near/my-app",
+        "version_key": null  // null = active version; otherwise the version's wasm hash
     }
 });
 ```
 
-### WASM Hash (pre-uploaded)
+### WasmUrl (direct run of a published file)
 
 ```rust
-let code_source = serde_json::json!({
-    "WasmHash": {
-        "hash": "abc123..."
+let source = serde_json::json!({
+    "WasmUrl": {
+        "url": "https://main.fastfs.io/alice.near/outlayer.near/<sha256>.wasm",
+        "hash": "<sha256>",
+        "build_target": "wasm32-wasip2"
     }
 });
 ```
+
+The URL must be `https://` on the default port.
 
 ## Advanced: OutLayerResponse Wrapper
 
@@ -4341,10 +4371,10 @@ For WASM that needs encrypted secrets (API keys, private keys):
 pub fn execute_with_secrets(&mut self) -> Promise {
     let player = env::predecessor_account_id();
 
-    // Reference secrets owned by current contract
+    // The secrets this contract stored under profile "default"
     let secrets_ref = serde_json::json!({
-        "owner_id": env::current_account_id(),
-        "names": ["API_KEY", "PRIVATE_KEY"]
+        "profile": "default",
+        "account_id": env::current_account_id()
     });
 
     ext_outlayer::ext(OUTLAYER_CONTRACT_ID.parse().unwrap())
@@ -4352,7 +4382,7 @@ pub fn execute_with_secrets(&mut self) -> Promise {
         .with_static_gas(env::prepaid_gas().saturating_sub(CALLBACK_GAS))
         .with_unused_gas_weight(1)
         .request_execution(
-            code_source,
+            source,
             resource_limits,
             input_data,
             Some(secrets_ref),  // <- secrets reference
@@ -4569,7 +4599,7 @@ The alternatives are weaker:
 
 | Source | Anchored by | Problem |
 |---|---|---|
-| **custom section** | the on-chain wasm hash | none; works for `WasmUrl` sources too |
+| **custom section** | the on-chain wasm hash | none; it travels inside the published wasm |
 | `manifest.json` at a git ref | nothing | a force-push moves what the ref points at while the ref stays the same |
 | a row in the coordinator's database | nothing | an operator can widen the allowlist with one `UPDATE`, silently |
 
@@ -4580,9 +4610,9 @@ network policy moving whenever somebody pushed. A wasm without the section
 declares nothing, and a CONNECTOR without the section reaches nothing.
 
 Nothing is lost by that. `connector-probe/build.sh` fails the build when the
-section is missing, so the omission is caught at the author's desk; and anything
-published as a `WasmUrl` — an IPFS CID, say — has no repository to read anyway,
-so the embedded section is the only option there.
+section is missing, so the omission is caught at the author's desk; and what
+runs is a published `.wasm` named by its hash, so the section is covered by the
+same hash as the code.
 
 ## What goes in it
 
@@ -4607,7 +4637,7 @@ and exactly the ones priced on chain — see the next section.
 | `capabilities.network` | **yes** | The outbound allowlist. Exact hostnames, case-insensitive, **no implicit subdomain wildcard**: `example.com` does not permit `evil.example.com`. List every host you need. Absent on a project without `connector_id`: egress stays unrestricted, as for a wasm with no manifest at all. |
 | `operations` | no | Documentation, and a cross-check against the price list. |
 | `limits` | **yes** | Caps this connector declares about itself. Unioned with the coordinator's own rules — every applicable one must pass — so a declaration can only ever tighten. |
-| `author_secrets` | **yes** | The author's own credential, for any project: the row `owner` stored under the accessor `Project(<this project id>)` and `profile`, decrypted into the environment on every run next to the caller's. `owner` defaults to the publishing account. The row's access condition is judged against the real caller, so it is who may run the project — `AllowAll` for everyone, a whitelist or DAO role for a circle. A name on both sides, or a profile nobody stored, refuses the run; a name the caller's row carries and the author never stored is added to the environment as the caller's — store every name your code reads, so no caller can supply it. A run with no project (a `Repo` source executed directly) cannot hold one. See `WASI_TUTORIAL.md` §3c and `docs/CONNECTORS.md` §4.1. |
+| `author_secrets` | **yes** | The author's own credential, for any project: the row `owner` stored under the accessor `Project(<this project id>)` and `profile`, decrypted into the environment on every run next to the caller's. `owner` defaults to the publishing account. The row's access condition is judged against the real caller, so it is who may run the project — `AllowAll` for everyone, a whitelist or DAO role for a circle. A name on both sides, or a profile nobody stored, refuses the run; a name the caller's row carries and the author never stored is added to the environment as the caller's — store every name your code reads, so no caller can supply it. A run with no project (a `WasmUrl` source executed directly) cannot hold one. See `WASI_TUTORIAL.md` §3c and `docs/CONNECTORS.md` §4.1. |
 | `signing_keys` | **yes** | ed25519 or secp256k1 keys the module signs with, by `path`. The keystore derives each for the run, bound to the caller and to the project or the exact code; the module reaches them only through the `outlayer:signing-keys` host functions. Any project may declare them. See `signing_keys` below. |
 | `encryption_keys` | **yes** | Symmetric keys the module seals data with, by `path`. Derived like signing keys — the same `bind`, `caller` and `vault` rules — but a separate namespace with its own limit; the module reaches them only through the `outlayer:encryption-keys` host functions. Any project may declare them. See `encryption_keys` below. |
 | `storage_account` | **yes** | Whose cell of the project's per-account storage the run reads and writes: `signer` (default) or `predecessor`. Any project may declare it. See `storage_account` below. |
@@ -4808,16 +4838,6 @@ to that owner. The worker checks every declared `bind` and `caller` against the
 run before any secret is decrypted; the keystore checks them again. One key
 that does not match refuses the whole run before it starts.
 
-A GitHub-sourced run is never issued signing keys — neither a project version
-built from a repository nor a repository run directly. Through a project, the
-keystore sees it: the contract's version for the build's hash has a GitHub
-source, or there is none. Directly, only the worker sees it — it holds the
-resolved code source, while the keystore holds nothing but the hash of the
-bytes — so the worker refuses a direct GitHub build before any request is made.
-A manifest that reaches the worker declaring keys on such a run refuses it; a
-module that reaches the worker with no declaration runs, and every signing call
-answers `err`.
-
 So one run never holds both kinds. The manifest is part of the wasm, so a
 binary that declares `project` keys runs only through a project, and one that
 declares `wasm` keys runs only directly: declare the one `bind` that matches how
@@ -4896,7 +4916,6 @@ are dropped with it. The master never leaves the keystore.
 * more than 3 signing keys or 5 encryption keys, a `path` of the wrong shape
   or declared twice (under any type), an unknown field, a `type`, `bind` or `caller` outside the lists
   above;
-* keys declared on a GitHub-sourced run, when the manifest reaches the worker;
 * a `project` key on a run with no project; a `wasm` key on a run through a
   project;
 * a `predecessor` key on a run that carries no predecessor;
@@ -4980,8 +4999,8 @@ not read with the field dropped; a `bind` or `caller` value outside its list is
 refused the same way.
 
 **The rules are the signing keys', key for key.** `bind`, `caller`, `vault`,
-what is issued to which run, who checks what, and the refusal of every
-GitHub-sourced run are exactly as in `signing_keys` above; one encryption key
+what is issued to which run and who checks what are exactly as in
+`signing_keys` above; one encryption key
 that breaks a rule refuses the whole run before it starts, as a signing key
 does. The keystore derives
 
@@ -5170,9 +5189,7 @@ admits it. **Every published version stays callable**: a caller names any of
 them with `version_key`, and a version without the block admits every door.
 Gating a project means removing (`remove_version`) each version that does not
 carry the rule you want. The same bytes run outside the project — directly
-from their wasm URL — keep the rule, since it travels in the wasm. A run built
-from a GitHub repository is judged after its build, so a refused first run
-still costs one compilation.
+from their wasm URL — keep the rule, since it travels in the wasm.
 
 ## How a request names its operation
 
@@ -6727,10 +6744,8 @@ Request off-chain execution of WASM code.
 **Basic execution (no secrets):**
 ```bash
 near call outlayer.testnet request_execution '{
-  "code_source": {
-    "repo": "https://github.com/user/project",
-    "commit": "abc123",
-    "build_target": "wasm32-wasi"
+  "source": {
+    "Project": {"project_id": "alice.testnet/my-app", "version_key": null}
   },
   "resource_limits": {
     "max_instructions": 1000000000,
@@ -6740,6 +6755,14 @@ near call outlayer.testnet request_execution '{
   "input_data": "{\"key\": \"value\"}"  
 }' --accountId user.testnet --deposit 0.01
 ```
+
+`source` names a published `.wasm` by its sha256; the worker refuses a file
+whose bytes do not match the hash. `Project` is the normal case
+(`version_key: null` = the active version, otherwise the version's wasm hash);
+a published file runs directly as
+`{"WasmUrl": {"url": "https://main.fastfs.io/alice.near/outlayer.near/<sha256>.wasm", "hash": "<sha256>", "build_target": "wasm32-wasip2"}}`.
+The URL must be `https://` on the default port. A project version's source is
+always a `WasmUrl`.
 
 **With encrypted secrets (e.g., API keys):**
 ```bash
@@ -6751,7 +6774,7 @@ near contract call-function as-read-only outlayer.testnet get_keystore_pubkey js
 
 # 3. Call with encrypted secrets
 near call outlayer.testnet request_execution '{
-  "code_source": {...},
+  "source": {...},
   "resource_limits": {...},
   "input_data": "{...}",
   "secrets_ref": {
@@ -6780,11 +6803,11 @@ the guest's JSON for `Json`, a string for `Text`, base64 for `Bytes`, and
 `null` when the run failed or produced nothing.
 
 **Limits.** `get_max_limits` answers `max_instructions` (500 billion),
-`max_execution_seconds` (180) and the compile cap; `max_memory_mb` is capped
+`max_execution_seconds` (180) as its first two values; `max_memory_mb` is capped
 at 4096 (wasm32's bound). A request above a cap is refused at the door.
 
-**What a run is charged.** A success pays `base_fee + instructions + time +
-compile`, capped at the compute deposit. A failed run pays the same formula on
+**What a run is charged.** A success pays `base_fee + instructions + time`,
+capped at the compute deposit. A failed run pays the same formula on
 what the worker reports it used, capped the same way; a failure before the
 guest ran reports little or nothing and costs about the base fee. A run the
 chain's yield window (200 blocks) outlived pays the base fee. The storage part
@@ -7038,18 +7061,22 @@ agent key.
 ### Secrets Management Functions
 
 #### `store_secrets`
-Store encrypted secrets for a repository. `profile` names the row: 1–64 bytes
-of letters, digits, `-` or `_`. The same rule refuses, at `request_execution`,
-a `secrets_ref` no row could match.
+Store encrypted secrets under an accessor: `{"Project": {"project_id"}}` (every
+version of a project) or `{"WasmHash": {"hash"}}` (one build). A `Repo` accessor
+names a row stored earlier for a repository: such a row is read and deleted
+like any other, and nothing new is stored, updated or re-scoped for a
+repository. `profile` names the row: 1–64 bytes of letters, digits, `-` or `_`.
+The same rule refuses, at `request_execution`, a `secrets_ref` no row could
+match.
 
 **Important:** Always estimate storage cost first using `estimate_storage_cost` to attach the correct deposit.
 
 ```bash
 # 1. Estimate storage cost. The arguments are the slot the store will use:
-# an ACCESSOR (not repo/branch), the profile, the owner, the ciphertext and the
+# the ACCESSOR, the profile, the owner, the ciphertext and the
 # condition — the condition is priced too, so a large whitelist costs more.
 near view outlayer.testnet estimate_storage_cost '{
-  "accessor": {"Repo": {"repo": "github.com/alice/project", "branch": "main"}},
+  "accessor": {"Project": {"project_id": "alice.testnet/my-app"}},
   "profile": "default",
   "owner": "alice.testnet",
   "encrypted_secrets_base64": "YWJjZGVm...",
@@ -7060,11 +7087,11 @@ near view outlayer.testnet estimate_storage_cost '{
 
 # 2. Store secrets with exact deposit
 near call outlayer.testnet store_secrets '{
-  "repo": "github.com/alice/project",
-  "branch": "main",
+  "accessor": {"Project": {"project_id": "alice.testnet/my-app"}},
   "profile": "default",
   "encrypted_secrets_base64": "YWJjZGVm...",
-  "access": "AllowAll"
+  "access": "AllowAll",
+  "vault_id": null
 }' --accountId alice.testnet --deposit 0.0015
 ```
 
@@ -7073,18 +7100,18 @@ Estimate the storage cost before storing secrets. Returns exact cost in yoctoNEA
 
 ```bash
 near view outlayer.testnet estimate_storage_cost '{
-  "repo": "github.com/alice/project",
-  "branch": null,
+  "accessor": {"WasmHash": {"hash": "<sha256>"}},
   "profile": "production",
   "owner": "alice.testnet",
   "encrypted_secrets_base64": "YWJjZGVm...",
-  "access": {"Whitelist": {"accounts": ["alice.testnet", "bob.testnet"]}}
+  "access": {"Whitelist": {"accounts": ["alice.testnet", "bob.testnet"]}},
+  "vault_id": null
 }'
 ```
 
 **Pricing factors:**
 - Base overhead: 40 bytes (LookupMap entry)
-- Key size: repo + branch + profile + owner (with Borsh length prefixes)
+- Key size: accessor + profile + owner (with Borsh length prefixes)
 - Value size: encrypted_secrets + access condition + timestamps
 - Index overhead: 64 bytes (for new secrets)
 - Storage price: 0.00001 NEAR per byte
@@ -7092,12 +7119,11 @@ near view outlayer.testnet estimate_storage_cost '{
 **Note:** Complex access conditions (e.g., Whitelist with many accounts) cost more than simple ones (e.g., AllowAll).
 
 #### `get_secrets`
-Retrieve secrets for a repository (called by keystore worker).
+Retrieve a stored secret row (called by keystore worker).
 
 ```bash
 near view outlayer.testnet get_secrets '{
-  "repo": "github.com/alice/project",
-  "branch": "main",
+  "accessor": {"Project": {"project_id": "alice.testnet/my-app"}},
   "profile": "default",
   "owner": "alice.testnet"
 }'
@@ -7108,8 +7134,7 @@ Delete secrets and get storage deposit refund.
 
 ```bash
 near call outlayer.testnet delete_secrets '{
-  "repo": "github.com/alice/project",
-  "branch": "main",
+  "accessor": {"Project": {"project_id": "alice.testnet/my-app"}},
   "profile": "default"
 }' --accountId alice.testnet
 ```
@@ -7351,6 +7376,8 @@ Rust SDK for building WASM applications on [OutLayer](https://app.outlayer.ai) -
 [dependencies]
 outlayer = "0.2"
 ```
+
+Use 0.2.1 or later. A module built on 0.2.0 that uses storage must be rebuilt: see [CHANGELOG.md](https://github.com/out-layer/outlayer/blob/main/sdk/outlayer/CHANGELOG.md).
 
 Signing keys, encryption keys (with sealed storage) and tasks are opt-in features:
 
@@ -9049,7 +9076,9 @@ The base64url payload is a JSON object:
 ## Auth middleware flow
 
 ```
-1. Try X-Internal-Wallet-Auth (trusted worker, no DB query)
+1. Try X-Internal-Wallet-Auth + X-Wallet-Id: an active worker token, from a
+   worker address (WORKER_ALLOWED_IPS), with the worker's active TEE session
+   (X-TEE-Session) when REQUIRE_TEE_SESSION=true
 2. Try Bearer near:... → NEAR signature auth:
    a. base64url-decode → parse JSON
    b. Verify timestamp ±30 sec (MAX_TIMESTAMP_SKEW = 30)

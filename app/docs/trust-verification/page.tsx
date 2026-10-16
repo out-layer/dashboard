@@ -296,14 +296,10 @@ export default function TrustVerificationPage() {
  <td className="px-4 py-3 text-sm text-muted-foreground">The TEE environment hash. Ties the run to a registered worker.</td>
               </tr>
  <tr className="bg-card-muted">
- <td className="px-4 py-3 text-sm font-semibold text-foreground">Source Code</td>
- <td className="px-4 py-3 text-sm text-muted-foreground">Link to the exact <code>repo@commit</code> that was executed.</td>
-              </tr>
-              <tr>
  <td className="px-4 py-3 text-sm font-semibold text-foreground">WASM Hash / Input Hash / Output Hash</td>
  <td className="px-4 py-3 text-sm text-muted-foreground">Content-addressable hashes of the binary, the input, and the output.</td>
               </tr>
- <tr className="bg-card-muted">
+              <tr>
  <td className="px-4 py-3 text-sm font-semibold text-foreground">TDX Quote</td>
  <td className="px-4 py-3 text-sm text-muted-foreground">The raw Intel-signed quote, plus a verify button (below).</td>
               </tr>
@@ -329,7 +325,7 @@ export default function TrustVerificationPage() {
           </li>
           <li>
  <strong>Binding</strong> — the Task Hash inside the signed quote commits to this
-            execution&apos;s input, output, WASM, commit, caller and payment, so an Intel-signed quote
+            execution&apos;s input, output, WASM, caller and payment, so an Intel-signed quote
             cannot be reused for a different run.
           </li>
         </ul>
@@ -673,9 +669,9 @@ near view worker.outlayer.near is_measurements_approved '{
         </div>
 
  <p className="text-foreground mb-4">
-          Additionally, every worker&apos;s WASM code is tracked through GitHub — you can verify exactly which code
-          a worker executed by checking the source repository and commit hash. This means even a backdoor cannot
-          be introduced without leaving a visible trace in the git history.
+          Additionally, every execution&apos;s attestation names the sha256 of the WASM that ran. A version is a file
+          named by its hash, so the code a caller runs cannot be swapped under that version without the hash
+          changing — and a reproducible build of the source lets anyone check which code that hash is.
         </p>
       </section>
 

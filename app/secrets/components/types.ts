@@ -45,13 +45,10 @@ export interface UserSecret {
 }
 
 // Form data for creating secrets
-export type SecretSourceType = 'repo' | 'wasm_hash' | 'project';
+export type SecretSourceType = 'wasm_hash' | 'project';
 
 export interface FormData {
   sourceType: SecretSourceType;
-  // Repo-based fields
-  repo: string;
-  branch: string | null;
   // WasmHash-based fields
   wasmHash: string;
   // Project-based fields

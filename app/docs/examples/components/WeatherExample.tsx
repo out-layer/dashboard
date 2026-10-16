@@ -95,7 +95,7 @@ export function WeatherExample() {
  Navigate to <Link href="/secrets" className="text-accent-text hover:underline">Secrets Management</Link>
           </li>
  <li>Create secret: key = <code>OPENWEATHER_API_KEY</code>, value = your API key</li>
- <li>Set repo to your GitHub project</li>
+ <li>Bind it to your project (e.g., <code>alice.near/weather-example</code>)</li>
  <li>Choose access condition (AllowAll for public data, Whitelist for production)</li>
         </ol>
       </div>

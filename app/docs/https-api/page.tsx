@@ -257,7 +257,7 @@ curl -X POST https://api.outlayer.ai/call/alice.near/my-assistant \\
  <td className="px-4 py-3 text-sm">string</td>
  <td className="px-4 py-3 text-sm text-muted-foreground">No</td>
  <td className="px-4 py-3 text-sm text-muted-foreground">
- Pin to a specific project version. Format: WASM hash or <code>repo@commit</code>.
+ Pin to a specific project version. Format: the version&apos;s WASM hash.
                   If omitted, uses the project&apos;s active version.
                 </td>
               </tr>
@@ -812,8 +812,7 @@ weather = call_outlayer("alice.near/weather-api", {"city": "Tokyo"})`}
  <div className="bg-card-muted rounded-lg p-4 mb-6 font-mono text-sm">
           compute_cost = base_fee_usd<br/>
           &nbsp;&nbsp;+ (instructions / 1M) × per_million_instructions_usd<br/>
-          &nbsp;&nbsp;+ execution_time_ms × per_ms_usd<br/>
-          &nbsp;&nbsp;+ compile_time_ms × per_compile_ms_usd
+          &nbsp;&nbsp;+ execution_time_ms × per_ms_usd
         </div>
 
  <p className="text-foreground mb-4">

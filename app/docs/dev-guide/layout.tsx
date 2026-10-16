@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
   title: "Tutorial: First App",
-  description: "End-to-end path: write WASI code, push to GitHub, test on testnet, integrate from a contract",
+  description: "End-to-end path: write WASI code, build and publish the wasm, test on testnet, integrate from a contract",
 };
 
 export default function Layout({ children }: { children: React.ReactNode }) {

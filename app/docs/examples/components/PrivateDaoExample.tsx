@@ -143,34 +143,33 @@ async function verifyProof(voteHash, proofPath, merkleRoot) {
 # (Alternatively: generate locally and store encrypted)
 openssl rand -hex 32 > dao_master_secret.txt
 
-# 2. Store master secret via Dashboard (encrypted in keystore)
+# 2. Clone, build and publish the WASI module
+git clone https://github.com/out-layer/private-dao-example.git
+cd private-dao-example
+cargo build --target wasm32-wasip1 --release
+outlayer upload target/wasm32-wasip1/release/private-dao-example.wasm   # prints SHA256 and the FastFS URL
+outlayer deploy private-dao-example <FastFS URL>
+
+# 3. Store master secret for the project (encrypted in keystore)
 # Open https://app.outlayer.ai/secrets:
-# - Repo: github.com/YOUR_USERNAME/private-dao-example
+# - Project: your.testnet/private-dao-example
 # - Profile: production
 # - Secrets JSON: {"DAO_MASTER_SECRET":"<paste hex from file>"}
 # - Access: AllowAll (or Whitelist for DAO admin only)
 
-# 3. Clone and build WASI module
-git clone https://github.com/out-layer/private-dao-example.git
-cd private-dao-example
-cargo build --target wasm32-wasip1 --release
-git push origin main
-
 # 4. Deploy DAO contract
+# In dao-contract/src/lib.rs point the OutLayer call at your project and secret:
+#   source:      {"Project": {"project_id": "your.testnet/private-dao-example", "version_key": null}}
+#   secrets_ref: {"profile": "production", "account_id": "your.testnet"}
 cd dao-contract
 cargo near build
 near deploy privatedao.testnet \\
   use-file res/private_dao_contract.wasm \\
   with-init-call new \\
   json-args '{
-    "owner_id":"owner.testnet",
     "name":"My Private DAO",
-    "outlayer_contract":"outlayer.testnet",
-    "wasi_repo":"https://github.com/YOUR_USERNAME/private-dao-example",
-    "wasi_commit":"main",
-    "secrets_profile":"production",
-    "secrets_owner":"your.testnet",
-    "membership_mode":"Public"
+    "membership_mode":"Public",
+    "owner":"owner.testnet"
   }' \\
   prepaid-gas '100.0 Tgas' \\
   attached-deposit '0 NEAR'

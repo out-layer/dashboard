@@ -23,8 +23,7 @@ test('UI1 a new Project row defaults to Whitelist[connected account]', () => {
   assert.equal(kept, null);
 });
 
-test('UI1 repository- and hash-bound rows stay open (AllowAll)', () => {
-  assert.deepEqual(initialAccess({ sourceType: 'repo', accountId: ME }).condition, { type: 'AllowAll' });
+test('UI1 hash-bound rows stay open (AllowAll)', () => {
   assert.deepEqual(initialAccess({ sourceType: 'wasm_hash', accountId: ME }).condition, { type: 'AllowAll' });
 });
 
@@ -67,7 +66,7 @@ test("retargeting the project drops the link's condition — a new row starts fr
 
 test("retargeting the profile, or the accessor kind, drops it too", () => {
   assert.equal(linked({ sourceType: 'project', projectId: 'app.near/mail', profile: 'mine' }), undefined);
-  assert.equal(linked({ sourceType: 'repo', projectId: 'app.near/mail', profile: 'author' }), undefined);
+  assert.equal(linked({ sourceType: 'wasm_hash', projectId: 'app.near/mail', profile: 'author' }), undefined);
 });
 
 test("a stray space is not a retarget: the save trims, so does the comparison", () => {

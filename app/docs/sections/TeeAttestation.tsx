@@ -75,7 +75,7 @@ export default function TeeAttestationSection() {
 
  <p className="text-foreground">
             On OutLayer, every code execution is attested using Intel TDX hardware, giving you cryptographic
-            proof that your WASM binary was executed exactly as compiled, with the correct inputs, in a
+            proof that your WASM binary — named by its sha256 — was executed with the correct inputs, in a
             secure isolated environment.
           </p>
         </section>
@@ -229,15 +229,9 @@ export default function TeeAttestationSection() {
  <h4 className="text-lg font-semibold text-foreground mb-3">What Gets Attested:</h4>
  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
  <div className="bg-card-muted p-3 rounded">
- <p className="font-semibold text-foreground mb-1"> Source Code</p>
- <p className="text-foreground text-sm">
-                  GitHub repository URL and exact commit hash that was compiled.
-                </p>
-              </div>
- <div className="bg-card-muted p-3 rounded">
  <p className="font-semibold text-foreground mb-1"> WASM Hash</p>
  <p className="text-foreground text-sm">
-                  SHA256 of the compiled WebAssembly binary that was executed.
+                  SHA256 of the exact WebAssembly binary that was executed.
                 </p>
               </div>
  <div className="bg-card-muted p-3 rounded">
@@ -270,7 +264,7 @@ export default function TeeAttestationSection() {
 
  <p className="text-foreground mb-3">
  All this data is stored in the <strong>Coordinator database</strong> and can be retrieved via the API.
-            The attestation links the entire execution chain: from source code → compiled WASM → input data →
+            The attestation links the entire execution chain: WASM hash → input data →
             TEE execution → output result.
           </p>
         </section>
@@ -282,16 +276,19 @@ export default function TeeAttestationSection() {
  <p className="text-foreground mb-3">
             OutLayer attests exactly one thing: <strong>this WASM binary produced this output, inside a
             genuine Intel TDX environment.</strong> The binary is identified by its <code className="bg-card-muted px-1 rounded">wasm_hash</code> — a SHA256 of the exact bytes that ran.
-            This is the trust anchor. It does not depend on any single host: pin the bytes on content-addressed
-            storage (FastFS, IPFS, …) and fetch them by hash, or rebuild from source and confirm the hash matches.
+            This is the trust anchor. It does not depend on any single host: fetch the bytes from wherever they are
+            published (FastFS or any https host) and check their hash, or rebuild from source and confirm the hash matches.
           </p>
 
  <div className="bg-card-muted border-l-4 border-yellow-500 p-4 my-4">
- <p className="text-foreground font-semibold mb-2">The anchor is the wasm_hash, not a repo + commit</p>
+ <p className="text-foreground font-semibold mb-2">The anchor is the wasm_hash</p>
  <p className="text-foreground text-sm">
-              A source repo and commit may also be recorded, so you can read the human-readable code — but that
-              is a convenience, not the anchor. A repo can be deleted or a commit rewritten; the <code className="bg-card px-1 rounded">wasm_hash</code> cannot. Trust follows the bytes, addressed
-              by their hash.
+              A version is a file named by its hash, so what a caller runs and pays for cannot change under that version
+              afterwards — a repository can change under the same name and commit history can be rewritten. Trust follows
+              the bytes, addressed by their hash. To tie a hash to source code, rebuild it reproducibly:{' '}
+ <code className="bg-card px-1 rounded">scripts/build_github_wasm.sh --dir ./my-project</code> from the{' '}
+ <a href="https://github.com/out-layer/outlayer" target="_blank" rel="noopener noreferrer" className="underline hover:text-accent-text">OutLayer repository</a> builds
+              in a pinned Docker image, so anyone gets the same hash from the same source.
             </p>
           </div>
 
@@ -427,7 +424,7 @@ export default function TeeAttestationSection() {
               </div>
 
  <div className="border-l-4 border-border pl-4">
- <p className="font-semibold text-foreground mb-1">Step 2: Verify Input/Output Hashes</p>
+ <p className="font-semibold text-foreground mb-1">Step 4: Verify Input/Output Hashes</p>
  <p className="text-foreground text-sm mb-2">
                   Fetch the NEAR transaction from the blockchain (using the transaction_hash). Extract the input data
  from the <code className="bg-card-muted px-1 rounded">execution_requested</code> event, and the output
@@ -440,18 +437,11 @@ export default function TeeAttestationSection() {
               </div>
 
  <div className="border-l-4 border-border pl-4">
- <p className="font-semibold text-foreground mb-1">Step 3: Verify Source Code</p>
+ <p className="font-semibold text-foreground mb-1">Step 5: Verify the WASM Hash</p>
  <p className="text-foreground text-sm mb-2">
-                  Click the source code link to view the exact GitHub commit that was compiled. You can audit the
-                  code yourself to see what logic was executed.
-                </p>
-              </div>
-
- <div className="border-l-4 border-border pl-4">
- <p className="font-semibold text-foreground mb-1">Step 4: Verify WASM Hash (Optional)</p>
- <p className="text-foreground text-sm mb-2">
-                  Download the WASM binary from the Coordinator API and calculate its SHA256 hash. Compare to the
-                  wasm_hash in the attestation. This proves the compiled binary matches the source code.
+                  Download the published WASM (the version&apos;s URL) and calculate its SHA256. Compare it to the
+                  wasm_hash in the attestation. To tie it to source code, rebuild the source reproducibly with{' '}
+ <code className="bg-card-muted px-1 rounded">scripts/build_github_wasm.sh --dir</code> and compare the hashes, then audit that source.
                 </p>
               </div>
             </div>
@@ -460,8 +450,7 @@ export default function TeeAttestationSection() {
  <div className="bg-card-muted border-l-4 border-border p-4 my-4">
  <p className="text-foreground font-semibold mb-2">Cryptographic Chain of Trust:</p>
  <p className="text-foreground text-sm">
- The attestation creates an unbreakable cryptographic chain: <strong>Source Code</strong> → compiled to →
- <strong>WASM Binary</strong> → executed with → <strong>Input Data</strong> → inside →
+ The attestation creates an unbreakable cryptographic chain: <strong>WASM Binary</strong> (by sha256) → executed with → <strong>Input Data</strong> → inside →
  <strong>TEE Worker</strong> (verified by <a href="/docs/trust-verification#measurements" className="underline hover:text-muted-foreground">5 TDX measurements</a>) → producing → <strong>Output Data</strong>. Every link is
               cryptographically hashed and signed by Intel TDX hardware.
             </p>
@@ -538,7 +527,7 @@ export default function TeeAttestationSection() {
  <p className="font-semibold text-foreground mb-1">Step 1: Worker Calculates Task Hash</p>
  <p className="text-foreground text-sm">
                   Before requesting a TDX quote from Intel hardware, the worker calculates the Task Hash by concatenating
-                  all execution parameters (task type, repo, commit, wasm hash, input hash, output hash, etc.) and
+                  all execution parameters (task type, task id, wasm hash, input hash, output hash, etc.) and
                   computing SHA256. This produces a 32-byte hash.
                 </p>
               </div>
@@ -686,8 +675,8 @@ export default function TeeAttestationSection() {
  <h4 className="font-semibold text-foreground">Code Transparency</h4>
               </div>
  <p className="text-foreground text-sm">
-                The attestation includes the exact GitHub commit, so you can audit the source code and verify
-                it matches what was executed.
+                The attestation names the sha256 of the WASM that ran. Rebuild the source reproducibly and compare
+                the hash to know exactly which code was executed.
               </p>
             </div>
 
@@ -751,7 +740,7 @@ export default function TeeAttestationSection() {
                 <div>
  <p className="font-semibold text-foreground">View Attestation Details</p>
  <p className="text-foreground text-sm">
-                    The modal shows: Worker Measurement, Source Code link, WASM Hash, Input Hash, Output Hash,
+                    The modal shows: Worker Measurement, WASM Hash, Input Hash, Output Hash,
                     TDX Quote, and NEAR Transaction link.
                   </p>
                 </div>
@@ -782,10 +771,10 @@ export default function TeeAttestationSection() {
  <li className="flex items-start">
  <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-card-muted text-white text-sm font-bold mr-3 flex-shrink-0">6</span>
                 <div>
- <p className="font-semibold text-foreground">Audit Source Code</p>
+ <p className="font-semibold text-foreground">Match the WASM Hash</p>
  <p className="text-foreground text-sm">
-                    Click the source code link to view the exact GitHub commit on GitHub. Review the code to understand
-                    what was executed.
+                    Compare the WASM Hash with the sha256 of the published file, or of your own reproducible build
+                    of the source, and review that source to understand what was executed.
                   </p>
                 </div>
               </li>

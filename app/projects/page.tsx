@@ -10,7 +10,7 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { ProjectCard } from './components/ProjectCard';
 import { CreateProjectForm } from './components/CreateProjectForm';
 import { AddVersionForm } from './components/AddVersionForm';
-import { ProjectView, VersionView, CreateProjectFormData, AddVersionFormData, normalizeRepoUrl } from './components/types';
+import { ProjectView, VersionView, CreateProjectFormData, AddVersionFormData } from './components/types';
 import { getCoordinatorApiUrl } from '@/lib/api';
 
 export default function ProjectsPage() {
@@ -181,11 +181,7 @@ export default function ProjectsPage() {
   const handleCreateProject = async (formData: CreateProjectFormData) => {
     setIsSubmitting(true);
     try {
-      // Normalize repo URL to consistent format (e.g., git@github.com:owner/repo.git -> github.com/owner/repo)
-      const normalizedRepo = formData.sourceType === 'github' ? normalizeRepoUrl(formData.repo) : '';
-      const source = formData.sourceType === 'github'
-        ? { GitHub: { repo: normalizedRepo, commit: formData.commit, build_target: formData.buildTarget || null } }
-        : { WasmUrl: { url: formData.wasmUrl, hash: formData.wasmHash, build_target: formData.buildTarget || null } };
+      const source = { WasmUrl: { url: formData.wasmUrl, hash: formData.wasmHash, build_target: formData.buildTarget || null } };
 
       const args = {
         name: formData.name,
@@ -208,7 +204,7 @@ export default function ProjectsPage() {
         actions: [action],
       });
 
-      setSuccess('Project created successfully! Worker is compiling your code...');
+      setSuccess('Project created successfully!');
       setShowCreateForm(false);
       setTimeout(() => loadProjects(), 3000);
     } catch (err) {
@@ -223,11 +219,7 @@ export default function ProjectsPage() {
   const handleAddVersion = async (formData: AddVersionFormData) => {
     setIsSubmitting(true);
     try {
-      // Normalize repo URL to consistent format
-      const normalizedRepo = formData.sourceType === 'github' ? normalizeRepoUrl(formData.repo) : '';
-      const source = formData.sourceType === 'github'
-        ? { GitHub: { repo: normalizedRepo, commit: formData.commit, build_target: formData.buildTarget || null } }
-        : { WasmUrl: { url: formData.wasmUrl, hash: formData.wasmHash, build_target: formData.buildTarget || null } };
+      const source = { WasmUrl: { url: formData.wasmUrl, hash: formData.wasmHash, build_target: formData.buildTarget || null } };
 
       const args = {
         project_name: formData.projectName,

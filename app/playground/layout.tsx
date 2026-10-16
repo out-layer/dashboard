@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
   title: "Playground",
-  description: "Run WASI code from a GitHub repo inside an Intel TDX enclave and get an attested result — straight from the browser, no setup.",
+  description: "Run a published WASM inside an Intel TDX enclave and get an attested result — straight from the browser, no setup.",
 };
 
 export default function Layout({ children }: { children: React.ReactNode }) {

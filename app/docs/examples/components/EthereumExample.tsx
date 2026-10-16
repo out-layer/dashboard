@@ -79,9 +79,9 @@ export function EthereumExample() {
 near contract call-function as-transaction outlayer.testnet request_execution \\
   json-args '{
     "source": {
-      "GitHub": {
-        "repo": "https://github.com/out-layer/oracle-example",
-        "commit": "main",
+      "WasmUrl": {
+        "url": "https://wasmhub.testnet.fastfs.io/fastfs.testnet/34907feceac091ba89f167a5cd408ebf6a6758b6ed1bde63020071788f722a35.wasm",
+        "hash": "34907feceac091ba89f167a5cd408ebf6a6758b6ed1bde63020071788f722a35",
         "build_target": "wasm32-wasip2"
       }
     },

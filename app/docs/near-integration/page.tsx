@@ -49,40 +49,31 @@ export default function NearIntegrationPage() {
  <div className="space-y-4">
  <div className="border-l-4 border-border pl-4">
  <p className="font-mono text-sm text-foreground mb-1"><strong>source</strong>: ExecutionSource <span className="text-destructive-text">(required)</span></p>
- <p className="text-sm text-muted-foreground mb-2">Specifies where to get WASM code. Three variants available:</p>
+ <p className="text-sm text-muted-foreground mb-2">Names a published <code className="bg-card-muted px-1 rounded">.wasm</code> by its sha256; the worker refuses a file whose bytes do not match the hash. Two variants:</p>
 
  <div className="mt-2 mb-2">
- <p className="text-sm font-semibold text-foreground mb-1">Variant 1: GitHub (compile from source)</p>
+ <p className="text-sm font-semibold text-foreground mb-1">Variant 1: Project (registered project, the normal case)</p>
  <ul className="list-disc list-inside text-sm text-foreground ml-4 space-y-1">
- <li><code className="bg-card-muted px-2 py-1 rounded">repo</code>: GitHub repository URL (e.g., &quot;https://github.com/user/project&quot;)</li>
- <li><code className="bg-card-muted px-2 py-1 rounded">commit</code>: Branch name (&quot;main&quot;) or commit hash (40-char SHA)</li>
- <li><code className="bg-card-muted px-2 py-1 rounded">build_target</code>: Optional. &quot;wasm32-wasip1&quot; or &quot;wasm32-wasip2&quot; (default: wasip1)</li>
+ <li><code className="bg-card-muted px-2 py-1 rounded">project_id</code>: Project ID (e.g., &quot;alice.near/my-app&quot;)</li>
+ <li><code className="bg-card-muted px-2 py-1 rounded">version_key</code>: Optional. A version&apos;s wasm hash (null = active version)</li>
                   </ul>
-                </div>
-
- <div className="mt-2 mb-2">
- <p className="text-sm font-semibold text-foreground mb-1">Variant 2: WasmUrl (pre-compiled WASM)</p>
- <ul className="list-disc list-inside text-sm text-foreground ml-4 space-y-1">
- <li><code className="bg-card-muted px-2 py-1 rounded">url</code>: URL to pre-compiled WASM file (FastFS, IPFS, etc.)</li>
- <li><code className="bg-card-muted px-2 py-1 rounded">hash</code>: SHA256 hash of WASM file for verification</li>
- <li><code className="bg-card-muted px-2 py-1 rounded">build_target</code>: &quot;wasm32-wasip1&quot; or &quot;wasm32-wasip2&quot;</li>
-                  </ul>
- <p className="text-xs text-muted-foreground mt-1">Use WasmUrl for instant execution without compilation. Ideal for closed-source WASM or permanent deployments on FastFS/IPFS.</p>
+ <p className="text-xs text-muted-foreground mt-1">Use Project for registered apps with persistent storage. Automatically uses project secrets if available.</p>
                 </div>
 
  <div className="mt-2">
- <p className="text-sm font-semibold text-foreground mb-1">Variant 3: Project (registered project)</p>
+ <p className="text-sm font-semibold text-foreground mb-1">Variant 2: WasmUrl (direct run of a published file)</p>
  <ul className="list-disc list-inside text-sm text-foreground ml-4 space-y-1">
- <li><code className="bg-card-muted px-2 py-1 rounded">project_id</code>: Project ID (e.g., &quot;alice.near/my-app&quot;)</li>
- <li><code className="bg-card-muted px-2 py-1 rounded">version_key</code>: Optional. Specific version key (null = active version)</li>
+ <li><code className="bg-card-muted px-2 py-1 rounded">url</code>: <code className="bg-card-muted px-1 rounded">https://</code> URL of the WASM file on the default port (e.g., a FastFS URL from <code className="bg-card-muted px-1 rounded">outlayer upload</code>)</li>
+ <li><code className="bg-card-muted px-2 py-1 rounded">hash</code>: SHA256 of the WASM file</li>
+ <li><code className="bg-card-muted px-2 py-1 rounded">build_target</code>: &quot;wasm32-wasip1&quot; or &quot;wasm32-wasip2&quot;</li>
                   </ul>
- <p className="text-xs text-muted-foreground mt-1">Use Project for registered apps with persistent storage. Automatically uses project secrets if available.</p>
+ <p className="text-xs text-muted-foreground mt-1">A project version&apos;s source is always a WasmUrl.</p>
                 </div>
               </div>
 
  <div className="border-l-4 border-border-strong pl-4">
- <p className="font-mono text-sm text-foreground mb-1"><strong>resource_limits</strong>: ResourceLimits <span className="text-muted-foreground">(optional)</span></p>
- <p className="text-sm text-muted-foreground mb-2">Maximum resources to allocate. Defaults shown below:</p>
+ <p className="font-mono text-sm text-foreground mb-1"><strong>resource_limits</strong>: ResourceLimits <span className="text-muted-foreground">(required)</span></p>
+ <p className="text-sm text-muted-foreground mb-2">Maximum resources to allocate. Always pass it, even as <code className="bg-card-muted px-1 rounded">{'{}'}</code>: a request without it runs nothing. A field left out takes its default:</p>
  <ul className="list-disc list-inside text-sm text-foreground ml-4 space-y-1">
  <li><code className="bg-card-muted px-2 py-1 rounded">max_instructions</code>: u64 (default: 1 billion, max: 500 billion)</li>
  <li><code className="bg-card-muted px-2 py-1 rounded">max_memory_mb</code>: u32 (default: 128 MB, max 4096)</li>
@@ -104,7 +95,7 @@ export default function NearIntegrationPage() {
  <li><code className="bg-card-muted px-2 py-1 rounded">account_id</code>: Account that owns the secrets</li>
                 </ul>
  <p className="text-xs text-muted-foreground mt-2">Worker decrypts secrets and injects as environment variables accessible via <code className="bg-card-muted px-1 rounded">std::env::var()</code></p>
- <p className="text-xs text-muted-foreground mt-1">Secrets can be bound to GitHub repo+branch OR to a WASM hash. When using WasmUrl, secrets bound to the hash are automatically matched.</p>
+ <p className="text-xs text-muted-foreground mt-1">Secrets can be bound to a project OR to a WASM hash. When using WasmUrl, secrets bound to the hash are automatically matched.</p>
               </div>
 
  <div className="border-l-4 border-border-strong pl-4">
@@ -131,11 +122,9 @@ export default function NearIntegrationPage() {
  <p className="font-mono text-sm text-foreground mb-1"><strong>params</strong>: ExecutionParams <span className="text-muted-foreground">(optional)</span></p>
  <p className="text-sm text-muted-foreground mb-2">Advanced execution control parameters:</p>
  <ul className="list-disc list-inside text-sm text-foreground ml-4 space-y-1">
- <li><code className="bg-card-muted px-2 py-1 rounded">force_rebuild</code>: bool (default: false) - Force recompilation even if WASM exists in cache. Useful when you updated code but kept the same commit hash, or need a fresh build for debugging.</li>
- <li><code className="bg-card-muted px-2 py-1 rounded">compile_only</code>: bool (default: false) - Only compile, don&apos;t execute. Returns checksum of compiled WASM. Useful for pre-warming cache or verifying compilation.</li>
- <li><code className="bg-card-muted px-2 py-1 rounded">store_on_fastfs</code>: bool (default: false) - Store compiled WASM on FastFS after compilation. Returns FastFS URL instead of execution result. Useful for permanent storage and sharing.</li>
+ <li><code className="bg-card-muted px-2 py-1 rounded">attached_usd</code>: U128 (optional) - Payment to the project owner in stablecoin minimal units (1_000_000 = $1), deducted from your stablecoin balance in the contract. Project source only.</li>
+ <li><code className="bg-card-muted px-2 py-1 rounded">use_bound_identity</code>: bool (default: false) - Run the guest under the caller&apos;s bound account name. See <a href="/docs/binding-api#running-as" className="underline">Running a job under the bound name</a>.</li>
                 </ul>
- <p className="text-xs text-muted-foreground mt-2">Example: <code className="bg-card-muted px-1 rounded">{`"params": {"force_rebuild": true, "compile_only": false, "store_on_fastfs": false}`}</code></p>
               </div>
             </div>
           </div>
@@ -149,7 +138,7 @@ export default function NearIntegrationPage() {
           </p>
  <ul className="list-disc list-inside space-y-2 text-foreground ml-4">
  <li><strong>Success case</strong>: Your stdout output (parsed according to response_format: Text/Json/Bytes)</li>
- <li><strong>Failure case</strong>: Error information (compilation failed, timeout, etc.)</li>
+ <li><strong>Failure case</strong>: Error information (WASM hash mismatch, timeout, etc.)</li>
  <li><strong>Resource metrics</strong>: Actual instructions used, execution time</li>
  <li><strong>Automatic refund</strong>: Unused deposit sent to payer_account_id</li>
           </ul>
@@ -232,14 +221,8 @@ impl Contract {
         <section id="performance">
  <AnchorHeading id="performance">Performance Tips</AnchorHeading>
  <div className="bg-card-muted border-l-4 border-border p-4">
- <p className="text-sm text-foreground mb-2">
- <strong>GitHub compilation:</strong> ~10 seconds for simple projects, up to few minutes for complex ones (full Rust build with dependencies)
-            </p>
- <p className="text-sm text-foreground mb-2">
- <strong>Execution time:</strong> Depends on your code — from milliseconds to minutes based on complexity and resource limits
-            </p>
  <p className="text-sm text-foreground">
- <strong>Pre-compiled WASM:</strong> Skip compilation entirely. Use WasmUrl with FastFS/IPFS for instant ~1s execution.
+ <strong>Execution time:</strong> Depends on your code — from milliseconds to minutes based on complexity and resource limits
             </p>
           </div>
         </section>
@@ -247,16 +230,21 @@ impl Contract {
         <section id="fastfs-workflow">
  <AnchorHeading id="fastfs-workflow">FastFS Workflow</AnchorHeading>
  <p className="text-foreground mb-3">
-            For production deployments, use FastFS to store pre-compiled WASM for instant execution:
+            Build the WASM yourself, publish it on FastFS, and deploy it as a project version:
           </p>
- <ol className="list-decimal list-inside space-y-2 text-foreground ml-4">
- <li><strong>Compile with store_on_fastfs:</strong> Set <code className="bg-card-muted px-1 rounded">{`"params": {"store_on_fastfs": true, "compile_only": true}`}</code></li>
- <li><strong>Get FastFS URL:</strong> Response contains <code className="bg-card-muted px-1 rounded">fastfs_url</code> and <code className="bg-card-muted px-1 rounded">wasm_hash</code></li>
- <li><strong>Execute via WasmUrl:</strong> Use the URL and hash in <code className="bg-card-muted px-1 rounded">source</code> for instant execution</li>
-          </ol>
+ <SyntaxHighlighter language="bash" style={vscDarkPlus} className="rounded-lg mb-3">
+{`cargo build --target wasm32-wasip2 --release
+outlayer upload target/wasm32-wasip2/release/my-app.wasm
+# prints SHA256 and: FastFS URL: https://main.fastfs.io/<you>/outlayer.near/<sha256>.wasm
+outlayer deploy my-app <FastFS URL>   # creates the project or adds a version, activates it`}
+          </SyntaxHighlighter>
+ <p className="text-foreground mb-3">
+ Call it with the <code className="bg-card-muted px-1 rounded">Project</code> source, or run the file directly with <code className="bg-card-muted px-1 rounded">WasmUrl</code> and the same URL and hash.
+ Testnet uses <code className="bg-card-muted px-1 rounded">test.fastfs.io</code> and the receiver <code className="bg-card-muted px-1 rounded">outlayer.testnet</code>. Any https URL works for <code className="bg-card-muted px-1 rounded">outlayer deploy</code>; FastFS is the default.
+          </p>
  <div className="bg-card-muted border-l-4 border-border p-3 mt-3">
  <p className="text-sm text-foreground">
- <strong>Benefits:</strong> Instant execution (no compilation), immutable code (hash-verified), works with closed-source WASM, permanent storage on-chain.
+ <strong>Why a hash:</strong> A version is a file named by its hash, so what a caller runs and pays for cannot change under that version afterwards — a repository can change under the same name and commit history can be rewritten.
             </p>
           </div>
         </section>

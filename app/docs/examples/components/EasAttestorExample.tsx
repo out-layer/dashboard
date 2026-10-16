@@ -55,14 +55,14 @@ export function EasAttestorExample() {
         </p>
         <ul className="text-sm text-foreground space-y-1 list-disc list-inside">
           <li>The signing key was <strong>generated inside the enclave</strong> and has never existed anywhere else &mdash; no human has ever seen it</li>
-          <li>The only code that can use it is <strong>pinned by hash</strong> to a public GitHub repo, approved on-chain</li>
+          <li>The only code that can use it is <strong>pinned by hash</strong>: a published WASM built from public source, approved on-chain</li>
           <li>Every attestation <strong>links to the Intel-signed quote</strong> of the exact run that produced it &mdash; the evidence travels with the claim</li>
         </ul>
       </div>
 
       <HowItWorksSection items={[
         'The web form composes a job: an EAS schema plus data collectors (ERC-20 supply, balance, contract bytecode, block number, a link to the run\'s own TEE quote)',
-        'OutLayer compiles the pinned GitHub repo to WASI and executes it inside Intel TDX',
+        'OutLayer fetches the published WASM, checks its sha256, and executes it inside Intel TDX',
         'The enclave decrypts the attester key — a generated secret that only attested code can access',
         'The guest reads every value from multiple RPC endpoints and requires min_agree of them to match',
         'It ABI-encodes the attestation data, signs the EAS attest() transaction in-guest (k256), and broadcasts it',
@@ -183,7 +183,7 @@ curl -s https://api.outlayer.ai/attestations/by-call/CALL_ID`}
           <pre className="mx-4 mb-3 overflow-x-auto rounded-lg bg-card-muted p-4 text-sm">
 {`# No TEE and no key here, so nothing gets signed or attested. What this IS for:
 #  - iterate on your schema and collectors for free, before paying for enclave runs
-#  - audit the engine: it is the exact binary the enclave compiles from this repo,
+#  - audit the engine: it is the source of the binary the enclave runs,
 #    so you can see what it does with your input — quorum reads, ABI encoding, calldata
 #  - develop your own fork (new collector types, other contracts) with a fast loop
 git clone https://github.com/out-layer/eas-attestor && cd eas-attestor
@@ -250,7 +250,7 @@ cat example-job.json | wasmtime -S http target/wasm32-wasip2/release/eas-attesto
         'Key exfiltration: impossible by construction — the key is decrypted only for on-chain-approved code inside the enclave',
         'RPC manipulation: a wrong value requires min_agree independent endpoints to collude',
         'Operator (us): cannot alter results — the WASM hash and input/output hashes are sealed in the Intel-signed quote; verify with outlayer-verify, no trust in our pages required',
-        'Code swap: each execution records the exact repo and commit it ran'
+        'Code swap: each execution records the sha256 of the exact WASM it ran'
       ]} />
 
       <UseCasesSection items={[

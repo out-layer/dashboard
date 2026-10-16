@@ -91,7 +91,7 @@ Examples:
  <li>Go to <Link href="/projects" className="text-accent-text hover:underline">/projects</Link></li>
  <li>Click &quot;New Project&quot;</li>
  <li>Enter project name</li>
- <li>Select code source (GitHub repo or WASM URL)</li>
+ <li>Enter the WASM URL and its SHA256 (e.g. the FastFS URL and hash <code>outlayer upload</code> prints)</li>
  <li>Click &quot;Create Project&quot;</li>
         </ol>
 
@@ -131,7 +131,7 @@ fn main() {
 
  <ul className="list-disc list-inside text-foreground space-y-2 mb-6">
  <li>You call <code>request_execution(Project &#123; project_id &#125;)</code></li>
- <li>Contract looks up the project and resolves the CodeSource (GitHub or WasmUrl)</li>
+ <li>Contract looks up the project and resolves the version&apos;s CodeSource (a WasmUrl)</li>
  <li>Contract sends <code>project_uuid</code> to the worker</li>
  <li>Worker uses <code>project_uuid</code> for storage namespace and encryption</li>
         </ul>
@@ -209,11 +209,11 @@ let name = std::env::var("OUTLAYER_PROJECT_NAME").ok();
  <div className="space-y-2">
  <p>1. User calls: <code className="bg-card-muted px-1">request_execution(Project &#123; project_id: &quot;alice.near/app&quot; &#125;)</code></p>
  <p className="pl-4">↓</p>
- <p>2. Contract looks up project → finds registered CodeSource (GitHub repo or WASM URL)</p>
+ <p>2. Contract looks up project → finds the version&apos;s CodeSource (WASM URL + sha256)</p>
  <p className="pl-4">↓</p>
  <p>3. Contract sends to worker: <code className="bg-card-muted px-1">&#123; code_source, project_uuid: &quot;uuid-123&quot; &#125;</code></p>
  <p className="pl-4">↓</p>
- <p>4. Worker compiles/downloads WASM from the CodeSource</p>
+ <p>4. Worker downloads the WASM and refuses it unless its bytes match the sha256</p>
  <p className="pl-4">↓</p>
  <p>5. Worker executes WASM with storage bound to <code className="bg-card-muted px-1">project_uuid</code></p>
           </div>
@@ -239,8 +239,8 @@ let name = std::env::var("OUTLAYER_PROJECT_NAME").ok();
  <div className="border border-border rounded-lg p-4">
  <h5 className="font-semibold text-foreground mb-2">Deterministic WASM Hash</h5>
  <p className="text-sm text-muted-foreground">
- The WASM checksum is calculated from CodeSource: <code>SHA256(repo:commit:target)</code>.
-              Same source always produces the same hash — no way to substitute different code.
+ A version is named by the SHA256 of its WASM, and the worker refuses a file whose bytes do not
+              match it — no way to substitute different code under a version.
             </p>
           </div>
  <div className="border border-border rounded-lg p-4">
@@ -299,7 +299,8 @@ let name = std::env::var("OUTLAYER_PROJECT_NAME").ok();
 
  <p className="text-foreground mb-4">
  In the <Link href="/projects" className="text-accent-text hover:underline">Projects dashboard</Link>,
-          expand your project and click &quot;Add Version&quot;. You can choose to make it active immediately or keep
+          expand your project and click &quot;Add Version&quot; with the WASM URL and its SHA256 (or run{' '}
+ <code>outlayer deploy &lt;name&gt; &lt;url&gt;</code>). You can choose to make it active immediately or keep
           the current active version.
         </p>
 
@@ -328,10 +329,10 @@ let name = std::env::var("OUTLAYER_PROJECT_NAME").ok();
  <SyntaxHighlighter language="json" style={vscDarkPlus} className="rounded-lg mb-4">
           {`// Contract call: request_execution
 {
-  "code_source": {
+  "source": {
     "Project": {
       "project_id": "alice.near/my-app",
-      "version_key": "username/my-app@v2.0.0"  // Optional: specific version
+      "version_key": "<sha256>"  // Optional: a version's wasm hash
     }
   },
   "input_data": "...",

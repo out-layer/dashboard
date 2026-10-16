@@ -5,7 +5,7 @@ import { InfoHint } from '@/components/ui/info-hint';
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useNearWallet } from '@/contexts/NearWalletContext';
-import { checkWasmExists, checkWasmExistsByChecksum } from '@/lib/api';
+import { checkWasmExistsByChecksum } from '@/lib/api';
 import { getTransactionUrl } from '@/lib/explorer';
 import { actionCreators } from '@near-js/transactions';
 import WalletConnectionModal from '@/components/WalletConnectionModal';
@@ -21,16 +21,13 @@ interface BasePreset {
 // Direct execution preset (calls OutLayer)
 interface DirectPreset extends BasePreset {
   type: 'direct';
-  codeSourceType?: 'github' | 'wasmurl' | 'project'; // default: 'github'
-  // GitHub source fields
-  repo?: string;
-  commit?: string;
+  codeSourceType?: 'wasmurl' | 'project'; // default: 'wasmurl'
   // WasmUrl source fields
   wasmUrl?: string;
   wasmHash?: string;
   // Project source fields
   projectId?: string; // e.g., "alice.near/my-app"
-  versionKey?: string; // specific version key: hash for WasmUrl, "repo@commit" for GitHub (null = active version)
+  versionKey?: string; // specific version key (null = active version)
   // Common fields
   buildTarget: string;
   args: string;
@@ -38,10 +35,6 @@ interface DirectPreset extends BasePreset {
   secretsProfile?: string;
   secretsOwnerTestnet?: string;
   secretsOwnerMainnet?: string;
-  // Execution params
-  compileOnly?: boolean;
-  forceRebuild?: boolean;
-  storeOnFastfs?: boolean;
 }
 
 // Proxy contract preset (calls application contract)
@@ -53,11 +46,6 @@ interface ProxyPreset extends BasePreset {
   proxyDeposit: string;
   proxyGas: string;
   args: string; // Arguments for proxy method
-  // WASM cache check fields (for contracts that call OutLayer)
-  wasmRepo?: string;
-  wasmCommit?: string;
-  wasmBuildTarget?: string;
-  increaseDepositIfNoCache?: boolean; // If true, add 0.1 NEAR to deposit when WASM not cached
 }
 
 type Preset = DirectPreset | ProxyPreset;
@@ -212,12 +200,6 @@ const PROXY_PRESETS: ProxyPreset[] = [
     proxyMethod: 'flip_coin',
     proxyDeposit: '50000000000000000000000', // 0.05 NEAR
     proxyGas: '300000000000000', // 300 TGas
-    wasmRepo: 'https://github.com/out-layer/vrf-example',
-    wasmCommit: 'main',
-    // wasip2, not wasip1: the OutLayer SDK's VRF host functions are WASI Preview 2 only, and
-    // the SDK fails the build outright on wasip1.
-    wasmBuildTarget: 'wasm32-wasip2',
-    increaseDepositIfNoCache: true,
     docsLink: '/docs/examples#vrf-ark',
   },
   {
@@ -230,11 +212,6 @@ const PROXY_PRESETS: ProxyPreset[] = [
     proxyMethod: 'ft_transfer_call',
     proxyDeposit: '1', // 1 yoctoNEAR
     proxyGas: '300000000000000', // 300 TGas
-    // WASM cache check
-    wasmRepo: 'https://github.com/out-layer/intents-example',
-    wasmCommit: 'main',
-    wasmBuildTarget: 'wasm32-wasip2',
-    increaseDepositIfNoCache: false, // ft_transfer_call accepts only 1 yoctoNEAR
     docsLink: '/docs/examples#intents-ark',
   },
 ];
@@ -259,9 +236,7 @@ function PlaygroundContent() {
     : undefined;
 
   const [selectedPreset, setSelectedPreset] = useState<string>(initialPreset?.name || 'custom');
-  const [codeSourceType, setCodeSourceType] = useState<'github' | 'wasmurl' | 'project'>(initialPreset?.type === 'direct' ? (initialPreset.codeSourceType || 'github') : 'github');
-  const [repo, setRepo] = useState(initialPreset?.type === 'direct' ? initialPreset.repo : '');
-  const [commit, setCommit] = useState(initialPreset?.type === 'direct' ? initialPreset.commit : '');
+  const [codeSourceType, setCodeSourceType] = useState<'wasmurl' | 'project'>(initialPreset?.type === 'direct' ? (initialPreset.codeSourceType || 'wasmurl') : 'wasmurl');
   const [wasmUrl, setWasmUrl] = useState('');
   const [wasmHash, setWasmHash] = useState('');
   const [hashLoading, setHashLoading] = useState(false);
@@ -271,10 +246,6 @@ function PlaygroundContent() {
   const [responseFormat, setResponseFormat] = useState(initialPreset?.type === 'direct' ? initialPreset.responseFormat : 'Json');
   const [secretsProfile, setSecretsProfile] = useState(initialPreset?.type === 'direct' ? initialPreset.secretsProfile || '' : '');
   const [secretsOwner, setSecretsOwner] = useState('');
-  // Execution params
-  const [compileOnly, setCompileOnly] = useState(initialPreset?.type === 'direct' ? initialPreset.compileOnly || false : false);
-  const [forceRebuild, setForceRebuild] = useState(initialPreset?.type === 'direct' ? initialPreset.forceRebuild || false : false);
-  const [storeOnFastfs, setStoreOnFastfs] = useState(initialPreset?.type === 'direct' ? initialPreset.storeOnFastfs || false : false);
 
   // Proxy preset state
   const [proxyMethod, setProxyMethod] = useState(initialPreset?.type === 'proxy' ? initialPreset.proxyMethod : '');
@@ -329,8 +300,6 @@ function PlaygroundContent() {
       setSelectedPreset(initialPreset.name);
       setArgs(initialPreset.args);
       if (initialPreset.type === 'direct') {
-        setRepo(initialPreset.repo);
-        setCommit(initialPreset.commit);
         setBuildTarget(initialPreset.buildTarget);
         setResponseFormat(initialPreset.responseFormat);
         setSecretsProfile(initialPreset.secretsProfile || '');
@@ -376,8 +345,6 @@ function PlaygroundContent() {
       setArgs(firstPreset.args);
 
       if (firstPreset.type === 'direct') {
-        setRepo(firstPreset.repo);
-        setCommit(firstPreset.commit);
         setBuildTarget(firstPreset.buildTarget);
         setResponseFormat(firstPreset.responseFormat);
         setSecretsProfile(firstPreset.secretsProfile || '');
@@ -388,8 +355,6 @@ function PlaygroundContent() {
         setSecretsOwner(owner);
       } else {
         // Proxy preset - clear direct-only fields
-        setRepo('');
-        setCommit('');
         setBuildTarget('wasm32-wasip1');
         setResponseFormat('Json');
         setSecretsProfile('');
@@ -412,12 +377,10 @@ function PlaygroundContent() {
   // Apply preset configuration
   const applyPreset = (presetName: string) => {
     if (presetName === 'custom') {
-      // Blank slate: user brings their own repo/args.
+      // Blank slate: user brings their own wasm/args.
       setSelectedPreset('custom');
       setArgs('');
-      setCodeSourceType('github');
-      setRepo('');
-      setCommit('');
+      setCodeSourceType('wasmurl');
       setWasmUrl('');
       setWasmHash('');
       setProjectId('');
@@ -426,9 +389,6 @@ function PlaygroundContent() {
       setResponseFormat('Json');
       setSecretsProfile('');
       setSecretsOwner('');
-      setCompileOnly(false);
-      setForceRebuild(false);
-      setStoreOnFastfs(false);
       setProxyMethod('');
       return;
     }
@@ -439,9 +399,7 @@ function PlaygroundContent() {
       setArgs(preset.args.replace(/\{\{contractId\}\}/g, contractId));
 
       if (preset.type === 'direct') {
-        setCodeSourceType(preset.codeSourceType || 'github');
-        setRepo(preset.repo || '');
-        setCommit(preset.commit || '');
+        setCodeSourceType(preset.codeSourceType || 'wasmurl');
         setWasmUrl(preset.wasmUrl || '');
         setWasmHash(preset.wasmHash || '');
         setProjectId(preset.projectId || '');
@@ -449,10 +407,6 @@ function PlaygroundContent() {
         setBuildTarget(preset.buildTarget);
         setResponseFormat(preset.responseFormat);
         setSecretsProfile(preset.secretsProfile || '');
-        // Execution params
-        setCompileOnly(preset.compileOnly || false);
-        setForceRebuild(preset.forceRebuild || false);
-        setStoreOnFastfs(preset.storeOnFastfs || false);
 
         // Select secrets owner based on current network
         const owner = network === 'testnet'
@@ -462,9 +416,7 @@ function PlaygroundContent() {
       } else {
         // Proxy preset - set proxy method and clear direct-only fields
         setProxyMethod(preset.proxyMethod);
-        setCodeSourceType('github');
-        setRepo('');
-        setCommit('');
+        setCodeSourceType('wasmurl');
         setWasmUrl('');
         setProjectId('');
         setVersionKey('');
@@ -472,9 +424,6 @@ function PlaygroundContent() {
         setResponseFormat('Json');
         setSecretsProfile('');
         setSecretsOwner('');
-        setCompileOnly(false);
-        setForceRebuild(false);
-        setStoreOnFastfs(false);
       }
 
       setWasmInfo(null); // Clear WASM cache info
@@ -487,47 +436,15 @@ function PlaygroundContent() {
     }
   };
 
+  // A published WASM is cached under its own hash.
   const handleCheckWasm = async () => {
     try {
       setError(null);
-      const currentPreset = PRESETS.find(p => p.name === selectedPreset);
-
-      // Check if we're using WasmUrl for direct preset
-      if ((selectedPreset === 'custom' || currentPreset?.type === 'direct') && codeSourceType === 'wasmurl') {
-        // WasmUrl - check by hash
-        if (!wasmHash) {
-          setError('Please enter or calculate WASM hash first');
-          return;
-        }
-        const info = await checkWasmExistsByChecksum(wasmHash);
-        setWasmInfo(info);
+      if (!wasmHash) {
+        setError('Please enter or calculate WASM hash first');
         return;
       }
-
-      let checkRepo: string;
-      let checkCommit: string;
-      let checkBuildTarget: string;
-
-      if (selectedPreset === 'custom' || currentPreset?.type === 'direct') {
-        // Direct preset (or blank Custom) with GitHub - use form values
-        if (!repo || !commit) {
-          setError('Repository and commit are required for GitHub source');
-          return;
-        }
-        checkRepo = repo;
-        checkCommit = commit;
-        checkBuildTarget = buildTarget;
-      } else if (currentPreset?.type === 'proxy' && currentPreset.wasmRepo) {
-        // Proxy preset - use preset's WASM config
-        checkRepo = currentPreset.wasmRepo;
-        checkCommit = currentPreset.wasmCommit || 'main';
-        checkBuildTarget = currentPreset.wasmBuildTarget || 'wasm32-wasip1';
-      } else {
-        setError('No WASM configuration for this preset');
-        return;
-      }
-
-      const info = await checkWasmExists(checkRepo, checkCommit, checkBuildTarget);
+      const info = await checkWasmExistsByChecksum(wasmHash);
       setWasmInfo(info);
     } catch (err) {
       setError('Failed to check WASM cache');
@@ -607,18 +524,11 @@ function PlaygroundContent() {
           throw new Error(`Proxy contract not available for ${network}`);
         }
 
-        // Calculate deposit (add 0.1 NEAR if WASM not cached and flag is set)
-        let finalDeposit = BigInt(currentPreset.proxyDeposit);
-        if (currentPreset.increaseDepositIfNoCache && wasmInfo && !wasmInfo.exists) {
-          // Add 0.1 NEAR (100000000000000000000000 yoctoNEAR)
-          finalDeposit += BigInt('100000000000000000000000');
-        }
-
         action = actionCreators.functionCall(
           proxyMethod,
           proxyArgs,
           BigInt(currentPreset.proxyGas),
-          finalDeposit
+          BigInt(currentPreset.proxyDeposit)
         );
 
         receiverId = proxyContractId;
@@ -690,7 +600,7 @@ function PlaygroundContent() {
 
         receiverId = contractId;
       } else {
-        // DIRECT OUTLAYER CALL (github or wasmurl)
+        // DIRECT OUTLAYER CALL (wasm url)
         // Parse arguments (optional)
         let inputData = null;
         if (args && args.trim()) {
@@ -712,31 +622,13 @@ function PlaygroundContent() {
           };
         }
 
-        // Build source based on type (ExecutionSource enum)
-        const executionSource = codeSourceType === 'github'
-          ? {
-              GitHub: {
-                repo,
-                commit,
-                build_target: buildTarget,
-              },
-            }
-          : {
-              WasmUrl: {
-                url: wasmUrl,
-                hash: wasmHash,
-                build_target: buildTarget || null,
-              },
-            };
-
-        // Build params if any are set
-        const params = (compileOnly || forceRebuild || storeOnFastfs)
-          ? {
-              compile_only: compileOnly || undefined,
-              force_rebuild: forceRebuild || undefined,
-              store_on_fastfs: storeOnFastfs || undefined,
-            }
-          : null;
+        const executionSource = {
+          WasmUrl: {
+            url: wasmUrl,
+            hash: wasmHash,
+            build_target: buildTarget || null,
+          },
+        };
 
         // Prepare transaction arguments
         const transactionArgs = {
@@ -749,7 +641,6 @@ function PlaygroundContent() {
           input_data: inputData,
           secrets_ref: secretsRef,
           response_format: responseFormat,
-          params,
         };
 
         action = actionCreators.functionCall(
@@ -802,7 +693,7 @@ function PlaygroundContent() {
  <div className="w-full">
       <PageHeader
         title="Playground"
-        description="Test off-chain execution with your GitHub repository."
+        description="Run a published WASM or a project in a TEE and see the result."
       />
 
  <div className="mt-6 grid items-start gap-6 xl:grid-cols-[320px_minmax(0,1fr)]">
@@ -909,19 +800,6 @@ function PlaygroundContent() {
                   {formatDescription(preset.description)}
                 </div>
                 <div className="mt-2 flex flex-wrap items-center gap-3">
-                  {preset.type === 'direct' && preset.repo && (
-                    <a
-                      href={preset.repo}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 rounded-md border border-border-strong px-2.5 py-1 text-xs font-medium text-foreground hover:border-accent hover:text-accent-text"
-                    >
-                      <svg className="h-3.5 w-3.5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                        <path fillRule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clipRule="evenodd"/>
-                      </svg>
-                      Fork it
-                    </a>
-                  )}
                   {preset.docsLink && (
                     <a
                       href={preset.docsLink}
@@ -1000,20 +878,9 @@ function PlaygroundContent() {
                       <input
                         type="radio"
                         name="codeSourceType"
-                        value="github"
-                        checked={codeSourceType === 'github'}
-                        onChange={(e) => setCodeSourceType(e.target.value as 'github' | 'wasmurl' | 'project')}
- className="form-radio h-4 w-4 text-accent-text"
-                      />
- <span className="ml-2 text-sm text-foreground">GitHub Repository</span>
-                    </label>
- <label className="inline-flex items-center">
-                      <input
-                        type="radio"
-                        name="codeSourceType"
                         value="wasmurl"
                         checked={codeSourceType === 'wasmurl'}
-                        onChange={(e) => setCodeSourceType(e.target.value as 'github' | 'wasmurl' | 'project')}
+                        onChange={(e) => setCodeSourceType(e.target.value as 'wasmurl' | 'project')}
  className="form-radio h-4 w-4 text-accent-text"
                       />
  <span className="ml-2 text-sm text-foreground">WASM URL</span>
@@ -1024,7 +891,7 @@ function PlaygroundContent() {
                         name="codeSourceType"
                         value="project"
                         checked={codeSourceType === 'project'}
-                        onChange={(e) => setCodeSourceType(e.target.value as 'github' | 'wasmurl' | 'project')}
+                        onChange={(e) => setCodeSourceType(e.target.value as 'wasmurl' | 'project')}
  className="form-radio h-4 w-4 text-accent-text"
                       />
  <span className="ml-2 text-sm text-foreground">Project</span>
@@ -1064,7 +931,7 @@ function PlaygroundContent() {
  className="mt-1 block w-full max-w-xl rounded-md border border-border-strong px-3 py-2 text-sm outline-none focus:border-accent focus:ring-1 focus:ring-accent font-mono px-3 py-2"
                       />
  <p className="mt-1 text-xs text-muted-foreground">
-                        For WasmUrl: use hash. For GitHub: use &quot;repo@commit&quot;. Leave empty for active version.
+                        The version&apos;s WASM hash. Leave empty for the active version.
                       </p>
                     </div>
                     {/* Attached USDC for developer payment */}
@@ -1094,39 +961,6 @@ function PlaygroundContent() {
                         Payment to project developer. Deposit {stablecoin.symbol} at <a href="/workspace" className="text-accent-text hover:underline">My Workspace</a> first.
                       </p>
                     </div>
-                  </>
-                ) : codeSourceType === 'github' ? (
-                  <>
-                    {/* GitHub Repository */}
- <div className="mb-6">
- <label htmlFor="repo" className="mb-1 block text-sm font-medium text-foreground">
-                        GitHub Repository
-                      </label>
-                      <input
-                        type="text"
-                        id="repo"
-                        value={repo}
-                        onChange={(e) => setRepo(e.target.value)}
-                        placeholder="https://github.com/user/repo"
- className="mt-1 block w-full max-w-xl rounded-md border border-border-strong px-3 py-2 text-sm outline-none focus:border-accent focus:ring-1 focus:ring-accent px-3 py-2"
-                      />
-                    </div>
-
-                    {/* Commit/Branch */}
- <div className="mb-6">
- <label htmlFor="commit" className="block text-sm font-medium text-foreground">
-                        Commit Hash or Branch
-                      </label>
-                      <input
-                        type="text"
-                        id="commit"
-                        value={commit}
-                        onChange={(e) => setCommit(e.target.value)}
-                        placeholder="main"
- className="mt-1 block w-full max-w-xl rounded-md border border-border-strong px-3 py-2 text-sm outline-none focus:border-accent focus:ring-1 focus:ring-accent px-3 py-2"
-                      />
-                    </div>
-
                   </>
                 ) : (
                   /* WASM URL inputs */
@@ -1224,51 +1058,6 @@ function PlaygroundContent() {
                   </div>
                 </div>
 
-                {/* Execution Parameters - collapsible, only for GitHub sources */}
-                {codeSourceType === 'github' && (
- <details className="mb-6" open={compileOnly || forceRebuild || storeOnFastfs}>
- <summary className="cursor-pointer text-sm font-medium text-foreground hover:text-foreground">
- Execution Parameters {(compileOnly || forceRebuild || storeOnFastfs) && <span className="text-accent-text">(modified)</span>}
-                  </summary>
- <div className="mt-3 space-y-2 pl-4">
- <label className="inline-flex items-center">
-                      <input
-                        type="checkbox"
-                        checked={compileOnly}
-                        onChange={(e) => setCompileOnly(e.target.checked)}
- className="form-checkbox h-4 w-4 text-accent-text rounded"
-                      />
- <span className="ml-2 text-sm text-foreground">
- Compile Only <span className="text-muted-foreground">(returns checksum)</span>
-                      </span>
-                    </label>
-                    <br />
- <label className="inline-flex items-center">
-                      <input
-                        type="checkbox"
-                        checked={forceRebuild}
-                        onChange={(e) => setForceRebuild(e.target.checked)}
- className="form-checkbox h-4 w-4 text-accent-text rounded"
-                      />
- <span className="ml-2 text-sm text-foreground">
- Force Rebuild <span className="text-muted-foreground">(recompile even if cached)</span>
-                      </span>
-                    </label>
-                    <br />
- <label className="inline-flex items-center">
-                      <input
-                        type="checkbox"
-                        checked={storeOnFastfs}
-                        onChange={(e) => setStoreOnFastfs(e.target.checked)}
- className="form-checkbox h-4 w-4 text-accent-text rounded"
-                      />
- <span className="ml-2 text-sm text-foreground">
- Store on FastFS <span className="text-muted-foreground">(publish to permanent storage)</span>
-                      </span>
-                    </label>
-                  </div>
-                </details>
-                )}
               </>
             ) : null;
           })()}
@@ -1303,20 +1092,11 @@ function PlaygroundContent() {
             if (currentPreset?.type !== 'proxy') return null;
 
             // Convert yoctoNEAR to NEAR for display
-            let depositYocto = BigInt(currentPreset.proxyDeposit);
-
-            // Add 0.1 NEAR if WASM not cached and flag is set
-            const shouldIncreaseDeposit = currentPreset.increaseDepositIfNoCache &&
-                                          wasmInfo &&
-                                          !wasmInfo.exists;
-            if (shouldIncreaseDeposit) {
-              depositYocto += BigInt('100000000000000000000000');
-            }
-
+            const depositYocto = BigInt(currentPreset.proxyDeposit);
             const depositNear = Number(depositYocto) / 1e24;
             const depositDisplay = depositYocto === BigInt(1)
               ? '1 yoctoNEAR'
-              : `${depositNear} NEAR${shouldIncreaseDeposit ? ' (includes +0.1 NEAR for compilation)' : ''}`;
+              : `${depositNear} NEAR`;
 
             // Format gas for display
             const gasAmount = currentPreset.proxyGas;
@@ -1334,7 +1114,7 @@ function PlaygroundContent() {
                     {depositDisplay}
                   </div>
  <p className="mt-2 text-xs text-muted-foreground">
-                     Deposit covers possible costs for execution and compilation. Unused resources will be refunded at the end of the transaction.
+                     Deposit covers the cost of the execution. Unused resources will be refunded at the end of the transaction.
                   </p>
                 </div>
 
@@ -1412,7 +1192,7 @@ function PlaygroundContent() {
               const currentPreset = PRESETS.find(p => p.name === selectedPreset);
               return selectedPreset === 'custom' || currentPreset?.type === 'direct' ? (
  <p className="mb-3 text-xs text-muted-foreground">
-                   The attached deposit covers possible costs for execution and compilation. Unused resources will be refunded at the end of the transaction.
+                   The attached deposit covers the cost of the execution. Unused resources will be refunded at the end of the transaction.
                 </p>
               ) : null;
             })()}
@@ -1458,11 +1238,11 @@ function PlaygroundContent() {
               )}
             </button>
 
-            {/* Check WASM Cache - for direct execution and proxy with wasmRepo */}
+            {/* Check WASM Cache - for a direct run from a WASM URL */}
             {(() => {
               const currentPreset = PRESETS.find(p => p.name === selectedPreset);
-              const shouldShowButton = selectedPreset === 'custom' || currentPreset?.type === 'direct' ||
-                                       (currentPreset?.type === 'proxy' && currentPreset.wasmRepo);
+              const shouldShowButton = (selectedPreset === 'custom' || currentPreset?.type === 'direct') &&
+                                       codeSourceType === 'wasmurl';
               return shouldShowButton ? (
  <div className="mt-3 flex items-center justify-between">
  <div className="text-xs">
@@ -1473,7 +1253,7 @@ function PlaygroundContent() {
                         </span>
                       ) : (
  <span className="text-warning">
-                           Not cached{currentPreset?.type === 'proxy' && currentPreset.increaseDepositIfNoCache ? ' (+0.1 NEAR)' : ''}
+                           Not cached
                         </span>
                       )
                     )}

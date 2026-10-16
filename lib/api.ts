@@ -206,24 +206,6 @@ export async function fetchStats(network?: NetworkType): Promise<ExecutionStats>
 }
 
 /**
- * Check if WASM exists for repo/commit/target
- */
-export async function checkWasmExists(
-  repoUrl: string,
-  commitHash: string,
-  buildTarget: string = 'wasm32-wasip1'
-): Promise<WasmInfo> {
-  const response = await axios.get(`${apiBase()}/public/wasm/info`, {
-    params: {
-      repo_url: repoUrl,
-      commit_hash: commitHash,
-      build_target: buildTarget,
-    },
-  });
-  return response.data;
-}
-
-/**
  * Check if WASM exists by checksum (SHA256 hash)
  */
 export async function checkWasmExistsByChecksum(

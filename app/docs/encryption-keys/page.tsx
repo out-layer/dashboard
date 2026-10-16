@@ -441,9 +441,6 @@ export default function EncryptionKeysDocsPage() {
           />
           <ul className="list-disc list-inside space-y-2 text-foreground">
             <li>
-              <strong>A GitHub-sourced run never gets keys.</strong> Publish the code as a wasm URL.
-            </li>
-            <li>
               One key whose <C>bind</C> or <C>caller</C> does not match how the code is run refuses the whole
               run before it starts.
             </li>
@@ -669,10 +666,6 @@ export default function EncryptionKeysDocsPage() {
                   <C>type</C> included), a <C>bind</C> or <C>caller</C> outside its list
                 </span>,
                 <span key="f">fix <C>manifest.json</C>, publish a new version</span>,
-              ],
-              [
-                'keys declared on a GitHub-sourced run, when the manifest reaches the worker',
-                'publish the code as a wasm URL',
               ],
               [<span key="c">a <C>project</C> key on a run with no project</span>, 'run it through its project'],
               [

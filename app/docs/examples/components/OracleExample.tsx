@@ -80,22 +80,24 @@ export function OracleExample() {
 # - TwelveData: https://twelvedata.com/apikey
 # - CoinGecko: Free tier (no key needed) or Pro
 
-# 2. Store API keys as encrypted secrets via Dashboard
-# Open https://app.outlayer.ai/secrets:
-# - Secrets JSON: {"CMC_API_KEY":"...", "TWELVE_DATA_KEY":"..."}
-
-# 3. Clone and build
+# 2. Clone, build and publish
 git clone https://github.com/out-layer/oracle-example.git
 cd oracle-example
 cargo build --target wasm32-wasip2 --release
+outlayer upload target/wasm32-wasip2/release/oracle-example.wasm   # prints SHA256 and the FastFS URL
+outlayer deploy oracle-example <FastFS URL>
+
+# 3. Store API keys as encrypted secrets for the project
+# (or on https://app.outlayer.ai/secrets)
+outlayer secrets set '{"CMC_API_KEY":"...", "TWELVE_DATA_KEY":"..."}' \\
+  --project your-account.testnet/oracle-example --profile production
 
 # 4. Request price data
 near call outlayer.testnet request_execution '{
   "source": {
-    "GitHub": {
-      "repo": "https://github.com/YOUR_USERNAME/oracle-example",
-      "commit": "main",
-      "build_target": "wasm32-wasip2"
+    "Project": {
+      "project_id": "your-account.testnet/oracle-example",
+      "version_key": null
     }
   },
   "secrets_ref": {

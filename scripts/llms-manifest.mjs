@@ -27,9 +27,9 @@ export const SITE = {
     'Verifiable compute and custody for AI agents, on NEAR. An agent gets a TEE-held wallet ' +
     'that signs for NEAR, EVM and Solana without a key ever leaving the enclave, spends it ' +
     'under a policy its owner sets, and calls priced connectors — named operations that run ' +
-    'inside that same enclave. The compute layer is also callable directly: you publish a WASI ' +
-    'program to GitHub, OutLayer compiles it, runs it inside an Intel TDX enclave, and returns ' +
-    'the result signed by the enclave — from a NEAR smart contract or over HTTPS. Agents also ' +
+    'inside that same enclave. The compute layer is also callable directly: you build a WASI ' +
+    'program, publish the .wasm named by its sha256, and OutLayer runs it inside an Intel TDX ' +
+    'enclave and returns the result signed by the enclave — from a NEAR smart contract or over HTTPS. Agents also ' +
     'get encrypted secrets and persistent storage.',
 
   details: [
@@ -85,7 +85,7 @@ export const SECTIONS = [
         title: 'Developer Guide',
         path: '/docs/dev-guide',
         summary:
-          'End-to-end path: write WASI code, push to GitHub, test on testnet, integrate from a contract',
+          'End-to-end path: write WASI code, build and publish the wasm, test on testnet, integrate from a contract',
       },
     ],
   },

@@ -18,7 +18,7 @@ const summaries = new Map(
 const trim = (s, n = 158) => (s.length <= n ? s : s.slice(0, n - 1).replace(/[,;: ]+\S*$/, '') + '…')
 
 const APP_PAGES = [
-  ['app/playground', 'Playground', 'Run WASI code from a GitHub repo inside an Intel TDX enclave and get an attested result — straight from the browser, no setup.'],
+  ['app/playground', 'Playground', 'Run a published WASM inside an Intel TDX enclave and get an attested result — straight from the browser, no setup.'],
   ['app/projects', 'Projects', 'Create OutLayer projects, manage versions and per-project secrets, and keep persistent storage across code updates.'],
   ['app/executions', 'Executions', 'Every compilation and execution job with status, cost and TEE attestation — open any job to verify what exactly ran.'],
   ['app/secrets', 'Secrets', 'Encrypted secrets only your code inside the enclave can read: create them, bind to projects and control access conditions.'],

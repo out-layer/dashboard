@@ -21,6 +21,11 @@ export function SecretCard({ secret, onEdit, onUpdate, onAccess, onDelete }: Sec
     );
   }
 
+  // A secret bound to a repository is shown and can be deleted, nothing more:
+  // a repository's code can change under the same name, so nothing new is
+  // stored for one.
+  const deleteOnly = isRepoAccessor(secret.accessor);
+
   return (
  <div className="border border-border rounded-lg p-4 hover:border-info/40 hover:shadow-sm transition-all">
  <div className="flex items-start justify-between">
@@ -91,6 +96,12 @@ export function SecretCard({ secret, onEdit, onUpdate, onAccess, onDelete }: Sec
  <span className="font-medium">Access:</span> {formatAccessCondition(secret.access)}
           </div>
 
+          {deleteOnly && (
+ <div className="text-xs text-muted-foreground mb-2">
+              Bound to a repository: it can only be deleted. Store the value for a project or a WASM hash instead.
+            </div>
+          )}
+
           {/* Metadata */}
  <div className="flex items-center space-x-4 text-xs text-muted-foreground">
             <span>
@@ -104,6 +115,7 @@ export function SecretCard({ secret, onEdit, onUpdate, onAccess, onDelete }: Sec
 
         {/* Actions */}
  <div className="flex items-center space-x-2 ml-4">
+          {!deleteOnly && (
           <button
             onClick={onEdit}
  className="inline-flex items-center px-3 py-1.5 border border-border text-xs font-medium rounded text-muted-foreground bg-card-muted hover:bg-card-muted transition-colors"
@@ -111,7 +123,8 @@ export function SecretCard({ secret, onEdit, onUpdate, onAccess, onDelete }: Sec
           >
              Replace
           </button>
-          {onUpdate && (
+          )}
+          {onUpdate && !deleteOnly && (
             <button
               onClick={onUpdate}
  className="inline-flex items-center px-3 py-1.5 border border-success/40 text-xs font-medium rounded text-success-text bg-success/10 hover:bg-success/15 transition-colors"
@@ -120,7 +133,7 @@ export function SecretCard({ secret, onEdit, onUpdate, onAccess, onDelete }: Sec
                Update
             </button>
           )}
-          {onAccess && (
+          {onAccess && !deleteOnly && (
             <button
               onClick={onAccess}
  className="inline-flex items-center px-3 py-1.5 border border-info/40 text-xs font-medium rounded text-info bg-info/10 hover:bg-info/15 transition-colors"

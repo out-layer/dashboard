@@ -412,8 +412,7 @@ export default function SigningKeysDocsPage() {
                 <span key="a"><C>project</C> (default) | <C>wasm</C></span>,
                 <span key="m">
                   How the code must be run to get the key, and what the key belongs to besides the caller.
-                  See <a href="#binding" className="text-accent-text underline">Binding</a>. There is no
-                  repository binding.
+                  See <a href="#binding" className="text-accent-text underline">Binding</a>.
                 </span>,
               ],
               [
@@ -520,10 +519,6 @@ export default function SigningKeysDocsPage() {
             ]}
           />
           <ul className="list-disc list-inside space-y-2 text-foreground">
-            <li>
-              <strong>A GitHub-sourced run never gets keys</strong> — neither a project version built from
-              a repository nor a repository run directly. Publish the code as a wasm URL instead.
-            </li>
             <li>
               One key whose <C>bind</C> or <C>caller</C> does not match how the code is run refuses the
               whole run before it starts.
@@ -806,8 +801,7 @@ export default function SigningKeysDocsPage() {
             run, that the sha256 the worker measured on the running code is a <C>WasmUrl</C> version of that
             project and that the project exists with the owner its id names; for a <C>vault</C>, that it
             belongs to that owner. The worker checks every declared <C>bind</C> and <C>caller</C> against the
-            run before any secret is decrypted; the keystore checks them again. A direct GitHub build is
-            refused by the worker alone: the keystore sees only the hash of the bytes.
+            run before any secret is decrypted; the keystore checks them again.
           </p>
         </section>
 
@@ -896,10 +890,6 @@ export default function SigningKeysDocsPage() {
                 </span>,
                 <span key="f">fix <C>manifest.json</C>, publish a new version</span>,
               ],
-              [
-                'keys declared on a GitHub-sourced run, when the manifest reaches the worker',
-                'publish the code as a wasm URL',
-              ],
               [<span key="c">a <C>project</C> key on a run with no project</span>, 'run it through its project'],
               [
                 <span key="c">a <C>wasm</C> key on a run through a project</span>,
@@ -945,10 +935,6 @@ export default function SigningKeysDocsPage() {
               <C>message</C> over 65536 bytes, a <C>recipient</C> or <C>callback-url</C> over 2048 bytes.
             </li>
           </ul>
-          <p className="text-foreground mt-3">
-            A GitHub-sourced module whose manifest does not reach the worker runs, and every call answers{' '}
-            <C>err</C>.
-          </p>
         </section>
 
         <section id="example">

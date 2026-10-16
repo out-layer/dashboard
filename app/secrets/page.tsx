@@ -11,10 +11,18 @@ import { SecretsForm } from './components/SecretsForm';
 import { AgentSecretForm } from './components/AgentSecretForm';
 import { SecretsList } from './components/SecretsList';
 import { AccessEditor, GranteeWallet } from './components/AccessEditor';
-import { UserSecret, FormData, isRepoAccessor, isWasmHashAccessor, isProjectAccessor, getAccessorLabel } from './components/types';
+import { UserSecret, SecretAccessor, FormData, isRepoAccessor, isWasmHashAccessor, isProjectAccessor, getAccessorLabel } from './components/types';
 import { grantsOf, withoutGrant, implicitAccountOf, nsToIsoUtc, openPersonalRows, chainReadRefusal, buildHashRefusal } from './components/utils';
 import { getCoordinatorApiUrl } from '@/lib/api';
 import { listAllUserSecrets } from '@/lib/user-secrets';
+
+// The form's accessor for a row it may update. A row bound to a repository is
+// shown and deleted, never updated.
+function updatableAccessor(accessor: SecretAccessor) {
+  if (isWasmHashAccessor(accessor)) return { type: 'WasmHash' as const, hash: accessor.WasmHash.hash };
+  if (isProjectAccessor(accessor)) return { type: 'Project' as const, project_id: accessor.Project.project_id };
+  return null;
+}
 
 // useSearchParams needs a Suspense boundary, otherwise the whole route opts out of static
 // rendering and the build fails.
@@ -156,20 +164,9 @@ function SecretsPageContent() {
   const initialData = useMemo(
     () =>
       editingSecret && editingSecret.accessor
-        ? isRepoAccessor(editingSecret.accessor)
-          ? {
-              sourceType: 'repo' as const,
-              repo: editingSecret.accessor.Repo.repo,
-              branch: editingSecret.accessor.Repo.branch || '',
-              wasmHash: '',
-              profile: editingSecret.profile,
-              access: editingSecret.access,
-            }
-          : isWasmHashAccessor(editingSecret.accessor)
+        ? isWasmHashAccessor(editingSecret.accessor)
           ? {
               sourceType: 'wasm_hash' as const,
-              repo: '',
-              branch: '',
               wasmHash: editingSecret.accessor.WasmHash.hash,
               profile: editingSecret.profile,
               access: editingSecret.access,
@@ -177,8 +174,6 @@ function SecretsPageContent() {
           : isProjectAccessor(editingSecret.accessor)
           ? {
               sourceType: 'project' as const,
-              repo: '',
-              branch: '',
               wasmHash: '',
               profile: editingSecret.profile,
               access: editingSecret.access,
@@ -187,41 +182,20 @@ function SecretsPageContent() {
         : undefined,
     [editingSecret]
   );
-  const updateMode = useMemo(
-    () =>
-      updatingSecret && updatingSecret.accessor
-        ? {
-            accessor: isRepoAccessor(updatingSecret.accessor)
-              ? {
-                  type: 'Repo' as const,
-                  repo: updatingSecret.accessor.Repo.repo,
-                  branch: updatingSecret.accessor.Repo.branch || null,
-                }
-              : isWasmHashAccessor(updatingSecret.accessor)
-              ? {
-                  type: 'WasmHash' as const,
-                  hash: updatingSecret.accessor.WasmHash.hash,
-                }
-              : isProjectAccessor(updatingSecret.accessor)
-              ? {
-                  type: 'Project' as const,
-                  project_id: updatingSecret.accessor.Project.project_id,
-                }
-              : {
-                  type: 'Repo' as const,
-                  repo: '',
-                  branch: null,
-                },
-            profile: updatingSecret.profile,
-            access: updatingSecret.access,
-            // `undefined` delegates the `get_secret_vault` view-call to the form,
-            // which inherits the existing binding; anything else would re-bind a
-            // vault-scoped secret to the default master on update.
-            vaultId: undefined,
-          }
-        : undefined,
-    [updatingSecret]
-  );
+  const updateMode = useMemo(() => {
+    const accessor = updatingSecret?.accessor ? updatableAccessor(updatingSecret.accessor) : null;
+    return updatingSecret && accessor
+      ? {
+          accessor,
+          profile: updatingSecret.profile,
+          access: updatingSecret.access,
+          // `undefined` delegates the `get_secret_vault` view-call to the form,
+          // which inherits the existing binding; anything else would re-bind a
+          // vault-scoped secret to the default master on update.
+          vaultId: undefined,
+        }
+      : undefined;
+  }, [updatingSecret]);
 
   const loadUserSecrets = useCallback(async () => {
     if (!accountId) return;
@@ -318,9 +292,7 @@ function SecretsPageContent() {
       // Build accessor based on source type
       const accessor = formData.sourceType === 'wasm_hash'
         ? { WasmHash: { hash: formData.wasmHash } }
-        : formData.sourceType === 'project'
-        ? { Project: { project_id: formData.projectId } }
-        : { Repo: { repo: formData.repo, branch: formData.branch || null } };
+        : { Project: { project_id: formData.projectId } };
 
       // Unified API - same method for both types
       const method = 'store_secrets';
@@ -399,14 +371,12 @@ function SecretsPageContent() {
 
     // Build label for confirmation
     let label: string;
-    if (isRepoAccessor(secret.accessor)) {
-      label = `${secret.accessor.Repo.repo}:${secret.profile}`;
-    } else if (isWasmHashAccessor(secret.accessor)) {
+    if (isWasmHashAccessor(secret.accessor)) {
       label = `WASM(${secret.accessor.WasmHash.hash.substring(0, 8)}...):${secret.profile}`;
     } else if (isProjectAccessor(secret.accessor)) {
       label = `Project(${secret.accessor.Project.project_id}):${secret.profile}`;
     } else {
-      setError('Invalid secret: unknown accessor type');
+      setError('A secret bound to a repository can only be deleted.');
       return;
     }
 
@@ -634,7 +604,7 @@ function SecretsPageContent() {
       {/* Header */}
       <PageHeader
         title="Secrets"
-        description="Create and manage encrypted secrets for your repositories."
+        description="Create and manage encrypted secrets for your projects and WASM builds."
       />
 
       {!isConnected && (
@@ -762,7 +732,7 @@ function SecretsPageContent() {
         )}
    <div className={focus ? 'hidden' : 'bg-card-muted border border-border rounded-lg p-4'}>
    <h3 className="text-sm font-semibold text-foreground mb-3">
-            How repo-based secrets work
+            How secrets work
           </h3>
    <ol className="text-sm text-muted-foreground space-y-2 list-decimal list-inside">
             <li>
@@ -790,10 +760,9 @@ function SecretsPageContent() {
    <pre className="text-xs text-foreground overflow-x-auto">
   {`near call outlayer.testnet request_execution '{
     "source": {
-      "GitHub": {
-        "repo": "https://github.com/alice/myproject",
-        "commit": "main",
-        "build_target": "wasm32-wasip1"
+      "Project": {
+        "project_id": "alice.near/myproject",
+        "version_key": null
       }
     },
     "secrets_ref": {

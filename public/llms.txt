@@ -1,6 +1,6 @@
 # NEAR OutLayer
 
-> Verifiable compute and custody for AI agents, on NEAR. An agent gets a TEE-held wallet that signs for NEAR, EVM and Solana without a key ever leaving the enclave, spends it under a policy its owner sets, and calls priced connectors — named operations that run inside that same enclave. The compute layer is also callable directly: you publish a WASI program to GitHub, OutLayer compiles it, runs it inside an Intel TDX enclave, and returns the result signed by the enclave — from a NEAR smart contract or over HTTPS. Agents also get encrypted secrets and persistent storage.
+> Verifiable compute and custody for AI agents, on NEAR. An agent gets a TEE-held wallet that signs for NEAR, EVM and Solana without a key ever leaving the enclave, spends it under a policy its owner sets, and calls priced connectors — named operations that run inside that same enclave. The compute layer is also callable directly: you build a WASI program, publish the .wasm named by its sha256, and OutLayer runs it inside an Intel TDX enclave and returns the result signed by the enclave — from a NEAR smart contract or over HTTPS. Agents also get encrypted secrets and persistent storage.
 
 Two integration modes. **On-chain:** a NEAR contract calls `request_execution` and receives the result in a callback. **Web2:** a backend calls `POST https://api.outlayer.ai/call/{project_owner}/{project_name}` over HTTPS.
 
@@ -22,7 +22,7 @@ Full text of every document below is available in one fetch at https://app.outla
 - [NEAR Contract Integration](https://app.outlayer.ai/docs/near-integration): Calling `request_execution` from a NEAR contract: arguments, callback shape, gas and payment, FastFS workflow, attestation of the returned result
 - [Web2 Integration](https://app.outlayer.ai/docs/web2-integration): Using OutLayer from an ordinary backend over HTTPS: quick start, monetization, environment variables, attestation, project capabilities
 - [WASI Guide](https://app.outlayer.ai/docs/wasi): Writing the agent itself: WASI Preview 1 vs. Preview 2, supported languages, host functions, resource limits, local testing, common pitfalls
-- [Developer Guide](https://app.outlayer.ai/docs/dev-guide): End-to-end path: write WASI code, push to GitHub, test on testnet, integrate from a contract
+- [Developer Guide](https://app.outlayer.ai/docs/dev-guide): End-to-end path: write WASI code, build and publish the wasm, test on testnet, integrate from a contract
 
 ## Features
 

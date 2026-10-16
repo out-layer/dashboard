@@ -198,7 +198,7 @@ export default function GettingStartedSection() {
               {/* Step 2: Your Contract -> OutLayer */}
               <line x1="310" y1="140" x2="510" y2="140" stroke="#a855f7" strokeWidth="2" markerEnd="url(#arrowPurple)" />
  <text x="410" y="135" textAnchor="middle" fontSize="11" fill="#7e22ce" fontWeight="bold">2. request_execution()</text>
- <text x="410" y="150" textAnchor="middle" fontSize="9" fill="var(--info)">(repo, input_data, limits, secrets)</text>
+ <text x="410" y="150" textAnchor="middle" fontSize="9" fill="var(--info)">(source, input_data, limits, secrets)</text>
 
               {/* YIELD STATE box */}
               <rect x="450" y="160" width="120" height="40" fill="#fef3c7" stroke="var(--warning)" strokeWidth="2" rx="4" />
@@ -212,8 +212,8 @@ export default function GettingStartedSection() {
               {/* Worker execution box */}
               <rect x="630" y="250" width="140" height="100" fill="var(--card-muted)" stroke="var(--success)" strokeWidth="2" rx="4" />
  <text x="640" y="268" textAnchor="start" fontSize="10" fontWeight="bold" fill="var(--success)"> Off-chain worker:</text>
- <text x="640" y="283" textAnchor="start" fontSize="9" fill="var(--success)">• Clone GitHub</text>
- <text x="640" y="298" textAnchor="start" fontSize="9" fill="var(--success)">• Compile WASM</text>
+ <text x="640" y="283" textAnchor="start" fontSize="9" fill="var(--success)">• Fetch WASM by URL</text>
+ <text x="640" y="298" textAnchor="start" fontSize="9" fill="var(--success)">• Check its sha256</text>
  <text x="640" y="313" textAnchor="start" fontSize="9" fill="var(--success)">• Execute with tx input</text>
  <text x="645" y="328" textAnchor="start" fontSize="9" fill="#6b7280">(fast / cheap / any code)</text> 
  <text x="640" y="342" textAnchor="start" fontSize="9" fill="var(--success)">• Read stdout</text> 
@@ -260,7 +260,7 @@ export default function GettingStartedSection() {
  <span className="font-semibold text-foreground">OutLayer</span>
                   </div>
  <div className="text-xs text-muted-foreground ml-8 mt-0.5">
-                    request_execution(repo, input_data, limits, secrets)
+                    request_execution(source, input_data, limits, secrets)
                   </div>
                 </div>
               </div>
@@ -284,8 +284,8 @@ export default function GettingStartedSection() {
  <div className="ml-10 p-3 bg-card-muted border-l-4 border-border rounded">
  <div className="font-bold text-foreground text-xs mb-1"> Off-chain work:</div>
  <div className="text-xs text-foreground space-y-0.5">
- <div>• Clone from GitHub</div>
- <div>• Compile code (10 sec+)</div>
+ <div>• Fetch WASM by URL</div>
+ <div>• Check its sha256</div>
  <div>• Execute WASM (&lt;1 sec - few min)</div>
  <div>• Read stdout output</div>
                 </div>
@@ -390,7 +390,7 @@ export default function GettingStartedSection() {
               {/* Worker execution box */}
               <rect x="490" y="170" width="160" height="90" fill="var(--card-muted)" stroke="var(--success)" strokeWidth="2" rx="4" />
  <text x="500" y="188" textAnchor="start" fontSize="10" fontWeight="bold" fill="var(--success)"> TEE Worker:</text>
- <text x="500" y="205" textAnchor="start" fontSize="9" fill="var(--success)">• Load WASM (cached)</text>
+ <text x="500" y="205" textAnchor="start" fontSize="9" fill="var(--success)">• Load WASM by sha256</text>
  <text x="500" y="220" textAnchor="start" fontSize="9" fill="var(--success)">• Execute with input</text>
  <text x="500" y="235" textAnchor="start" fontSize="9" fill="var(--success)">• Generate attestation</text>
  <text x="500" y="250" textAnchor="start" fontSize="9" fill="var(--success)">• Return result + proof</text>
@@ -441,7 +441,7 @@ export default function GettingStartedSection() {
  <div className="ml-10 p-3 bg-card-muted border-l-4 border-border rounded">
  <div className="font-bold text-foreground text-xs mb-1"> TEE execution:</div>
  <div className="text-xs text-foreground space-y-0.5">
- <div>• Load cached WASM</div>
+ <div>• Load WASM by sha256</div>
  <div>• Execute with input</div>
  <div>• Generate attestation</div>
                 </div>
@@ -498,8 +498,8 @@ export default function GettingStartedSection() {
             </div>
  <div className="bg-card-muted p-4 rounded-lg border-l-4 border-border">
  <p className="text-sm text-foreground">
- <strong> GitHub-based deployment</strong> - Push code to GitHub, reference the repo in your contract call.
-                We compile and execute automatically
+ <strong> Hash-pinned deployment</strong> - Publish your .wasm and deploy it as a project version named by its sha256.
+                What a caller runs and pays for cannot change under that version afterwards
               </p>
             </div>
  <div className="bg-card-muted p-4 rounded-lg border-l-4 border-border">
@@ -525,15 +525,15 @@ export default function GettingStartedSection() {
             </div>
 
  <div className="bg-card border-2 border-border rounded-lg p-4">
- <h4 className="font-semibold text-foreground mb-2">2 Push to GitHub or Provide WASM URL</h4>
- <p className="text-sm text-foreground mb-2">
- <strong>Option A:</strong> Push to GitHub (public or private with access tokens). OutLayer will clone and compile on-demand.
-              </p>
- <p className="text-sm text-foreground mb-2">
- <strong>Option B:</strong> Host pre-compiled WASM file anywhere and provide direct URL.
-              </p>
+ <h4 className="font-semibold text-foreground mb-2">2 Build and Publish the WASM</h4>
+ <pre className="text-xs bg-card-muted p-2 rounded mt-1 mb-2 overflow-x-auto">
+{`cargo build --target wasm32-wasip2 --release
+outlayer upload target/wasm32-wasip2/release/my-app.wasm
+# prints SHA256 and the FastFS URL
+outlayer deploy my-app <FastFS URL>`}
+              </pre>
  <p className="text-xs text-muted-foreground">
-                ⏱ GitHub: first execution compiles (10-30 sec), then cached. WASM URL: instant execution.
+                A version is a file named by its hash; the worker refuses a file whose bytes do not match it. Any https URL works for <code className="bg-card-muted px-1 rounded">outlayer deploy</code>.
               </p>
             </div>
 
@@ -555,7 +555,7 @@ export default function GettingStartedSection() {
               </p>
  <pre className="text-xs bg-card-muted p-2 rounded mt-1 overflow-x-auto">
 {`near call outlayer.testnet request_execution '\\
-  {"source": {"GitHub": {"repo": "github.com/you/project", "commit": "main"}}, \\
+  {"source": {"Project": {"project_id": "you.testnet/my-app", "version_key": null}}, \\
    "input_data": "{\\"param\\":123}"}' \\
   --accountId you.testnet --deposit 0.1`}
               </pre>

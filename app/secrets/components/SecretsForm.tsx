@@ -30,8 +30,6 @@ interface SecretsFormProps {
   // For edit mode (replace all secrets - old behavior)
   initialData?: {
     sourceType?: SecretSourceType;
-    repo: string;
-    branch: string;
     wasmHash?: string;
     profile: string;
     /** The condition the row is stored under, so replacing its values keeps who may read them. */
@@ -71,9 +69,7 @@ interface SecretsFormProps {
   // For update mode (preserve PROTECTED_ secrets via signMessage)
   updateMode?: {
     accessor: {
-      type: 'Repo' | 'WasmHash' | 'Project';
-      repo?: string;
-      branch?: string | null;
+      type: 'WasmHash' | 'Project';
       hash?: string;
       project_id?: string;
     };
@@ -139,9 +135,7 @@ export function SecretsForm({
 
   const { network } = useNearWallet();
 
-  const [sourceType, setSourceType] = useState<SecretSourceType>('repo');
-  const [repo, setRepo] = useState('');
-  const [branch, setBranch] = useState('');
+  const [sourceType, setSourceType] = useState<SecretSourceType>('project');
   const [wasmHash, setWasmHash] = useState('');
   const [projectId, setProjectId] = useState('');
   // Phase 7 F2: vault scope. `null` = OutLayer default master.
@@ -177,7 +171,7 @@ export function SecretsForm({
 
   // A new personal secret under a project admits only its owner until they say
   // otherwise — anyone who names an AllowAll row can run the project with it.
-  // Repository- and hash-bound rows are an app's own and stay open.
+  // Hash-bound rows are an app's own and stay open.
   //
   // `prefillStoredAccess` is the link's case. A link names a project and a
   // profile, which may already be stored — the page says so itself, in red,
@@ -250,9 +244,7 @@ export function SecretsForm({
   // save, and when an update is cancelled: leaving the cancelled row's
   // fields in place would let the next save silently land on that row.
   const resetForm = () => {
-    setSourceType('repo');
-    setRepo('');
-    setBranch('');
+    setSourceType('project');
     setWasmHash('');
     setProjectId('');
     setProfile('default');
@@ -289,9 +281,7 @@ export function SecretsForm({
   // Load initial data if provided (for edit mode)
   useEffect(() => {
     if (initialData) {
-      setSourceType(initialData.sourceType || 'repo');
-      setRepo(initialData.repo);
-      setBranch(initialData.branch || '');
+      setSourceType(initialData.sourceType || 'project');
       setWasmHash(initialData.wasmHash || '');
       setProfile(initialData.profile);
       setPlaintextSecrets('{\n  "API_KEY": "your-new-api-key"\n}');
@@ -354,11 +344,7 @@ export function SecretsForm({
       setPendingUpdate(null);
       setSecretsToGenerate([]);
       setError(null);
-      if (updateMode.accessor.type === 'Repo') {
-        setSourceType('repo');
-        setRepo(updateMode.accessor.repo || '');
-        setBranch(updateMode.accessor.branch || '');
-      } else if (updateMode.accessor.type === 'WasmHash') {
+      if (updateMode.accessor.type === 'WasmHash') {
         setSourceType('wasm_hash');
         setWasmHash(updateMode.accessor.hash || '');
       } else if (updateMode.accessor.type === 'Project') {
@@ -402,11 +388,9 @@ export function SecretsForm({
     let cancelled = false;
     setUpdateModeVaultLookupPending(true);
     const accessor =
-      updateMode.accessor.type === 'Repo'
-        ? { Repo: { repo: updateMode.accessor.repo, branch: updateMode.accessor.branch ?? null } }
-        : updateMode.accessor.type === 'WasmHash'
-          ? { WasmHash: { hash: updateMode.accessor.hash } }
-          : { Project: { project_id: updateMode.accessor.project_id } };
+      updateMode.accessor.type === 'WasmHash'
+        ? { WasmHash: { hash: updateMode.accessor.hash } }
+        : { Project: { project_id: updateMode.accessor.project_id } };
     viewMethod({
       contractId,
       method: 'get_secret_vault',
@@ -473,11 +457,7 @@ export function SecretsForm({
     // Profile change = new secret
     if (profile !== updateMode.profile) return true;
 
-    if (updateMode.accessor.type === 'Repo') {
-      const originalRepo = updateMode.accessor.repo || '';
-      const originalBranch = updateMode.accessor.branch || '';
-      return sourceType !== 'repo' || repo !== originalRepo || branch !== originalBranch;
-    } else if (updateMode.accessor.type === 'WasmHash') {
+    if (updateMode.accessor.type === 'WasmHash') {
       const originalHash = updateMode.accessor.hash || '';
       return sourceType !== 'wasm_hash' || wasmHash !== originalHash;
     } else if (updateMode.accessor.type === 'Project') {
@@ -509,6 +489,12 @@ export function SecretsForm({
     );
   };
 
+  // The keystore's accessor for the row the form targets.
+  const formAccessor = () =>
+    sourceType === 'wasm_hash'
+      ? { type: 'WasmHash', hash: wasmHash.trim() }
+      : { type: 'Project', project_id: projectId.trim() };
+
   const handleEncryptAndSubmit = async () => {
     setError(null);
     setGeneratedKeys([]);
@@ -530,12 +516,7 @@ export function SecretsForm({
     }
 
     // Validate based on source type
-    if (sourceType === 'repo') {
-      if (!repo.trim()) {
-        setError('Repository is required');
-        return;
-      }
-    } else if (sourceType === 'wasm_hash') {
+    if (sourceType === 'wasm_hash') {
       if (!wasmHash.trim()) {
         setError('WASM hash is required');
         return;
@@ -603,11 +584,7 @@ export function SecretsForm({
 
         if (hasManualSecrets) {
           // Build accessor based on source type
-          const accessor = sourceType === 'wasm_hash'
-            ? { type: 'WasmHash', hash: wasmHash.trim() }
-            : sourceType === 'project'
-            ? { type: 'Project', project_id: projectId.trim() }
-            : { type: 'Repo', repo: repo.trim(), branch: branch.trim() || null };
+          const accessor = formAccessor();
 
           // Get public key and encrypt. Phase 7 F2: when the user
           // selected a vault, forward `X-Customer-Vault` so the
@@ -650,11 +627,7 @@ export function SecretsForm({
 
         // Step 2: Call /secrets/add_generated_secret
         // Build accessor for generated secrets endpoint
-        const generatedAccessor = sourceType === 'wasm_hash'
-          ? { type: 'WasmHash', hash: wasmHash.trim() }
-          : sourceType === 'project'
-          ? { type: 'Project', project_id: projectId.trim() }
-          : { type: 'Repo', repo: repo.trim(), branch: branch.trim() || null };
+        const generatedAccessor = formAccessor();
 
         const response = await fetch(`${coordinatorUrl}/secrets/add_generated_secret`, {
           method: 'POST',
@@ -694,9 +667,6 @@ export function SecretsForm({
         });
 
         // Extract normalized values from response accessor
-        const repoNormalized = data.accessor?.type === 'Repo'
-          ? data.accessor.repo_normalized
-          : repo.trim();
         const wasmHashNormalized = data.accessor?.type === 'WasmHash'
           ? data.accessor.hash
           : wasmHash.trim();
@@ -709,8 +679,6 @@ export function SecretsForm({
         const contractAccess = keptAccess ?? convertAccessToContractFormat(accessCondition);
         const formData: FormData = {
           sourceType,
-          repo: repoNormalized,
-          branch: branch.trim() || null,
           wasmHash: wasmHashNormalized,
           projectId: projectIdNormalized,
           profile: profile.trim(),
@@ -723,11 +691,7 @@ export function SecretsForm({
       } else {
         // Only manual secrets - use original flow
         // Build accessor based on source type
-        const accessor = sourceType === 'wasm_hash'
-          ? { type: 'WasmHash', hash: wasmHash.trim() }
-          : sourceType === 'project'
-          ? { type: 'Project', project_id: projectId.trim() }
-          : { type: 'Repo', repo: repo.trim(), branch: branch.trim() || null };
+        const accessor = formAccessor();
 
         // Same vault-scope forwarding as the manual-secrets path above.
         const pubkeyHeaders2: Record<string, string> = {
@@ -756,8 +720,6 @@ export function SecretsForm({
 
         const pubkeyData = await pubkeyResp.json();
         const pubkeyHex = pubkeyData.pubkey;
-        // Extract normalized values from response accessor
-        const repoNormalized = pubkeyData.accessor?.repo_normalized || repo.trim();
 
         const plaintextBytes = new TextEncoder().encode(plaintextSecrets);
         const encrypted = eciesEncrypt(pubkeyHex, plaintextBytes);
@@ -766,8 +728,6 @@ export function SecretsForm({
         const contractAccess = keptAccess ?? convertAccessToContractFormat(accessCondition);
         const formData: FormData = {
           sourceType,
-          repo: repoNormalized,
-          branch: branch.trim() || null,
           wasmHash: wasmHash.trim(),
           projectId: projectId.trim(),
           profile: profile.trim(),
@@ -870,18 +830,12 @@ export function SecretsForm({
 
       // 4. Call keystore API via coordinator proxy
       // Build current accessor from form values
-      const currentAccessor = sourceType === 'wasm_hash'
-        ? { type: 'WasmHash', hash: wasmHash.trim() }
-        : sourceType === 'project'
-        ? { type: 'Project', project_id: projectId.trim() }
-        : { type: 'Repo', repo: repo.trim(), branch: branch.trim() || null };
+      const currentAccessor = formAccessor();
 
       // Build original accessor from updateMode (for decryption)
       const originalAccessor = updateMode.accessor.type === 'WasmHash'
         ? { type: 'WasmHash', hash: updateMode.accessor.hash || '' }
-        : updateMode.accessor.type === 'Project'
-        ? { type: 'Project', project_id: updateMode.accessor.project_id || '' }
-        : { type: 'Repo', repo: updateMode.accessor.repo || '', branch: updateMode.accessor.branch || null };
+        : { type: 'Project', project_id: updateMode.accessor.project_id || '' };
 
       // Determine if this is a migration (accessor or profile changed)
       const isMigration = accessorChanged;
@@ -941,8 +895,6 @@ export function SecretsForm({
       // Use current form values (user may have changed accessor)
       const formData: FormData = {
         sourceType,
-        repo: repo.trim(),
-        branch: branch.trim() || null,
         vaultId,
         wasmHash: wasmHash.trim(),
         projectId: projectId.trim(),
@@ -1063,13 +1015,13 @@ export function SecretsForm({
  <label className="inline-flex items-center">
               <input
                 type="radio"
-                value="repo"
-                checked={sourceType === 'repo'}
+                value="project"
+                checked={sourceType === 'project'}
                 onChange={(e) => setSourceType(e.target.value as SecretSourceType)}
  className="form-radio h-4 w-4 text-accent-text"
                 disabled={encrypting}
               />
- <span className="ml-2 text-sm text-foreground">GitHub Repository</span>
+ <span className="ml-2 text-sm text-foreground">Project</span>
             </label>
  <label className="inline-flex items-center">
               <input
@@ -1082,23 +1034,10 @@ export function SecretsForm({
               />
  <span className="ml-2 text-sm text-foreground">WASM Hash</span>
             </label>
- <label className="inline-flex items-center">
-              <input
-                type="radio"
-                value="project"
-                checked={sourceType === 'project'}
-                onChange={(e) => setSourceType(e.target.value as SecretSourceType)}
- className="form-radio h-4 w-4 text-accent-text"
-                disabled={encrypting}
-              />
- <span className="ml-2 text-sm text-foreground">Project</span>
-            </label>
           </div>
  <p className="mt-1 text-xs text-muted-foreground">
-            {sourceType === 'repo'
-              ? 'Bind secrets to a GitHub repository (for CodeSource::GitHub)'
-              : sourceType === 'wasm_hash'
-              ? 'Bind secrets to a WASM binary hash — the row a raw WASM URL run reads under. To lock a project or repository secret to one build, add a "One build only" access rule instead'
+            {sourceType === 'wasm_hash'
+              ? 'Bind secrets to a WASM binary hash — the row a raw WASM URL run reads under. To lock a project secret to one build, add a "One build only" access rule instead'
               : 'Bind secrets to a project (shared across all versions)'}
           </p>
         </div>
@@ -1131,45 +1070,9 @@ export function SecretsForm({
                You can leave secrets empty to just migrate existing secrets to the new accessor.
             </p>
  <p className="text-xs text-muted-foreground mt-1">
-              ℹ Note: Migration only works between different repos/branches or WASM files. To copy secrets to a different profile, create a new secret manually.
+              ℹ Note: Migration only works between different projects or WASM files. To copy secrets to a different profile, create a new secret manually.
             </p>
           </div>
-        )}
-
-        {/* Repository fields - shown when sourceType is 'repo' */}
-        {sourceType === 'repo' && (
-          <>
- <div className="mb-4">
- <label className="block text-sm font-medium text-foreground mb-2">
-                GitHub Repository *
-              </label>
-              <input
-                type="text"
-                value={repo}
-                onChange={(e) => setRepo(e.target.value)}
-                placeholder="owner/repo or https://github.com/owner/repo"
- className="w-full max-w-xl px-3 py-2 border border-border-strong rounded-md shadow-sm focus:outline-none focus:ring-accent focus:border-accent"
-                disabled={encrypting}
-              />
- <p className="mt-1 text-xs text-muted-foreground">
-                Examples: alice/project, https://github.com/alice/project
-              </p>
-            </div>
-
- <div className="mb-4">
- <label className="block text-sm font-medium text-foreground mb-2">
-                Branch (optional)
-              </label>
-              <input
-                type="text"
-                value={branch}
-                onChange={(e) => setBranch(e.target.value)}
-                placeholder="main, develop, etc. (leave empty for all branches)"
- className="w-full max-w-xl px-3 py-2 border border-border-strong rounded-md shadow-sm focus:outline-none focus:ring-accent focus:border-accent"
-                disabled={encrypting}
-              />
-            </div>
-          </>
         )}
 
         {/* WASM Hash field - shown when sourceType is 'wasm_hash' */}
@@ -1188,8 +1091,8 @@ export function SecretsForm({
               maxLength={64}
             />
  <p className="mt-1 text-xs text-muted-foreground">
-              The SHA-256 of a WASM binary run by URL (CodeSource::WasmUrl). A project or repository
-              run does not read this row; lock those to a build with the &ldquo;One build only&rdquo;
+              The SHA-256 of a WASM binary run by URL (CodeSource::WasmUrl). A project run does not
+              read this row; lock those to a build with the &ldquo;One build only&rdquo;
               access rule.
             </p>
           </div>
@@ -1300,7 +1203,7 @@ export function SecretsForm({
             disabled={encrypting}
           />
  <p className="mt-1 text-xs text-muted-foreground">
-            Profile name for organizing multiple secret sets per repo
+            Profile name for organizing multiple secret sets per project
             {sourceType === 'project' && (
               <>
                 {' '}&mdash; if the project&rsquo;s manifest names this profile as{' '}

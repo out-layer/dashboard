@@ -55,7 +55,7 @@ export default function DeveloperGuideSection() {
  <AnchorHeading id="tldr"> TL;DR</AnchorHeading>
  <ul className="space-y-2 text-sm text-foreground">
  <li>Write WebAssembly project using functions impossible in smart contracts</li>
- <li>Push to public GitHub repo</li>
+ <li>Build the <code>.wasm</code> and publish it (named by its sha256)</li>
  <li>Call Outlayer contract from your contract</li>
  <li>Receive the off-chain execution result in the callback response</li>
  <li>Payment based on actual resources used, unused funds auto-refunded</li>
@@ -147,24 +147,25 @@ path = "src/main.rs"`}
           </SyntaxHighlighter>
         </section>
 
-        {/* Step 2: Push to GitHub */}
+        {/* Step 2: Build and publish */}
         <section id="step-2">
- <AnchorHeading id="step-2"> Step 2: Make Code Publicly Available</AnchorHeading>
+ <AnchorHeading id="step-2"> Step 2: Build and Publish the WASM</AnchorHeading>
  <p className="text-foreground mb-3">
- Your code must be accessible in a <strong>public GitHub repository</strong>. OutLayer workers will compile it on-demand from the source.
+ OutLayer runs a published <code className="bg-card-muted px-2 py-1 rounded">.wasm</code> named by its sha256. Build it, upload it, and deploy it as a project version:
           </p>
- <p className="text-foreground mb-3">
-            You can reference your code by:
+          <SyntaxHighlighter language="bash" style={vscDarkPlus} customStyle={{ borderRadius: '0.5rem', fontSize: '0.875rem' }}>
+{`cargo build --target wasm32-wasip1 --release
+outlayer upload target/wasm32-wasip1/release/random-example.wasm
+# prints SHA256 and: FastFS URL: https://test.fastfs.io/alice.testnet/outlayer.testnet/<sha256>.wasm
+outlayer deploy random-example <FastFS URL>   # creates the project or adds a version, activates it`}
+          </SyntaxHighlighter>
+ <p className="text-foreground mt-3 mb-3">
+            A version is a file named by its hash, so what a caller runs and pays for cannot change under that version afterwards.
+ The worker refuses a file whose bytes do not match the hash. Any <code className="bg-card-muted px-2 py-1 rounded">https://</code> URL works
+ for <code className="bg-card-muted px-2 py-1 rounded">outlayer deploy</code>; FastFS is the default.
           </p>
- <ul className="list-disc list-inside space-y-2 text-foreground mb-3">
- <li><strong>Branch name</strong> (e.g., <code className="bg-card-muted px-2 py-1 rounded">main</code>, <code className="bg-card-muted px-2 py-1 rounded">develop</code>) - always uses the latest code</li>
- <li><strong>Commit hash</strong> (e.g., <code className="bg-card-muted px-2 py-1 rounded">a1b2c3d</code>) - immutable, guarantees exact version</li>
-          </ul>
  <p className="text-sm text-muted-foreground">
- Example repo: <a href="https://github.com/out-layer/random-example" target="_blank" rel="noopener" className="text-accent-text hover:underline">github.com/out-layer/random-example</a>
-          </p>
- <p className="text-sm text-muted-foreground mt-2">
-             Coming soon: GitLab, Bitbucket, and other git hosting platforms
+ Source: <a href="https://github.com/out-layer/random-example" target="_blank" rel="noopener" className="text-accent-text hover:underline">github.com/out-layer/random-example</a>
           </p>
         </section>
 
@@ -176,13 +177,12 @@ path = "src/main.rs"`}
             execute your code off-chain, and send the result back into the blockchain transaction:
           </p>
           <SyntaxHighlighter language="bash" style={vscDarkPlus} customStyle={{ borderRadius: '0.5rem', fontSize: '0.875rem' }}>
-{`# Option 1: GitHub source (compiles from source code)
+{`# Option 1: Project source (the active version; or set version_key to a version's wasm hash)
 near call outlayer.testnet request_execution '{
   "source": {
-    "GitHub": {
-      "repo": "https://github.com/out-layer/random-example",
-      "commit": "main",
-      "build_target": "wasm32-wasip1"
+    "Project": {
+      "project_id": "alice.testnet/random-example",
+      "version_key": null
     }
   },
   "input_data": "{\\"min\\": 1, \\"max\\": 100}",
@@ -194,28 +194,16 @@ near call outlayer.testnet request_execution '{
   "response_format": "Json"
 }' --accountId alice.testnet --deposit 0.1 --gas 300000000000000
 
-# Option 2: WasmUrl source (pre-compiled WASM, instant execution)
+# Option 2: WasmUrl source (a direct run of a published file)
 near call outlayer.testnet request_execution '{
   "source": {
     "WasmUrl": {
-      "url": "https://wasmhub.testnet.fastfs.io/fastfs.testnet/abc123...wasm",
-      "hash": "41c1c7b3528565f3fd139943f439d61c0768e9abdb9b579bd0921ecbfcabeded",
+      "url": "https://test.fastfs.io/alice.testnet/outlayer.testnet/<sha256>.wasm",
+      "hash": "<sha256>",
       "build_target": "wasm32-wasip1"
     }
   },
   "input_data": "{\\"min\\": 1, \\"max\\": 100}",
-  "response_format": "Json"
-}' --accountId alice.testnet --deposit 0.1 --gas 300000000000000
-
-# Option 3: Project source (registered project with persistent storage)
-near call outlayer.testnet request_execution '{
-  "source": {
-    "Project": {
-      "project_id": "alice.testnet/my-app",
-      "version_key": null
-    }
-  },
-  "input_data": "{}",
   "response_format": "Json"
 }' --accountId alice.testnet --deposit 0.1 --gas 300000000000000`}
           </SyntaxHighlighter>
@@ -272,7 +260,7 @@ const MIN_DEPOSIT: u128 = 10_000_000_000_000_000_000_000; // 0.01 NEAR
 trait OutLayer {
     fn request_execution(
         &mut self,
-        source: serde_json::Value,  // ExecutionSource: GitHub, WasmUrl, or Project
+        source: serde_json::Value,  // ExecutionSource: Project or WasmUrl
         resource_limits: serde_json::Value,
         input_data: String,
         secrets_ref: Option<serde_json::Value>,
@@ -304,16 +292,15 @@ impl CoinFlipContract {
         assert!(attached >= MIN_DEPOSIT, "Attach 0.01 NEAR");
 
         // Request random number from OutLayer
-        // Option 1: GitHub source (compiles from source)
-        // Option 2: WasmUrl for pre-compiled WASM:
-        //   json!({"url": "https://fastfs.io/.../random.wasm",
-        //          "hash": "abc123...", "build_target": "wasm32-wasip1"})
+        // Or a direct run of a published file:
+        //   json!({"WasmUrl": {"url": "https://test.fastfs.io/.../<sha256>.wasm",
+        //          "hash": "<sha256>", "build_target": "wasm32-wasip1"}})
         ext_outlayer::ext(OUTLAYER_CONTRACT_ID.parse().unwrap())
             .with_attached_deposit(NearToken::from_yoctonear(attached))
             .with_unused_gas_weight(1)
             .request_execution(
-                json!({"repo": "https://github.com/out-layer/random-example",
-                       "commit": "main", "build_target": "wasm32-wasip1"}),
+                json!({"Project": {"project_id": "alice.testnet/random-example",
+                       "version_key": null}}),
                 json!({"max_instructions": 10000000000,
                        "max_memory_mb": 128, "max_execution_seconds": 60}),
                 "{\\"min\\": 0, \\"max\\": 1}".to_string(),
@@ -414,7 +401,7 @@ impl CoinFlipContract {
             </div>
  <div className="flex items-start space-x-3">
  <span className="text-xl"></span>
- <p className="text-foreground"><strong>Simple integration</strong> - write Rust, push to GitHub, call from contract</p>
+ <p className="text-foreground"><strong>Simple integration</strong> - write Rust, publish the wasm, call from contract</p>
             </div>
  <div className="flex items-start space-x-3">
  <span className="text-xl"></span>

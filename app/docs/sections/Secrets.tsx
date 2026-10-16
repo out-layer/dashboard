@@ -33,7 +33,7 @@ export default function SecretsSection() {
  <AnchorHeading id="creating-secrets">Creating Secrets</AnchorHeading>
  <p className="text-foreground mb-3">
  Use the <Link href="/secrets" className="text-accent-text hover:underline">Secrets</Link> page
-            to create encrypted secrets. Specify repository, branch (optional), and profile name. Secrets are encrypted
+            to create encrypted secrets. Choose what they are bound to (a project or a WASM hash) and a profile name. Secrets are encrypted
             client-side before being stored on-chain.
           </p>
 
@@ -88,29 +88,6 @@ export default function SecretsSection() {
           </p>
 
  <div className="space-y-3">
- <div className="border-l-4 border-border pl-3">
- <p className="font-semibold text-foreground mb-1">Repository-based (GitHub)</p>
- <p className="text-sm text-foreground mb-2">Bind secrets to a GitHub repository and optional branch</p>
- <ul className="list-disc list-inside text-sm text-foreground ml-4">
- <li>Key: <code className="bg-card-muted px-1 rounded">repo + branch + profile + owner</code></li>
- <li>Example: <code className="bg-card-muted px-1 rounded">github.com/user/repo:main:production</code></li>
- <li>Best for: Development, CI/CD workflows, version-specific secrets</li>
- <li className="text-muted-foreground"><strong>Wildcard:</strong> Leave branch empty for secrets not tied to a specific branch</li>
-              </ul>
-            </div>
-
- <div className="border-l-4 border-border pl-3">
- <p className="font-semibold text-foreground mb-1">WASM Hash-based</p>
- <p className="text-sm text-foreground mb-2">Bind secrets to a specific compiled WASM binary (SHA256 hash)</p>
- <ul className="list-disc list-inside text-sm text-foreground ml-4">
- <li>Key: <code className="bg-card-muted px-1 rounded">wasm_hash + profile + owner</code></li>
- <li>Example: <code className="bg-card-muted px-1 rounded">cbf80ed0...2f8:production</code></li>
- <li>Best for: pre-compiled WASM run by URL (CodeSource::WasmUrl), immutable deployments</li>
- <li>Guarantees: only this exact binary can access the secrets</li>
- <li>A project or repository run does not read this binding. To lock <em>their</em> secret to one build, add the <strong>One build only</strong> access rule below</li>
-              </ul>
-            </div>
-
  <div id="project-binding" className="border-l-4 border-border pl-3 scroll-mt-4">
  <p className="font-semibold text-foreground mb-1">Project-based</p>
  <p className="text-sm text-foreground mb-2">Bind secrets to a Project - accessible by all versions</p>
@@ -121,6 +98,22 @@ export default function SecretsSection() {
  <li>Benefit: Secrets persist across version updates - no re-creation needed</li>
               </ul>
             </div>
+
+ <div className="border-l-4 border-border pl-3">
+ <p className="font-semibold text-foreground mb-1">WASM Hash-based</p>
+ <p className="text-sm text-foreground mb-2">Bind secrets to a specific WASM binary (SHA256 hash)</p>
+ <ul className="list-disc list-inside text-sm text-foreground ml-4">
+ <li>Key: <code className="bg-card-muted px-1 rounded">wasm_hash + profile + owner</code></li>
+ <li>Example: <code className="bg-card-muted px-1 rounded">cbf80ed0...2f8:production</code></li>
+ <li>Best for: a WASM run directly by URL (<code className="bg-card-muted px-1 rounded">WasmUrl</code> source), immutable deployments</li>
+ <li>Guarantees: only this exact binary can access the secrets</li>
+ <li>A project run does not read this binding. To lock a project secret to one build, add the <strong>One build only</strong> access rule below</li>
+              </ul>
+            </div>
+
+ <p className="text-xs text-muted-foreground">
+ Rows bound to a repository (<code className="bg-card-muted px-1 rounded">Repo</code> accessor) are listed and can be deleted; nothing can be stored, updated or re-scoped for a repository.
+            </p>
           </div>
 
  <div className="mt-3 p-3 bg-card-muted border border-border rounded">
@@ -137,7 +130,7 @@ export default function SecretsSection() {
  <p className="text-xs text-foreground">
               The binding is the encryption seed, not a lookup rule: the keystore seals the secret to
               a seed that names the hash, so a different binary does not fail a check — it decrypts
-              nothing. A project or repository secret is protected differently: the
+              nothing. A project secret is protected differently: the
               <strong> One build only</strong> access rule is judged by the keystore against the hash
               the worker measured, which is why the lock can move to a new build without the value
               being re-entered. Neither keeps the secret inside the build: it
@@ -157,7 +150,7 @@ export default function SecretsSection() {
             When you hand a credential to a project, you are trusting its code — and that code can
             change under you. A new version is published and your key goes to it, without you being
             asked. The author need not be hostile for this to matter: a dependency moves, a build
-            script changes, somebody force-pushes. <strong>One build only</strong> removes that
+            script changes. <strong>One build only</strong> removes that
             trust from the arrangement. The secret opens for one exact binary, identified by the
             SHA-256 of the bytes that run, and a rebuild is refused. The check is made inside the
             attested enclave that holds the key, against the measurement the attested worker reports
@@ -174,8 +167,7 @@ export default function SecretsSection() {
  <div className="mt-3 p-3 bg-card-muted border border-border rounded">
  <p className="text-sm text-foreground font-medium mb-1">How to use it</p>
  <ol className="list-decimal list-inside text-xs text-foreground space-y-1">
-              <li>Run the project once, or open any past execution.</li>
-              <li>Copy <strong>Executed binary</strong> from its details — that is the hash of the code that actually ran.</li>
+              <li>Take the hash of the version you approve: the SHA256 <code className="bg-card-muted px-1 rounded">outlayer upload</code> printed, the version&apos;s hash on the project, or <strong>Executed binary</strong> in any past execution&apos;s details.</li>
               <li>Use <em>Lock a secret to this build</em> there, or add the <strong>One build only</strong> rule by hand.</li>
               <li>After each release you approve, press <strong>Access</strong> and point the lock at the new build.</li>
             </ol>
@@ -183,18 +175,21 @@ export default function SecretsSection() {
  <div className="mt-3 p-3 bg-card-muted border border-border rounded">
  <p className="text-sm text-foreground font-medium mb-1">Locking before the first run</p>
  <p className="text-xs text-foreground">
-              You do not have to run a project to learn its hash. The platform compiles in a fixed
-              container, so the same commit gives the same bytes and the number can be worked out in
-              advance — then the very first run is already allowed to read the secret, instead of
-              being the thing that tells you what to type. The order is{' '}
+              You do not have to run a project to learn its hash. A version is named by the sha256 of
+              its wasm, so the number is known when it is published — then the very first run is
+              already allowed to read the secret, instead of being the thing that tells you what to
+              type. The order is{' '}
               <strong>publish, lock, run</strong>: a secret stored against a project can only be
               stored once that project exists, and what must not come first is a <em>run</em>.
             </p>
  <p className="text-xs text-foreground mt-2">
-              Two things decide the bytes besides your source, and both have to match the platform:
-              the compiler image and the architecture it runs on. A plain{' '}
+              To know the hash before you publish, or to check that a published hash comes from a
+              given source, build reproducibly:{' '}
+              <code className="bg-card-muted px-1 rounded">scripts/build_github_wasm.sh --dir ./my-project --target wasm32-wasip2</code>{' '}
+              from the <a href="https://github.com/out-layer/outlayer" target="_blank" rel="noopener noreferrer" className="underline">OutLayer repository</a> builds
+              in a pinned Docker image and gives the same hash every time. A plain{' '}
               <code className="bg-card-muted px-1 rounded">cargo build</code> on your own machine
-              gives a different, equally valid binary — and a hash the platform will never produce.
+              gives a different, equally valid binary — and a different hash.
             </p>
           </div>
  <div className="mt-3 p-3 bg-card-muted border border-border rounded">
@@ -225,10 +220,10 @@ export default function SecretsSection() {
             </p>
           </div>
  <p className="text-foreground mt-3">
-            The hash does not drift on its own. A project built from GitHub compiles to the same
-            bytes every time it is built from the same commit, so a lock you set stays good until
-            <em> someone publishes new code</em> — which is exactly the event it exists to catch.
-            For that to hold, a project built from source has to commit its{' '}
+            The hash does not drift on its own. A version is a file named by its hash, so a lock you
+            set stays good until <em>someone publishes a new version</em> — which is exactly the event
+            it exists to catch. For a reproducible build to give the same hash, the project has to
+            commit its{' '}
             <code className="bg-card-muted px-1 rounded">Cargo.lock</code>: without one its
             dependency versions are chosen afresh at build time, and the bytes can change with no
             change to your code.
@@ -238,10 +233,7 @@ export default function SecretsSection() {
  <p className="text-xs text-foreground">
               It decides which build may <em>read</em> the secret, not what that build does with it
               afterwards. The value reaches the code as an environment variable, so code you have
-              locked to is code you have chosen to trust with it — review the build you pin. And for a
-              project built from GitHub, take the hash from <strong>Executed binary</strong> rather
-              than from a local build: the bytes depend on the compiler as well as on the source, and
-              a build with your own toolchain gives a different, equally valid binary.
+              locked to is code you have chosen to trust with it — review the build you pin.
             </p>
           </div>
         </section>

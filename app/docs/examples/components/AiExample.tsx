@@ -83,7 +83,7 @@ export function AiExample() {
           </li>
  <li>Create new secret with key <code>OPENAI_API_KEY</code> and your OpenAI API key as value</li>
           <li>
- Set repo to your GitHub project (e.g., <code>github.com/alice/ai-example</code>)
+ Bind it to your project (e.g., <code>alice.near/ai-example</code>)
           </li>
  <li>Choose access condition (e.g., AllowAll for testing, Whitelist for production)</li>
  <li>Worker will automatically decrypt and inject into WASM environment</li>

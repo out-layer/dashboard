@@ -87,7 +87,7 @@ const DIRECT_PRESETS: DirectPreset[] = [
     wasmUrl: 'https://wasmhub.testnet.fastfs.io/fastfs.testnet/cbf80ed0080dd62f2041745cdc958ec0fbd192f33aeaa756f7873d742204b2f8.wasm',
     wasmHash: '41c1c7b3528565f3fd139943f439d61c0768e9abdb9b579bd0921ecbfcabeded',
     buildTarget: 'wasm32-wasip2',
-    args: '{"prompt":"What could the NEAR OutLayer project do?","history":[{"role":"user","content":"Tell me about NEAR"},{"role":"assistant","content":"NEAR is the most scalable Layer 1 blockchain."}],"model_name":"accounts/fireworks/models/gpt-oss-20b","openai_endpoint":"https://api.fireworks.ai/inference/v1/chat/completions","max_tokens":16384}',
+    args: '{"prompt":"What could the NEAR OutLayer project do?","history":[{"role":"user","content":"Tell me about NEAR"},{"role":"assistant","content":"NEAR is the most scalable Layer 1 blockchain."}],"model_name":"accounts/fireworks/models/gpt-oss-120b","openai_endpoint":"https://api.fireworks.ai/inference/v1/chat/completions","max_tokens":16384}',
     responseFormat: 'Text',
     secretsProfile: 'secret-system-prompt',
     secretsOwnerTestnet: 'zavodil2.testnet',
@@ -155,21 +155,6 @@ const DIRECT_PRESETS: DirectPreset[] = [
     secretsOwnerMainnet: 'zavodil.near',
     networks: ['testnet', 'mainnet'],
     docsLink: '/docs/examples#ethereum-api',
-  },
-  {
-    type: 'direct',
-    name: 'Publish to FastFS',
-    description: ' Compile code and publish WASM to FastFS for permanent storage. Returns FastFS URL instead of executing. Requires force_rebuild to ensure fresh compilation.',
-    repo: 'https://github.com/out-layer/random-example',
-    commit: '67ec8004666f01d2bcd63db6c8beae82292977f0',
-    buildTarget: 'wasm32-wasip1',
-    args: '',
-    responseFormat: 'Text',
-    networks: ['testnet', 'mainnet'],
-    docsLink: '/docs/near-integration#request-execution',
-    compileOnly: true,
-    forceRebuild: true,
-    storeOnFastfs: true,
   },
   {
     type: 'direct',
@@ -251,54 +236,6 @@ const PROXY_PRESETS: ProxyPreset[] = [
     wasmBuildTarget: 'wasm32-wasip2',
     increaseDepositIfNoCache: false, // ft_transfer_call accepts only 1 yoctoNEAR
     docsLink: '/docs/examples#intents-ark',
-  },
-  {
-    type: 'proxy',
-    name: 'ZFT Token (Init)',
-    args: '{"outlayer_contract":"{{contractId}}","project_id":"zavodil2.testnet/private-ft","total_supply":"1000000000000000000000000000","name":"ZFT Token","symbol":"ZFT","decimals":18,"icon":null}',
-    description: ' Initialize ZFT private token. Mints total_supply to your wallet (NEAR_SENDER_ID).\n\n Can only be called ONCE. After initialization, use Balance and Transfer methods.\n\n Project: zavodil2.testnet/private-ft',
-    networks: ['testnet'],
-    proxyContractIdTestnet: 'zft.testnet',
-    proxyMethod: 'new',
-    proxyDeposit: '200000000000000000000000', // 0.2 NEAR (for OutLayer execution)
-    proxyGas: '300000000000000', // 300 TGas
-    docsLink: '/docs/examples#private-token-ark',
-  },
-  {
-    type: 'proxy',
-    name: 'ZFT Token (Balance)',
-    args: '{"account_id":"zavodil2.testnet"}',
-    description: ' Check ZFT private token balance. Balances are stored on OutLayer, not on-chain.\n\nReplace account_id with the account you want to check.\n\n Project: zavodil2.testnet/private-ft',
-    networks: ['testnet'],
-    proxyContractIdTestnet: 'zft.testnet',
-    proxyMethod: 'ft_balance_of',
-    proxyDeposit: '100000000000000000000000', // 0.1 NEAR
-    proxyGas: '300000000000000', // 300 TGas
-    docsLink: '/docs/examples#private-token-ark',
-  },
-  {
-    type: 'proxy',
-    name: 'ZFT Token (Transfer)',
-    args: '{"receiver_id":"zavodil.testnet","amount":"1000000000000000000","memo":"test transfer"}',
-    description: ' Transfer ZFT private tokens. Sender is your wallet account (NEAR_SENDER_ID).\n\n Amount is in smallest units (18 decimals). 1 ZFT = 1000000000000000000.\n\n Project: zavodil2.testnet/private-ft',
-    networks: ['testnet'],
-    proxyContractIdTestnet: 'zft.testnet',
-    proxyMethod: 'ft_transfer',
-    proxyDeposit: '100000000000000000000000', // 0.1 NEAR
-    proxyGas: '300000000000000', // 300 TGas
-    docsLink: '/docs/examples#private-token-ark',
-  },
-  {
-    type: 'proxy',
-    name: 'ZFT Token (Transfer Call)',
-    args: '{"receiver_id":"zavodil.testnet","amount":"1000000000000000000","memo":"test transfer call","msg":"hello from ZFT"}',
-    description: ' Transfer ZFT tokens and call receiver contract (NEP-141 ft_transfer_call).\n\n This method:\n1. Transfers tokens to receiver\n2. Calls ft_on_transfer on receiver contract with your msg\n3. Handles refunds if receiver returns unused tokens\n\n Project: zavodil2.testnet/private-ft',
-    networks: ['testnet'],
-    proxyContractIdTestnet: 'zft.testnet',
-    proxyMethod: 'ft_transfer_call',
-    proxyDeposit: '100000000000000000000000', // 0.1 NEAR
-    proxyGas: '300000000000000', // 300 TGas
-    docsLink: '/docs/examples#private-token-ark',
   },
 ];
 

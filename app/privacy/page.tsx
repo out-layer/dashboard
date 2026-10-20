@@ -27,7 +27,8 @@ export default function PrivacyPage() {
       <div className="space-y-8 text-foreground">
         <Section id="scope" title="Scope">
           <p>
-            This policy describes how OutLayer (&ldquo;we&rdquo;, &ldquo;us&rdquo;) handles information in
+            This policy describes how OutLayer, Inc. (&ldquo;OutLayer&rdquo;, &ldquo;we&rdquo;, &ldquo;us&rdquo;)
+            handles information in
             connection with the OutLayer website, dashboard, API and related services (the
             &ldquo;Services&rdquo;). By using the Services you agree to this policy. It should be read
             together with our <Link href="/terms">Terms of Service</Link>.

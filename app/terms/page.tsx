@@ -28,9 +28,11 @@ export default function TermsPage() {
       <div className="space-y-8 text-foreground">
         <Section id="acceptance" title="Acceptance">
           <p>
-            These Terms of Service (&ldquo;Terms&rdquo;) govern your access to and use of the OutLayer website,
-            dashboard, API, smart contracts, connectors and related services (the &ldquo;Services&rdquo;). By
-            using the Services you agree to these Terms and to our <Link href="/privacy">Privacy Policy</Link>.
+            These Terms of Service (&ldquo;Terms&rdquo;) are an agreement between you and OutLayer, Inc.
+            (&ldquo;OutLayer&rdquo;, &ldquo;we&rdquo;, &ldquo;us&rdquo;). They govern your access to and use of the
+            OutLayer website, dashboard, API, smart contracts, connectors and related services (the
+            &ldquo;Services&rdquo;). By using the Services you agree to these Terms and to our{' '}
+            <Link href="/privacy">Privacy Policy</Link>.
             If you use the Services on behalf of an organisation, you agree to these Terms on its behalf. If you
             do not agree, do not use the Services.
           </p>

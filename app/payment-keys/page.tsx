@@ -9,7 +9,13 @@ import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { getCoordinatorApiUrl } from '@/lib/api';
 import { listAllUserSecrets } from '@/lib/user-secrets';
-import { PaymentKeyData, PaymentKeyBalance, CreationState } from './components/types';
+import {
+  PaymentKeyData,
+  PaymentKeyBalance,
+  CreationState,
+  describeFailedResponse,
+  describeFetchError,
+} from './components/types';
 import { CreateKeyForm } from './components/CreateKeyForm';
 import { PaymentKeyCard } from './components/PaymentKeyCard';
 import { TopUpModal } from './components/TopUpModal';
@@ -43,6 +49,7 @@ export default function PaymentKeysPage() {
   // list no longer shows it.
   const [nextNonce, setNextNonce] = useState<number | null>(null);
   const [balances, setBalances] = useState<Map<number, PaymentKeyBalance>>(new Map());
+  const [balanceErrors, setBalanceErrors] = useState<Map<number, string>>(new Map());
   const [loading, setLoading] = useState(false);
 
   // UI state
@@ -116,22 +123,24 @@ export default function PaymentKeysPage() {
     if (!accountId || keys.length === 0) return;
 
     const newBalances = new Map<number, PaymentKeyBalance>();
+    const newErrors = new Map<number, string>();
 
     for (const key of keys) {
+      const url = `${coordinatorUrl}/public/payment-keys/${accountId}/${key.nonce}/balance`;
       try {
-        const response = await fetch(
-          `${coordinatorUrl}/public/payment-keys/${accountId}/${key.nonce}/balance`
-        );
+        const response = await fetch(url);
         if (response.ok) {
-          const balance = await response.json();
-          newBalances.set(key.nonce, balance);
+          newBalances.set(key.nonce, await response.json());
+        } else {
+          newErrors.set(key.nonce, await describeFailedResponse(response));
         }
       } catch (err) {
-        console.warn(`Failed to load balance for nonce ${key.nonce}:`, err);
+        newErrors.set(key.nonce, describeFetchError(url, err));
       }
     }
 
     setBalances(newBalances);
+    setBalanceErrors(newErrors);
   }, [accountId, coordinatorUrl]);
 
   // Load payment keys when connected
@@ -538,6 +547,7 @@ export default function PaymentKeysPage() {
                   key={key.nonce}
                   paymentKey={key}
                   balance={balances.get(key.nonce)}
+                  balanceError={balanceErrors.get(key.nonce)}
                   stablecoin={stablecoin}
                   onTopUp={() => setTopUpKey(key)}
                   onTopUpNear={network === 'mainnet' ? () => setNearTopUpKey(key) : undefined}

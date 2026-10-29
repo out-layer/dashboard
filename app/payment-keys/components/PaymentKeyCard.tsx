@@ -2,7 +2,14 @@
 
 import { useState } from 'react';
 import { StablecoinConfig } from '@/contexts/NearWalletContext';
-import { PaymentKeyData, PaymentKeyBalance, PaymentKeyUsage, formatUsd } from './types';
+import {
+  PaymentKeyData,
+  PaymentKeyBalance,
+  PaymentKeyUsage,
+  formatUsd,
+  describeFailedResponse,
+  describeFetchError,
+} from './types';
 import { fetchAttestation, AttestationResponse } from '@/lib/api';
 import AttestationView from '@/components/AttestationView';
 import type { NetworkType } from '@/lib/api';
@@ -13,6 +20,8 @@ import { HashChip } from '@/components/ui/hash-chip';
 interface PaymentKeyCardProps {
   paymentKey: PaymentKeyData;
   balance?: PaymentKeyBalance;
+  // Set when the balance could not be read; the figures are then unknown, not zero.
+  balanceError?: string;
   stablecoin: StablecoinConfig;
   onTopUp: () => void;
   onTopUpNear?: () => void; // Only available on mainnet
@@ -25,6 +34,7 @@ interface PaymentKeyCardProps {
 export function PaymentKeyCard({
   paymentKey,
   balance,
+  balanceError,
   stablecoin,
   onTopUp,
   onTopUpNear,
@@ -36,6 +46,7 @@ export function PaymentKeyCard({
   const [showUsage, setShowUsage] = useState(false);
   const [usage, setUsage] = useState<PaymentKeyUsage[]>([]);
   const [loadingUsage, setLoadingUsage] = useState(false);
+  const [usageError, setUsageError] = useState<string | null>(null);
   const [usageOffset, setUsageOffset] = useState(0);
   const [usageTotal, setUsageTotal] = useState(0);
   const usageLimit = 20;
@@ -50,18 +61,20 @@ export function PaymentKeyCard({
     if (loadingUsage) return;
 
     setLoadingUsage(true);
+    const url = `${coordinatorUrl}/public/payment-keys/${accountId}/${paymentKey.nonce}/usage?offset=${offset}&limit=${usageLimit}`;
     try {
-      const response = await fetch(
-        `${coordinatorUrl}/public/payment-keys/${accountId}/${paymentKey.nonce}/usage?offset=${offset}&limit=${usageLimit}`
-      );
+      const response = await fetch(url);
       if (response.ok) {
         const data = await response.json();
         setUsage(data.usage || []);
         setUsageTotal(data.total || 0);
         setUsageOffset(offset);
+        setUsageError(null);
+      } else {
+        setUsageError(await describeFailedResponse(response));
       }
     } catch (err) {
-      console.error('Failed to load usage:', err);
+      setUsageError(describeFetchError(url, err));
     } finally {
       setLoadingUsage(false);
     }
@@ -100,7 +113,7 @@ export function PaymentKeyCard({
   };
 
   const toggleUsage = () => {
-    if (!showUsage && usage.length === 0) {
+    if (!showUsage && (usage.length === 0 || usageError)) {
       loadUsage(0);
     }
     setShowUsage(!showUsage);
@@ -168,7 +181,15 @@ export function PaymentKeyCard({
           </div>
         </div>
 
+        {balanceError && (
+          <div className="mt-4 rounded-md border border-destructive/30 bg-destructive/10 p-3">
+            <p className="text-sm font-medium text-destructive-text">Balance unavailable</p>
+            <p className="mt-0.5 break-words text-xs text-destructive-text">{balanceError}</p>
+          </div>
+        )}
+
         {/* Balance section */}
+        {!balanceError && (
         <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-4">
           <div className="rounded-md border border-border bg-card-muted p-3">
             <p className="text-xs text-muted-foreground">Initial balance</p>
@@ -195,6 +216,7 @@ export function PaymentKeyCard({
             </p>
           </div>
         </div>
+        )}
 
         {/* Last used */}
         {balance?.last_used_at && (
@@ -223,6 +245,10 @@ export function PaymentKeyCard({
               />
               <span className="text-sm text-muted-foreground">Loading usage…</span>
             </div>
+          ) : usageError ? (
+            <p className="break-words py-2 text-sm text-destructive-text">
+              Usage history unavailable: {usageError}
+            </p>
           ) : usage.length === 0 ? (
             <p className="py-2 text-sm text-muted-foreground">No usage history yet.</p>
           ) : (

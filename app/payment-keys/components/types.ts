@@ -68,6 +68,25 @@ export interface CreationState {
   nonce?: number;
 }
 
+// Why a coordinator read failed, in words a user can act on. A key whose
+// balance could not be read must say so: shown as $0, it reads as money gone.
+export async function describeFailedResponse(response: Response): Promise<string> {
+  const body = await response.text().catch(() => '');
+  let message = body.trim();
+  try {
+    const parsed = JSON.parse(body);
+    message = parsed?.message || parsed?.error || message;
+  } catch {
+    // Not JSON: keep the text as it came.
+  }
+  return `HTTP ${response.status}${message ? `: ${message.slice(0, 300)}` : ''}`;
+}
+
+export function describeFetchError(url: string, err: unknown): string {
+  const reason = err instanceof Error ? err.message : String(err);
+  return `Could not reach ${new URL(url).origin} (${reason})`;
+}
+
 // Format USD amount for display
 export function formatUsd(minimalUnits: string, decimals: number): string {
   const value = BigInt(minimalUnits);

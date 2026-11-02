@@ -429,7 +429,7 @@ base URL that matches the network your project / wallet is deployed on.
 | Method | Endpoint | Auth | Description |
 |--------|----------|------|-------------|
 | POST | `/call/{owner}/{project}` | `X-Payment-Key` | Execute a WASI module (sync response) |
-| GET | `/calls/{call_id}` | — | Poll an async execution by id |
+| GET | `/calls/{call_id}` | — | Poll a `pending` call by id: an async one, or a sync one the API restarted during |
 | POST | `/trial-key` | `Bearer wk_...` / `near:...` | Claim the wallet's trial: fifty connector calls in its first week; the key is derived and read again below |
 | GET | `/wallet/v1/payment-key` | `Bearer wk_...` / `near:...` | The wallet's nonce-0 key (trial or sponsored), derived again; only the credential that claimed it reads it |
 | POST | `/wallet/v1/sponsorship` | `Bearer wk_...` / `near:...` | Redeem a sponsor code (`spn_…`): a subscription, paid by the sponsor, on the nonce-0 key |
@@ -7836,7 +7836,7 @@ oapi-codegen -generate types https://api.outlayer.ai/openapi.json > types.go
                        │ withdraw, call, address        │ set policy, freeze
                        ▼                                ▼
               ┌─────────────────────────────────────────────────┐
-              │            Coordinator (stateless proxy)         │
+              │                  Coordinator                    │
               │  auth API key → forward to keystore → track DB  │
               └──────────────────────┬──────────────────────────┘
                                      │
@@ -7860,7 +7860,7 @@ oapi-codegen -generate types https://api.outlayer.ai/openapi.json > types.go
               └──────────────────┘   └─────────────────────────┘
 ```
 
-**Coordinator is a stateless proxy.** It authenticates API keys, forwards requests to the keystore TEE, and tracks operational data in PostgreSQL. All security-critical work (key derivation, signing, policy evaluation) happens inside the TEE.
+**The coordinator authenticates API keys, forwards requests to the keystore TEE, and keeps operational state in PostgreSQL** (usage, approvals, a policy copy). All security-critical work (key derivation, signing, policy evaluation) happens inside the TEE.
 
 ---
 

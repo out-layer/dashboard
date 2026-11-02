@@ -162,8 +162,9 @@ export default function AgentCustodyPage() {
         </div>
 
  <p className="text-foreground mb-4">
-          The API gateway is a stateless proxy &mdash; it authenticates the API key and forwards requests to the TEE.
-          Everything security-critical (keys, signing, policy checks) happens exclusively inside the Trusted Execution Environment.
+          The API gateway authenticates the API key, keeps operational state (usage, pending approvals) and forwards
+          requests to the TEE. Keys and signing live inside the Trusted Execution Environment, which reads the wallet&apos;s
+          policy from the chain and checks it before every signature.
         </p>
 
  <ol className="list-decimal list-inside text-foreground space-y-2 mt-4">
@@ -355,7 +356,7 @@ export default function AgentCustodyPage() {
               <tr>
  <td className="px-4 py-2 font-mono text-xs">operation_limit_reached</td>
  <td className="px-4 py-2">429 + <code className="bg-card-muted px-1 rounded">Retry-After</code></td>
- <td className="px-4 py-2">The wallet&apos;s custody ceiling: the free tier allows <strong>100 custody operations per wallet per day</strong>, dry-runs included (swap quotes are not counted). The body carries <code className="bg-card-muted px-1 rounded">limit</code>, <code className="bg-card-muted px-1 rounded">window</code>, <code className="bg-card-muted px-1 rounded">operation</code> and <code className="bg-card-muted px-1 rounded">retry_after_seconds</code>. Wait it out, or lift it with a subscription on the wallet&apos;s own key.</td>
+ <td className="px-4 py-2">The wallet&apos;s custody ceiling: the free tier allows <strong>1000 custody operations per wallet per rolling 24 h</strong>: dry-runs, swap quotes and NEP-413/EVM/Solana signing included; reads are not counted. The body carries <code className="bg-card-muted px-1 rounded">limit</code>, <code className="bg-card-muted px-1 rounded">window</code>, <code className="bg-card-muted px-1 rounded">operation</code> and <code className="bg-card-muted px-1 rounded">retry_after_seconds</code>. Wait it out, or lift it with a subscription on the wallet&apos;s own key.</td>
               </tr>
             </tbody>
           </table>

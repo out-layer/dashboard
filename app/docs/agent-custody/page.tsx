@@ -460,8 +460,9 @@ export default function AgentCustodyPage() {
         </div>
 
  <p className="text-foreground mb-4">
- Policies are stored <strong>encrypted on-chain</strong> (on the NEAR blockchain). Only the TEE can decrypt and evaluate them.
-          This means neither the API gateway operator nor the agent can see or tamper with the raw policy rules.
+ Policies are stored <strong>encrypted on-chain</strong> (on the NEAR blockchain). Only the controller can change them, and the
+          TEE evaluates them before every signature, so the API gateway operator cannot tamper with the rules. The gateway keeps a
+          readable copy to show the policy to the owner and the agent.
         </p>
 
  <p className="text-foreground mb-4">
@@ -604,7 +605,7 @@ export default function AgentCustodyPage() {
  swap &mdash; or any NEAR Intents <em>Trusted</em> operation (<code className="bg-card-muted px-1 rounded">swap</code>,
  <code className="bg-card-muted px-1 rounded">confidential</code>, <code className="bg-card-muted px-1 rounded">cross_chain_withdraw</code>, <code className="bg-card-muted px-1 rounded">limit_order</code>) &mdash;
  executes only after the required approvers confirm it. Approval controls <em>whether</em> the
-            operation happens: the TEE verifies the approver signatures and pins the recipient. It does
+            operation happens: the TEE verifies the approver signatures and pins the signed message to the intents verifier. It does
  <strong>not</strong> itself re-check the token or amount &mdash; for these Trusted operations the
             gateway builds the 1Click artifact (quote &rarr; deposit address) at execution and the TEE signs it,
             trusting the gateway to have built it from the approved operation. The off-chain destination (the
@@ -1616,7 +1617,7 @@ curl -H "Authorization: Bearer wk_derived_key_here" \\
  <div className="border-l-4 border-border-strong pl-4">
  <h3 className="font-semibold text-foreground">Policy on-chain</h3>
  <p className="text-sm text-foreground">
-              Policies are stored encrypted on the NEAR blockchain. Only the TEE can decrypt them. The controller (wallet owner) can freeze the wallet
+              Policies are stored encrypted on the NEAR blockchain. The TEE reads them from the chain and evaluates them before every signature. The controller (wallet owner) can freeze the wallet
               instantly via an on-chain transaction &mdash; no API gateway involvement needed.
             </p>
           </div>

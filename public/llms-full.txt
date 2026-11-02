@@ -7940,7 +7940,7 @@ allowed to produce the artifact it signs:
 |-----------|-------|-------------------|
 | **Built** | `transfer`, `call`, `delete`, `withdraw` (+ `auth`) | Constructs the NEAR tx / NEP-413 intent / auth string FROM the op fields → artifact == approved op |
 | **Hash-pinned** | `raw`, `sign_message` | Op carries `payload_hash`/`message_hash`; signs the supplied bytes iff `sha256(bytes) == hash` |
-| **Trusted** | `swap`, `confidential`, `cross_chain_withdraw`, `limit_order`, `payment_check` | Artifact (e.g. the 1Click quote / deposit address) can't exist at approval time; the keystore checks capability + policy + multisig on the op fields and pins the recipient, then signs the supplied artifact, **trusting the coordinator to have built it from the approved op**. The keystore does NOT itself re-verify the artifact's token/amount against the op — those are bound only by that coordinator-trust, the same trust as the coordinator-supplied off-chain deposit address (documented tradeoff) |
+| **Trusted** | `swap`, `confidential`, `cross_chain_withdraw`, `limit_order`, `payment_check` | Artifact (e.g. the 1Click quote / deposit address) can't exist at approval time; the keystore checks capability + policy + multisig on the op fields and pins the NEP-413 recipient to an intents verifier (`intents.near`/`intents.far`), then signs the supplied artifact, **trusting the coordinator to have built it from the approved op**. The keystore does NOT itself re-verify the artifact's token/amount against the op — those are bound only by that coordinator-trust, the same trust as the coordinator-supplied off-chain deposit address (documented tradeoff) |
 
 The deposit family (`intents/deposit`, `storage-deposit`, cross-chain deposit) is all
 `Op::Call` — there is no finer deposit policy type. `auth` is non-fund (a domain-separated
@@ -8265,7 +8265,7 @@ but cannot forge or rebind them.
 **Multisig covers Trusted ops too.** On a wallet with an approval threshold, the Trusted kinds —
 `swap`, `confidential`, `cross_chain_withdraw`, `limit_order` — also create a pending approval and execute only
 after the approvers confirm. What the approval actually binds is narrow: it binds *whether* the op
-runs (the keystore verifies the approver signatures over the canonical op, and pins the recipient).
+runs (the keystore verifies the approver signatures over the canonical op, and pins the NEP-413 recipient to an intents verifier).
 It does **not** bind the token/amount through the keystore — at execution the coordinator fetches
 the 1Click artifact (quote → deposit address) and the keystore signs it **without re-verifying** the
 artifact's `token_in`/`amount_in` against the approved op. The artifact matching the op is enforced

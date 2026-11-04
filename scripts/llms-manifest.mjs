@@ -275,14 +275,10 @@ export const SECTIONS = [
 // Repository markdown inlined into llms-full.txt, in reading order.
 //
 // Deliberately excluded — these describe operating OutLayer, not building on it:
-//   PROJECT.md, SETUP.md, DEPLOYMENT_GUIDE.md, TESTING.md, JOB_BASED_WORKFLOW.md,
-//   CHANGELOG_GITHUB_COMPILATION.md, CLAUDE.md, Onepager.md, ORACLE_RFP_PROPOSAL.md,
-//   RFP_RESPONSE.md, docker/*, deploy/*, scripts/*.
+//   PROJECT.md, CLAUDE.md, docker/*, deploy/*, scripts/*, tests/*.
 export const FULL_TEXT_SOURCES = [
   { path: 'README.md', title: 'Overview' },
-  { path: 'QUICK_START.md', title: 'Quick Start' },
   { path: 'API.md', title: 'HTTPS API Reference' },
-  { path: 'AUTHENTICATION.md', title: 'Authentication and Payment Keys' },
   { path: 'docs/CLI.md', title: 'Command-Line Interface' },
 
   { path: 'wasi-examples/README.md', title: 'WASI Examples Overview' },
@@ -300,11 +296,11 @@ export const FULL_TEXT_SOURCES = [
   { path: 'contract/README.md', title: 'Smart Contract API' },
   { path: 'sdk/outlayer/README.md', title: 'Rust SDK' },
 
-  { path: 'CUSTODY.md', title: 'Agent Custody Reference' },
   { path: 'docs/MULTI_CHAIN.md', title: 'Multi-Chain Custody Wallets' },
   { path: 'docs/DETERMINISTIC_WALLETS.md', title: 'Deterministic Wallets' },
   { path: 'docs/PAYMENT_CHECKS.md', title: 'Payment Checks' },
   { path: 'docs/outlayer-custody-advantages.md', title: 'Custody Design Rationale' },
+  { path: 'docs/NON_CUSTODIAL.md', title: 'What OutLayer Can and Cannot Do (Trust Model)' },
 
   { path: 'VAULTS.md', title: 'Sovereign Vaults' },
   { path: 'docs/LEAVING_OUTLAYER.md', title: 'Leaving OutLayer (Sovereign Exit)' },

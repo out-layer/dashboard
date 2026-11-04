@@ -785,14 +785,9 @@ export function SecretsForm({
       // Get generated secrets
       const validSecretsToGenerate = secretsToGenerate.filter(s => s.name.trim() !== '');
 
-      // Allow empty secrets only if accessor changed (migration mode)
-      // In migration mode, user may just want to move existing secrets to new accessor
-      const accessorWasChanged = isAccessorChanged();
-      if (Object.keys(secretsObj).length === 0 && validSecretsToGenerate.length === 0 && !accessorWasChanged) {
-        setError('Please provide either manual secrets or secrets to generate (or change accessor to migrate existing secrets)');
-        setEncrypting(false);
-        return;
-      }
+      // `{}` is a row: it holds nothing and still admits whoever its
+      // condition names — an officer's consent to be asked, with no
+      // credential in it — and it replaces a row that held something.
 
       // 1. Generate nonce
       const nonceBytes = new Uint8Array(32);

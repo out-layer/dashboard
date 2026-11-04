@@ -246,6 +246,18 @@ curl -X POST https://api.outlayer.ai/call/alice.near/my-assistant \\
                   Decrypted secrets are injected as environment variables into WASM.
                 </td>
               </tr>
+ <tr>
+ <td className="px-4 py-3 text-sm font-mono">secrets_refs</td>
+ <td className="px-4 py-3 text-sm">array</td>
+ <td className="px-4 py-3 text-sm text-muted-foreground">No</td>
+ <td className="px-4 py-3 text-sm text-muted-foreground">
+                  Several secret rows, in order, at most 5, instead of <code>secrets_ref</code>, for a project whose manifest says <code>secrets_refs: true</code>: each opens for
+                  the caller as one does, their variables join (a name two rows set differently refuses the run),
+                  and the module may open a task for the owner of any of them. The WASM reads which row supplied
+                  which name in <code>OUTLAYER_SECRETS_ROWS</code>. Refused on a connector that reads the wallet
+                  owner&apos;s policy row (Polymarket, Hyperliquid): no other row joins it.
+                </td>
+              </tr>
               <tr>
  <td className="px-4 py-3 text-sm font-mono">async</td>
  <td className="px-4 py-3 text-sm">boolean</td>

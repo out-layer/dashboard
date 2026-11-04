@@ -437,6 +437,15 @@ export default function ConnectorsDocsPage() {
             <code className="bg-card-muted px-1 rounded">evil.example.com</code>.
           </p>
           <p className="text-foreground mt-3">
+            Every request to a listed host has 30 seconds, and two that run out end the run. A host
+            that legitimately takes longer — a model generating for a minute — gets its own time in
+            its entry, <code className="bg-card-muted px-1 rounded">{'{"host": "cloud-api.near.ai", "timeout_secs": 120}'}</code>,
+            up to 180 s and never past the end of the run. The call must ask for a run long enough to
+            hold it (<code className="bg-card-muted px-1 rounded">resource_limits.max_execution_seconds</code>,
+            60 when the call names none, so a 120 s entry on such a call is cut to what is left of
+            those 60), and waiting is paid like running.
+          </p>
+          <p className="text-foreground mt-3">
             The manifest lives in a wasm custom section, so it is covered by the SHA256 the contract
             records for that version. Nobody — not you after publishing, not the operator — can widen
             it without publishing a new version that users have to move to.

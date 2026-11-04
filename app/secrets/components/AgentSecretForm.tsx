@@ -266,8 +266,10 @@ export function AgentSecretForm({
       setError('The secret must be a JSON object: {"API_KEY": "value"}');
       return;
     }
-    if (!parsed || typeof parsed !== 'object' || Object.keys(parsed).length === 0) {
-      setError('The secret is empty. Give it at least one key.');
+    // `{}` is a row: it holds nothing and still admits whoever its condition
+    // names — an officer's consent to be asked, with no credential in it.
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+      setError('The secret must be a JSON object: {"API_KEY": "value"}, or {} for a row that holds nothing.');
       return;
     }
 

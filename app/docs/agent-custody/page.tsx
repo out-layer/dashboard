@@ -613,8 +613,9 @@ export default function AgentCustodyPage() {
  <strong>not independently verifiable</strong> by the TEE. So a compromised gateway could substitute
             the token, amount, or routing after approval &mdash; the on-chain guarantees are the recipient pin
             and the approver signatures, not the value terms (a documented tradeoff).
- Claimable links (<code className="bg-card-muted px-1 rounded">payment_check</code>) are the exception &mdash;
-            they are gated by their capability and the per-transaction amount cap rather than by multisig.
+ Claimable links (<code className="bg-card-muted px-1 rounded">payment_check</code>) are held to the same threshold:
+            the check is created <code className="bg-card-muted px-1 rounded">pending_approval</code> with its key, its account stays empty, and it is funded
+            once the approvers confirm; a <code className="bg-card-muted px-1 rounded">batch-create</code> on such a wallet is refused.
           </p>
         </div>
 
@@ -1083,7 +1084,8 @@ curl -s -X POST -H "Content-Type: application/json" \\
           how much, and at what price; the order rests on 1Click and fills &mdash; possibly in several
           slices &mdash; when the market reaches it. It ends when it is filled, cancelled, or reaches its
           deadline (7 days unless you set one). <strong>Mainnet only</strong>, funded from the wallet&apos;s
-          intents balance.
+          intents balance &mdash; or, with <code className="bg-card-muted px-1 rounded">deposit_type: &quot;confidential_intents&quot;</code>,
+          from its confidential balance, paying out and refunding there.
         </p>
 
  <div className="bg-card-muted border-l-4 border-yellow-500 p-4 mb-6 text-sm text-foreground">
@@ -1152,13 +1154,14 @@ curl -s -X POST -H "Content-Type: application/json" \\
  <tr className="border-b"><td className="px-4 py-2 font-mono text-xs">quantity</td><td className="px-4 py-2">yes</td><td className="px-4 py-2">Base amount in its <strong>smallest units</strong> &mdash; digits only.</td></tr>
  <tr className="border-b"><td className="px-4 py-2 font-mono text-xs">price</td><td className="px-4 py-2">yes</td><td className="px-4 py-2">Quote per <strong>one whole</strong> base, a positive decimal string (<code className="bg-card-muted px-1 rounded">&quot;5&quot;</code>, <code className="bg-card-muted px-1 rounded">&quot;0.25&quot;</code>, <code className="bg-card-muted px-1 rounded">&quot;1.2e1&quot;</code>).</td></tr>
  <tr className="border-b"><td className="px-4 py-2 font-mono text-xs">recipient</td><td className="px-4 py-2">no</td><td className="px-4 py-2">Where filled output is paid. Omitted &rarr; this wallet&apos;s own intents balance. The policy&apos;s address rules apply either way.</td></tr>
- <tr className="border-b"><td className="px-4 py-2 font-mono text-xs">recipient_type</td><td className="px-4 py-2">no</td><td className="px-4 py-2"><code className="bg-card-muted px-1 rounded">intents</code> (default), <code className="bg-card-muted px-1 rounded">destination_chain</code> (an address on the output asset&apos;s chain, then required), or <code className="bg-card-muted px-1 rounded">confidential_intents</code> (also needs the <code className="bg-card-muted px-1 rounded">confidential</code> capability).</td></tr>
+ <tr className="border-b"><td className="px-4 py-2 font-mono text-xs">recipient_type</td><td className="px-4 py-2">no</td><td className="px-4 py-2"><code className="bg-card-muted px-1 rounded">intents</code> (default), <code className="bg-card-muted px-1 rounded">destination_chain</code> (an address on the output asset&apos;s chain, then required), or <code className="bg-card-muted px-1 rounded">confidential_intents</code> (also needs the <code className="bg-card-muted px-1 rounded">confidential</code> capability). With <code className="bg-card-muted px-1 rounded">deposit_type: confidential_intents</code> only <code className="bg-card-muted px-1 rounded">confidential_intents</code> (or nothing) is accepted.</td></tr>
+ <tr className="border-b"><td className="px-4 py-2 font-mono text-xs">deposit_type</td><td className="px-4 py-2">no</td><td className="px-4 py-2">Which of the wallet&apos;s balances funds the order and gets the remainder back: <code className="bg-card-muted px-1 rounded">intents</code> (default, the public intents balance) or <code className="bg-card-muted px-1 rounded">confidential_intents</code> (the confidential balance; the order then pays out to the confidential balance too, needs the <code className="bg-card-muted px-1 rounded">confidential</code> capability, and is funded through 1Click&apos;s own funding intent, held to the authorised terms before the wallet signs it). Mixed routing is not offered.</td></tr>
  <tr><td className="px-4 py-2 font-mono text-xs">deadline</td><td className="px-4 py-2">no</td><td className="px-4 py-2">RFC 3339 expiry. Omitted &rarr; 7 days.</td></tr>
             </tbody>
           </table>
         </div>
  <p className="text-sm text-muted-foreground mb-6">
-          Minimum order value is <strong>0.1 USD</strong>. The wallet&apos;s intents balance is checked before
+          Minimum order value is <strong>0.1 USD</strong>. The wallet&apos;s balance &mdash; the one <code className="bg-card-muted px-1 rounded">deposit_type</code> names &mdash; is checked before
           anything is created &mdash; short of it, the call answers <code className="bg-card-muted px-1 rounded">insufficient_balance</code>.
         </p>
 
@@ -1182,19 +1185,20 @@ curl -s -X POST -H "Content-Type: application/json" \\
  <tr className="border-b"><td className="px-4 py-2 font-mono text-xs">partial_fills</td><td className="px-4 py-2">The fills so far, while the order is <code className="bg-card-muted px-1 rounded">partially_filled</code>.</td></tr>
  <tr className="border-b"><td className="px-4 py-2 font-mono text-xs">payouts</td><td className="px-4 py-2">The withdrawal and refund legs, once there are any.</td></tr>
  <tr className="border-b"><td className="px-4 py-2 font-mono text-xs">app_fees</td><td className="px-4 py-2">1Click&apos;s own fee, taken from the input, in basis points. OutLayer does not set it.</td></tr>
- <tr><td className="px-4 py-2 font-mono text-xs">transfer_intent_hash</td><td className="px-4 py-2">The intents transfer that funded the order.</td></tr>
+ <tr className="border-b"><td className="px-4 py-2 font-mono text-xs">deposit_type, refund_type</td><td className="px-4 py-2">The balance that funded the order and takes the remainder back: <code className="bg-card-muted px-1 rounded">intents</code> or <code className="bg-card-muted px-1 rounded">confidential_intents</code>, always the same value.</td></tr>
+ <tr><td className="px-4 py-2 font-mono text-xs">transfer_intent_hash</td><td className="px-4 py-2">The intent that funded the order.</td></tr>
             </tbody>
           </table>
         </div>
  <p className="text-foreground mb-6">
-          The unfilled remainder always comes back to this wallet. If 1Click&apos;s own figures are worse
+          The unfilled remainder always comes back to this wallet, on the balance the order was funded from. If 1Click&apos;s own figures are worse
           than the terms the policy authorised, the still-unfunded order is cancelled and nothing is sent.
         </p>
  <p className="text-foreground mb-6">
           When the funding transfer is not confirmed in time, the answer is <code className="bg-card-muted px-1 rounded">status: &quot;processing&quot;</code> 
           with the <code className="bg-card-muted px-1 rounded">order_id</code> and a <code className="bg-card-muted px-1 rounded">poll_url</code>. Do not place the order again: the transfer may land.
-          The request settles on its own &mdash; <code className="bg-card-muted px-1 rounded">success</code>, or <code className="bg-card-muted px-1 rounded">failed</code> with 
-          <code className="bg-card-muted px-1 rounded">never_executed</code> once the transfer is known never to have run, and only then is the order cancelled.
+          The request settles on its own &mdash; from the chain for a publicly funded order, from the order itself for a confidentially funded one &mdash; <code className="bg-card-muted px-1 rounded">success</code>, or <code className="bg-card-muted px-1 rounded">failed</code> with 
+          <code className="bg-card-muted px-1 rounded">never_executed</code> once the funding is known never to have run, and only then is the order cancelled.
         </p>
 
  <h3 className="text-xl font-semibold text-foreground mt-8 mb-3">Policy</h3>

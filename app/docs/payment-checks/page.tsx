@@ -327,6 +327,15 @@ The ephemeral account ID = hex(public_key) on intents.near.`}
           (or <code className="text-xs bg-card-muted px-1 rounded">failed</code>: the funding never executed and nothing moved). Do not create it again.
         </p>
  <p className="text-foreground mb-6">
+ On a wallet whose policy has an approval threshold the check is held for the approvers like any other operation that moves money:
+          <code className="text-xs bg-card-muted px-1 rounded">status</code> is <code className="text-xs bg-card-muted px-1 rounded">pending_approval</code> with
+          <code className="text-xs bg-card-muted px-1 rounded">approval_id</code>, <code className="text-xs bg-card-muted px-1 rounded">required</code>, <code className="text-xs bg-card-muted px-1 rounded">approved</code>,
+          <code className="text-xs bg-card-muted px-1 rounded">request_hash</code> and a <code className="text-xs bg-card-muted px-1 rounded">poll_url</code>. The <code className="text-xs bg-card-muted px-1 rounded">check_key</code> comes back at once, but its account holds nothing
+          until the threshold is met; then the check is funded for you and reads <code className="text-xs bg-card-muted px-1 rounded">unclaimed</code>. A claim or reclaim before that is refused.
+          A veto, an approval that expires unmet (24 h), or the check&apos;s own <code className="text-xs bg-card-muted px-1 rounded">expires_in</code> running out while it waits, ends it <code className="text-xs bg-card-muted px-1 rounded">failed</code>. <code className="text-xs bg-card-muted px-1 rounded">approval.excluded_types: [&quot;payment_check&quot;]</code> keeps the
+          capability gate without the threshold. Each create counts as one custody operation against the wallet&apos;s ceiling; a claim or reclaim does not.
+        </p>
+ <p className="text-foreground mb-6">
  Send <code className="text-xs bg-card-muted px-1 rounded">X-Idempotency-Key</code> on the create, and <code className="text-xs bg-card-muted px-1 rounded">X-Answer-Within: &lt;seconds&gt;</code> below your own timeout to be answered
           <code className="text-xs bg-card-muted px-1 rounded">creating</code> in time. If the answer is lost &mdash; a timeout, a dropped connection &mdash; re-send with the same key: the
           <code className="text-xs bg-card-muted px-1 rounded">duplicate_idempotency_key</code> answer (HTTP 200) carries <code className="text-xs bg-card-muted px-1 rounded">checks: [&#123;check_id, check_key, status&#125;]</code>, the check that key made
@@ -435,7 +444,7 @@ curl -X POST https://api.outlayer.ai/wallet/v1/payment-check/claim \\
               </table>
             </div>
  <p className="text-xs font-semibold text-muted-foreground mb-1">Response</p>
- <p className="text-xs text-muted-foreground">Returns <code className="bg-card-muted px-1 rounded">check_id</code>, <code className="bg-card-muted px-1 rounded">check_key</code>, <code className="bg-card-muted px-1 rounded">status</code> (<code className="bg-card-muted px-1 rounded">unclaimed</code>, or <code className="bg-card-muted px-1 rounded">creating</code> with <code className="bg-card-muted px-1 rounded">poll_url</code> while the funding is unconfirmed), <code className="bg-card-muted px-1 rounded">token</code>, <code className="bg-card-muted px-1 rounded">amount</code>, <code className="bg-card-muted px-1 rounded">memo</code>, <code className="bg-card-muted px-1 rounded">created_at</code>, <code className="bg-card-muted px-1 rounded">expires_at</code>.</p>
+ <p className="text-xs text-muted-foreground">Returns <code className="bg-card-muted px-1 rounded">check_id</code>, <code className="bg-card-muted px-1 rounded">check_key</code>, <code className="bg-card-muted px-1 rounded">status</code> (<code className="bg-card-muted px-1 rounded">unclaimed</code>; <code className="bg-card-muted px-1 rounded">creating</code> with <code className="bg-card-muted px-1 rounded">poll_url</code> while the funding is unconfirmed; <code className="bg-card-muted px-1 rounded">pending_approval</code> with <code className="bg-card-muted px-1 rounded">approval_id</code>, <code className="bg-card-muted px-1 rounded">required</code>, <code className="bg-card-muted px-1 rounded">approved</code>, <code className="bg-card-muted px-1 rounded">request_hash</code> and <code className="bg-card-muted px-1 rounded">poll_url</code> while the wallet&apos;s approvers decide), <code className="bg-card-muted px-1 rounded">token</code>, <code className="bg-card-muted px-1 rounded">amount</code>, <code className="bg-card-muted px-1 rounded">memo</code>, <code className="bg-card-muted px-1 rounded">created_at</code>, <code className="bg-card-muted px-1 rounded">expires_at</code>. 429 <code className="bg-card-muted px-1 rounded">operation_limit_reached</code> at the wallet&apos;s custody ceiling.</p>
           </div>
         </div>
 
@@ -446,7 +455,7 @@ curl -X POST https://api.outlayer.ai/wallet/v1/payment-check/claim \\
  <code className="text-sm font-mono">/batch-create</code>
           </div>
  <div className="p-4">
- <p className="text-sm text-foreground mb-3">Create multiple checks in a single call (max 10). Each check gets independent key and ephemeral account.</p>
+ <p className="text-sm text-foreground mb-3">Create multiple checks in a single call (max 10). Each check gets independent key and ephemeral account, is decided by the policy and counted as one custody operation before any is reserved. A wallet whose policy requires approval gets no batch: 403 <code className="bg-card-muted px-1 rounded">policy_denied</code>, nothing created &mdash; create its checks one at a time.</p>
  <p className="text-xs font-semibold text-muted-foreground mb-1">Request body</p>
  <div className="overflow-x-auto mb-3">
  <table className="min-w-full text-xs border border-border">
@@ -573,7 +582,7 @@ curl -X POST https://api.outlayer.ai/wallet/v1/payment-check/claim \\
                   </tr>
                 </thead>
                 <tbody>
- <tr className="border-b"><td className="px-3 py-1.5 font-mono">status</td><td className="px-3 py-1.5">no</td><td className="px-3 py-1.5">Filter: creating, unclaimed, claiming, claimed, partially_claimed, reclaiming, reclaimed, partially_reclaimed, failed, expired</td></tr>
+ <tr className="border-b"><td className="px-3 py-1.5 font-mono">status</td><td className="px-3 py-1.5">no</td><td className="px-3 py-1.5">Filter: pending_approval, creating, unclaimed, claiming, claimed, partially_claimed, reclaiming, reclaimed, partially_reclaimed, failed, expired</td></tr>
  <tr className="border-b"><td className="px-3 py-1.5 font-mono">limit</td><td className="px-3 py-1.5">no</td><td className="px-3 py-1.5">Max results (default 50, max 100)</td></tr>
  <tr className="border-b"><td className="px-3 py-1.5 font-mono">offset</td><td className="px-3 py-1.5">no</td><td className="px-3 py-1.5">Pagination offset (default 0)</td></tr>
                 </tbody>
@@ -621,6 +630,9 @@ curl -X POST https://api.outlayer.ai/wallet/v1/payment-check/claim \\
  <SyntaxHighlighter language="text" style={vscDarkPlus} className="rounded-lg text-sm">
 {`                    create
                       |
+         (approval    v
+          threshold) [pending_approval] ---- vetoed / approval expired ---> [failed]
+                      |  threshold met
                       v
                   [creating] ---- funding never executed ---> [failed]
                       |
@@ -636,6 +648,7 @@ curl -X POST https://api.outlayer.ai/wallet/v1/payment-check/claim \\
           [claimed]   (mixed)    [reclaimed]
 
 Statuses:
+  pending_approval    - the wallet's approvers have not met the threshold; the account is empty
   creating            - funding transfer not confirmed yet
   unclaimed           - funds locked, waiting to be claimed
   claiming/reclaiming - a claim or reclaim is in flight; another waits for it
@@ -643,7 +656,7 @@ Statuses:
   partially_reclaimed - some funds reclaimed by sender
   claimed             - all funds claimed by receiver
   reclaimed           - all funds reclaimed by sender
-  failed              - the funding never executed; nothing moved`}
+  failed              - the funding never executed, was vetoed, or its approval expired; nothing moved`}
           </SyntaxHighlighter>
         </div>
 

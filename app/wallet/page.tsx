@@ -110,13 +110,14 @@ function WalletHandoffContent() {
   const [additionalApprovers, setAdditionalApprovers] = useState('');
   /** The key the stored policy pins the owner's own vote to, kept across a save. */
   const [ownerPubkey, setOwnerPubkey] = useState<string | undefined>(undefined);
-  // Which types require approval (unchecked = excluded_types). Built kinds AND the multisig-wired
-  // Trusted kinds (swap, cross_chain_withdraw) can require approval — at execution the keystore
-  // verifies the approver signatures, then signs the (re-fetched, fresh) Trusted artifact.
-  // (Confidential also requires approval when a threshold is set; payment_check is gated by its
-  // capability + per-transaction amount cap, not the threshold.)
-  const allTxTypes = ['transfer', 'call', 'delete', 'intents_withdraw', 'intents_swap', 'cross_chain_withdraw', 'limit_order'] as const;
-  const [approvalTypes, setApprovalTypes] = useState<Set<string>>(new Set(['transfer', 'call', 'delete', 'intents_withdraw', 'cross_chain_withdraw', 'limit_order']));
+  // Which types require approval (unchecked = excluded_types). Built kinds AND the Trusted kinds
+  // (swap, cross_chain_withdraw, limit_order, payment_check) can require approval — at execution
+  // the keystore verifies the approver signatures, then signs the (re-fetched, fresh) Trusted
+  // artifact. (Confidential also requires approval when a threshold is set.) Every type the
+  // engine holds to the threshold is listed here: a type missing from this list cannot be
+  // excluded from the UI, and an exclusion set through the API is dropped on the next save.
+  const allTxTypes = ['transfer', 'call', 'delete', 'intents_withdraw', 'intents_swap', 'cross_chain_withdraw', 'limit_order', 'payment_check'] as const;
+  const [approvalTypes, setApprovalTypes] = useState<Set<string>>(new Set(['transfer', 'call', 'delete', 'intents_withdraw', 'cross_chain_withdraw', 'limit_order', 'payment_check']));
 
   // Policy form with augmentPolicy that adds owner-based approval
   const {
@@ -554,9 +555,10 @@ function WalletHandoffContent() {
                           intents_swap: 'Swap',
                           cross_chain_withdraw: 'Send cross-chain (bridge off NEAR)',
                           limit_order: 'Limit order',
+                          payment_check: 'Payment check (claimable link)',
                         };
                         const directTypes = ['transfer', 'call', 'delete'] as const;
-                        const intentsTypes = ['intents_withdraw', 'intents_swap', 'cross_chain_withdraw', 'limit_order'] as const;
+                        const intentsTypes = ['intents_withdraw', 'intents_swap', 'cross_chain_withdraw', 'limit_order', 'payment_check'] as const;
                         const renderCheckbox = (txType: string) => (
  <label key={txType} className="flex items-center gap-1.5 text-sm cursor-pointer">
                             <input

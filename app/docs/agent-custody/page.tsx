@@ -466,6 +466,16 @@ export default function AgentCustodyPage() {
         </p>
 
  <p className="text-foreground mb-4">
+ <strong>A locked policy.</strong> With <code className="bg-card-muted px-1 rounded">approval.locked</code> set, the policy is
+          changed only with its approvers&apos; quorum: every later write &mdash; including the one that clears the lock &mdash; and every
+          delete waits for the votes of the approvers the policy names, counted against its threshold, inside the TEE. The
+          controller alone can set the lock (a tightening) and cannot lift it; freezing stays the controller&apos;s. Signing a
+          policy for a locked wallet answers <code className="bg-card-muted px-1 rounded">pending_approval</code>; once the
+          threshold is met the signature appears on the request and the controller sends it to the contract. Every policy
+          write also carries a <code className="bg-card-muted px-1 rounded">version</code>, so a signature is good for one write.
+        </p>
+
+ <p className="text-foreground mb-4">
  <strong>Sponsored storage.</strong> Storing a policy takes a NEAR storage deposit, attached to{' '}
  <code className="bg-card-muted px-1 rounded">store_wallet_policy</code> on the OutLayer contract. When someone else
           pays it for the owner &mdash; a relayer, or an app that funds the owner&apos;s account &mdash; the owner names that

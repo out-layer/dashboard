@@ -616,8 +616,25 @@ export interface SubmitPolicyParams {
   signAndSendTransaction: (params: any) => Promise<any>;
 }
 
-export interface SubmitPolicyResult {
+/**
+ * Either the policy is on chain, or — when the policy it replaces is locked
+ * (`approval.locked`) — the write waits for that policy's approvers: nothing
+ * was sent, and the signature appears on the request once the threshold is
+ * met (`submitApprovedPolicy`).
+ */
+export type SubmitPolicyResult =
+  | { pending: false; walletPubkey: string }
+  | { pending: true; approvalId: string; requestId: string; requiredApprovals: number };
+
+/** The signed write a locked policy's approvers released, as `GET /wallet/v1/requests/:id` carries it. */
+export interface ApprovedPolicyWrite {
   walletPubkey: string;
+  encryptedData: string;
+  walletSignature: string;
+  version: number;
+  locked: boolean;
+  /** Unix seconds; the contract refuses the signature after it. Signed. */
+  validUntil: number;
 }
 
 export async function submitPolicy(params: SubmitPolicyParams): Promise<SubmitPolicyResult> {
@@ -669,15 +686,112 @@ export async function submitPolicy(params: SubmitPolicyParams): Promise<SubmitPo
   }
 
   const signed = await signResp.json();
+
+  // A locked policy: the approvers of the policy being replaced decide, and
+  // nothing goes on chain until they have. Stop here — before the estimate,
+  // the transaction and the cache — and hand back what to wait on.
+  if (signed.status === 'pending_approval') {
+    return {
+      pending: true,
+      approvalId: String(signed.approval_id),
+      requestId: String(signed.request_id),
+      requiredApprovals: Number(signed.required_approvals ?? 0),
+    };
+  }
   const walletPubkey = `ed25519:${signed.public_key_hex}`;
 
-  // Step 3: Estimate storage cost + store on-chain
+  await storePolicyOnChain({
+    contractId,
+    viewMethod,
+    signAndSendTransaction,
+    write: {
+      walletPubkey,
+      encryptedData: encrypted.encrypted_base64,
+      walletSignature: signed.signature_hex,
+      // All three are inside the signature: the keystore's answer, never a value of our own.
+      version: Number(signed.version),
+      locked: Boolean(signed.locked),
+      validUntil: Number(signed.valid_until),
+    },
+  });
+
+  // Step 4: Invalidate coordinator cache (it re-reads the chain; the body's
+  // policy_json is not accepted there and is sent for nothing)
+  await fetch(`${coordinatorUrl}/wallet/v1/invalidate-cache`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ wallet_id: walletId }),
+  }).catch(() => {});
+
+  return { pending: false, walletPubkey };
+}
+
+/**
+ * The approvers released the write: read the signature off the request and
+ * send `store_wallet_policy` with it. Call this from a click and nowhere else —
+ * it opens the wallet.
+ */
+export async function submitApprovedPolicy(params: {
+  coordinatorUrl: string;
+  apiKey: string;
+  walletId: string;
+  requestId: string;
+  contractId: string;
+  viewMethod: SubmitPolicyParams['viewMethod'];
+  signAndSendTransaction: SubmitPolicyParams['signAndSendTransaction'];
+}): Promise<{ status: 'pending_approval' | 'failed' | 'stored'; error?: string }> {
+  const { coordinatorUrl, apiKey, walletId, requestId, contractId, viewMethod, signAndSendTransaction } = params;
+  const resp = await fetch(`${coordinatorUrl}/wallet/v1/requests/${encodeURIComponent(requestId)}`, {
+    headers: { Authorization: `Bearer ${apiKey}` },
+  });
+  if (!resp.ok) {
+    const err = await resp.json().catch(() => ({}));
+    throw new Error(err.message || `Could not read the request (HTTP ${resp.status})`);
+  }
+  const request = await resp.json();
+  if (request.status === 'pending_approval') return { status: 'pending_approval' };
+  if (request.status !== 'success') {
+    return { status: 'failed', error: request.result_data?.error || `The request is ${request.status}` };
+  }
+  const result = request.result_data ?? {};
+  if (Number(result.valid_until) * 1000 < Date.now()) {
+    return { status: 'failed', error: 'the approved signature expired before it was stored; submit the policy again' };
+  }
+  await storePolicyOnChain({
+    contractId,
+    viewMethod,
+    signAndSendTransaction,
+    write: {
+      walletPubkey: String(result.wallet_pubkey),
+      encryptedData: String(result.encrypted_data),
+      walletSignature: String(result.wallet_signature),
+      version: Number(result.version),
+      locked: Boolean(result.locked),
+      validUntil: Number(result.valid_until),
+    },
+  });
+  await fetch(`${coordinatorUrl}/wallet/v1/invalidate-cache`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ wallet_id: walletId }),
+  }).catch(() => {});
+  return { status: 'stored' };
+}
+
+/** Estimate the deposit and send `store_wallet_policy` with a signed write. */
+async function storePolicyOnChain(params: {
+  contractId: string;
+  viewMethod: SubmitPolicyParams['viewMethod'];
+  signAndSendTransaction: SubmitPolicyParams['signAndSendTransaction'];
+  write: ApprovedPolicyWrite;
+}): Promise<void> {
+  const { contractId, viewMethod, signAndSendTransaction, write } = params;
   let storageCost = '100000000000000000000000'; // default 0.1 NEAR
   try {
     const cost = await viewMethod({
       contractId,
       method: 'estimate_wallet_policy_cost',
-      args: { wallet_pubkey: walletPubkey, encrypted_data: encrypted.encrypted_base64 },
+      args: { wallet_pubkey: write.walletPubkey, encrypted_data: write.encryptedData },
     });
     if (cost) storageCost = cost as string;
   } catch (e) {
@@ -687,23 +801,16 @@ export async function submitPolicy(params: SubmitPolicyParams): Promise<SubmitPo
   const action = actionCreators.functionCall(
     'store_wallet_policy',
     {
-      wallet_pubkey: walletPubkey,
-      encrypted_data: encrypted.encrypted_base64,
-      wallet_signature: signed.signature_hex,
+      wallet_pubkey: write.walletPubkey,
+      encrypted_data: write.encryptedData,
+      wallet_signature: write.walletSignature,
+      version: write.version,
+      locked: write.locked,
+      valid_until: write.validUntil,
     },
     BigInt('100000000000000'),
     BigInt(storageCost),
   );
 
   await signAndSendTransaction({ receiverId: contractId, actions: [action] });
-
-  // Step 4: Invalidate coordinator cache + save plaintext policy to DB
-  // (so dashboard can read it immediately without waiting for worker sync)
-  await fetch(`${coordinatorUrl}/wallet/v1/invalidate-cache`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ wallet_id: walletId, policy_json: policyData }),
-  }).catch(() => {});
-
-  return { walletPubkey };
 }

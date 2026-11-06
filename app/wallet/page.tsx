@@ -7,7 +7,7 @@ import WalletConnectionModal from '@/components/WalletConnectionModal';
 import { getCoordinatorApiUrl } from '@/lib/api';
 import Link from 'next/link';
 import { saveWalletKey, computeKeyHash, getWalletKey } from '@/lib/wallet-keys';
-import { submitPolicy, parsePolicyResponse, parseApproverLine, type Approver } from '@/lib/wallet-policy';
+import { submitPolicy, submitApprovedPolicy, parsePolicyResponse, parseApproverLine, type Approver } from '@/lib/wallet-policy';
 import { useApiKeyHash } from '@/hooks/useApiKeyHash';
 import { usePolicyForm } from '@/hooks/usePolicyForm';
 import { PolicyFormFields } from '@/components/wallet/PolicyFormFields';
@@ -108,6 +108,15 @@ function WalletHandoffContent() {
   const [requireApproval, setRequireApproval] = useState(true);
   const [approvalRequired, setApprovalRequired] = useState('1');
   const [additionalApprovers, setAdditionalApprovers] = useState('');
+  /**
+   * `approval.locked`: the policy is changed only with the approvers' quorum.
+   * The owner alone can set it; clearing it is a write like any other and
+   * waits for the votes.
+   */
+  const [lockPolicy, setLockPolicy] = useState(false);
+  /** A write the current policy's approvers have to release before it goes on chain. */
+  const [pendingWrite, setPendingWrite] = useState<{ approvalId: string; requestId: string; requiredApprovals: number } | null>(null);
+  const [pickingUp, setPickingUp] = useState(false);
   /** The key the stored policy pins the owner's own vote to, kept across a save. */
   const [ownerPubkey, setOwnerPubkey] = useState<string | undefined>(undefined);
   // Which types require approval (unchecked = excluded_types). Built kinds AND the Trusted kinds
@@ -146,9 +155,10 @@ function WalletHandoffContent() {
           threshold: { required: parseInt(approvalRequired, 10) || 1 },
           ...(excluded_types.length > 0 ? { excluded_types } : {}),
           approvers,
+          ...(lockPolicy ? { locked: true } : {}),
         },
       };
-    }, [requireApproval, approvalRequired, additionalApprovers, effectiveOwner, ownerPubkey, approvalTypes]),
+    }, [requireApproval, approvalRequired, additionalApprovers, effectiveOwner, ownerPubkey, approvalTypes, lockPolicy]),
   });
 
   // Fetch wallet info using the API key
@@ -218,6 +228,7 @@ function WalletHandoffContent() {
               // Restore approvalTypes from excluded_types
               const excluded = (data.approval?.excluded_types || []) as string[];
               setApprovalTypes(new Set(allTxTypes.filter((t) => !excluded.includes(t))));
+              setLockPolicy(Boolean(data.approval?.locked));
             }
           }
         } catch {
@@ -263,7 +274,7 @@ function WalletHandoffContent() {
     setSubmitting(true);
 
     try {
-      const { walletPubkey } = await submitPolicy({
+      const result = await submitPolicy({
         coordinatorUrl,
         apiKey: apiKey!,
         walletId: walletInfo.wallet_id,
@@ -276,6 +287,17 @@ function WalletHandoffContent() {
         signAndSendTransaction,
       });
 
+      if (result.pending) {
+        // The policy on chain is locked: its approvers decide. Nothing was sent.
+        setPendingWrite(result);
+        setSuccess(
+          `The current policy is locked: this change waits for ${result.requiredApprovals} approval(s) of its approvers ` +
+          `(approval ${result.approvalId}). Once they have voted, store it from here.`
+        );
+        return;
+      }
+      const { walletPubkey } = result;
+
       // Save API key to browser localStorage for approvals
       saveWalletKey(walletPubkey, apiKey!);
 
@@ -286,6 +308,39 @@ function WalletHandoffContent() {
       setError((err as Error).message);
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  /** The approvers voted: read the signature off the request and store the policy. A click, nothing else. */
+  const handlePickUpApprovedWrite = async () => {
+    if (!pendingWrite || !walletInfo || !apiKey) return;
+    setError(null);
+    setPickingUp(true);
+    try {
+      const outcome = await submitApprovedPolicy({
+        coordinatorUrl,
+        apiKey,
+        walletId: walletInfo.wallet_id,
+        requestId: pendingWrite.requestId,
+        contractId,
+        viewMethod,
+        signAndSendTransaction,
+      });
+      if (outcome.status === 'pending_approval') {
+        setSuccess(`Still waiting for the approvers (approval ${pendingWrite.approvalId}).`);
+      } else if (outcome.status === 'failed') {
+        setPendingWrite(null);
+        setError(`The approvers' votes did not release this change: ${outcome.error}. Submit the policy again.`);
+      } else {
+        setPendingWrite(null);
+        setSuccess('Policy stored on-chain! Redirecting to wallet management...');
+        setExistingPolicy(true);
+        setTimeout(() => router.push('/wallet/manage'), 2000);
+      }
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setPickingUp(false);
     }
   };
 
@@ -333,6 +388,26 @@ function WalletHandoffContent() {
       {success && (
  <div className="mb-4 bg-success/10 border border-success/30 rounded-md p-3">
  <p className="text-sm text-success-text">{success}</p>
+        </div>
+      )}
+
+      {pendingWrite && (
+ <div className="mb-4 bg-card border border-accent/50 rounded-md p-4">
+ <p className="text-sm text-foreground mb-2">
+            Approval <code className="bg-card-muted px-1 rounded">{pendingWrite.approvalId}</code> needs{' '}
+            {pendingWrite.requiredApprovals} vote(s) of the current policy&apos;s approvers. They vote on the{' '}
+ <Link href="/wallet/approvals" className="text-accent-text underline">approvals page</Link>; the button below reads
+            the signed change and sends <code className="bg-card-muted px-1 rounded">store_wallet_policy</code> from your wallet
+            &mdash; the new policy, under your account, replacing the current one.
+          </p>
+          <button
+            type="button"
+            onClick={handlePickUpApprovedWrite}
+            disabled={pickingUp}
+ className="px-4 py-2 bg-accent text-on-accent rounded text-sm font-medium disabled:opacity-50"
+          >
+            {pickingUp ? 'Checking the votes…' : 'Store the approved policy on-chain'}
+          </button>
         </div>
       )}
 
@@ -543,6 +618,23 @@ function WalletHandoffContent() {
                         ) : null;
                       })()}
                     </div>
+
+                    <label className="flex items-start cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={lockPolicy}
+                        onChange={(e) => setLockPolicy(e.target.checked)}
+ className="mt-1 mr-3 h-4 w-4 accent-accent"
+                      />
+                      <span>
+ <span className="block text-sm font-medium text-foreground">Lock: changes need the approvers&apos; quorum</span>
+ <span className="block text-xs text-faint-foreground mt-1">
+                          Every later change to this policy &mdash; including unlocking it &mdash; and deleting it will wait for{' '}
+                          {approvalRequired || '1'} of the approvers above. You can set this alone; you cannot undo it alone.
+                          Freezing the wallet stays yours.
+                        </span>
+                      </span>
+                    </label>
 
                     <div>
  <label className="block text-xs font-medium text-muted-foreground mb-2">Require approval for:</label>

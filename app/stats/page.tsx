@@ -6,8 +6,6 @@ import Link from 'next/link';
 import {
   fetchStats,
   ExecutionStats,
-  fetchPopularRepos,
-  PopularRepo,
   fetchPricing,
   PricingConfig,
   fetchWalletStats,
@@ -32,7 +30,6 @@ function Tile({ label, value, sub, href }: { label: string; value: string; sub?:
 
 export default function StatsPage() {
   const [stats, setStats] = useState<ExecutionStats | null>(null);
-  const [repos, setRepos] = useState<PopularRepo[]>([]);
   const [pricing, setPricing] = useState<PricingConfig | null>(null);
   const [walletStats, setWalletStats] = useState<WalletStats | null>(null);
   const [loading, setLoading] = useState(true);
@@ -46,14 +43,12 @@ export default function StatsPage() {
 
   const loadData = async () => {
     try {
-      const [statsData, reposData, pricingData, walletData] = await Promise.all([
+      const [statsData, pricingData, walletData] = await Promise.all([
         fetchStats(),
-        fetchPopularRepos(),
         fetchPricing(),
         fetchWalletStats().catch(() => null),
       ]);
       setStats(statsData);
-      setRepos(reposData);
       setPricing(pricingData);
       setWalletStats(walletData);
       setError(null);
@@ -114,7 +109,7 @@ export default function StatsPage() {
   }
 
   // Platform success rate = requests handled without infrastructure errors.
-  // We're not at fault if the user has a wrong repo/secrets — only count
+  // We're not at fault if the user has wrong code/secrets — only count
   // infrastructure failures against the platform.
   const platformSuccesses = stats.total_executions - stats.failed_executions;
   const successRate =
@@ -176,7 +171,7 @@ export default function StatsPage() {
  <CardTitle>Execution outcomes</CardTitle>
           <CardDescription>
             All {stats.total_executions.toLocaleString('en-US')} executions. The platform rate counts
-            only infrastructure errors as failures — user-side outcomes (wrong repo, denied access,
+            only infrastructure errors as failures — user-side outcomes (failed runs, denied access,
             unpaid calls) are the caller&apos;s.
           </CardDescription>
         </CardHeader>
@@ -217,68 +212,6 @@ export default function StatsPage() {
         </CardContent>
       </Card>
 
-      {/* Popular repositories */}
-      {repos.filter((repo) => repo.successful_executions > 0).length > 0 && (
- <Card className="mt-6 overflow-hidden rounded-md">
-          <CardHeader>
- <CardTitle>Popular repositories</CardTitle>
-          </CardHeader>
- <div className="overflow-x-auto">
- <table className="min-w-full text-sm">
-              <thead>
- <tr className="border-t border-border text-left text-[11px] font-semibold uppercase tracking-wider text-faint-foreground">
- <th className="px-5 py-3">Repository</th>
- <th className="px-5 py-3 text-right">Executions</th>
- <th className="px-5 py-3">Success rate</th>
- <th className="px-5 py-3">Last commit</th>
-                </tr>
-              </thead>
-              <tbody>
-                {repos
-                  .filter((repo) => repo.successful_executions > 0)
-                  .map((repo, idx) => {
-                    // Compilation failures don't count as executions for repo stats
-                    const actualExecutions = repo.total_executions - repo.compilation_failed_executions;
-                    const repoPlatformSuccesses = actualExecutions - repo.failed_executions;
-                    const repoRate =
-                      actualExecutions > 0
-                        ? ((repoPlatformSuccesses / actualExecutions) * 100).toFixed(1)
-                        : '0';
-                    return (
- <tr key={idx} className="border-t border-border hover:bg-card-muted/60">
- <td className="px-5 py-3">
-                          <a
-                            href={repo.github_repo}
-                            target="_blank"
-                            rel="noopener noreferrer"
- className="font-medium text-accent-text hover:underline"
-                          >
-                            {repo.github_repo.replace(/^https?:\/\/(www\.)?github\.com\//, '')}
-                          </a>
-                        </td>
- <td className="px-5 py-3 text-right tabular-nums">{actualExecutions}</td>
- <td className="px-5 py-3">
-                          <Badge variant={parseFloat(repoRate) > 90 ? 'success' : 'warning'}>
-                            {parseFloat(repoRate) <= 90 && (
- <svg viewBox="0 0 16 16" fill="currentColor" className="h-3 w-3">
-                                <path d="M8 1.5 15 14H1zM7.25 6v4h1.5V6zm0 5v1.5h1.5V11z" />
-                              </svg>
-                            )}
-                            {repoRate}%
-                          </Badge>
-                        </td>
- <td className="px-5 py-3 font-mono text-xs text-muted-foreground">
-                          {repo.last_commit ? repo.last_commit.substring(0, 8) : '—'}
-                        </td>
-                      </tr>
-                    );
-                  })}
-              </tbody>
-            </table>
-          </div>
-        </Card>
-      )}
-
       {/* Pricing & limits */}
       {pricing && (
  <Card className="mt-6">
@@ -293,7 +226,7 @@ export default function StatsPage() {
  <CardContent className="space-y-6">
             <div>
  <h3 className="text-sm font-semibold">NEAR pricing (blockchain transactions)</h3>
- <dl className="mt-2 grid gap-x-6 gap-y-3 text-sm sm:grid-cols-2">
+ <dl className="mt-2 grid gap-x-6 gap-y-3 text-sm sm:grid-cols-3">
                 <div>
  <dt className="text-muted-foreground">Base fee</dt>
  <dd className="tabular-nums">{formatYoctoNEAR(pricing.base_fee)}</dd>
@@ -306,10 +239,6 @@ export default function StatsPage() {
  <dt className="text-muted-foreground">Per millisecond (execution)</dt>
  <dd className="tabular-nums">{formatYoctoNEAR(pricing.per_ms_fee)}</dd>
                 </div>
-                <div>
- <dt className="text-muted-foreground">Per millisecond (compilation)</dt>
- <dd className="tabular-nums">{formatYoctoNEAR(pricing.per_compile_ms_fee)}</dd>
-                </div>
               </dl>
             </div>
             <div>
@@ -319,7 +248,7 @@ export default function StatsPage() {
                   Payment keys →
                 </Link>
               </p>
- <dl className="mt-2 grid gap-x-6 gap-y-3 text-sm sm:grid-cols-2">
+ <dl className="mt-2 grid gap-x-6 gap-y-3 text-sm sm:grid-cols-3">
                 <div>
  <dt className="text-muted-foreground">Base fee</dt>
  <dd className="tabular-nums">{formatUsdMinimal(pricing.base_fee_usd)}</dd>
@@ -332,15 +261,11 @@ export default function StatsPage() {
  <dt className="text-muted-foreground">Per second (execution)</dt>
  <dd className="tabular-nums">{formatUsdMinimal(pricing.per_sec_fee_usd)}</dd>
                 </div>
-                <div>
- <dt className="text-muted-foreground">Per millisecond (compilation)</dt>
- <dd className="tabular-nums">{formatUsdMinimal(pricing.per_compile_ms_fee_usd)}</dd>
-                </div>
               </dl>
             </div>
             <div>
  <h3 className="text-sm font-semibold">Resource limits</h3>
- <dl className="mt-2 grid gap-x-6 gap-y-3 text-sm sm:grid-cols-3">
+ <dl className="mt-2 grid gap-x-6 gap-y-3 text-sm sm:grid-cols-2">
                 <div>
  <dt className="text-muted-foreground">Max instructions</dt>
  <dd className="tabular-nums">{formatInstructions(pricing.max_instructions)}</dd>
@@ -349,10 +274,6 @@ export default function StatsPage() {
                 <div>
  <dt className="text-muted-foreground">Max execution time</dt>
  <dd className="tabular-nums">{pricing.max_execution_seconds} s</dd>
-                </div>
-                <div>
- <dt className="text-muted-foreground">Max compilation time</dt>
- <dd className="tabular-nums">{pricing.max_compilation_seconds} s</dd>
                 </div>
               </dl>
             </div>

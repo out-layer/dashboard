@@ -128,32 +128,16 @@ export interface UserEarnings {
   average_execution_time_ms: number;
 }
 
-export interface PopularRepo {
-  github_repo: string;
-  total_executions: number;
-  successful_executions: number;
-  failed_executions: number; // Infrastructure errors only
-  access_denied_executions: number;
-  compilation_failed_executions: number;
-  execution_failed_executions: number;
-  insufficient_payment_executions: number;
-  custom_executions: number;
-  last_commit: string | null;
-}
-
 export interface PricingConfig {
   // NEAR pricing (for blockchain transactions)
   base_fee: string;
   per_instruction_fee: string;
   per_ms_fee: string;
-  per_compile_ms_fee: string;
   // USD pricing (for Payment Keys / HTTPS API)
   base_fee_usd: string;
   per_instruction_fee_usd: string;
   per_sec_fee_usd: string;
-  per_compile_ms_fee_usd: string;
   // Limits
-  max_compilation_seconds: number;
   max_instructions: number;
   max_execution_seconds: number;
 }
@@ -235,14 +219,6 @@ export async function checkWasmExistsByChecksum(
  */
 export async function fetchUserEarnings(userAccountId: string): Promise<UserEarnings> {
   const response = await axios.get(`${apiBase()}/public/users/${userAccountId}/earnings`);
-  return response.data;
-}
-
-/**
- * Fetch popular repositories
- */
-export async function fetchPopularRepos(): Promise<PopularRepo[]> {
-  const response = await axios.get(`${apiBase()}/public/repos/popular`);
   return response.data;
 }
 

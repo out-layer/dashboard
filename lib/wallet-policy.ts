@@ -58,6 +58,14 @@ export interface PolicyForm {
    *  whose bytes parse as a transaction — so this sub-flag cannot be walked around through
    *  the message endpoint. */
   solana_sign_raw_tx: boolean;
+  /** intents_call: a `call` to the NEAR Intents contract (`intents.near`) itself.
+   *  SECURITY: DEFAULT-DENY with or without a policy, and off in every new policy.
+   *  The contract takes the wallet's own account as the owner of its intents
+   *  account, so such a call can add a key that signs for that account outside
+   *  the TEE for good — no later policy, freeze or lock removes it — or move any
+   *  intents balance past every limit. Written only when the owner opts in;
+   *  absent = denied. Needs `call` among the transaction types as well. */
+  intents_call_enabled: boolean;
   /** refund_addresses: where a failed cross-chain deposit on each chain is
    *  refunded. One row per chain; `chain` is a canonical deposit chain name. */
   refund_addresses: RefundAddressRow[];
@@ -101,6 +109,8 @@ export const DEFAULT_POLICY: PolicyForm = {
   evm_sign_raw_tx: false,
   solana_sign_enabled: false,
   solana_sign_raw_tx: false,
+  // SECURITY: never default this on — see `intents_call_enabled`.
+  intents_call_enabled: false,
   refund_addresses: [],
 };
 
@@ -415,6 +425,11 @@ export function buildPolicyRules(
     if (form.solana_sign_enabled && form.solana_sign_raw_tx) sol.raw_tx = true;
     capabilities.solana_sign = sol;
   }
+  // SECURITY: a call to intents.near hands the agent the wallet's intents
+  // account. Emitted only on an explicit opt-in; absent = denied by the keystore.
+  if (form.intents_call_enabled) {
+    capabilities.intents_call = { allowed: true };
+  }
 
   const policy: Record<string, unknown> = {};
   if (Object.keys(rules).length > 0) policy.rules = rules;
@@ -562,6 +577,7 @@ export function parsePolicyResponse(
     evm_sign_raw_tx: caps.evm_sign?.raw_tx === true,
     solana_sign_enabled: caps.solana_sign?.allowed === true,
     solana_sign_raw_tx: caps.solana_sign?.raw_tx === true,
+    intents_call_enabled: caps.intents_call?.allowed === true,
     refund_addresses: Object.entries(data.refund_addresses || {}).map(([chain, address]) => ({ chain, address })),
   };
 

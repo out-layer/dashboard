@@ -212,8 +212,10 @@ export function PolicyFormFields({ policyForm, onChange, apiKeyHash, knownKeyHas
  <p className="text-xs text-destructive-text mt-0.5 ml-5">
              Lets the agent (and a compromised coordinator) sign raw transactions on the
             enabled chains, bypassing the transfer/call/limit policy. Leaving chains empty
- allows ALL chains <strong>including NEAR</strong> (which shares the structured
-            key — a raw NEAR signature can move funds outside this policy).
+            allows every chain <strong>except NEAR</strong>. NEAR is signed only when you list{' '}
+            <code>near</code>: the NEAR key is the wallet&apos;s transaction key, so a raw NEAR
+            signature is any transaction — it can move funds outside this policy and hand the
+            wallet&apos;s intents account to another key.
           </p>
           {policyForm.raw_sign_enabled && (
  <div className="ml-5 mt-1 space-y-1">
@@ -221,7 +223,7 @@ export function PolicyFormFields({ policyForm, onChange, apiKeyHash, knownKeyHas
                 type="text"
                 value={policyForm.raw_sign_chains}
                 onChange={(e) => update({ raw_sign_chains: e.target.value })}
-                placeholder="Chain allowlist, e.g. ethereum, solana (empty = ALL incl. near)"
+                placeholder="Chain allowlist, e.g. solana (empty = all but near; near only when listed)"
  className="w-full border border-border-strong rounded px-3 py-2 text-sm"
               />
  <label className="flex items-center gap-1.5 text-xs cursor-pointer">
@@ -457,6 +459,32 @@ export function PolicyFormFields({ policyForm, onChange, apiKeyHash, knownKeyHas
               arbitrary instructions; default OFF
             </label>
           )}
+        </div>
+
+        {/* SECURITY: intents_call (default-DENY with or without a policy; off in every new policy) */}
+ <div className="mt-3 pt-3 border-t border-border">
+ <label className="flex items-center gap-1.5 text-sm cursor-pointer">
+            <input
+              type="checkbox"
+              checked={policyForm.intents_call_enabled}
+              onChange={(e) => update({ intents_call_enabled: e.target.checked })}
+ className="rounded border-border-strong"
+            />
+ <span className="font-medium">intents_call — let the agent call intents.near directly</span>
+          </label>
+ <p className="text-xs text-muted-foreground mt-0.5 ml-5">
+            Checked = written as <code>intents_call.allowed=true</code>. Off, a call to{' '}
+            <code>intents.near</code> is refused, with or without a policy. Deposits, withdrawals,
+            transfers and swaps do not need it: they have their own operations. Works only when{' '}
+            <code>call</code> is an allowed transaction type.
+          </p>
+ <p className="text-xs text-destructive-text mt-0.5 ml-5">
+            This hands the agent this wallet&apos;s intents account. intents.near treats a call
+            from the wallet&apos;s own account as its owner: the agent can add a key of its own that
+            signs for the intents account forever — turning this off later, freezing the wallet or
+            locking the policy does not remove that key — and move any intents balance past the
+            limits above. Leave it off unless that is what you mean.
+          </p>
         </div>
       </div>
 

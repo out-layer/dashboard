@@ -38,6 +38,7 @@ export default function PaymentKeysPage() {
     contractId,
     viewMethod,
     network,
+    rpcUrl,
     stablecoin,
   } = useNearWallet();
   const coordinatorUrl = getCoordinatorApiUrl(network);
@@ -280,7 +281,6 @@ export default function PaymentKeysPage() {
   const handleNearTopUpComplete = useCallback(() => {
     setNearTopUpKey(null);
     loadPaymentKeys();
-    setSuccess('NEAR deposit submitted! Balance will update after swap completes.');
   }, [loadPaymentKeys]);
 
   // Handle continuing TopUp after first transaction (store_secrets) completed
@@ -492,6 +492,7 @@ export default function PaymentKeysPage() {
           accountId={accountId!}
           nonce={nearTopUpKey.nonce}
           contractId={contractId}
+          rpcUrl={rpcUrl}
           signAndSendTransaction={signAndSendTransaction}
           onComplete={handleNearTopUpComplete}
           onCancel={() => setNearTopUpKey(null)}

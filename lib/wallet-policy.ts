@@ -751,9 +751,9 @@ export async function submitApprovedPolicy(params: {
   const request = await resp.json();
   if (request.status === 'pending_approval') return { status: 'pending_approval' };
   if (request.status !== 'success') {
-    return { status: 'failed', error: request.result_data?.error || `The request is ${request.status}` };
+    return { status: 'failed', error: request.result?.error || `The request is ${request.status}` };
   }
-  const result = request.result_data ?? {};
+  const result = request.result ?? {};
   if (Number(result.valid_until) * 1000 < Date.now()) {
     return { status: 'failed', error: 'the approved signature expired before it was stored; submit the policy again' };
   }

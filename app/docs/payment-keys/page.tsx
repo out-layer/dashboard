@@ -119,7 +119,7 @@ Example: X-Payment-Key: alice.near:1:K7xR2mN9pQs5vW3yZ8bF...`}
  <li>Go to <Link href="/payment-keys" className="text-accent-text hover:underline">/payment-keys</Link></li>
  <li>Click <strong>&quot;Create Payment Key&quot;</strong></li>
  <li>Configure restrictions (see below)</li>
- <li>Enter initial deposit amount (minimum $1)</li>
+ <li>Enter initial deposit amount (minimum $0.01)</li>
  <li>Sign both transactions in your wallet</li>
  <li><strong>Copy the key immediately</strong> - it&apos;s shown only once!</li>
         </ol>
@@ -253,7 +253,7 @@ near call usdt.tether-token.near ft_transfer_call '{
  <ol className="list-decimal list-inside text-foreground space-y-2 mb-6">
  <li>Go to <Link href="/payment-keys" className="text-accent-text hover:underline">/payment-keys</Link></li>
  <li>Find your key and click <strong>&quot;Top Up&quot;</strong></li>
- <li>Enter amount (minimum $1)</li>
+ <li>Enter amount (minimum $0.01)</li>
  <li>Sign the <code>ft_transfer_call</code> transaction</li>
         </ol>
 

@@ -595,7 +595,8 @@ export default function ConnectorsDocsPage() {
  </a>
             . The share comes out of what a customer paid: a call paid with money, on chain or
             from a funded key, credits the author. A call covered by a subscription allowance or
-            by a trial was not paid for by the caller, and credits the author nothing.
+            by a trial was not paid for by the caller, and credits the author nothing. Nor does a
+            call paid from credits OutLayer granted: a grant pays for calls only.
  </p>
         </section>
         <section id="subscriptions">

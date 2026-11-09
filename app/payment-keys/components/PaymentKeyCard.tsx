@@ -5,8 +5,10 @@ import { StablecoinConfig } from '@/contexts/NearWalletContext';
 import {
   PaymentKeyData,
   PaymentKeyBalance,
+  PaymentKeyRefundLedger,
   PaymentKeyUsage,
   formatUsd,
+  nsToDate,
   describeFailedResponse,
   describeFetchError,
 } from './types';
@@ -22,9 +24,13 @@ interface PaymentKeyCardProps {
   balance?: PaymentKeyBalance;
   // Set when the balance could not be read; the figures are then unknown, not zero.
   balanceError?: string;
+  // The chain's refund ledger: the refund cap and, while closing, the clock.
+  ledger?: PaymentKeyRefundLedger;
   stablecoin: StablecoinConfig;
   onTopUp: () => void;
   onTopUpNear?: () => void; // Only available on mainnet
+  onClose: () => void;
+  onClaim: () => void;
   onDelete: () => void;
   coordinatorUrl: string;
   accountId: string;
@@ -35,9 +41,12 @@ export function PaymentKeyCard({
   paymentKey,
   balance,
   balanceError,
+  ledger,
   stablecoin,
   onTopUp,
   onTopUpNear,
+  onClose,
+  onClaim,
   onDelete,
   coordinatorUrl,
   accountId,
@@ -144,6 +153,12 @@ export function PaymentKeyCard({
   const reserved = balance?.reserved || '0';
   const available = balance?.available || '0';
 
+  // The refund: closing, and whether the claim is open yet.
+  const closing = ledger?.closing_since != null;
+  const claimableAt = ledger?.claimable_at != null ? nsToDate(ledger.claimable_at) : null;
+  const claimOpen = claimableAt != null && claimableAt.getTime() <= Date.now();
+  const refundableCap = ledger?.refundable_cap ?? '0';
+
   return (
     <div className="overflow-hidden rounded-lg border border-border bg-card">
       {/* Header */}
@@ -155,24 +170,50 @@ export function PaymentKeyCard({
               Created {formatDate(paymentKey.created_at)}
             </p>
           </div>
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={onTopUp} title="Top up with USDC">
-              Top up
-            </Button>
-            {onTopUpNear && (
+          <div className="flex flex-wrap gap-2">
+            {closing ? (
               <Button
                 variant="outline"
                 size="sm"
-                onClick={onTopUpNear}
-                title="Top up with NEAR (swapped to USDC)"
+                onClick={onClaim}
+                disabled={!claimOpen}
+                title={
+                  claimOpen
+                    ? `Claim the refund: at most ${formatUsd(refundableCap, stablecoin.decimals)} (what you deposited on chain) comes back to your account; the key is deleted and its storage deposit returned.`
+                    : `The refund can be claimed from ${claimableAt?.toLocaleString() ?? 'in 24 hours'}, once every call of the key has settled.`
+                }
               >
-                + NEAR
+                Claim refund
               </Button>
+            ) : (
+              <>
+                <Button variant="outline" size="sm" onClick={onTopUp} title="Top up with USDC">
+                  Top up
+                </Button>
+                {onTopUpNear && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={onTopUpNear}
+                    title="Top up with NEAR (swapped to USDC)"
+                  >
+                    + NEAR
+                  </Button>
+                )}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={onClose}
+                  title={`Close the key for a refund: it stops taking calls now; in 24 hours you claim at most ${formatUsd(refundableCap, stablecoin.decimals)} back — what you deposited on chain since refunds exist. Grants and trial credit are not refunded.`}
+                >
+                  Close for refund
+                </Button>
+              </>
             )}
             <button
               onClick={onDelete}
               className="inline-flex h-8 items-center rounded-md border border-destructive/40 px-2.5 text-xs font-semibold text-destructive-text hover:bg-destructive/10"
-              title="Delete Payment Key. Its remaining balance is forfeited — it is not refunded and does not move to another key. The storage deposit is returned."
+              title="Delete Payment Key. Its remaining balance is forfeited — it is not refunded and does not move to another key. The storage deposit is returned. Use “Close for refund” to get the balance back."
             >
               <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2" aria-hidden="true">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -180,6 +221,26 @@ export function PaymentKeyCard({
             </button>
           </div>
         </div>
+
+        {closing && (
+          <div className="mt-4 rounded-md border border-border-strong bg-card-muted p-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge variant="outline">Closing</Badge>
+              <p className="text-sm text-foreground">
+                {claimOpen
+                  ? 'The refund can be claimed now.'
+                  : `Refund claimable from ${claimableAt?.toLocaleString() ?? '—'}.`}
+              </p>
+            </div>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Refundable on chain: at most {formatUsd(refundableCap, stablecoin.decimals)} — what you deposited on
+              this key since refunds exist, less refunds. Grants and trial credit are not refunded.
+              {balance?.refund && (
+                <> The coordinator quoted {formatUsd(balance.refund.amount_usd, stablecoin.decimals)} on {new Date(balance.refund.quoted_at).toLocaleString()}.</>
+              )}
+            </p>
+          </div>
+        )}
 
         {balanceError && (
           <div className="mt-4 rounded-md border border-destructive/30 bg-destructive/10 p-3">
@@ -216,6 +277,22 @@ export function PaymentKeyCard({
             </p>
           </div>
         </div>
+        )}
+
+        {!balanceError && !closing && (
+          <p className="mt-3 text-xs text-muted-foreground">
+            {ledger ? (
+              <>Refundable on chain: {formatUsd(refundableCap, stablecoin.decimals)} — what you deposited on this key
+              since refunds exist, less refunds; grants and trial credit are not refunded.</>
+            ) : (
+              <>Nothing on this key is refundable: it was funded before refunds existed. Spend it through the key.</>
+            )}
+            {BigInt(available) > BigInt(refundableCap) && (
+              <> The key can still spend {formatUsd(available, stablecoin.decimals)}.</>
+            )}{' '}
+            “Close for refund” stops calls at once; the refund is claimed here 24 hours later, one claim a day.
+            Do not close a key while a NEAR top-up of it is in progress: the swapped USDC would go back to the swap account.
+          </p>
         )}
 
         {/* Last used */}

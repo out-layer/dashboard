@@ -282,6 +282,43 @@ near call usdt.tether-token.near ft_transfer_call '{
           This prevents an attacker from spending $90 with a $1 balance by launching many parallel requests.
         </p>
 
+ <AnchorHeading id="refunds" level={3}>Getting the Balance Back</AnchorHeading>
+
+ <p className="text-foreground mb-4">
+          A key&apos;s unspent balance comes back in two steps, because the amount is known only once every
+          call in flight on the key has settled.
+        </p>
+
+ <ol className="list-decimal list-inside text-foreground space-y-2 mb-4">
+ <li><strong>Close</strong> — <code>outlayer keys close &lt;nonce&gt;</code> (or “Close for refund” on
+            the dashboard) calls <code>close_payment_key</code>. The key stops taking calls and top-ups at
+            once; calls already running settle normally.</li>
+ <li><strong>Claim, 24 hours later</strong> — <code>outlayer keys claim &lt;nonce&gt;</code> (or “Claim
+            refund”) calls <code>claim_payment_key_refund</code>. The coordinator reports what the key has
+            left, the contract transfers it to your account in the stablecoin, deletes the key and returns
+            its NEAR storage deposit. If a call of the key is still in flight the claim is refused and the
+            key stays closed — claim again later.</li>
+        </ol>
+
+ <ul className="list-disc list-inside text-foreground space-y-2 mb-6">
+ <li><strong>What comes back is what you deposited on chain.</strong> The contract keeps its own count of
+            the stablecoin top-ups it accepted on each key and pays at most that, less earlier refunds
+            (<code>get_payment_key_refund_ledger</code> shows the figure). Grants, sponsor credit and trial
+            allowance were never deposited by you and are never refunded; the coordinator spends grants
+            first on its side too.</li>
+ <li><strong>Refunds cover deposits made on or after the release of this feature.</strong> Earlier
+            deposits are not refundable — spend them through the key as before; the dashboard and
+            <code>outlayer keys close</code> show the refundable figure before anything is signed.</li>
+ <li><strong>One claim a day.</strong> A claim refused because a call of the key is still running can be
+            repeated the next day.</li>
+ <li><strong>Do not close a key while a NEAR top-up of it is in progress.</strong> The swap takes minutes;
+            if the key is closing when the swapped stablecoin arrives, the transfer is returned to the swap
+            account, not to you. A top-up already accepted on chain is counted, and the key cannot be closed
+            until its worker step has finished.</li>
+ <li><strong>Your account must be registered on the stablecoin.</strong> If the transfer fails the key
+            stays closed and the claim can be repeated after <code>storage_deposit</code> on the token.</li>
+        </ul>
+
  <AnchorHeading id="deleting-keys" level={3}>Deleting a Key</AnchorHeading>
 
  <p className="text-foreground mb-4">
@@ -292,7 +329,7 @@ near call usdt.tether-token.near ft_transfer_call '{
 
  <ul className="list-disc list-inside text-foreground space-y-2 mb-6">
  <li><strong>The remaining balance is forfeited.</strong> Whatever the key had not spent is not refunded
-            and does not move to another key. Spend it or keep the key.</li>
+            and does not move to another key. To get it back, close the key instead (above).</li>
  <li><strong>Deleting a key does not free its nonce.</strong> The contract refuses a new key at a deleted
             key&apos;s nonce; <code>get_next_payment_key_nonce</code> answers the next one to use.</li>
         </ul>

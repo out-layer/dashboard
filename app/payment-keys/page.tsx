@@ -12,9 +12,11 @@ import { listAllUserSecrets } from '@/lib/user-secrets';
 import {
   PaymentKeyData,
   PaymentKeyBalance,
+  PaymentKeyRefundLedger,
   CreationState,
   describeFailedResponse,
   describeFetchError,
+  formatUsd,
 } from './components/types';
 import { CreateKeyForm } from './components/CreateKeyForm';
 import { PaymentKeyCard } from './components/PaymentKeyCard';
@@ -51,6 +53,8 @@ export default function PaymentKeysPage() {
   const [nextNonce, setNextNonce] = useState<number | null>(null);
   const [balances, setBalances] = useState<Map<number, PaymentKeyBalance>>(new Map());
   const [balanceErrors, setBalanceErrors] = useState<Map<number, string>>(new Map());
+  // The chain's refund ledger per key: the refund cap and the close clock.
+  const [ledgers, setLedgers] = useState<Map<number, PaymentKeyRefundLedger>>(new Map());
   const [loading, setLoading] = useState(false);
 
   // UI state
@@ -108,6 +112,22 @@ export default function PaymentKeysPage() {
         args: { account_id: accountId },
       });
       setNextNonce(Number(next));
+
+      // The chain's refund ledger of each key (the refund cap, the close clock).
+      const newLedgers = new Map<number, PaymentKeyRefundLedger>();
+      for (const key of keys) {
+        try {
+          const ledger = (await viewMethod({
+            contractId,
+            method: 'get_payment_key_refund_ledger',
+            args: { owner: accountId, nonce: key.nonce },
+          })) as PaymentKeyRefundLedger | null;
+          if (ledger) newLedgers.set(key.nonce, ledger);
+        } catch (err) {
+          console.error(`Failed to read the refund ledger of key ${key.nonce}:`, err);
+        }
+      }
+      setLedgers(newLedgers);
 
       // Load balances from coordinator
       await loadBalances(keys);
@@ -360,13 +380,72 @@ export default function PaymentKeysPage() {
         actions: [action],
       });
 
-      setSuccess('Payment Key deleted. Storage deposit refunded.');
+      setSuccess('Payment Key deleted. Storage deposit refunded; its remaining balance is forfeited.');
       loadPaymentKeys();
     } catch (err) {
       console.error('Failed to delete key:', err);
       setError(`Failed to delete: ${(err as Error).message}`);
     }
   }, [contractId, signAndSendTransaction, loadPaymentKeys]);
+
+  // Close a key for a refund: the coordinator stops taking calls on it (the
+  // same soft-delete as a delete), the contract marks it closing; the refund
+  // is claimed 24 hours later. Only ever from the card's button: a wallet
+  // opens on a click and on nothing else.
+  const handleCloseKey = useCallback(async (key: PaymentKeyData) => {
+    try {
+      const action = actionCreators.functionCall(
+        'close_payment_key',
+        { nonce: key.nonce },
+        BigInt('100000000000000'), // 100 TGas (yield/resume)
+        BigInt('1') // 1 yoctoNEAR
+      );
+      await signAndSendTransaction({ receiverId: contractId, actions: [action] });
+      setSuccess(`Payment Key #${key.nonce} is closing. Claim its refund here in 24 hours.`);
+      loadPaymentKeys();
+    } catch (err) {
+      console.error('Failed to close key:', err);
+      setError(`Failed to close: ${(err as Error).message}`);
+    }
+  }, [contractId, signAndSendTransaction, loadPaymentKeys]);
+
+  // Claim a closed key's refund. The contract pays at most its own cap (what
+  // this account deposited on the key on chain since the ledger exists), then
+  // deletes the key and returns its storage deposit. A coordinator with a call
+  // of the key still in flight refuses and the key stays closing.
+  const handleClaimRefund = useCallback(async (key: PaymentKeyData) => {
+    try {
+      const action = actionCreators.functionCall(
+        'claim_payment_key_refund',
+        { nonce: key.nonce },
+        BigInt('100000000000000'), // 100 TGas (yield/resume, then the transfer)
+        BigInt('1') // 1 yoctoNEAR
+      );
+      const outcome = (await signAndSendTransaction({ receiverId: contractId, actions: [action] })) as
+        | { status?: { SuccessValue?: string } }
+        | undefined;
+      let paid: string | null = null;
+      const encoded = outcome?.status?.SuccessValue;
+      if (typeof encoded === 'string') {
+        try {
+          paid = JSON.parse(atob(encoded));
+        } catch {
+          paid = null;
+        }
+      }
+      if (paid && paid !== '0') {
+        setSuccess(`Refunded ${formatUsd(paid, stablecoin.decimals)} to ${accountId}. Payment Key #${key.nonce} is deleted.`);
+      } else {
+        setSuccess(
+          `Refund of Payment Key #${key.nonce} claimed. If the key is still shown as closing, the coordinator still had a call of it in flight — claim again later; if it is gone, nothing was refundable on chain.`
+        );
+      }
+      loadPaymentKeys();
+    } catch (err) {
+      console.error('Failed to claim refund:', err);
+      setError(`Failed to claim the refund: ${(err as Error).message}`);
+    }
+  }, [accountId, contractId, signAndSendTransaction, loadPaymentKeys, stablecoin.decimals]);
 
   return (
     <div className="w-full">
@@ -549,9 +628,12 @@ export default function PaymentKeysPage() {
                   paymentKey={key}
                   balance={balances.get(key.nonce)}
                   balanceError={balanceErrors.get(key.nonce)}
+                  ledger={ledgers.get(key.nonce)}
                   stablecoin={stablecoin}
                   onTopUp={() => setTopUpKey(key)}
                   onTopUpNear={network === 'mainnet' ? () => setNearTopUpKey(key) : undefined}
+                  onClose={() => handleCloseKey(key)}
+                  onClaim={() => handleClaimRefund(key)}
                   onDelete={() => handleDeleteKey(key)}
                   coordinatorUrl={coordinatorUrl}
                   accountId={accountId!}

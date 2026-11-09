@@ -24,6 +24,29 @@ export interface PaymentKeyBalance {
   reserved: string;
   available: string;
   last_used_at: string | null;
+  // The coordinator no longer takes calls on this key: closed for a refund, or deleted.
+  closed: boolean;
+  // What the coordinator quoted the contract once a refund was claimed.
+  refund?: { amount_usd: string; quoted_at: string };
+}
+
+// The contract's own ledger of a key's money (`get_payment_key_refund_ledger`):
+// what this account deposited on the key on chain since the ledger exists, what
+// was refunded, and the close clock. The cap on any refund; `null` for a key
+// created before the ledger that was never topped up or closed since.
+export interface PaymentKeyRefundLedger {
+  owner: string;
+  nonce: number;
+  user_funded: string;
+  refunded: string;
+  refundable_cap: string;
+  closing_since: number | null; // block timestamp, ns
+  claimable_at: number | null; // block timestamp, ns
+}
+
+// A block timestamp in nanoseconds, as a Date.
+export function nsToDate(ns: number): Date {
+  return new Date(ns / 1_000_000);
 }
 
 export interface PaymentKeyUsage {

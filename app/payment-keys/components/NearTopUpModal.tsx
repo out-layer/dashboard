@@ -276,7 +276,9 @@ export function NearTopUpModal({
         <div className="mb-4 rounded-md border border-border bg-card-muted p-3">
           <p className="text-sm text-muted-foreground">
             Your NEAR will be swapped to USDC automatically via NEAR Intents. A 2% slippage
-            tolerance is applied.
+            tolerance is applied. Do not close or delete this key until the top-up has landed: the
+            USDC is delivered by the swap account, and a top-up the key refuses goes back there, not
+            to you.
           </p>
         </div>
 

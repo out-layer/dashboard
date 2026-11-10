@@ -291,7 +291,7 @@ export function PaymentKeyCard({
               <> The key can still spend {formatUsd(available, stablecoin.decimals)}.</>
             )}{' '}
             “Close for refund” stops calls at once; the refund is claimed here 24 hours later, one claim a day.
-            Do not close a key while a NEAR top-up of it is in progress: the swapped USDC would go back to the swap account.
+            Do not close or delete a key while a NEAR top-up of it is in progress: the swapped USDC would go back to the swap account.
           </p>
         )}
 

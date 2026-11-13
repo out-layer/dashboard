@@ -179,7 +179,7 @@ impl Contract {
                     }
                 }).to_string().into_bytes(),
                 env::attached_deposit(),
-                Gas::from_tgas(100)
+                Gas::from_tgas(200) // at least 100 TGas; 200 recommended
             )
             .then(
                 Self::ext(env::current_account_id())
@@ -214,7 +214,10 @@ impl Contract {
  <li>Base fee + (instructions used × per-instruction fee) + (execution time × per-millisecond fee)</li>
  <li>Unused funds automatically refunded to <code className="bg-card-muted px-2 py-1 rounded">payer_account_id</code></li>
  <li>A failed execution is charged for the resources it used; the rest of the deposit is refunded</li>
- <li>Query <code className="bg-card-muted px-2 py-1 rounded">estimate_execution_cost(resource_limits, input_len)</code> before calling: the compute estimate plus, for an <code className="bg-card-muted px-2 py-1 rounded">input_data</code> longer than 32 KB, 0.00001 NEAR per byte above that, held while the request is pending and returned at settlement</li>
+ <li>Attach at least 100 TGas to <code className="bg-card-muted px-2 py-1 rounded">request_execution</code>; 200 TGas is recommended</li>
+ <li><code className="bg-card-muted px-2 py-1 rounded">input_data</code> is at most 1.5 MiB, what one transaction carries</li>
+ <li>Query <code className="bg-card-muted px-2 py-1 rounded">estimate_execution_cost(resource_limits, input_len, output_len)</code> before calling: the compute estimate plus, for an <code className="bg-card-muted px-2 py-1 rounded">input_data</code> longer than 32 KB, 0.00001 NEAR per byte above that, and the same for every byte of a stored output. Both are held while the request is pending and returned at settlement</li>
+ <li>An output of 1 KB or more is stored in the contract until the request settles, and the deposit must hold every byte of it: if it does not, the output is not stored and the request fails with an error starting <code className="bg-card-muted px-2 py-1 rounded">output_storage_unpaid:</code> and the amount to attach. Pass the largest output you expect as <code className="bg-card-muted px-2 py-1 rounded">output_len</code>, or attach more: the rest is refunded</li>
           </ul>
         </section>
 

@@ -6,6 +6,10 @@ import { Button } from '@/components/ui/button';
 import { extractTxHashFromError, waitForTransactionOutcome } from '@/lib/near-rpc';
 import { NEAR_TOPUP_SWAP_ACCOUNT, readCredit, readSwap, txHashOf, usdcWords } from '@/lib/near-topup';
 
+// The contract's top_up_payment_key_with_near keeps 0.015 NEAR for the run that makes the
+// swap and needs at least 0.01 NEAR on top of it to swap.
+const MIN_NEAR_TOP_UP = 0.025;
+
 interface NearTopUpModalProps {
   accountId: string;
   nonce: number;
@@ -128,8 +132,8 @@ export function NearTopUpModal({
       setIsSubmitting(true);
 
       const amountNum = parseFloat(nearAmount);
-      if (isNaN(amountNum) || amountNum < 0.01) {
-        throw new Error('Minimum deposit is 0.01 NEAR');
+      if (isNaN(amountNum) || amountNum < MIN_NEAR_TOP_UP) {
+        throw new Error(`Minimum deposit is ${MIN_NEAR_TOP_UP} NEAR`);
       }
 
       // Convert NEAR to yoctoNEAR
@@ -264,12 +268,8 @@ export function NearTopUpModal({
             disabled={isSubmitting}
           />
           <p className="mt-1 text-xs text-muted-foreground">
-            Minimum 0.035 NEAR (includes 0.025 NEAR fee). Exact amounts may change — see current
-            values at{' '}
-            <a href="/stats" className="text-accent-text hover:underline">
-              Stats
-            </a>
-            .
+            Minimum {MIN_NEAR_TOP_UP} NEAR. A small part of it pays the gas of the operation; the
+            rest tops up the key.
           </p>
         </div>
 

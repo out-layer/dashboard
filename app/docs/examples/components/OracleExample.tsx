@@ -19,110 +19,98 @@ export function OracleExample() {
       playgroundId="multi-source-data-oracle"
     >
  <p className="text-foreground mb-4">
-        Multi-source price oracle with aggregation and validation. Production-ready decentralized oracle for cryptocurrency and commodity prices.
+        Multi-source price and data oracle with aggregation and validation. Each request names its sources; the
+        oracle fetches them inside the TEE, drops outliers and aggregates. The same code runs the production
+        price oracle <code>price-oracle.near</code>.
       </p>
 
       <KeyFeaturesSection items={[
-        'Multiple API sources: CoinGecko, CoinMarketCap, TwelveData',
-        'Price aggregation methods: average, median, weighted',
-        'Deviation validation and error handling',
-        'Batch requests for multiple tokens (up to 10)',
-        'API key management via encrypted secrets',
-        'Comprehensive error reporting per source'
+        'Exchange sources: CoinGecko, Binance, Huobi, Crypto.com, KuCoin, Gate.io, Pyth and more',
+        'Custom sources: any HTTPS JSON API, value picked by a JSON path',
+        'Aggregation: average, median, weighted_average',
+        'min_sources_num and max_price_deviation_percent guard every aggregate',
+        'Several requests in one call, each answered on its own',
+        'No secrets needed for public sources'
       ]} />
 
- <h4 className="font-semibold mt-4 mb-2">Supported Assets:</h4>
- <ul className="list-disc list-inside text-foreground space-y-1 mb-4 ml-4">
- <li><strong>Cryptocurrencies:</strong> Bitcoin, Ethereum, NEAR, SOL, etc.</li>
- <li><strong>Commodities:</strong> Gold (XAU/USD), Oil (BRENT/USD)</li>
- <li><strong>Forex:</strong> EUR/USD, GBP/USD, etc.</li>
-      </ul>
-
       <CodeExampleSection
-        title="Input Example (Multi-token):"
+        title="Input Example (as in the playground):"
         code={`{
-  "tokens": [
+  "requests": [
     {
-      "token_id": "bitcoin",
+      "id": "near_price",
       "sources": [
-        {"name": "coingecko", "token_id": null},
-        {"name": "coinmarketcap", "token_id": "BTC"}
+        {"name": "coingecko", "id": "near"},
+        {"name": "binance", "id": "NEARUSDT"},
+        {"name": "kucoin", "id": "NEAR-USDT"},
+        {"name": "gate", "id": "near_usdt"}
       ],
       "aggregation_method": "median",
-      "min_sources_num": 2
+      "min_sources_num": 3
+    },
+    {
+      "id": "eur_usd_rate",
+      "sources": [
+        {"name": "custom", "custom": {
+          "url": "https://open.er-api.com/v6/latest/EUR",
+          "json_path": "rates.USD",
+          "value_type": "number",
+          "method": "GET",
+          "headers": []
+        }}
+      ]
     }
   ],
-  "max_price_deviation_percent": 5.0
+  "max_price_deviation_percent": 10.0
 }`}
       />
 
       <CodeExampleSection
         title="Output Example:"
         code={`{
-  "tokens": [
+  "results": [
     {
-      "token": "bitcoin",
+      "id": "near_price",
       "data": {
-        "price": 110836.0,
-        "timestamp": 1729447200,
-        "sources": ["coingecko", "coinmarketcap"]
+        "value": 1.236,
+        "sources": ["binance", "coingecko", "gate", "kucoin"],
+        "timestamp": 1795087083
       },
+      "message": null
+    },
+    {
+      "id": "eur_usd_rate",
+      "data": {"value": 1.097391, "sources": ["custom"], "timestamp": 1795087083},
       "message": null
     }
   ]
 }`}
       />
 
- <h4 className="font-semibold mt-4 mb-2">How to Use:</h4>
+ <h4 className="font-semibold mt-4 mb-2">Prices in your contract (mainnet):</h4>
       <SyntaxHighlighter language="bash" style={vscDarkPlus} customStyle={{ borderRadius: '0.5rem', fontSize: '0.875rem' }}>
-{`# 1. Get API keys (optional but recommended):
-# - CoinMarketCap: https://coinmarketcap.com/api/
-# - TwelveData: https://twelvedata.com/apikey
-# - CoinGecko: Free tier (no key needed) or Pro
+{`# price-oracle.near fetches fresh prices and calls your contract back with them
+near call price-oracle.near oracle_call '{
+  "receiver_id": "your-contract.near",
+  "asset_ids": ["wrap.near", "aurora"],
+  "msg": ""
+}' --accountId your.near --deposit 0.02 --gas 200000000000000
 
-# 2. Clone, build and publish
-git clone https://github.com/out-layer/oracle-example.git
-cd oracle-example
-cargo build --target wasm32-wasip2 --release
-outlayer upload target/wasm32-wasip2/release/oracle-example.wasm   # prints SHA256 and the FastFS URL
-outlayer deploy oracle-example <FastFS URL>
-
-# 3. Store API keys as encrypted secrets for the project
-# (or on https://app.outlayer.ai/secrets)
-outlayer secrets set '{"CMC_API_KEY":"...", "TWELVE_DATA_KEY":"..."}' \\
-  --project your-account.testnet/oracle-example --profile production
-
-# 4. Request price data
-near call outlayer.testnet request_execution '{
-  "source": {
-    "Project": {
-      "project_id": "your-account.testnet/oracle-example",
-      "version_key": null
-    }
-  },
-  "secrets_ref": {
-    "profile": "production",
-    "account_id": "your-account.testnet"
-  },
-  "resource_limits": {
-    "max_instructions": 100000000,
-    "max_memory_mb": 128,
-    "max_execution_seconds": 60
-  },
-  "input_data": "{\\"tokens\\":[{\\"token_id\\":\\"bitcoin\\",\\"sources\\":[{\\"name\\":\\"coingecko\\"},{\\"name\\":\\"coinmarketcap\\",\\"token_id\\":\\"BTC\\"}],\\"aggregation_method\\":\\"median\\",\\"min_sources_num\\":2}],\\"max_price_deviation_percent\\":5.0}"
-}' --accountId your-account.testnet --deposit 0.1 --gas 300000000000000
-
-# Result will contain median price from multiple sources`}
+# your contract receives them in oracle_on_call`}
       </SyntaxHighlighter>
+
+ <ul className="list-disc list-inside text-foreground space-y-1 mt-4">
+ <li>A custom source&apos;s credential is the caller&apos;s own and goes in that source&apos;s <code className="bg-card-muted px-2 py-1 rounded">headers</code>; the code attaches its <code className="bg-card-muted px-2 py-1 rounded">API_KEY</code> secret only to the allowlisted provider hosts (<Link href="/docs/secrets#using-secrets" className="text-accent-text hover:underline">why</Link>)</li>
+ <li>Contract integration, signed price feeds and the Pyth-compatible wrapper are documented in the repository README</li>
+      </ul>
 
       <TechnicalDetailsSection items={[
  <><strong>WASI Version:</strong> Preview 2 (component model)</>,
  <><strong>Language:</strong> Rust</>,
- <><strong>HTTP Client:</strong> <code>reqwest</code> with WASI sockets</>,
- <><strong>Secrets:</strong> Optional (API keys for higher rate limits)</>,
- <><strong>Network:</strong> Required (outbound HTTPS to multiple APIs)</>,
- <><strong>Build:</strong> <code>cargo component build --release</code></>,
- <><strong>Size:</strong> ~3.5MB compiled WASM</>
+ <><strong>HTTP Client:</strong> <code>wasi-http-client</code></>,
+ <><strong>Secrets:</strong> None for public sources</>,
+ <><strong>Network:</strong> Required (outbound HTTPS to the sources)</>,
+ <><strong>Build:</strong> <code>cargo build --target wasm32-wasip2 --release</code></>
       ]} />
 
       <LearnMoreSection>

@@ -27,6 +27,8 @@ interface DirectPreset extends BasePreset {
   wasmHash?: string;
   // Project source fields
   projectId?: string; // e.g., "alice.near/my-app"
+  projectIdTestnet?: string; // per-network project, when the two networks' owners differ
+  projectIdMainnet?: string;
   versionKey?: string; // specific version key (null = active version)
   // Common fields
   buildTarget: string;
@@ -35,6 +37,12 @@ interface DirectPreset extends BasePreset {
   secretsProfile?: string;
   secretsOwnerTestnet?: string;
   secretsOwnerMainnet?: string;
+}
+
+// The project a direct preset runs on `network`: its per-network id, else the shared one.
+function presetProjectId(preset: DirectPreset, network: string): string {
+  const perNetwork = network === 'mainnet' ? preset.projectIdMainnet : preset.projectIdTestnet;
+  return perNetwork || preset.projectId || '';
 }
 
 // Proxy contract preset (calls application contract)
@@ -122,9 +130,6 @@ const DIRECT_PRESETS: DirectPreset[] = [
     buildTarget: 'wasm32-wasip2',
     args: '{"requests":[{"id":"eur_usd_rate","sources":[{"name":"custom","custom":{"url":"https://open.er-api.com/v6/latest/EUR","json_path":"rates.USD","value_type":"number","method":"GET","headers":[]}}]},{"id":"near_price","sources":[{"name":"coingecko","id":"near"},{"name":"binance","id":"NEARUSDT"},{"name":"huobi","id":"nearusdt"},{"name":"cryptocom","id":"NEAR_USDT"},{"name":"kucoin","id":"NEAR-USDT"},{"name":"gate","id":"near_usdt"},{"name":"pyth","id":"0xc415de8d2eba7db216527dff4b60e8f3a5311c740dadb233e13e12547e226750"}],"aggregation_method":"median","min_sources_num":4},{"id":"near_last_block_validator","sources":[{"name":"custom","custom":{"url":"https://api.nearblocks.io/v1/blocks/latest?limit=1","json_path":"blocks.0.author_account_id","value_type":"string","method":"GET","headers":[]}}]},{"id":"elden_ring_price_cents","sources":[{"name":"custom","custom":{"url":"https://store.steampowered.com/api/appdetails/?appids=1245620&cc=us","json_path":"1245620.data.price_overview.final","value_type":"number","method":"GET","headers":[]}}]}],"max_price_deviation_percent":10.0}',
     responseFormat: 'Json',
-    secretsProfile: 'default',
-    secretsOwnerTestnet: 'zavodil2.testnet',
-    secretsOwnerMainnet: 'zavodil.near',
     networks: ['testnet', 'mainnet'],
     docsLink: '/docs/examples#oracle-ark',
   },
@@ -132,11 +137,12 @@ const DIRECT_PRESETS: DirectPreset[] = [
     type: 'direct',
     name: 'Ethereum API',
     description: ' Query Ethereum blockchain data (balances, smart contracts, transactions). Bridge NEAR with Ethereum data for cross-chain applications.',
-    codeSourceType: 'wasmurl',
-    wasmUrl: 'https://wasmhub.testnet.fastfs.io/fastfs.testnet/34907feceac091ba89f167a5cd408ebf6a6758b6ed1bde63020071788f722a35.wasm',
-    wasmHash: '34907feceac091ba89f167a5cd408ebf6a6758b6ed1bde63020071788f722a35',
+    codeSourceType: 'project',
+    projectIdTestnet: 'zavodil2.testnet/ethereum-api',
+    projectIdMainnet: 'zavodil.near/ethereum-api',
+    versionKey: '',
     buildTarget: 'wasm32-wasip2',
-    args: '{"requests":[{"id":"alchemy","sources":[{"name":"custom","custom": {"url": "https://eth-mainnet.g.alchemy.com/v2","method": "POST","body": {"method": "eth_getBalance","params": ["0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045", "latest"],"id": 1,"jsonrpc": "2.0"}, "json_path": "result", "value_type": "string"}}]}],"max_price_deviation_percent":10.0}',
+    args: '{"command":"fetch_custom_data","requests":[{"id":"alchemy","source":{"custom":{"url":"https://eth-mainnet.g.alchemy.com/v2","method":"POST","body":{"method":"eth_getBalance","params":["0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045","latest"],"id":1,"jsonrpc":"2.0"},"json_path":"result","value_type":"string"}}}]}',
     responseFormat: 'Json',
     secretsProfile: 'alchemy',
     secretsOwnerTestnet: 'zavodil2.testnet',
@@ -363,7 +369,7 @@ function PlaygroundContent() {
     }
   }, [network]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Update secrets owner when selected preset changes
+  // Update secrets owner (and a per-network project) when the preset or the network changes
   useEffect(() => {
     const preset = PRESETS.find(p => p.name === selectedPreset);
     if (preset && preset.type === 'direct') {
@@ -371,6 +377,9 @@ function PlaygroundContent() {
         ? (preset.secretsOwnerTestnet || '')
         : (preset.secretsOwnerMainnet || '');
       setSecretsOwner(owner);
+      if (preset.codeSourceType === 'project') {
+        setProjectId(presetProjectId(preset, network));
+      }
     }
   }, [network, selectedPreset]);
 
@@ -402,7 +411,7 @@ function PlaygroundContent() {
         setCodeSourceType(preset.codeSourceType || 'wasmurl');
         setWasmUrl(preset.wasmUrl || '');
         setWasmHash(preset.wasmHash || '');
-        setProjectId(preset.projectId || '');
+        setProjectId(presetProjectId(preset, network));
         setVersionKey(preset.versionKey || '');
         setBuildTarget(preset.buildTarget);
         setResponseFormat(preset.responseFormat);

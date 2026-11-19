@@ -384,6 +384,19 @@ export default function SecretsSection() {
             Access secrets in your WASM code using standard environment variable functions. In Rust:
  <code className="bg-card-muted px-2 py-1 rounded ml-1">std::env::var(&quot;API_KEY&quot;)</code>
           </p>
+ <p className="text-foreground mt-3">
+ <strong>A secret never goes where the input says.</strong> The keystore hands a secret to the
+            build its row names; from there your code decides where it travels. Anyone the row&apos;s access
+            condition admits &mdash; everyone, for AllowAll &mdash; can run your build with your key, so a URL,
+            host or address taken from the input must never receive a secret: not in a header, the URL or the
+            body. A destination that receives a secret is either fixed by the author (a constant, or an exact
+            host allowlist the code checks before attaching it), named by the secret&apos;s owner in the same
+            row (<code className="bg-card-muted px-1 rounded">OPENAI_ENDPOINT</code> beside{' '}
+ <code className="bg-card-muted px-1 rounded">OPENAI_API_KEY</code>), or, for a connector, also bounded by
+            its manifest&apos;s <code className="bg-card-muted px-1 rounded">capabilities.network</code>, which the
+            worker enforces whatever the code does. The input may choose what is asked, never where the
+            credential is sent; an error message or answer that echoes a secret publishes it too.
+          </p>
         </section>
 
         <section id="storage-costs">

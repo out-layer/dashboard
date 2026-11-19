@@ -114,7 +114,7 @@ near contract call-function as-transaction outlayer.testnet request_execution \\
  <li>Same codebase as <code className="bg-card-muted px-2 py-1 rounded">oracle-example</code>, different secrets configuration</li>
  <li>
  Runs as a project: the binary uses project storage (<code className="bg-card-muted px-2 py-1 rounded">near:storage</code>), so a raw WasmUrl run is refused.
- Your own copy: <code className="bg-card-muted px-2 py-1 rounded">outlayer deploy ethereum-api --wasm-url &lt;FastFS URL&gt;</code>, then{' '}
+ Your own copy: <code className="bg-card-muted px-2 py-1 rounded">outlayer deploy ethereum-api &lt;FastFS URL&gt;</code>, then{' '}
  <code className="bg-card-muted px-2 py-1 rounded">{`outlayer secrets set '{"API_KEY":"…"}' --project you.near/ethereum-api --profile alchemy`}</code>
         </li>
  <li>Requires an Alchemy API key (free tier available)</li>

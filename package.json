@@ -6,9 +6,10 @@
   "scripts": {
     "test": "node --experimental-strip-types --test \"test/**/*.test.mjs\"",
     "llms": "node scripts/build-llms.mjs",
-    "predev": "npm run llms",
+    "llms:check": "node scripts/build-llms.mjs --check",
+    "predev": "npm run llms:check",
     "dev": "cross-env-shell \"PORT=${PORT:-3000}\" next dev --turbopack",
-    "prebuild": "npm run llms",
+    "prebuild": "npm run llms:check",
     "build": "next build --turbopack",
     "postbuild": "node scripts/build-search-index.mjs",
     "start": "cross-env-shell \"PORT=${PORT:-3000}\" next start",

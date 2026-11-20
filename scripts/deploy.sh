@@ -7,9 +7,6 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-# build-llms rewrites these TRACKED files on every build (when LLMS_SOURCES_ROOT
-# is set) — reset them first or git pull refuses the dirty tree.
-git checkout -- public/llms.txt public/llms-full.txt 2>/dev/null || true
 
 git pull --ff-only
 npm ci --no-audit --no-fund

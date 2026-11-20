@@ -1,0 +1,72 @@
+# Regenerates public/llms.txt and public/llms-full.txt from out-layer/outlayer's docs and
+# commits them when they changed. The site's build never generates them (npm run
+# llms:check): what is served is what is committed here, and this keeps it current.
+#
+# Runs on a change, never on a timer:
+#   - out-layer/outlayer's `dashboard-llms` workflow calls it when a push there touches
+#     the docs, passing that commit as `source_ref`;
+#   - a push here that changes the manifest, the generator or the docs sidebar;
+#   - by hand (Actions → llms → Run workflow).
+name: llms
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_ref:
+        description: out-layer/outlayer commit or branch to generate from
+        required: false
+        default: main
+  push:
+    branches: [main]
+    paths:
+      - scripts/llms-manifest.mjs
+      - scripts/build-llms.mjs
+      - lib/docs-nav.mjs
+
+permissions:
+  contents: write
+
+concurrency:
+  group: llms
+  cancel-in-progress: false
+
+jobs:
+  regenerate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      # The docs sources. Public; no submodule holds a source (they are only linked).
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: out-layer/outlayer
+          ref: ${{ inputs.source_ref || 'main' }}
+          path: .outlayer-src
+          submodules: false
+          fetch-depth: 1
+          persist-credentials: false
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci --no-audit --no-fund
+
+      - run: node scripts/build-llms.mjs --strict
+        env:
+          LLMS_SOURCES_ROOT: ${{ github.workspace }}/.outlayer-src
+
+      - name: Commit if changed
+        run: |
+          if git diff --quiet -- public/llms.txt public/llms-full.txt; then
+            echo "llms: up to date"
+            exit 0
+          fi
+          sha=$(git -C .outlayer-src rev-parse --short HEAD)
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add public/llms.txt public/llms-full.txt
+          git commit -m "chore(llms): regenerate from out-layer/outlayer@${sha}"
+          git pull --rebase --quiet
+          git push

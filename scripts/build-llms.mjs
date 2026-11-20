@@ -2,16 +2,18 @@
 // Generates public/llms.txt and public/llms-full.txt from scripts/llms-manifest.mjs.
 //
 // The inlined source markdown lives in the out-layer/outlayer monorepo this repo was
-// extracted from. Set LLMS_SOURCES_ROOT to a local checkout of that monorepo to
-// regenerate; without it the committed public/llms*.txt are left untouched, so
-// dev/build keep working in a standalone clone.
+// extracted from. The committed public/llms*.txt are what the site serves, and only
+// the `llms` workflow (.github/workflows/llms.yml) regenerates them — when the docs
+// in out-layer/outlayer change — from a fresh clone, committing when they changed.
 //
-// LLMS_SOURCES_ROOT can come from the shell OR from .env.local / .env — this script
-// loads them through Next's own loader (@next/env), same files and precedence as
-// the app itself. A deploy host sets the path once in .env.local and just builds.
-//
-// Run automatically by `npm run dev` and `npm run build` (see predev/prebuild).
-// Pass --strict to fail on a missing source file instead of warning — use that in CI.
+// Two modes:
+//   --check   what `npm run dev` and `npm run build` run (predev/prebuild): the
+//             committed files exist and the docs sidebar matches the manifest.
+//             LLMS_SOURCES_ROOT is not read — no host's checkout, however old,
+//             can replace the committed docs at build time.
+//   default   regenerate from LLMS_SOURCES_ROOT (shell, .env.local or .env, loaded
+//             through Next's own loader). The workflow runs it with --strict, which
+//             fails on a missing source file instead of warning.
 
 import { existsSync, readFileSync, statSync } from 'node:fs'
 import { readFile, writeFile } from 'node:fs/promises'
@@ -69,11 +71,14 @@ function submoduleUrl(target) {
 const scriptDir = dirname(fileURLToPath(import.meta.url))
 const dashboardDir = resolve(scriptDir, '..')
 
-// Pull .env.local / .env into process.env with Next's own loader, so
-// LLMS_SOURCES_ROOT can live in an env file instead of the deploy command line.
-loadEnvConfig(dashboardDir)
+const check = process.argv.includes('--check')
 
-const repoRoot = process.env.LLMS_SOURCES_ROOT ? resolve(process.env.LLMS_SOURCES_ROOT) : null
+// Pull .env.local / .env into process.env with Next's own loader, so
+// LLMS_SOURCES_ROOT can live in an env file instead of the command line. Not in
+// --check: a build never regenerates.
+if (!check) loadEnvConfig(dashboardDir)
+
+const repoRoot = !check && process.env.LLMS_SOURCES_ROOT ? resolve(process.env.LLMS_SOURCES_ROOT) : null
 
 // Declared after repoRoot on purpose: readSubmodules() needs it. An empty map here would
 // silently send every example link back to a 404, so it is loud rather than best-effort.
@@ -237,8 +242,11 @@ async function main() {
       )
     }
     console.log(
-      'llms: keeping committed public/llms.txt and public/llms-full.txt ' +
-        '(set LLMS_SOURCES_ROOT to an out-layer/outlayer checkout to regenerate)',
+      check
+        ? 'llms: serving the committed public/llms.txt and public/llms-full.txt ' +
+            '(the llms workflow regenerates them)'
+        : 'llms: LLMS_SOURCES_ROOT is not set — nothing to regenerate from; ' +
+            'the committed public/llms.txt and public/llms-full.txt stay',
     )
     return
   }

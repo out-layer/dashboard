@@ -22,37 +22,30 @@ npm run dev                  # http://localhost:3000
 
 ## llms.txt
 
-`public/llms.txt` and `public/llms-full.txt` are **tracked artifacts**. Their markdown
-sources (README, API.md, CUSTODY.md, wasi-examples, …) live in the out-layer/outlayer
-monorepo, so a standalone clone cannot rebuild them. To refresh after monorepo docs
-change:
+`public/llms.txt` and `public/llms-full.txt` are **tracked artifacts**, and they are
+what the site serves. Their markdown sources (README, API.md, CUSTODY.md,
+wasi-examples, …) live in the out-layer/outlayer monorepo.
+
+The `llms` workflow (`.github/workflows/llms.yml`) keeps them current, on a change
+only: out-layer/outlayer calls it when a push there touches the docs, and it runs on a
+change here to the manifest, the generator or the docs sidebar (or by hand). It
+clones out-layer/outlayer, regenerates with `--strict`, and commits the files when
+they changed (`chore(llms): regenerate from out-layer/outlayer@<sha>`).
+
+`npm run dev` and `npm run build` only check them (`npm run llms:check`): the files
+exist and the docs sidebar matches `scripts/llms-manifest.mjs`. A build never
+regenerates, so no server's checkout of the monorepo can replace them.
+
+To regenerate by hand (to see a manifest change before pushing it):
 
 ```bash
 LLMS_SOURCES_ROOT=~/projects/near-offshore npm run llms
 ```
 
-Without `LLMS_SOURCES_ROOT`, `dev`/`build` keep the committed files untouched.
 Edit `scripts/llms-manifest.mjs` to change what is indexed or inlined.
 
-### Refreshing on the server
-
-The deploy host can regenerate at build time from its own monorepo checkout.
-Set the path once in `.env.local` (the script loads env files via `@next/env`,
-same precedence as the app):
+Deploy on the server is one command (as `nextjs-user`):
 
 ```bash
-# .env.local on the deploy host
-LLMS_SOURCES_ROOT=/path/to/outlayer
+scripts/deploy.sh   # pulls, npm ci, builds, restarts the service
 ```
-
-Then every deploy is one command (as `nextjs-user`):
-
-```bash
-scripts/deploy.sh   # resets llms artifacts, pulls, npm ci, builds, restarts the service
-```
-
-To also refresh the llms *content*, `git pull` the monorepo checkout first — the
-script deliberately does not touch it. The `git checkout --` step inside the
-script matters: regeneration rewrites two TRACKED files, and a dirty tree makes
-the next `git pull` abort. Restarting needs a narrow sudoers rule (see the
-script header).

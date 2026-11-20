@@ -218,7 +218,7 @@ world rpc-host {
  <li><strong>Input:</strong> Always read from stdin (not command-line arguments)</li>
  <li><strong>Output:</strong> Always write to stdout (not stderr)</li>
  <li><strong>Format:</strong> JSON only (UTF-8 encoded)</li>
- <li><strong>Size limit:</strong> Output must be ≤900 bytes (NEAR Protocol limit)</li>
+ <li><strong>Size limit:</strong> Up to 10 MiB over HTTPS; up to 1.5 MiB to a NEAR contract, where an output of 1024 bytes or more is stored and paid from the request&apos;s deposit (0.00001 NEAR per byte)</li>
  <li><strong>Flush:</strong> Call <code className="bg-card-muted px-2 py-1 rounded">stdout().flush()</code> after writing</li>
             </ul>
           </div>
@@ -408,7 +408,7 @@ world rpc-host {
  <li><strong>Max Instructions:</strong> 100 billion per execution (fuel metering enforced)</li>
  <li><strong>Max Execution Time:</strong> 60 seconds per execution</li>
  <li><strong>Max Memory:</strong> Configurable up to platform limits</li>
- <li><strong>Output Size:</strong> Must be ≤900 bytes (NEAR limit)</li>
+ <li><strong>Output Size:</strong> Up to 10 MiB over HTTPS, 1.5 MiB to a NEAR contract</li>
           </ul>
         </section>
 
@@ -481,7 +481,6 @@ cargo build --release
  <li>Input/output handling (stdin → stdout)</li>
  <li>Resource limits enforcement</li>
  <li>JSON validation</li>
- <li>Output size limits (&lt;900 bytes)</li>
           </ul>
 
  <h4 className="text-lg font-semibold mb-2 mt-4">Option 3: Manual Testing with wasmtime</h4>
@@ -519,8 +518,8 @@ echo '{"message":"test"}' | wasmtime --env SECRET=my-key your-app.wasm`}
  <p className="text-foreground mt-1">Using WASI P1 instead of P2 - HTTP requires <code>wasm32-wasip2</code> target</p>
             </div>
  <div className="bg-destructive/10 border-l-4 border-destructive/50 p-3">
- <strong className="text-destructive-text">Output truncated in explorer</strong>
- <p className="text-foreground mt-1">Output exceeds 900 bytes - truncate before returning</p>
+ <strong className="text-destructive-text">Contract request fails with <code>output_storage_unpaid</code></strong>
+ <p className="text-foreground mt-1">An output of 1024 bytes or more is stored and paid from the request&apos;s deposit (0.00001 NEAR per byte): attach the estimate from <code>estimate_execution_cost</code> with the largest <code>output_len</code> you expect — what the run does not use is refunded</p>
             </div>
           </div>
         </section>

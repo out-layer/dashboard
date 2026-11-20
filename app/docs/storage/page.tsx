@@ -53,6 +53,12 @@ export default function StoragePage() {
           Storage is encrypted using the keystore TEE and isolated per user.
         </p>
 
+ <p className="text-foreground mb-4">
+          Values of encrypted records are decrypted only inside the TEE. Key names are not secret: the
+          keystore&apos;s diagnostics record them (names, never values), and the operator uses them only to see
+          how storage is used across the system, for nothing else. Keep secrets out of key names.
+        </p>
+
  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
  <div className="border border-border rounded-lg p-4 bg-card-muted">
  <h4 className="font-semibold text-foreground mb-2">Encrypted</h4>

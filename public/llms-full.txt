@@ -142,7 +142,7 @@ curl -X POST https://api.outlayer.ai/call/alice.near/my-project \
 ## Security Model
 
 - **Intel TDX**: Hardware memory encryption and isolation — the host operator cannot read TEE memory
-- **Own TDX hosts**: Workers and keystores run in Intel TDX CVMs on OutLayer's own bare-metal servers, deployed with [`deploy/self-hosted-tdx`](deploy/self-hosted-tdx/README.md). Registration verifies Intel DCAP quotes on chain against Intel PCS collateral; no third-party cloud service is in that path. The Phala Cloud files in `docker/` and `scripts/` are a supported alternative deployment, not a dependency — see [docker/README.md](https://github.com/out-layer/outlayer/blob/main/docker/README.md#phala-cloud)
+- **Own TDX hosts**: Workers and keystores run in Intel TDX CVMs on OutLayer's own bare-metal servers, deployed with [`deploy/self-hosted-tdx`](https://github.com/out-layer/self-hosted-tdx/blob/main/README.md). Registration verifies Intel DCAP quotes on chain against Intel PCS collateral; no third-party cloud service is in that path. The Phala Cloud files in `docker/` and `scripts/` are a supported alternative deployment, not a dependency — see [docker/README.md](https://github.com/out-layer/outlayer/blob/main/docker/README.md#phala-cloud)
 - **5-Measurement Verification**: Workers are registered only when all 5 TDX measurements (MRTD + RTMR0-3) match an approved set, so a dev/debug image fails attestation even when the application matches
 - **Sigstore build provenance**: The worker and keystore Docker images are built by GitHub Actions with Sigstore-backed build-provenance attestations, so an image digest can be traced to the source commit it was built from
 - **No builds in the TEE**: TEE execution workers run a WASM binary whose sha256 they measure and report to the keystore with every secret decryption; they run no build scripts
@@ -1634,9 +1634,9 @@ connector.
 #### For WASI Applications
 
 **✅ CORRECT**: Copy `Cargo.toml` from existing working examples:
-- [random-example/Cargo.toml](./random-example/Cargo.toml) - WASI P1 template
-- [ai-example/Cargo.toml](./ai-example/Cargo.toml) - WASI P2 template
-- [oracle-example/Cargo.toml](./oracle-example/Cargo.toml) - WASI P2 with HTTP
+- [random-example/Cargo.toml](https://github.com/out-layer/random-example/blob/main/Cargo.toml) - WASI P1 template
+- [ai-example/Cargo.toml](https://github.com/out-layer/ai-example/blob/main/Cargo.toml) - WASI P2 template
+- [oracle-example/Cargo.toml](https://github.com/out-layer/oracle-example/blob/main/Cargo.toml) - WASI P2 with HTTP
 - [wallet-probe/Cargo.toml](https://github.com/out-layer/outlayer/blob/main/wasi-examples/wallet-probe/Cargo.toml) - WASI P2 importing a host interface with `wit-bindgen = "0.36"`
 
 **Tested and working versions:**
@@ -2412,7 +2412,7 @@ A contract that calls OutLayer (a proxy contract) is a separate crate with its
 own pins, built with `cargo near build`: `rust-toolchain.toml` at
 `channel = "1.85.0"`, `near-sdk` 5.9.0, `schemars = "0.8"`. How to write one is
 in [PROXY_CONTRACTS_TUTORIAL.md](https://github.com/out-layer/outlayer/blob/main/wasi-examples/PROXY_CONTRACTS_TUTORIAL.md);
-[random-example/random-contract](./random-example/random-contract/) is a
+[random-example/random-contract](https://github.com/out-layer/random-example/tree/main/random-contract) is a
 working one next to its module.
 
 ## Need Help?
@@ -3424,7 +3424,7 @@ User → Your Contract → OutLayer Contract → Worker → Callback → Your Co
 value is the run's output. Your callback, chained with `.then(...)`, receives
 that output.
 
-A working proxy is [random-example/random-contract](./random-example/random-contract/):
+A working proxy is [random-example/random-contract](https://github.com/out-layer/random-example/tree/main/random-contract):
 everything below is taken from it.
 
 ## Basic Setup

@@ -129,16 +129,15 @@ function absolutizeLinks(markdown, sourcePath) {
     if (resolved.startsWith('..')) return match
     if (resolved === '.') return `](${SITE.repoUrl}${anchor}${title})`
 
+    // Inside a submodule the kind is read from the link itself (a trailing `/` is a
+    // directory), never from the disk: a checkout without its submodules — the llms
+    // workflow's — has no file to look at, and the link must not depend on that.
+    // GitHub redirects /blob/ to /tree/ for a directory linked without the slash.
     const sub = submoduleUrl(resolved.replace(/\/$/, ''))
     if (sub) {
       if (!sub.rest) return `](${sub.url}${anchor}${title})`
-      let subKind = 'blob'
-      try {
-        if (statSync(resolve(repoRoot, resolved)).isDirectory()) subKind = 'tree'
-      } catch {
-        return match
-      }
-      return `](${sub.url}/${subKind}/main/${sub.rest}${anchor}${title})`
+      const subKind = pathPart.endsWith('/') ? 'tree' : 'blob'
+      return `](${sub.url}/${subKind}/main/${sub.rest.replace(/\/$/, '')}${anchor}${title})`
     }
 
     let stats

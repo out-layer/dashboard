@@ -142,6 +142,7 @@ curl -X POST https://api.outlayer.ai/call/alice.near/my-project \
 ## Security Model
 
 - **Intel TDX**: Hardware memory encryption and isolation — the host operator cannot read TEE memory
+- **Own TDX hosts**: Workers and keystores run in Intel TDX CVMs on OutLayer's own bare-metal servers, deployed with [`deploy/self-hosted-tdx`](deploy/self-hosted-tdx/README.md). Registration verifies Intel DCAP quotes on chain against Intel PCS collateral; no third-party cloud service is in that path. The Phala Cloud files in `docker/` and `scripts/` are a supported alternative deployment, not a dependency — see [docker/README.md](https://github.com/out-layer/outlayer/blob/main/docker/README.md#phala-cloud)
 - **5-Measurement Verification**: Workers are registered only when all 5 TDX measurements (MRTD + RTMR0-3) match an approved set, so a dev/debug image fails attestation even when the application matches
 - **Sigstore build provenance**: The worker and keystore Docker images are built by GitHub Actions with Sigstore-backed build-provenance attestations, so an image digest can be traced to the source commit it was built from
 - **No builds in the TEE**: TEE execution workers run a WASM binary whose sha256 they measure and report to the keystore with every secret decryption; they run no build scripts
@@ -648,8 +649,9 @@ Payment keys pay for HTTPS API calls.
 | `outlayer keys list` | List keys with balances |
 | `outlayer keys balance <nonce>` | Balance, spent, reserved, initial |
 | `outlayer keys topup <nonce> --usd <amount>` | Top up with the stablecoin (any network) |
-| `outlayer keys topup <nonce> <amount>` | Top up with NEAR, swapped to USDC through NEAR Intents (mainnet only, minimum 0.035 NEAR) |
-| `outlayer keys delete <nonce>` | Delete key: the storage deposit is refunded, the remaining balance is forfeited |
+| `outlayer keys close <nonce>` | Stop the key and start its refund: no new calls, a 24 h settlement wait, then `keys claim`. Not while a NEAR top-up of the key is in progress: the swapped stablecoin would go back to the swap account |
+| `outlayer keys claim <nonce>` | Claim a closed key's refund: the unspent stablecoin deposited on chain after the ledger's release comes back to the owner, the key is deleted and its storage deposit refunded |
+| `outlayer keys delete <nonce>` | Delete key: the storage deposit is refunded, the remaining balance is forfeited (use `keys close` to get it back) |
 | `outlayer keys trial-key [--api-key wk_...]` | Print a custody wallet's nonce-0 key (trial or sponsored); it is derived, so it is read again rather than stored |
 | `outlayer redeem <spn_...> [--api-key wk_...] [--payment-key owner:0:key]` | Redeem a sponsor code: a subscription on the wallet's nonce-0 key, paid by the sponsor; stdout is the key. `--payment-key` sends a nonce-0 key issued at random, which cannot be read again, as the proof that binds it; the answer is the derived key that replaces it |
 
@@ -1632,9 +1634,9 @@ connector.
 #### For WASI Applications
 
 **✅ CORRECT**: Copy `Cargo.toml` from existing working examples:
-- [random-example/Cargo.toml](https://github.com/out-layer/random-example/blob/main/Cargo.toml) - WASI P1 template
-- [ai-example/Cargo.toml](https://github.com/out-layer/ai-example/blob/main/Cargo.toml) - WASI P2 template
-- [oracle-example/Cargo.toml](https://github.com/out-layer/oracle-example/blob/main/Cargo.toml) - WASI P2 with HTTP
+- [random-example/Cargo.toml](./random-example/Cargo.toml) - WASI P1 template
+- [ai-example/Cargo.toml](./ai-example/Cargo.toml) - WASI P2 template
+- [oracle-example/Cargo.toml](./oracle-example/Cargo.toml) - WASI P2 with HTTP
 - [wallet-probe/Cargo.toml](https://github.com/out-layer/outlayer/blob/main/wasi-examples/wallet-probe/Cargo.toml) - WASI P2 importing a host interface with `wit-bindgen = "0.36"`
 
 **Tested and working versions:**
@@ -1998,6 +2000,29 @@ than picking a winner. System names (every variable in `WASM_ENV_VARS.md`) are
 refused by the keystore when secrets are stored and stripped at run time, so
 whatever your module reads under a system name came from the worker. The
 `PROTECTED_` prefix is reserved for secrets the keystore generates.
+
+**Where a secret may go: never where the input says.** The keystore hands a
+secret to the build its row names; from there your code alone decides where it
+travels. A URL, host or address taken from the input must never receive a
+secret — not in a header, not in the URL, not in the body. Anyone the row's
+condition admits (everyone, for `AllowAll`) can run your build with your key
+and name a server of their own, and the request carries the key there. A
+destination that receives a secret is one of:
+
+- **fixed by the author**: a constant in the code, or an allowlist the code
+  checks before it attaches the secret — exact hostnames, no suffix match
+  (`oracle-example`'s `API_KEY_HOSTS`);
+- **named by the secret's owner in the same row**: `OPENAI_ENDPOINT` stored
+  beside `OPENAI_API_KEY` (`ai-example`), which only the owner's own
+  `store_secrets` can change, and which the code refuses when the input tries
+  to name it;
+- **bounded by a connector's manifest** as well: `capabilities.network` is a
+  hard limit the worker enforces outside your code, so no input and no bug can
+  reach a host it does not list (`docs/CONNECTORS.md` §3).
+
+The input may choose what is asked — the prompt, the model, the city — never
+where a credential is sent. The same holds for every other way out: an error
+message, an answer or a log line that echoes a secret publishes it.
 
 ### 3d. Who may call your project
 
@@ -2387,7 +2412,7 @@ A contract that calls OutLayer (a proxy contract) is a separate crate with its
 own pins, built with `cargo near build`: `rust-toolchain.toml` at
 `channel = "1.85.0"`, `near-sdk` 5.9.0, `schemars = "0.8"`. How to write one is
 in [PROXY_CONTRACTS_TUTORIAL.md](https://github.com/out-layer/outlayer/blob/main/wasi-examples/PROXY_CONTRACTS_TUTORIAL.md);
-[random-example/random-contract](https://github.com/out-layer/random-example/tree/main/random-contract) is a
+[random-example/random-contract](./random-example/random-contract/) is a
 working one next to its module.
 
 ## Need Help?
@@ -3333,7 +3358,7 @@ bs58 = "0.5"
 borsh = { version = "1.5", features = ["derive"] }
 sha2 = "0.10"
 base64 = "0.21"
-reqwest = { version = "0.11", features = ["json"] }
+reqwest = { version = "0.12", features = ["json"] }
 chrono = "0.4"
 serde = { version = "1.0", features = ["derive"] }
 ```
@@ -3399,7 +3424,7 @@ User → Your Contract → OutLayer Contract → Worker → Callback → Your Co
 value is the run's output. Your callback, chained with `.then(...)`, receives
 that output.
 
-A working proxy is [random-example/random-contract](https://github.com/out-layer/random-example/tree/main/random-contract):
+A working proxy is [random-example/random-contract](./random-example/random-contract/):
 everything below is taken from it.
 
 ## Basic Setup
@@ -4059,7 +4084,7 @@ every path.
 | `path` | `[a-z0-9][a-z0-9_-]{0,31}`, unique in the list | The key's name and an input of its derivation. The same path gives the same key for as long as its binding holds; another path is another key. Renaming a path loses the key, any address made from its public key, and every signature checked against it. |
 | `type` | `ed25519` \| `secp256k1` | The key's algorithm, and an input of its derivation (`signing-key:v1:{type}:{project\|wasm}:…`): one secret never serves two algorithms. A path is declared once whatever its type — the same path under the other type would be another key. |
 | `bind` | `project` (default) \| `wasm` | How the code must be run to get the key, and what the key belongs to besides the caller. There is no repository binding. |
-| `caller` | `signer` (default) \| `predecessor` | Which account of the run the key belongs to: the transaction's signer (the payment key's owner over HTTPS), or the account that called the contract. A segment of the derivation, so the two never derive one key. |
+| `caller` | `signer` (default) \| `predecessor` \| `none` | Which account of the run the key belongs to: the transaction's signer (the payment key's owner over HTTPS), or the account that called the contract — or, with `none`, no account: one key for every caller of the project (or of the build). A segment of the derivation, so no two choices derive one key. `none` is ed25519 only. |
 | `vault` | a NEAR account id | `project` keys only: derive from that vault's master instead of the default one. |
 
 At most 3 keys. A key with an unknown field is refused, not read with the field
@@ -4085,8 +4110,31 @@ the input can.
   binds to the token contract. A run that carries no predecessor is refused
   before it starts.
 
-Both are legitimate; the module author chooses per key. A signer key and a
-predecessor key for one account are two keys. A run with no caller account is
+* `none`: no account. The key belongs to the binding and the path alone —
+  `signing-key:v1:ed25519:project:{project_uuid}:none:{path}`, or
+  `…:wasm:{wasm_sha256}:none:{path}` — so every caller of the project (of
+  the build, for `bind: "wasm"`) drives the same key, and a verifier pins
+  one public key for the project. It is the voice of the code, never of a
+  caller. Only an ed25519 key can be `none`, and `sign-nep413` refuses it: a
+  NEP-413 signature is a login as the key's implicit account, which every
+  caller would otherwise make. The host cannot see what a module signs with
+  `sign`, so the rule below is the module's: sign with a `none` key only
+  messages the module composes, under a fixed prefix of its own, and name
+  the caller in them from the host, never from the input: the account that
+  paid is `NEAR_USER_ACCOUNT_ID` (`env::var`), the account the run acts as
+  is `NEAR_SENDER_ID` (`env::signer_account_id()`) — the same account,
+  except under Agent Connect's bound identity, where it is the bound
+  agent's (`WASM_ENV_VARS.md`) — every caller can make it sign whatever the module will sign for
+  any of them. The environment is input too: a caller names secret rows of
+  its own for the run (`secrets_ref`, `secrets_refs`), and their variables
+  are the caller's. Take what a `none` key signs from the input, the code,
+  and only those variables whose row the module has checked in
+  `OUTLAYER_SECRETS_ROWS` — the row's owner is the one fact a row cannot
+  claim about itself. A `vault` works on a `none` key as on any `project`
+  key.
+
+All three are legitimate; the module author chooses per key. A signer key, a
+predecessor key and a key of no caller are three keys. A run with no caller account is
 refused: the worker's placeholder for a missing account is refused by name,
 before it could pass as an account id.
 
@@ -4263,7 +4311,7 @@ declares no key gets an `err` for every path.
 |---|---|---|
 | `path` | `[a-z0-9][a-z0-9_-]{0,31}`, unique in the list | The key's name and an input of its derivation. The same path gives the same key for as long as its binding holds. **Renaming a path loses the key, and with it everything the key sealed.** |
 | `bind` | `project` (default) \| `wasm` | As for a signing key. |
-| `caller` | `signer` (default) \| `predecessor` | As for a signing key. |
+| `caller` | `signer` (default) \| `predecessor` | As for a signing key; there is no `none` — an encryption key every caller drove would let one caller resubmit another's sealed request and read the answer, so `none` does not parse. |
 | `vault` | a NEAR account id | `project` keys only, as for a signing key. |
 
 At most 5 encryption keys, counted apart from the signing keys: a manifest may
@@ -4893,6 +4941,16 @@ is answered from the condition itself, at any size.
 Decryption happens in the keystore TEE and the plaintext exists only inside the
 worker that runs your module. The coordinator never sees it.
 
+**Your credential goes only where you named.** Every caller the row admits runs
+your code with your key, so a destination that receives it is set by you: a
+host in the code, checked exactly before the credential is attached, and listed
+in `capabilities.network`, the limit the worker enforces whatever the code
+does. A URL or host from the call's input never receives a secret, in a header,
+the URL or the body; a connector that fetches a caller-chosen URL attaches no
+credential to that request. The same rule covers error messages and answers:
+one that echoes a secret publishes it. The general form, for projects that are
+not connectors, is in `wasi-examples/WASI_TUTORIAL.md` §3c.
+
 ### 4.2 The caller's credential (the agent's own)
 
 An agent may have a secret of its own that YOUR connector needs to act on its
@@ -5098,8 +5156,10 @@ functions. The keystore derives each key for the run, bound to the project's
 on-chain uuid and to one account of the run, chosen per key with `caller`:
 `signer` (the default — the transaction's signer, the payment key's owner over
 HTTPS) or `predecessor` (the account that called the contract — a DAO, a wallet
-contract, the token contract on an `ft_transfer_call`). Your code names the key
-by `path` and gets a signature back, never the key. The key follows the uuid,
+contract, the token contract on an `ft_transfer_call`) — or `none`, one ed25519
+key for every caller of the project, for statements a verifier checks against
+one pinned public key. Your code names the key by `path` and gets a signature
+back, never the key. The key follows the uuid,
 so it survives code upgrades and a transfer of the project.
 
 Use one when somebody must be able to check what your connector said or did
@@ -5126,7 +5186,14 @@ Sign only messages your code composes from fields it has parsed and checked.
 And with a `signer` key, any contract the signer ever transacts with can start a
 run under the signer's key with input of its own — the input is not the
 signer's intent. A `predecessor` key binds to that contract instead; both are
-legitimate, and you choose.
+legitimate, and you choose. A `none` key is driven by every caller alike: sign
+with it only what your code composes under its own prefix, name the caller from
+the host — `NEAR_USER_ACCOUNT_ID`, the account that paid, or `NEAR_SENDER_ID`
+(`env::signer_account_id()`), the account the run acts as, which differs only
+under a bound identity — and expect no `sign-nep413` from it — the
+host refuses one, because it would log every caller in as the key's account.
+A caller's own secret rows are its input too: sign a variable only when
+`OUTLAYER_SECRETS_ROWS` shows it came from a row whose owner you trust.
 
 What a signing key has that a sub-key does not: it needs no wallet, so it works
 from `request_execution` as well as over HTTPS, and nothing outside a run of
@@ -5435,6 +5502,8 @@ access; one that echoed secrets would make every test run a leak.
    row's `AccessCondition` admits callers), the owner's (a row the call names
    in `secrets_ref`), or the agent's own (`X-Use-Owner-Secret`). Most
    connectors need none.
+   A secret goes only to a host fixed in the code and listed in
+   `capabilities.network` — never to a URL the input names (§4.1).
 7. Declare a `limits` entry for anything only you know is fragile.
 8. Handle errors. Read `NEAR_SENDER_ID` for who you act as and
    `NEAR_USER_ACCOUNT_ID` for who paid; never take either from the input.
@@ -6115,8 +6184,9 @@ near call outlayer.testnet request_execution '{
   a field left out takes its default (1 billion, 128 MB, 60 s). **Always pass
   it, even as `{}`**: a request without `resource_limits` is compile-only and
   runs nothing.
-- `input_data` — the guest's stdin. 10,000 bytes and more is left out of the
-  event and read by the worker from state (`get_request`).
+- `input_data` — the guest's stdin, at most 1.5 MiB (what one transaction
+  carries). 10,000 bytes and more is left out of the event and read by the
+  worker from state (`get_request`).
 - `secrets_ref` — `{profile, account_id}`: the secret row the run asks the
   keystore for. `profile` must satisfy the rule `store_secrets` applies (1–64
   bytes of letters, digits, `-` or `_`); a reference no row could match is
@@ -6149,15 +6219,32 @@ operation, and `attached_usd` must be at least its price. The excess comes back
 to the caller's stablecoin balance at settlement. Not applied to compile-only
 requests.
 
-**Deposit.** `estimate_execution_cost(resource_limits, input_len)` is what to
-attach: the compute estimate for the limits
+**Deposit.** `estimate_execution_cost(resource_limits, input_len, output_len)` is
+what to attach: the compute estimate for the limits
 (`base_fee + max_instructions/1e6 × per_million_instructions_fee + max_execution_seconds × 1000 × per_ms_fee`),
 plus — for an `input_data` longer than 32 KB — 0.00001 NEAR per byte above
-that, held while the request is pending and returned at settlement. A
-compile-only request requires the base fee.
+that, plus 0.00001 NEAR per byte of a stored output. Both are held while the
+request is pending and returned at settlement. A compile-only request requires
+the base fee.
 
-**Gas.** The settlement callback is created with 50 TGas taken from the gas
-attached to the call, so attach more than that (the example uses 100 TGas).
+An output of 1024 bytes or more is stored in the contract until the request
+settles, and every byte of it is paid: it must fit in what the payment has
+left above the run's cost and the input's deposit. Its size is known only when
+the run ends, so this is checked then. An output that does not fit is not
+stored, and the request fails with an error starting `output_storage_unpaid:`
+that names the bytes and the deposit they need; the run's cost is charged and
+the rest refunded. A stored output is at most 1.5 MiB
+(`MAX_STORED_OUTPUT_BYTES`); a larger one fails the request with an error
+starting `output_too_large:`. Keep `input_data` and the output together under
+about 2 MB: the worker delivers a stored output in one transaction, and above
+that its gas does not cover writing it, so the request ends at its timeout.
+A caller whose guest may answer 1 KB or more attaches more
+NEAR — the estimate with the largest `output_len` it expects, or simply a
+larger deposit: whatever the run does not use comes back. An output under
+1024 bytes travels with the answer and needs nothing.
+
+**Gas.** Attach at least 100 TGas to `request_execution`; 200 TGas is
+recommended. The settlement callback is created with 50 TGas taken from it.
 Above 32 KB of input it gets 25 MGas more per byte (about 52 TGas more for
 2 MiB).
 
@@ -6181,19 +6268,42 @@ whole when the run fails or times out; on a success the price goes to the
 project (split with the author for a priced project), less the guest's own
 refund, and any change returns to the caller.
 
-#### `cancel_stale_execution`
+#### `cancel_stale_execution`, `cancel_stale_executions`
 
-Only the request's sender, only after 10 minutes. Returns the whole of the
-stablecoin and the NEAR above the charge, the storage part of a large input
-always included. The charge is the base fee when no output was delivered — as
+Anyone, only once the request is stale: 400 blocks after its admission
+(`STALE_AFTER_BLOCKS`, twice the yield window, whatever the block time); a
+request admitted before this release, 10 minutes. The outcome is the same
+whoever calls. A request still pending then is one whose callback never
+settled it, and it holds the contract's storage until removed.
+
+Every `request_execution` removes such requests itself before it stores its
+own: from a cursor at the oldest pending id it looks at up to 16 ids, through a
+small record of each (admission block, bytes held) rather than the request
+itself, settles up to 2 stale ones holding at most 256 KB of input and output,
+and stops at the first live one. The space they held pays for the new request in the same
+transaction, so stuck requests never keep the next caller out, and whoever made
+them pays for their removal by making more. It runs only when the caller
+attached 40 TGas beyond its own callback's gas. A larger stuck request is left
+to `cancel_stale_executions`. Returns the whole of the stablecoin to the
+sender and the NEAR above the charge to the payer, the storage part of a large
+input always included, whatever the prices are now. The charge is the base fee when no output was delivered — as
 a timed-out request pays — and the compute estimate for the limits when the
 worker has delivered the output through the 2-call flow and the callback never
 settled it: the run happened and its output is readable with
-`get_pending_output`.
+`get_pending_output` until the request is cancelled. After that the output is still in the
+chain history, in the arguments of the worker's `submit_execution_output_and_resolve`.
 
 ```bash
 near call outlayer.testnet cancel_stale_execution '{"request_id": 123}' --accountId user.testnet
 ```
+
+`cancel_stale_executions(request_ids)` does the same for up to 100 requests in
+one call and returns how many it cancelled; a request that is gone or not yet
+stale is skipped. One transaction's fixed cost (~2 TGas) is shared: a small
+request costs ~1.2 TGas with its refund, less than it is charged; one holding
+32 KB of input and 32 KB of output ~3.9 TGas. A hundred of those exceed the
+300 TGas of a transaction, and a call that runs out of gas reverts whole, so
+size batches by what the requests hold: `scripts/cancel_stale_requests.sh` does.
 
 ### Operator Functions
 
@@ -6233,30 +6343,48 @@ alone, to be followed by `resolve_execution`; worker keys are not scoped to it.
 #### `resume_topup` / `resume_delete_payment_key`
 
 `resume_topup(data_id, result)` and `resume_delete_payment_key(data_id, result)`
-— operator. Resume the yields of a payment-key top-up and delete; `data_id` is
-hex. `result` is `{"Success": {"new_encrypted_data"}}` / `{"Error": {"message"}}`
-for a top-up, `"Success"` / `{"Error": {"message"}}` for a delete. Both panic
-when no yield is waiting (it timed out and was settled, or was already
+— operator. Resume the yields of a payment-key top-up, and of a payment-key
+delete, close or refund claim; `data_id` is hex. `result` is `{"Success":
+{"new_encrypted_data"}}` / `{"Error": {"message"}}` for a top-up;
+`"Success"` / `{"Error": {"message"}}` for a delete or a close; `{"Refund":
+{"amount": "<minimal units>"}}` / `{"Error": {"message"}}` for a refund claim
+(the contract pays at most its own cap of `amount`). Each callback acts only
+on the variants that answer its question and logs the others. Both methods
+panic when no yield is waiting (it timed out and was settled, or was already
 resumed).
 
-### Owner Functions
+### Governance Functions
 
-All `assert_owner`.
+Callable only by `governance_id` — the keystore DAO (`dao.outlayer.<net>`), so each
+call ran through a DAO vote and its delay (72 h on mainnet). A fresh deployment is
+governed by its owner until the owner calls `set_governance`.
 
 | Method | What it does |
 |---|---|
-| `set_owner(new_owner_id)` | Hand the owner role on |
-| `set_operator(new_operator_id)` | Change the operator account |
-| `set_paused(paused)` | Pause: refuses `request_execution`, `create_project`, `add_version`, `accept_project_transfer`, `store_wallet_policy`, `freeze_wallet`, `unfreeze_wallet`, `set_storage_refund_to`, `top_up_payment_key_with_near` |
-| `set_pricing(base_fee?, per_million_instructions_fee?, per_ms_fee?, per_compile_ms_fee?, base_fee_usd?, per_million_instructions_fee_usd?, per_sec_fee_usd?, per_compile_ms_fee_usd?)` | NEAR prices (yoctoNEAR) and HTTPS API prices (stablecoin minimal units); each `U128` string, an omitted one is unchanged |
+| `set_owner(new_owner_id)` | Replace the owner (the ops role) |
+| `set_operator(new_operator_id)` | Replace the operator: it resolves executions and answers payment-key yields |
 | `set_payment_token_contract(token_contract?)` | The stablecoin `ft_on_transfer` accepts and earnings are paid in; `null` clears it. The contract account must be registered on the token (`storage_deposit`) |
-| `set_subscription_plans(plans)` | Replace the plan list: `[{index, name, price_usd, active}]`, at most 16, unique indexes, each named and priced; an index already in the list keeps its name |
+| `set_governance(governance_id)` | Hand governance to another account |
+| `upgrade()` / `upgrade_and_migrate()` | Deploy the wasm given as the raw input of the call (not JSON) on this account: one atomic batch, deploy [+ `migrate()`] + `gov_health()`; a failing step leaves the old code. Every version keeps these, `migrate()` without arguments and `gov_health()` |
+| `gov_transfer(token?, amount, receiver_id)` | Move any balance of the contract — NEAR (`token: null`) or a fungible token: the rescue for money stuck by a bug. NEAR moved this way counts as withdrawn platform fees, even beyond what was collected, so it lowers what the owner's `withdraw_platform_near` can take from fees collected later |
+
+### Owner Functions
+
+All `assert_owner`. None of them changes code, roles or the payment token.
+
+| Method | What it does |
+|---|---|
+| `set_paused(paused)` | Pause: refuses `request_execution`, `create_project`, `add_version`, `accept_project_transfer`, `store_wallet_policy`, `unfreeze_wallet`, `set_storage_refund_to`, `top_up_payment_key_with_near`. `freeze_wallet` works while paused |
+| `set_pricing(base_fee?, per_million_instructions_fee?, per_ms_fee?, per_compile_ms_fee?, base_fee_usd?, per_million_instructions_fee_usd?, per_sec_fee_usd?, per_compile_ms_fee_usd?)` | NEAR prices (yoctoNEAR) and HTTPS API prices (stablecoin minimal units); each `U128` string, an omitted one is unchanged |
+| `set_subscription_plans(plans)` | Replace the plan list: `[{index, name, price_usd, active}]`, at most 16, unique indexes, each named (at most 64 bytes) and priced; an index already in the list keeps its name |
 | `set_project_pricing(project_id, pricing)` | Price an existing project: `{author_account_id, operations: [{operation, price_usd, developer_share_bp}]}`, 1–32 unique operations, share ≤ 10000 bp |
 | `remove_project_pricing(project_id)` | Unprice a project |
-| `set_event_metadata(standard?, version?)` | The NEP-297 `standard` / `version` events carry |
+| `set_event_metadata(standard?, version?)` | The NEP-297 `standard` / `version` events carry, at most 64 bytes each |
 | `emergency_cancel_execution(request_id)` | Cancel one pending request; refunds the whole NEAR deposit and the stablecoin |
-| `cancel_pending_requests(request_ids)` → `u64` | Cancel a list; refunds the NEAR deposit only — the request's `attached_usd` is not returned to the sender's stablecoin balance on this path |
-| `clear_all_pending_requests(limit?)` → `u64` | Cancel up to `limit` (default 100) pending requests from id 0; refunds NEAR and stablecoin |
+| `cancel_pending_requests(request_ids)` → `u64` | Cancel a list; refunds the NEAR deposit and the stablecoin |
+| `clear_all_pending_requests(from_id?, limit?)` → `u64` | Cancel up to `limit` (default 100, at least 1) pending requests, newest first from `from_id` (default the newest), over at most 1000 ids; refunds NEAR and stablecoin in full. Each request with a large stored output costs 50–75 TGas: pass a `limit` of about 5 then |
+| `withdraw_platform_near(amount, receiver_id)` (1 yocto) | NEAR fees the contract collected: at most `total_fees_collected` minus what was withdrawn; a failed transfer makes the amount available again |
+| `withdraw_platform_token(amount, receiver_id)` (1 yocto) | Stablecoin from the contract's balance, **without a bound**: the balance holds the platform's revenue together with users' unspent payment-key balances, deposited balances and developer earnings, and the contract cannot tell them apart (payment keys are spent off chain). The owner key is trusted with it |
 
 ```bash
 near call outlayer.testnet set_pricing '{"base_fee": "1000000000000000000000"}' --accountId <owner>
@@ -6267,12 +6395,13 @@ near call outlayer.testnet set_pricing '{"base_fee": "1000000000000000000000"}' 
 | Method | Answer |
 |---|---|
 | `get_request(request_id)` | The pending `ExecutionRequest`, or `null` once settled |
-| `get_pending_request_ids(from_index?, limit?)` | Pending ids (default limit 100) |
+| `get_pending_request_ids(from_id?, limit?)` → `{ids, next_from_id}` | Pending ids, newest first from `from_id` (default the newest), at most `limit` (default 100, at least 1) out of at most 1000 ids looked at; `next_from_id` continues the scan, `null` once id 0 was looked at. `scripts/cancel_stale_requests.sh` pages through it |
+| `get_request_status(request_id)` | A pending request without its input and output: sender, payer, timestamp, payment, `output_submitted`, `input_bytes`, `output_bytes`, and `stale` (past `EXECUTION_TIMEOUT` at this block). `get_request` also returns the input and output, which past ~1.3 MB a view cannot return |
 | `get_pending_output(request_id)` / `has_pending_output(request_id)` | Output delivered through the 2-call flow, not yet settled |
 | `get_stats()` | `[total_executions, total_fees_collected]` |
 | `get_pricing()` | `[base_fee, per_million_instructions_fee, per_ms_fee, per_compile_ms_fee]` |
 | `get_pricing_full()` | The NEAR prices and the HTTPS API prices (`base_fee_usd`, `per_million_instructions_fee_usd`, `per_sec_fee_usd`, `per_compile_ms_fee_usd`) |
-| `estimate_execution_cost(resource_limits?, input_len?)` | Deposit for `request_execution`, yoctoNEAR |
+| `estimate_execution_cost(resource_limits?, input_len?, output_len?)` | Deposit for `request_execution`, yoctoNEAR: compute estimate, plus the storage of input above 32 KB and of every output byte |
 | `get_max_limits()` | `[max_instructions, max_execution_seconds, max_compilation_seconds]` |
 | `get_config()` | `[owner, operator]` |
 | `get_event_metadata()` | `[standard, version]` |
@@ -6284,7 +6413,13 @@ near call outlayer.testnet set_pricing '{"base_fee": "1000000000000000000000"}' 
 | `get_priced_projects(from_index?, limit?)` / `get_priced_project_count()` | Priced project ids (default 100, at most 500 per page) |
 | `get_developer_earnings(account_id)` | Stablecoin earned and not withdrawn |
 | `get_user_stablecoin_balance(account_id)` | Stablecoin available for `attached_usd` |
-| `get_storage_version()` | The state layout the code expects (`"11"`) |
+| `is_withdrawing(account)` | Whether a `withdraw_balance` transfer of the account is in flight |
+| `get_payment_key_refund_ledger(owner, nonce)` | `{user_funded, refunded, refundable_cap, closing_since?, claimable_at?}` — what the chain saw deposited on the key since the ledger exists, what it paid back, and the close clock; `null` for a pre-ledger key never topped up or closed since |
+| `get_closing_payment_key_count(owner)` | How many of the owner's keys are closing (at most 20) |
+| `get_payment_key_flight(owner, nonce)` | `{top_ups_in_flight, last_top_up_height, close_pending, claim_open, last_claim_at, next_claim_at?}` — top-up yields not yet answered (the key is closed or deleted only at zero), a close or delete not yet answered (the key takes no top-up until it is), and the claim in flight / cooldown; `null` when nothing is |
+| `get_storage_version()` | The state layout the code expects (`"14"`) |
+| `get_governance()` | The account that governs this contract |
+| `get_platform_near()` | `[collected, withdrawn, available]` NEAR fees, yoctoNEAR |
 
 ```bash
 near view outlayer.testnet get_request '{"request_id": 123}'
@@ -6296,11 +6431,23 @@ The configured stablecoin arrives through NEP-141 `ft_transfer_call` to this
 contract; `ft_on_transfer` refuses any other token. `msg` is one of:
 
 - `{"action": "deposit_balance"}` — credits the sender's balance for
-  `attached_usd`.
+  `attached_usd` (at least 10000 = $0.01; less refuses the whole transfer).
 - `{"action": "top_up_payment_key", "nonce": N, "owner": "<optional>"}` — tops
   up a payment key (at least 10000 = $0.01; `owner` defaults to the sender).
   The worker re-encrypts the key's balance and resumes; a failure or a timeout
-  returns the tokens.
+  returns the tokens. A top-up that cannot land — no such key, a closing key,
+  a failure, a timeout — goes back to its SENDER, whoever that is: that is
+  the one return rule. A NEAR top-up is delivered by the swap account, so do
+  not close a key while a NEAR top-up of it is in progress — the swapped
+  stablecoin would go back to the swap account, not to you. While a top-up is
+  admitted and not yet answered the key can be neither closed nor deleted,
+  and while a close or a delete is not yet answered the key takes no top-up
+  (`get_payment_key_flight`): the two exclude each other both ways, so
+  whichever order the workers answer in, a top-up is never returned by the
+  chain and credited off chain. The worker also asks the coordinator, before
+  resuming a top-up, whether it will credit the key; a key the chain has
+  closed is answered no, and the top-up is resumed with an error and
+  returned to the payer.
 - `{"action": "buy_subscription", "nonce": N, "plan": P, "owner": "<optional>"}` —
   buys plan `P` for an existing key. A payment short of the plan, an unknown or
   withdrawn plan, or a missing key refuses the whole transfer; an overpayment
@@ -6308,6 +6455,14 @@ contract; `ft_on_transfer` refuses any other token. `msg` is one of:
 
 `withdraw_developer_earnings()` (payable, at least 1 yoctoNEAR) transfers the
 caller's whole earnings balance; the balance is restored if the transfer fails.
+
+`withdraw_balance(amount)` (payable, exactly 1 yoctoNEAR) transfers `amount`
+of the caller's stablecoin balance back to the caller: at least 10000 = $0.01,
+at most the balance, one transfer in flight per account (`is_withdrawing`).
+The balance is debited first and credited back if the transfer fails — the
+balance is already net of every pending request, so nothing can spend it in
+between. A caller not registered on the token sees the transfer fail and the
+balance restored; `storage_deposit` on the token, then withdraw again.
 
 ### Project Functions
 
@@ -6400,14 +6555,26 @@ the on-chain entry before it signs. The account that sends
 
 #### `store_wallet_policy` (payable)
 
-`store_wallet_policy(wallet_pubkey, encrypted_data, wallet_signature, storage_refund_to?)`.
+`store_wallet_policy(wallet_pubkey, encrypted_data, wallet_signature, version, locked, valid_until, storage_refund_to?)`.
 Create or update a policy. `wallet_pubkey` is `ed25519:<hex32>` or
 `secp256k1:<hex33>`; `encrypted_data` is at most 100 KB. Needs a signature by
 the wallet's own key over
-`sha256("store_wallet_policy:v1:{wallet_pubkey}:{len}:{encrypted_data}:{caller}")`
+`sha256("store_wallet_policy:v2:{wallet_pubkey}:{version}:{locked 0|1}:{valid_until}:{len}:{encrypted_data}:{caller}")`
 (the keystore makes it) and a storage deposit (`estimate_wallet_policy_cost`).
 An update must come from the same controller and keeps the frozen flag. Emits
-`WalletPolicyUpdated { wallet_pubkey, owner, encrypted_data, frozen }`.
+`WalletPolicyUpdated { wallet_pubkey, owner, encrypted_data, frozen, version, locked }`.
+
+`version` is the stored version plus one (a first policy: 1), checked before
+the signature — a stale one fails with `policy version is N, this signature
+was made for M` — so a signature is good for exactly one write. `valid_until`
+(unix seconds, seven days from signing) is checked the same way — `this policy
+signature expired at T` — so a signature is good for a while, not for ever.
+`locked` is the new policy's `approval.locked` as the keystore read it from
+the plaintext. All three come from the keystore's `sign-policy` answer and are
+inside the signature. The contract keeps them beside the entry (`policy_meta`, absent =
+version 0, unlocked). **While the stored policy is locked**, the keystore
+signs the next write only with the policy's approvers' quorum, and the
+contract refuses `delete_wallet_policy`; freezing and thawing are untouched.
 
 `storage_refund_to` (optional) names who the storage deposit goes back to —
 for a sponsor that pays it while the owner signs. It is set only when the
@@ -6424,7 +6591,8 @@ relayer cannot change it.
 ```bash
 near contract call-function as-transaction outlayer.testnet store_wallet_policy json-args '{
   "wallet_pubkey": "ed25519:<hex>", "encrypted_data": "<base64>",
-  "wallet_signature": "<hex>", "storage_refund_to": "sponsor.testnet"
+  "wallet_signature": "<hex>", "version": 1, "locked": false, "valid_until": 1700000000,
+  "storage_refund_to": "sponsor.testnet"
 }' prepaid-gas '100.0 Tgas' attached-deposit '0.05 NEAR' sign-as owner.testnet network-config testnet sign-with-keychain send
 ```
 
@@ -6445,20 +6613,24 @@ contract cannot check this in advance.
 
 #### `delete_wallet_policy`
 
-Controller only. Returns the whole deposit to the beneficiary when one is set,
-otherwise to the caller, and drops the beneficiary: a policy created again
-under the key starts without one. The `WalletPolicyDeleted` event carries
+Controller only, and refused while the policy is locked (`policy is locked:
+store an unlocked policy with the approvers' quorum first`). Returns the whole
+deposit to the beneficiary when one is set, otherwise to the caller, and drops
+the beneficiary and the version record: a policy created again under the key
+starts without one, at version 1. The `WalletPolicyDeleted` event carries
 `refunded_to`.
 
 #### `freeze_wallet` / `unfreeze_wallet`
 
 Controller only, no wallet signature: the emergency stop for a compromised
-agent key. Emit `WalletFrozenChanged { wallet_pubkey, owner, frozen }`.
+agent key. `freeze_wallet` works while the contract is paused — a pause never
+takes an owner's emergency stop away; `unfreeze_wallet` waits for the unpause.
+Emit `WalletFrozenChanged { wallet_pubkey, owner, frozen }`.
 
 #### Views
 
-- `get_wallet_policy(wallet_pubkey)` → `{owner, encrypted_data, frozen, updated_at, storage_refund_to, storage_deposit}` or `null`. A sponsor checks `storage_refund_to` before it pays.
-- `get_wallet_policies_by_owner(owner)` → `[{wallet_pubkey, owner, frozen, updated_at, storage_refund_to}]`.
+- `get_wallet_policy(wallet_pubkey)` → `{owner, encrypted_data, frozen, updated_at, storage_refund_to, storage_deposit, version, locked}` or `null`. A sponsor checks `storage_refund_to` before it pays; `version` is what the next write must exceed by one.
+- `get_wallet_policies_by_owner(owner)` → `[{wallet_pubkey, owner, frozen, updated_at, storage_refund_to, version, locked}]`.
 - `has_wallet_policy(wallet_pubkey)` → `bool`.
 - `estimate_wallet_policy_cost(wallet_pubkey, encrypted_data, storage_refund_to?)` → yoctoNEAR as a string; with `storage_refund_to` it includes the beneficiary's record, as the store will charge it.
 
@@ -6686,18 +6858,64 @@ floor entry is recorded when it is deleted. Its entry is paid once, by the
 owner's first key (included in `estimate_storage_cost`), and is not refunded:
 it outlives every key.
 
-- `delete_payment_key(nonce)` (payable, at least 1 yoctoNEAR) — yields until
+- `delete_payment_key(nonce)` (payable, exactly 1 yoctoNEAR) — yields until
   the worker has deleted the key in the coordinator (`DeletePaymentKey` event,
   `resume_delete_payment_key`), then removes the row and refunds its storage
-  deposit. The key's unspent balance is not returned. On an error or a timeout
-  the key stays.
+  deposit. The key's unspent balance is not returned: this is the "I do not
+  want the money" path; the refund path is `close_payment_key` below. Refused
+  while a top-up of the key is in flight ("retry once they have settled"). On
+  an error or a timeout the key stays. `delete_secrets` refuses a payment key:
+  these two are its only doors.
+
+#### Refund of a key's unspent balance
+
+Two transactions, because the amount is known only once every call in flight
+on the key has settled, and that can take longer than a yield lives.
+
+- `close_payment_key(nonce)` (payable, exactly 1 yoctoNEAR) — yields until
+  the worker has soft-deleted the key in the coordinator (the same
+  `DeletePaymentKey` event and task as a delete), then marks the key *closing*
+  on chain: from here it takes no calls and no top-up (`ft_on_transfer` and
+  `top_up_payment_key_with_near` refuse it), its nonce is used, and the secret
+  stays until the refund is claimed. Refused for a key already closing, while
+  a top-up of the key is in flight (the top-up's answer would return the money
+  while the coordinator credits it), while another close or delete of the key
+  is waiting for its answer, and once the owner has 20 keys closing.
+  On an error or a timeout the key stays live.
+- `claim_payment_key_refund(nonce)` (payable, exactly 1 yoctoNEAR) — accepted
+  24 h after the close (`claimable_at` in `get_payment_key_refund_ledger`),
+  one claim in flight at a time and a day between two claims of one key
+  (`next_claim_at` in `get_payment_key_flight`); refused while a close or
+  delete of the key waits for its answer, and `delete_payment_key` is refused
+  while a claim does — the two never race over the key. Yields until the
+  worker has asked the coordinator what the key has left (`RefundPaymentKey` event; the
+  coordinator refuses while anything is still reserved or pending on the key,
+  and the key stays closing — claim again the next day). On a quote the
+  contract pays **`min(quoted, cap)`** — nothing below 10000 = $0.01 —
+  removes the secret and refunds its storage deposit; the value returned is
+  what was paid, in stablecoin minimal units. If the stablecoin transfer fails
+  (the owner is not registered on the token) the key is closing again from
+  its original close and the claim can be repeated after `storage_deposit`,
+  the next day.
+
+**The cap** is the contract's own ledger of the key: `user_funded`, the sum of
+the stablecoin top-ups `ft_on_transfer` accepted on the key (including the
+swapped amount of a NEAR top-up), minus `refunded`. The chain never sees a
+grant, a sponsor's gift or a trial — those are coordinator rows — so none of
+them can leave the contract whatever a worker or the coordinator reports; the
+coordinator also quotes grants-first on its side. A key that existed before the
+ledger did starts at zero: only deposits made after the ledger's release are
+refundable; a quote above the cap is logged (`refund capped`) and paid at the
+cap. The ledger entry's bytes are part of the key's storage deposit
+(`estimate_storage_cost`) and come back with it.
 - Top-up with the stablecoin: `ft_on_transfer` with `top_up_payment_key` (see
   [Stablecoin](#stablecoin-deposits-and-earnings)).
 - `top_up_payment_key_with_near(nonce, swap_contract_id)` (payable) — **mainnet
-  only** (NEAR Intents). Wraps the attached NEAR minus 0.01 NEAR to wNEAR,
+  only** (NEAR Intents). Wraps the attached NEAR minus 0.015 NEAR to wNEAR,
   sends it to `swap_contract_id` and requests a swap to the stablecoin through
-  the `publishintent.near/payment-keys-with-intents` project. Requires at least
-  0.01 NEAR above that 0.01 NEAR and an existing key of the caller's.
+  the `publishintent.near/payment-keys-with-intents` project; the 0.015 NEAR
+  pays that swap run. Requires at least 0.01 NEAR above the 0.015 NEAR and an
+  existing key of the caller's.
 - `top_up_payment_key_with_token(nonce, token_id, amount, swap_contract_id)` is
   disabled: it always panics.
 
@@ -6753,7 +6971,8 @@ timeout).
 ### `system_event`
 
 `data` is `[{"<Variant>": {...}}]`, one of: `TopUpPaymentKey`,
-`DeletePaymentKey`, `SubscriptionPurchased`, `WalletPolicyUpdated`,
+`DeletePaymentKey` (a delete or a close), `RefundPaymentKey`,
+`SubscriptionPurchased`, `WalletPolicyUpdated`,
 `WalletPolicyDeleted`, `WalletFrozenChanged`, `StorageRefundToChanged`,
 `ProjectTransferred`, `ProjectTransferAccepted`, `ProjectTransferRevoked`,
 `ProjectStorageCleanup`.
@@ -6763,8 +6982,14 @@ timeout).
 ### Build
 
 ```bash
-./build.sh   # cargo near build non-reproducible-wasm → res/local/outlayer_contract.wasm
+./build.sh                           # development: res/local/outlayer_contract.wasm
+cargo near build reproducible-wasm   # release: target/near/outlayer_contract.wasm
 ```
+
+The release build runs from a clean committed tree in the image pinned in
+`Cargo.toml` (`[package.metadata.near.reproducible_build]`); its sha256 is the
+`code_hash` a DAO upgrade proposal names, and anyone rebuilding the commit gets
+the same.
 
 ### Test
 
@@ -6775,29 +7000,31 @@ cargo test
 ### Initialize
 
 `new(owner_id, operator_id?, event_standard?, event_version?)`; the operator
-defaults to the owner.
+defaults to the owner, and so does governance until the owner calls
+`set_governance`.
 
 ```bash
 near contract deploy <contract-account> use-file res/local/outlayer_contract.wasm with-init-call new json-args '{"owner_id":"<owner>","operator_id":"<operator>"}' prepaid-gas '100.0 Tgas' attached-deposit '0 NEAR' network-config testnet sign-with-keychain send
+near contract call-function as-transaction <contract-account> set_governance json-args '{"governance_id":"<dao>"}' prepaid-gas '30.0 Tgas' attached-deposit '0 NEAR' sign-as <owner> network-config testnet sign-with-keychain send
 ```
 
 ### Upgrade
 
-The contract is upgraded by redeploying it with the contract account's
-full-access key, without a vote or a delay; see
-[Governance at this stage](https://github.com/out-layer/outlayer/blob/main/docs/NON_CUSTODIAL.md#governance-at-this-stage).
+Through the DAO: the wasm is stored in the DAO as a blob, members vote on its
+sha256, and after the delay a member executes the proposal, which calls
+`upgrade()` or `upgrade_and_migrate()` here with the blob. The commands —
+build, store the wasm, propose, check and vote, execute, check the result —
+are in [keystore-dao-contract/README.md](https://github.com/out-layer/outlayer/blob/main/keystore-dao-contract/README.md#deploying-a-release-through-the-dao),
+with `<target>` = `outlayer.near`.
 
-`get_storage_version` answers the state layout the code expects. A deploy that
-changes the layout calls `migrate` (private: signed by the contract account) in
-the same transaction; `migrate` reads the previous layout (`"10"`) and writes
-`"11"`, and fails on any other state. A deploy that keeps the layout calls
-nothing.
+`get_storage_version` answers the state layout the code expects. A release
+that changes the layout is upgraded with `upgrade_and_migrate`; its `migrate`
+reads the previous layout and fails on any other state, which reverts the
+whole upgrade. A release that keeps the layout uses `upgrade`.
 
-```bash
-near contract deploy outlayer.testnet use-file res/local/outlayer_contract.wasm without-init-call network-config testnet sign-with-keychain send
-
-near contract deploy outlayer.near use-file res/local/outlayer_contract.wasm with-init-call migrate json-args '{}' prepaid-gas '300.0 Tgas' attached-deposit '0 NEAR' network-config mainnet sign-with-keychain send
-```
+The v13 → v14 migration adds governance and is the last deploy made with the
+contract account's full-access key:
+`migrate(governance_id)` in the same transaction as the deploy.
 
 ## License
 
@@ -7243,7 +7470,7 @@ Agent Custody lets AI agents hold and manage funds through TEE-held wallets with
 | Key (keystore) | ed25519 | secp256k1 (one shared address across all EVM chains) | ed25519 (base58 address) |
 | Signing (keystore) | ed25519 | ECDSA secp256k1 (keccak256 + sign; EIP-712 / EIP-191 / raw-tx hash) | ed25519 over the raw serialized message (no digest step) |
 | Derivation seed | `wallet:{id}:near` | `wallet:{id}:evm` (shared by every EVM chain); a sub-key is `subkey:{id}:evm:{sub_path}` | `wallet:{id}:solana` (the `sol` alias canonicalizes to it) |
-| API | transfer, call, delete, storage-deposit, intents deposit / withdraw / transfer / swap, payment checks, confidential intents, limit orders | `evm/sign-typed-data`, `evm/sign-message`, `evm/sign-transaction` (signing only — no build/broadcast) | `solana/sign-message`, `solana/sign-transaction` (signing only — no build/broadcast) |
+| API | transfer, call, delete, storage-deposit, intents deposit / withdraw / transfer / swap / storage-deposit, payment checks, confidential intents, limit orders | `evm/sign-typed-data`, `evm/sign-message`, `evm/sign-transaction` (signing only — no build/broadcast) | `solana/sign-message`, `solana/sign-transaction` (signing only — no build/broadcast) |
 | Policy (keystore) | all rules | `evm_sign` capability (default-DENY under a policy) + `raw_tx` sub-flag (default-OFF) | `solana_sign` capability — same model as `evm_sign` |
 
 Each seed is HMAC-SHA256'd with the wallet's master secret inside the keystore enclave. Nothing is stored: every address is derived on request from the `wallet_id`.
@@ -7326,7 +7553,7 @@ Same model as `evm_sign`, evaluated by `solana_sign_decision` in `shared-tee-hel
 
 **Caveat:** a signed Solana transaction message is itself fund-moving, so `solana_sign` + `raw_tx` grants full authority over whatever sits on the wallet's Solana address. No Solana signing path can move the wallet's NEAR Intents balance.
 
-**`raw_sign`:** the keystore also accepts a hash-pinned `raw` operation that blind-signs bytes with the wallet's NEAR or Solana ed25519 key (EVM is refused; `sol` canonicalizes to `solana`), gated by the separate default-DENY `raw_sign` capability with an optional per-chain list. The public API exposes no route that builds it.
+**`raw_sign`:** the keystore also accepts a hash-pinned `raw` operation that blind-signs bytes with the wallet's NEAR or Solana ed25519 key (EVM is refused; `sol` canonicalizes to `solana`), gated by the separate default-DENY `raw_sign` capability with an optional per-chain list. The NEAR key is signed for only when the list names `near`, with or without a policy: a raw NEAR signature is any NEAR transaction. The public API exposes no route that builds it.
 
 ## Checklist: Adding another chain
 
@@ -8042,6 +8269,10 @@ A wallet bound to a per-customer vault derives its check keys from the vault's m
 
 Under a stored policy, creating a check needs `capabilities.payment_check.allowed = true` (default-DENY), and the check's token and amount are held to the policy's per-transaction limit. A check routes funds to whoever holds its key, so a recipient whitelist cannot gate it; the capability is the gate. A wallet with no policy can create checks freely.
 
+A check moves money, so it is held to the wallet's approval rules like a transfer or a swap: `approval.threshold` applies, `approval.excluded_types: ["payment_check"]` lifts it, and `capabilities.payment_check.requires_approval` demands it on its own. On a wallet that requires approval the create reserves the check `pending_approval`, hands over its key (the account is fixed by the check's counter and holds nothing yet), and opens an approval over the check's token and amount; once the threshold is met the coordinator derives the key again, checks the account is the one reserved, and funds the check with the approvers' votes forwarded to the keystore, which verifies them before signing. A veto, an approval that expires unmet (24 hours), or the check's own `expires_at` passing while it waits, ends the check `failed` — an expired check is never funded. A claim or reclaim of a check still `pending_approval` is refused. `batch-create` on such a wallet is refused whole (`403 policy_denied`): one check, one approval.
+
+Each create counts as one `custody:payment_check` operation against the wallet's ceiling (`429 operation_limit_reached`, nothing reserved); a claim or a reclaim is signed by the check's own key, goes through no policy, and is not counted.
+
 The create message is supplied by the coordinator, not built by the enclave: see [Limits we state plainly](https://github.com/out-layer/outlayer/blob/main/docs/NON_CUSTODIAL.md#11-limits-we-state-plainly).
 
 ## API Reference
@@ -8091,6 +8322,8 @@ Create a new payment check.
 
 `status` is `unclaimed` once the funding transfer has executed, or `creating` with a `poll_url` while it is unconfirmed. The `check_key` is in both answers: keep it, and do not create the check again. A `creating` check ends `unclaimed`, or `failed` if the funding never executed (nothing moved).
 
+On a wallet whose policy requires approval, `status` is `pending_approval` with `approval_id`, `required`, `approved`, `request_hash` and a `poll_url`; the `check_key` is in that answer too. The check is funded once the approvers meet the threshold and then reads `unclaimed`; a veto or an unmet approval ends it `failed`.
+
 ### POST /batch-create
 
 Create up to 10 checks in one call, each with its own key and ephemeral account.
@@ -8115,7 +8348,7 @@ Create up to 10 checks in one call, each with its own key and ephemeral account.
 }
 ```
 
-If the batch stops before its last check, the response carries `error`: the checks listed were created, the rest were not.
+If the batch stops before its last check, the response carries `error`: the checks listed were created, the rest were not. Each check is decided by the policy, and counted, before any is reserved; a wallet whose policy requires approval gets no batch (`403 policy_denied`).
 
 ### POST /claim
 
@@ -8148,7 +8381,7 @@ Claim funds from a check into the caller's wallet. Supports partial claims.
 }
 ```
 
-`status` is `claimed` / `partially_claimed`, or `processing` with a `poll_url` (and no `remaining` / `claimed_at`) while the transfer is unconfirmed. A claim is refused after the check's expiry, while the check is still being funded or another leg is in flight, and once it is fully claimed or reclaimed. Only checks created through OutLayer can be claimed.
+`status` is `claimed` / `partially_claimed`, or `processing` with a `poll_url` (and no `remaining` / `claimed_at`) while the transfer is unconfirmed. A claim is refused after the check's expiry, while the check is still awaiting its owner's approval or being funded, while another leg is in flight, and once it is fully claimed or reclaimed. Only checks created through OutLayer can be claimed.
 
 ### POST /reclaim
 
@@ -8209,7 +8442,7 @@ List the checks created by the authenticated wallet.
 
 | Param | Required | Description |
 |-------|----------|-------------|
-| `status` | no | Filter: `creating`, `unclaimed`, `claiming`, `partially_claimed`, `claimed`, `reclaiming`, `partially_reclaimed`, `reclaimed`, `failed`, `expired` |
+| `status` | no | Filter: `pending_approval`, `creating`, `unclaimed`, `claiming`, `partially_claimed`, `claimed`, `reclaiming`, `partially_reclaimed`, `reclaimed`, `failed`, `expired` |
 | `limit` | no | Max results (default 50, max 100) |
 | `offset` | no | Pagination offset (default 0) |
 
@@ -8242,6 +8475,9 @@ Read a check's balance using its `check_key`, to verify it before claiming. Any 
 ```
                     create
                       |
+         (approval    v
+          threshold) [pending_approval] ---- vetoed / approval expired ---> [failed]
+                      |  threshold met
                       v
                   [creating] ---- funding never executed ---> [failed]
                       |
@@ -8258,6 +8494,7 @@ Read a check's balance using its `check_key`, to verify it before claiming. Any 
 ```
 
 **Statuses:**
+- `pending_approval` — the wallet's approvers have not met the threshold; the account is empty
 - `creating` — funding transfer not confirmed yet
 - `unclaimed` — funds locked, waiting to be claimed
 - `claiming` / `reclaiming` — a claim or reclaim is in flight; another waits for it
@@ -8265,7 +8502,7 @@ Read a check's balance using its `check_key`, to verify it before claiming. Any 
 - `partially_reclaimed` — some funds reclaimed by the sender
 - `claimed` — the balance reached zero through a claim
 - `reclaimed` — the balance reached zero through a reclaim
-- `failed` — the funding never executed; nothing moved
+- `failed` — the funding never executed, was vetoed, or its approval expired unmet; nothing moved
 - `expired` — reported for an `unclaimed` check past its expiry
 
 **Expiry:** if `expires_in` is set, the check cannot be claimed after expiry. The funds stay in the ephemeral account until the sender reclaims them; expiry does not return them by itself.
@@ -8275,7 +8512,7 @@ Read a check's balance using its `check_key`, to verify it before claiming. Any 
 | Threat | Mitigation |
 |--------|------------|
 | check_key intercepted in transit | Use encrypted channels (HTTPS, E2E messaging). A leaked key lets anyone with an OutLayer wallet claim the funds. |
-| Sender's API key compromised | The API key can be revoked. Under a policy, checks need the `payment_check` capability and stay within the per-transaction limit. |
+| Sender's API key compromised | The API key can be revoked. Under a policy, checks need the `payment_check` capability, stay within the per-transaction limit, and on a wallet with an approval threshold wait for the approvers. |
 | Replay of claim/reclaim | Each intent has a random nonce and a 5-minute deadline; `intents.near` rejects a reused nonce. Amounts are tracked under a row lock. |
 | Ephemeral key collision | Per-wallet counter, incremented atomically in the database; a counter value is never reused. |
 | Funds stuck in ephemeral account | The sender can always reclaim — the keystore derives the ephemeral key again from the same path. |
@@ -8602,8 +8839,16 @@ Two facts about the policy matter more than any other on this page:
 - **The account that first stores a policy becomes its controller.** Only
   that account can update it, delete it, freeze the wallet, or unfreeze
   it. The signature we produce for a policy write is bound to the exact
-  account that will send the transaction, so the controller cannot be set
-  to someone else by mistake or by us.
+  account that will send the transaction and to the policy's version, so
+  the controller cannot be set to someone else by mistake or by us, and a
+  signature is good for one write.
+- **A locked policy is changed only with its approvers' quorum.** A policy
+  with `approval.locked` makes every later write — including the one that
+  clears the lock — and every delete wait for the votes of the approvers it
+  names, counted against its threshold, inside the enclave. The controller
+  alone can set the lock, as a tightening, and cannot lift it; freezing stays
+  the controller's alone. So an organisation whose wallet is governed two of
+  two cannot have one controller rewrite the policy to one of one.
 - **A wallet with no policy is unrestricted.** Registration does not
   create rules. Until a policy is stored, whoever holds the API key can
   move the balance within the limits of the primitives enabled by

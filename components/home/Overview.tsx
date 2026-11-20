@@ -339,16 +339,22 @@ export default function Overview() {
       {/* Agent custody */}
       <Card className="mt-4">
         <CardHeader>
-          <CardTitle>Give your AI agent a wallet it cannot leak</CardTitle>
+          <CardTitle>A protected wallet for the agent you run elsewhere</CardTitle>
           <CardDescription>
-            If you already run an agent (Claude, Cursor, your own loop), agent custody gives it
-            real funds without handing it keys: the private key lives inside the keystore TEE,
-            your policy caps what it may sign, and anything bigger waits for your approval.
+            Your agent runs on Railway, a server or your own machine; its money sits here. The private key lives inside
+            the keystore TEE, and the agent holds an API key that your policy binds: if that key leaks, it pays only the
+            addresses you approved, within your limits, and withdraws only to you.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-muted-foreground">
-            Paste this skill into Claude, Cursor or your own agent — it teaches it the whole API:
+          <Link
+            href="/wallet/new"
+            className="inline-block rounded-lg border border-border-strong px-4 py-2 text-sm font-semibold text-foreground hover:border-accent hover:text-accent-text"
+          >
+            Create an agent wallet
+          </Link>
+          <p className="mt-4 text-sm text-muted-foreground">
+            Or paste this skill into Claude, Cursor or your own agent — it teaches it the whole API:
           </p>
           <div className="mt-2">
             <SkillUrlBox url="https://skills.outlayer.ai/agent-custody/SKILL.md" />

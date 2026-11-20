@@ -1,49 +1,28 @@
 'use client';
 
 import { Suspense, useEffect, useState } from 'react';
-import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { PageHeader } from '@/components/ui/page-header';
-import { CopyText } from '@/components/ui/copy-text';
-import { AgentChip } from '@/components/ui/agent-chip';
-import { InfoHint } from '@/components/ui/info-hint';
 import { useNearWallet } from '@/contexts/NearWalletContext';
 import { getCoordinatorApiUrl } from '@/lib/api';
 import { saveWalletKey } from '@/lib/wallet-keys';
 
 /**
- * Create an agent from the browser: one click registers a wallet, shows its
- * API key, saves the key in this browser and leads to the policy page.
+ * Create an agent wallet: one click registers it, saves its API key in this
+ * browser and opens its policy, where the owner connects a NEAR wallet and
+ * the key is handed over once the policy is on chain.
  *
  * `POST /register {}` needs no NEAR wallet and no signature, so this page
- * works before the owner connects anything; the policy that makes the agent
- * theirs is set next, on `/wallet/manage?key=…`, where the new wallet appears
- * as the "New Wallet" card.
+ * works before the owner connects anything.
  *
- * A sponsor code (`spn_…`), if the owner has one, is redeemed right after the
- * registration with the new wallet's own key: the agent then starts with a
- * subscription on its nonce-0 key instead of the trial. A code that is
- * refused does not undo the registration — the agent exists and the answer
- * is shown; the code can be redeemed later from the agent itself.
+ * A sponsor code arrives only in a link (`/redeem?code=spn_…`): it is redeemed
+ * right after the registration with the new wallet's own key, and what came of
+ * it is told on the policy page. A refused code does not undo the
+ * registration.
  *
  * The API key is stored where every other key of this dashboard is stored,
- * `localStorage` (`lib/wallet-keys`). The server keeps only its hash, so the
- * owner is told to keep a copy of their own as well.
+ * `localStorage` (`lib/wallet-keys`). The server keeps only its hash.
  */
-
-interface Registered {
-  wallet_id: string;
-  api_key: string;
-  near_account_id: string;
-}
-
-interface Sponsorship {
-  payment_key: string;
-  owner: string;
-  allowance_usd: string;
-  expires_at: string | null;
-  sponsor: string;
-}
 
 /** Stablecoin minimal units (6 decimals) as dollars. */
 function usd(minimal: string): string {
@@ -52,6 +31,76 @@ function usd(minimal: string): string {
   const cents = (n % BigInt(1_000_000)) / BigInt(10_000);
   return `$${whole}.${cents.toString().padStart(2, '0')}`;
 }
+
+/** What the owner gets, said before anything is created. */
+const FEATURES = [
+  {
+    title: 'The keys never reach the agent',
+    text: 'They stay in a hardware enclave. The agent holds an API key and asks; the enclave signs.',
+    icon: (
+      <>
+        <rect x="5" y="11" width="14" height="9" rx="2" />
+        <path d="M8 11V8a4 4 0 0 1 8 0v3" />
+      </>
+    ),
+  },
+  {
+    title: 'It pays only who you approve',
+    text: 'Money leaves only to the addresses on your list. A leaked key reaches no one else.',
+    icon: (
+      <>
+        <path d="M12 3 5 6v5c0 4.5 3 8 7 10 4-2 7-5.500 7-10V6z" />
+        <path d="m9 12 2 2 4-4" />
+      </>
+    ),
+  },
+  {
+    title: 'Your limits, per token',
+    text: 'Per payment and per day. Counted for the wallet, so a new key does not reset them.',
+    icon: (
+      <>
+        <path d="M4 18a8 8 0 1 1 16 0" />
+        <path d="m12 18 4-6" />
+      </>
+    ),
+  },
+  {
+    title: 'A new address asks you first',
+    text: 'The agent sends you a link. You check the address and sign once; then it can pay.',
+    icon: (
+      <>
+        <path d="M10 14a4 4 0 0 0 5.700 0l3-3a4 4 0 0 0-5.700-5.700l-1 1" />
+        <path d="M14 10a4 4 0 0 0-5.700 0l-3 3a4 4 0 0 0 5.700 5.700l1-1" />
+      </>
+    ),
+  },
+  {
+    title: 'Any chain in, any chain out',
+    text: 'One wallet with addresses on NEAR, Ethereum, Solana, Bitcoin and 20+ chains.',
+    icon: (
+      <>
+        <circle cx="12" cy="12" r="9" />
+        <path d="M3 12h18M12 3c3 3.500 3 14.500 0 18M12 3c-3 3.500-3 14.500 0 18" />
+      </>
+    ),
+  },
+  {
+    title: 'You stay the owner',
+    text: 'Freeze the wallet, change the rules or replace the key at any time, from your NEAR account.',
+    icon: (
+      <>
+        <circle cx="12" cy="8" r="3.500" />
+        <path d="M5 20a7 7 0 0 1 14 0" />
+      </>
+    ),
+  },
+] as const;
+
+const STEPS = [
+  { title: 'Create the wallet', text: 'Free, instant, no sign-up.' },
+  { title: 'Sign the rules', text: 'Connect your NEAR account and store the policy with one transaction. It starts protected: money leaves only to you.' },
+  { title: 'Hand over the key', text: 'Give the agent its API key. From then on it works inside your rules.' },
+] as const;
 
 export default function NewAgentPage() {
   return (
@@ -67,32 +116,20 @@ function NewAgentPageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
 
-  const [code, setCode] = useState('');
+  // A code is a secret of whoever gave it: it is read once and leaves the
+  // address bar.
+  const [code] = useState(() => (searchParams.get('code') ?? '').trim());
+  useEffect(() => {
+    if (searchParams.get('code')) router.replace('/wallet/new');
+  }, [searchParams, router]);
+  const codeLooksRight = code === '' || /^spn_[0-9a-f]{16,}$/i.test(code);
+
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [registered, setRegistered] = useState<Registered | null>(null);
-  const [sponsorship, setSponsorship] = useState<Sponsorship | null>(null);
-  /** The code's answer when it was refused: the agent exists all the same. */
-  const [codeRefused, setCodeRefused] = useState<string | null>(null);
-
-  // A link that carries the code (`/wallet/new?code=spn_…`, or `/redeem?code=`)
-  // fills the field; the owner still clicks.
-  // The code leaves the address bar once read: it is a secret of whoever gave it.
-  useEffect(() => {
-    const fromLink = searchParams.get('code');
-    if (fromLink) {
-      setCode(fromLink.trim());
-      router.replace('/wallet/new');
-    }
-  }, [searchParams, router]);
-
-  const trimmed = code.trim();
-  const codeLooksRight = trimmed === '' || /^spn_[0-9a-f]{16,}$/i.test(trimmed);
 
   const create = async () => {
     setBusy(true);
     setError(null);
-    setCodeRefused(null);
     try {
       const resp = await fetch(`${coordinatorUrl}/register`, {
         method: 'POST',
@@ -101,65 +138,62 @@ function NewAgentPageContent() {
       });
       const body = await resp.json().catch(() => ({}));
       if (!resp.ok || !body.api_key) {
-        throw new Error(body.error || body.message || `Could not create the agent (HTTP ${resp.status})`);
+        throw new Error(body.error || body.message || `Could not create the agent wallet (HTTP ${resp.status})`);
       }
-      const made: Registered = {
-        wallet_id: body.wallet_id,
-        api_key: body.api_key,
-        near_account_id: body.near_account_id,
-      };
+      const apiKey: string = body.api_key;
+      const account: string | undefined = body.near_account_id;
       // Saved before anything else can fail: the key is the one thing that
       // cannot be issued twice.
-      if (made.near_account_id) {
-        saveWalletKey(`ed25519:${made.near_account_id}`, made.api_key, 'created in the dashboard');
-      }
-      setRegistered(made);
+      if (account) saveWalletKey(`ed25519:${account}`, apiKey, 'created in the dashboard');
 
-      if (trimmed) {
+      if (code && codeLooksRight && account) {
+        let note: { ok: boolean; text: string };
         try {
           const r = await fetch(`${coordinatorUrl}/wallet/v1/sponsorship`, {
             method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${made.api_key}`,
-            },
-            body: JSON.stringify({ code: trimmed }),
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
+            body: JSON.stringify({ code }),
           });
           const answer = await r.json().catch(() => ({}));
-          if (r.ok) {
-            setSponsorship(answer as Sponsorship);
-          } else {
-            setCodeRefused(answer.error || `The code was refused (HTTP ${r.status}).`);
-          }
+          note = r.ok
+            ? {
+                ok: true,
+                text:
+                  `Sponsored by ${answer.sponsor}: the agent holds a subscription of ${usd(String(answer.allowance_usd))}` +
+                  `${answer.expires_at ? ` until ${new Date(answer.expires_at).toLocaleDateString()}` : ''}. ` +
+                  'It pays for its calls to the verified integrations; the agent reads its payment key itself with GET /wallet/v1/payment-key.',
+              }
+            : {
+                ok: false,
+                text: `The sponsor code was not redeemed (${answer.error || `HTTP ${r.status}`}). The agent wallet exists all the same; ask whoever gave you the code.`,
+              };
         } catch (err) {
-          setCodeRefused(`The code could not be sent: ${(err as Error).message}`);
+          note = { ok: false, text: `The sponsor code could not be sent: ${(err as Error).message}. The agent wallet exists all the same.` };
         }
+        sessionStorage.setItem(`outlayer:sponsorship:${account}`, JSON.stringify(note));
       }
+
+      // The link names the wallet, not the key, so the key stays out of the
+      // address bar and its history. A registration that names no account
+      // hands the key over once; the policy page stores it and drops it from
+      // the address.
+      router.push(
+        account
+          ? `/wallet?wallet=${encodeURIComponent(account)}`
+          : `/wallet?key=${encodeURIComponent(apiKey)}`,
+      );
     } catch (err) {
       setError((err as Error).message);
-    } finally {
       setBusy(false);
     }
   };
-
-  // The key is already in this browser's storage; the link names the wallet,
-  // not the key, so the key stays out of the address bar and its history.
-  const manageHref = registered?.near_account_id
-    ? `/wallet/manage?wallet=${encodeURIComponent(registered.near_account_id)}`
-    : registered
-      ? `/wallet/manage?key=${encodeURIComponent(registered.api_key)}`
-      : '/wallet/manage';
 
   return (
     <div className="w-full">
       <PageHeader
         title="New agent"
-        description="One click registers a wallet for an agent. The agent gets its API key here; you set its policy next."
+        description="Give your agent a wallet that works like a hardware wallet. If its key leaks, you lose the key, not the money."
       />
-      <p className="mb-4 text-xs text-muted-foreground">
-        Network: <span className="font-semibold text-foreground">{network}</span> — the key works on
-        this network only.
-      </p>
 
       {error && (
         <div className="mb-4 rounded-md border border-destructive/30 bg-destructive/10 p-3">
@@ -167,137 +201,71 @@ function NewAgentPageContent() {
         </div>
       )}
 
-      {!registered ? (
-        <section className="max-w-xl rounded-lg border border-border bg-card p-4 sm:p-6">
-          <h2 className="flex items-center text-base font-semibold">
-            What is created
-            <InfoHint
-              className="ml-2"
-              text={
-                <>
-                  A custody wallet with its own NEAR account, held in the TEE, and one API key
-                  (<code>wk_…</code>) that runs it. The key is shown once below and saved in this
-                  browser. The wallet has no policy yet: until you set one on the next page, the
-                  key moves whatever the wallet holds without limits — set it before you fund the
-                  wallet.
-                </>
-              }
-            />
-          </h2>
+      <div className="grid items-start gap-6 xl:grid-cols-2">
+        <section className="rounded-lg border border-border bg-card p-4 sm:p-5">
+          <h2 className="text-sm font-semibold text-foreground">New agent wallet</h2>
+          <p className="mt-2 text-sm text-muted-foreground">
+            For any agent: on Railway or another host, on a server, in Claude Code or Cursor on your machine. The agent
+            holds only an API key. Nothing to choose now: you set its rules on the next screen and can change them
+            later.
+          </p>
 
-          <div className="mt-4">
-            <label className="block">
-              <span className="text-sm font-medium text-foreground">
-                Sponsor code <span className="text-muted-foreground">(optional)</span>
-              </span>
-              <input
-                type="text"
-                autoComplete="off"
-                spellCheck={false}
-                className="mt-1 w-full rounded-md border border-border bg-background px-3 py-2 font-mono text-sm"
-                placeholder="spn_…"
-                value={code}
-                onChange={(e) => setCode(e.target.value)}
-              />
-              <span className="mt-1 block text-xs text-muted-foreground">
-                A code somebody gave you: it puts a subscription on the agent&apos;s key the moment it
-                is created, so the agent starts with premium instead of the trial.
-                {!codeLooksRight ? ' A code starts with spn_ followed by hex characters.' : ''}
-              </span>
-            </label>
-          </div>
-
-          <button
-            type="button"
-            disabled={busy || !codeLooksRight}
-            onClick={create}
-            className="mt-5 rounded-md bg-accent px-4 py-2 text-sm font-semibold text-on-accent hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {busy
-              ? 'Creating…'
-              : trimmed
-                ? 'Create the agent and redeem the code'
-                : 'Create the agent'}
-          </button>
-        </section>
-      ) : (
-        <div className="max-w-xl space-y-4">
-          <section className="rounded-lg border-2 border-dashed border-accent bg-card p-4 sm:p-6">
-            <h2 className="text-base font-semibold">The agent exists</h2>
-            <p className="mt-1 text-xs text-faint-foreground">
-              NEAR account:{' '}
-              {registered.near_account_id ? (
-                <AgentChip account={registered.near_account_id} className="font-mono" />
-              ) : (
-                <span className="font-mono">{registered.wallet_id}</span>
-              )}
+          {code && (
+            <p className={`mt-4 text-sm ${codeLooksRight ? 'text-foreground' : 'text-destructive-text'}`}>
+              {codeLooksRight
+                ? 'The sponsor code from your link is redeemed when the wallet is created.'
+                : 'The sponsor code in your link is not a code (spn_ followed by hex characters); the wallet is created without it.'}
             </p>
-
-            <div className="mt-4">
-              <span className="text-sm font-medium text-foreground">API key</span>
-              <div className="mt-1 rounded-md border border-border bg-background px-3 py-2 font-mono text-sm break-all">
-                <CopyText value={registered.api_key} />
-              </div>
-              <p className="mt-1 text-xs text-muted-foreground">
-                Give this to the agent as <code>Authorization: Bearer …</code>. It is saved in this
-                browser for the policy page; the server keeps only its hash, so keep a copy of your
-                own — it cannot be shown again.
-              </p>
-            </div>
-          </section>
-
-          {sponsorship && (
-            <section className="rounded-lg border border-success/30 bg-success/10 p-4 sm:p-6">
-              <h2 className="text-base font-semibold text-success-text">
-                Sponsored by {sponsorship.sponsor}
-              </h2>
-              <p className="mt-1 text-sm text-foreground">
-                The agent holds a subscription of {usd(sponsorship.allowance_usd)}
-                {sponsorship.expires_at ? ` until ${new Date(sponsorship.expires_at).toLocaleDateString()}` : ''}. It pays for its calls to the
-                verified integrations; the agent reads the key itself with{' '}
-                <code>GET /wallet/v1/payment-key</code>.
-              </p>
-              <div className="mt-3">
-                <span className="text-sm font-medium text-foreground">Payment key</span>
-                <div className="mt-1 rounded-md border border-border bg-background px-3 py-2 font-mono text-sm break-all">
-                  <CopyText value={sponsorship.payment_key} />
-                </div>
-              </div>
-            </section>
           )}
 
-          {codeRefused && (
-            <section className="rounded-lg border border-destructive/30 bg-destructive/10 p-4 sm:p-6">
-              <h2 className="text-base font-semibold text-destructive-text">The code was not redeemed</h2>
-              <p className="mt-1 text-sm text-foreground">{codeRefused}</p>
-              <p className="mt-1 text-xs text-muted-foreground">
-                The agent exists all the same. Ask whoever gave you the code; the agent can redeem one
-                later with <code>POST /wallet/v1/sponsorship</code>.
-              </p>
-            </section>
-          )}
-
-          <section className="rounded-lg border border-border bg-card p-4 sm:p-6">
-            <h2 className="text-base font-semibold">Next: the policy</h2>
-            <p className="mt-1 text-sm text-muted-foreground">
-              A policy names you as the owner and says what the agent may do with the wallet&apos;s
-              funds. Until one is set, the agent&apos;s key moves them without limits. Setting it is one
-              transaction from your NEAR wallet, on the next page. Trading on Hyperliquid or Polymarket
-              has caps of its own: store them at{' '}
-              <Link href="/connectors" className="text-accent-text hover:underline">
-                verified integrations
-              </Link>
-              ; without them the agent trades with no caps.
-            </p>
-            <Link
-              href={manageHref}
-              className="mt-4 inline-block rounded-md bg-accent px-4 py-2 text-sm font-semibold text-on-accent hover:bg-accent-hover"
+          <div className="mt-5 flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              disabled={busy}
+              onClick={create}
+              className="rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-on-accent hover:bg-accent-hover disabled:opacity-50"
             >
-              Set the policy
-            </Link>
-          </section>
-        </div>
-      )}
+              {busy ? 'Creating…' : 'Create the agent wallet'}
+            </button>
+          </div>
+        </section>
+
+        <ul className="grid gap-4 sm:grid-cols-2">
+          {FEATURES.map((feature) => (
+            <li key={feature.title} className="flex gap-3">
+              <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-border bg-card text-accent-text">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden className="h-4 w-4">
+                  {feature.icon}
+                </svg>
+              </span>
+              <span>
+                <span className="block text-sm font-semibold text-foreground">{feature.title}</span>
+                <span className="mt-0.5 block text-sm text-muted-foreground">{feature.text}</span>
+              </span>
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      <section className="mt-8 border-t border-border pt-6">
+        <h2 className="text-[11px] font-semibold uppercase tracking-wider text-faint-foreground">What happens next</h2>
+        <ol className="mt-3 grid gap-6 md:grid-cols-3">
+          {STEPS.map((step, index) => (
+            <li key={step.title} className="flex gap-3">
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-border-strong text-xs tabular-nums text-muted-foreground">
+                {index + 1}
+              </span>
+              <span>
+                <span className="block text-sm font-semibold text-foreground">{step.title}</span>
+                <span className="mt-0.5 block text-sm text-muted-foreground">{step.text}</span>
+              </span>
+            </li>
+          ))}
+        </ol>
+        <p className="mt-4 text-xs text-muted-foreground">
+          Until the policy is stored the key has no limits. Fund the wallet after step 2, not before.
+        </p>
+      </section>
     </div>
   );
 }

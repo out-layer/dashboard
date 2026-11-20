@@ -5,10 +5,22 @@ import { actionCreators } from '@near-js/transactions';
 // ============================================================================
 
 export interface PolicyForm {
+  /** Native NEAR limits, in NEAR. They cap `native` and no other token. */
   daily_limit: string;
   hourly_limit: string;
   monthly_limit: string;
   per_transaction_limit: string;
+  /** Limits of every other token, one row per policy token key. The engine
+   *  looks a limit up by the operation's own token, then `*`, and holds a
+   *  token with neither to no limit — so a token the agent may move needs a
+   *  row of its own. */
+  token_limits: TokenLimitRow[];
+  /** Only native NEAR and the tokens that have a limit row may move: written
+   *  as `allowed_tokens`, derived from the rows, so a token nobody thought
+   *  about is refused instead of moving with no limit. */
+  only_limited_tokens: boolean;
+  /** A hand-written `allowed_tokens` list (`*` = any); read only while
+   *  `only_limited_tokens` is off. */
   allowed_tokens: string;
   address_mode: 'whitelist' | 'blacklist' | 'none';
   addresses: string;
@@ -71,6 +83,27 @@ export interface PolicyForm {
   refund_addresses: RefundAddressRow[];
 }
 
+/**
+ * The limits of one token. `token` is the key the policy engine judges the
+ * operation by: an asset's id on intents.near (`nep141:<contract>`,
+ * `nep245:<contract>:<id>`), or `*` for every token without a row. The
+ * amounts are in the token's minimal units, as the policy stores them; the
+ * form converts for display when it knows the token's decimals.
+ */
+export interface TokenLimitRow {
+  token: string;
+  per_transaction: string;
+  hourly: string;
+  daily: string;
+  monthly: string;
+}
+
+export const LIMIT_WINDOWS = ['per_transaction', 'hourly', 'daily', 'monthly'] as const;
+export type LimitWindow = (typeof LIMIT_WINDOWS)[number];
+
+/** The policy key native NEAR is limited under. */
+export const NATIVE_TOKEN_KEY = 'native';
+
 export interface RefundAddressRow {
   chain: string;
   address: string;
@@ -81,6 +114,8 @@ export const DEFAULT_POLICY: PolicyForm = {
   hourly_limit: '',
   monthly_limit: '',
   per_transaction_limit: '',
+  token_limits: [],
+  only_limited_tokens: false,
   allowed_tokens: '*',
   address_mode: 'none',
   addresses: '',
@@ -297,40 +332,229 @@ export function yoctoToNear(yocto: string): string {
   return frac ? `${whole}.${frac}` : whole;
 }
 
+/**
+ * A decimal amount (`"12.5"`) in a token's minimal units, or `null` when it
+ * is not a non-negative decimal or carries more fraction digits than the
+ * token has. Empty stays empty: no limit.
+ */
+export function unitsFromDecimal(value: string, decimals: number): string | null {
+  const v = value.trim();
+  if (!v) return '';
+  const m = /^(\d*)(?:\.(\d*))?$/.exec(v);
+  if (!m || (!m[1] && !m[2])) return null;
+  const frac = m[2] ?? '';
+  if (frac.length > decimals) return null;
+  return ((m[1] || '0') + frac.padEnd(decimals, '0')).replace(/^0+(?=\d)/, '');
+}
+
+/** Minimal units as a decimal amount; empty for empty or non-integer input. */
+export function decimalFromUnits(units: string, decimals: number): string {
+  if (!/^\d+$/.test(units)) return '';
+  if (decimals === 0) return units.replace(/^0+(?=\d)/, '');
+  const padded = units.padStart(decimals + 1, '0');
+  const whole = padded.slice(0, -decimals).replace(/^0+(?=\d)/, '');
+  const frac = padded.slice(-decimals).replace(/0+$/, '');
+  return frac ? `${whole}.${frac}` : whole;
+}
+
+/**
+ * Why the token limit rows cannot be saved, one message per fault; empty when
+ * they can. A cap the keystore cannot read refuses every operation of the
+ * wallet, so it is caught where it is typed.
+ */
+export function tokenLimitsProblems(rows: TokenLimitRow[]): string[] {
+  const problems: string[] = [];
+  const seen = new Set<string>();
+  for (const row of rows) {
+    const token = row.token.trim();
+    if (!token) {
+      if (LIMIT_WINDOWS.some((w) => row[w].trim())) problems.push('A limit row names no token.');
+      continue;
+    }
+    if (token === NATIVE_TOKEN_KEY) problems.push('Native NEAR is limited in its own fields, not in a token row.');
+    if (seen.has(token)) problems.push(`Token '${token}' has two limit rows.`);
+    seen.add(token);
+    for (const w of LIMIT_WINDOWS) {
+      if (row[w] && !/^\d+$/.test(row[w])) {
+        problems.push(`The ${w.replace('_', ' ')} limit of '${token}' is not a whole number of minimal units.`);
+      }
+    }
+  }
+  return problems;
+}
+
 // ============================================================================
 // Build policy rules from form state (everything except approval)
 // ============================================================================
 
 /**
- * The transaction types a form will SAVE, or `null` when it saves no type rule
- * at all (an empty box: no restriction). `limit_order` is never taken from the
- * box — the capability switch owns it. One function for the builder and for the
- * form's "permits NO transaction type" warning, so the warning cannot describe
- * a different list than the one that is saved.
+ * Transaction types a capability switch owns: the engine holds such an
+ * operation to BOTH its default-deny capability and — when the policy has a
+ * type rule — its type, so the form drives the two halves with one switch. A
+ * capability without its type (or the type without the capability) would read
+ * as "enabled" and be refused by the keystore.
  */
-export function effectiveTransactionTypes(
-  form: Pick<PolicyForm, 'transaction_types' | 'limit_order_enabled'>,
-): string[] | null {
+const CAPABILITY_TYPES: ReadonlyArray<{
+  flag: 'limit_order_enabled' | 'cross_chain_withdraw_enabled' | 'swap_enabled' | 'payment_check_enabled' | 'confidential_enabled' | 'raw_sign_enabled';
+  /** Every spelling the engine accepts for the type. */
+  aliases: readonly string[];
+  /** The spelling this form writes. */
+  write: string;
+}> = [
+  { flag: 'limit_order_enabled', aliases: ['limit_order'], write: 'limit_order' },
+  { flag: 'cross_chain_withdraw_enabled', aliases: ['cross_chain_withdraw'], write: 'cross_chain_withdraw' },
+  { flag: 'swap_enabled', aliases: ['swap', 'intents_swap'], write: 'intents_swap' },
+  { flag: 'payment_check_enabled', aliases: ['payment_check'], write: 'payment_check' },
+  { flag: 'confidential_enabled', aliases: ['confidential'], write: 'confidential' },
+  { flag: 'raw_sign_enabled', aliases: ['raw'], write: 'raw' },
+];
+
+const CAPABILITY_OWNED_TYPES = new Set(CAPABILITY_TYPES.flatMap((c) => c.aliases));
+
+/** The types a checkbox of the form switches; every other type follows a capability. */
+export const BASE_TRANSACTION_TYPES = ['transfer', 'intents_withdraw', 'intents_transfer', 'call', 'delete'] as const;
+
+/**
+ * The transaction types a form will SAVE, or `null` when it saves no type rule
+ * at all (an empty box: no restriction). A type a capability owns is never
+ * taken from the box — its switch decides. One function for the builder and
+ * for the form's "permits NO transaction type" warning, so the warning cannot
+ * describe a different list than the one that is saved.
+ */
+export function effectiveTransactionTypes(form: PolicyForm): string[] | null {
   if (!form.transaction_types.trim()) return null;
-  const types = form.transaction_types.split(',').map((t) => t.trim()).filter((t) => t && t !== 'limit_order');
-  if (form.limit_order_enabled) types.push('limit_order');
+  const types = form.transaction_types.split(',').map((t) => t.trim()).filter((t) => t && !CAPABILITY_OWNED_TYPES.has(t));
+  for (const cap of CAPABILITY_TYPES) {
+    if (form[cap.flag]) types.push(cap.write);
+  }
   return types;
+}
+
+/** The tokens `only_limited_tokens` permits: native NEAR and every token with a limit row. */
+export function limitedTokens(form: Pick<PolicyForm, 'token_limits'>): string[] {
+  const tokens = [NATIVE_TOKEN_KEY];
+  for (const row of form.token_limits) {
+    const token = row.token.trim();
+    if (token && token !== '*' && !tokens.includes(token)) tokens.push(token);
+  }
+  return tokens;
 }
 
 /** The form-string spelling of `transaction_types: []` (see `parsePolicyResponse`). */
 export const NO_TRANSACTION_TYPES = ',';
 
+/**
+ * The form's type box with one type switched. Unticking the last type leaves
+ * the bare separator, never an empty box: the rule stays ("nothing else is
+ * permitted") instead of turning into "no restriction".
+ */
+export function toggledTransactionTypes(box: string, type: string): string {
+  const types = box.split(',').map((t) => t.trim()).filter(Boolean);
+  const next = types.includes(type) ? types.filter((t) => t !== type) : [...types, type];
+  return next.join(',') || NO_TRANSACTION_TYPES;
+}
+
+/** A JSON object, or `null` for anything else. */
+function asObject(value: unknown): Record<string, unknown> | null {
+  return value !== null && typeof value === 'object' && !Array.isArray(value) ? (value as Record<string, unknown>) : null;
+}
+
+/** `built` with the keys of `stored` it does not have. What the form wrote always stands. */
+function withUnknownKeys(built: Record<string, unknown>, stored: unknown, known: readonly string[]): Record<string, unknown> {
+  const from = asObject(stored);
+  if (!from) return built;
+  const out = { ...built };
+  for (const [key, value] of Object.entries(from)) {
+    if (!known.includes(key) && !(key in out)) out[key] = value;
+  }
+  return out;
+}
+
+const FORM_RULE_KEYS = ['limits', 'addresses', 'transaction_types', 'allowed_tokens', 'time_restrictions', 'rate_limit'] as const;
+const FORM_CAPABILITIES = [
+  'raw_sign', 'confidential', 'payment_check', 'swap', 'cross_chain_withdraw', 'limit_order',
+  'sign_message', 'evm_sign', 'solana_sign', 'intents_call',
+] as const;
+
+/**
+ * What the stored policy holds that the form has no field for, carried into
+ * what the form built — so a policy written through the API or the JSON editor
+ * keeps those parts when the form saves it.
+ *
+ * Only around what the form still writes: an unknown rule, an unknown member of
+ * a section the form emits (`limits.hourly_tx_count`, a capability's
+ * `requires_approval`), a capability the form has no switch for. A
+ * section or a capability the form does NOT emit is gone with everything in it:
+ * nothing switched off comes back through here.
+ */
+function carryStored(built: Record<string, unknown>, stored: unknown): Record<string, unknown> {
+  const from = asObject(stored);
+  if (!from) return built;
+  const out = { ...built };
+
+  const storedRules = asObject(from.rules);
+  if (storedRules) {
+    let rules = withUnknownKeys(asObject(out.rules) ?? {}, storedRules, FORM_RULE_KEYS);
+    // `limits` holds one member the form has no field for; it is kept even
+    // when the form writes no limit of its own.
+    const storedLimits = asObject(storedRules.limits);
+    if (storedLimits) {
+      const limits = withUnknownKeys(asObject(rules.limits) ?? {}, storedLimits, LIMIT_WINDOWS);
+      if (Object.keys(limits).length > 0) rules = { ...rules, limits };
+    }
+    for (const section of ['time_restrictions', 'rate_limit', 'addresses'] as const) {
+      const builtSection = asObject(rules[section]);
+      if (builtSection) rules = { ...rules, [section]: { ...asObject(storedRules[section]), ...builtSection } };
+    }
+    if (Object.keys(rules).length > 0) out.rules = rules;
+  }
+
+  const storedCaps = asObject(from.capabilities);
+  if (storedCaps) {
+    const caps: Record<string, unknown> = { ...asObject(out.capabilities) };
+    for (const [name, value] of Object.entries(storedCaps)) {
+      if (!(FORM_CAPABILITIES as readonly string[]).includes(name)) {
+        if (!(name in caps)) caps[name] = value;
+        continue;
+      }
+      const builtCap = asObject(caps[name]);
+      // A capability the form wrote as allowed keeps its other members; one it
+      // wrote as refused, or did not write, takes nothing from the stored one.
+      if (builtCap && builtCap.allowed === true) caps[name] = { ...asObject(value), ...builtCap };
+    }
+    if (Object.keys(caps).length > 0) out.capabilities = caps;
+  }
+  return out;
+}
+
+/**
+ * The policy a form describes. `stored` is the policy the form was loaded
+ * from, when there is one: what it holds beyond the form's fields is carried
+ * over (`carryStored`).
+ */
 export function buildPolicyRules(
   form: PolicyForm,
   apiKeyHash?: string,
+  stored?: unknown,
 ): Record<string, unknown> {
   const rules: Record<string, unknown> = {};
 
-  const limits: Record<string, unknown> = {};
-  if (form.per_transaction_limit) limits.per_transaction = { native: nearToYocto(form.per_transaction_limit) };
-  if (form.daily_limit) limits.daily = { native: nearToYocto(form.daily_limit) };
-  if (form.hourly_limit) limits.hourly = { native: nearToYocto(form.hourly_limit) };
-  if (form.monthly_limit) limits.monthly = { native: nearToYocto(form.monthly_limit) };
+  const nativeLimits: Record<LimitWindow, string> = {
+    per_transaction: form.per_transaction_limit,
+    hourly: form.hourly_limit,
+    daily: form.daily_limit,
+    monthly: form.monthly_limit,
+  };
+  const limits: Record<string, Record<string, string>> = {};
+  for (const w of LIMIT_WINDOWS) {
+    const byToken: Record<string, string> = {};
+    if (nativeLimits[w]) byToken[NATIVE_TOKEN_KEY] = nearToYocto(nativeLimits[w]);
+    for (const row of form.token_limits) {
+      const token = row.token.trim();
+      if (token && token !== NATIVE_TOKEN_KEY && row[w]) byToken[token] = row[w];
+    }
+    if (Object.keys(byToken).length > 0) limits[w] = byToken;
+  }
   if (Object.keys(limits).length > 0) rules.limits = limits;
 
   // The MODE is the switch; the list is data. These used to be one condition
@@ -346,19 +570,16 @@ export function buildPolicyRules(
   }
 
   if (form.transaction_types.trim()) {
-    // `limit_order` is not a checkbox of its own: the capability switch owns it,
-    // so the two halves of the gate cannot be set against each other (a
-    // capability without the type — or the type without the capability — reads
-    // as "enabled" in the form and is refused by the keystore).
-    //
-    // The rule is emitted whenever the box held ANYTHING, `limit_order` included
-    // — even if what is left is an empty list. An owner who restricted the
-    // wallet to limit orders and then switches them off has a wallet that may
-    // do nothing, not one that may do everything.
+    // The rule is emitted whenever the box held ANYTHING, a capability's type
+    // included — even if what is left is an empty list. An owner who restricted
+    // the wallet to limit orders and then switches them off has a wallet that
+    // may do nothing, not one that may do everything.
     rules.transaction_types = effectiveTransactionTypes(form);
   }
 
-  if (form.allowed_tokens && form.allowed_tokens !== '*') {
+  if (form.only_limited_tokens) {
+    rules.allowed_tokens = limitedTokens(form);
+  } else if (form.allowed_tokens && form.allowed_tokens !== '*') {
     rules.allowed_tokens = form.allowed_tokens.split(',').map((t) => t.trim()).filter(Boolean);
   }
 
@@ -454,7 +675,15 @@ export function buildPolicyRules(
     policy.refund_addresses = Object.fromEntries(refundRows.map((r) => [r.chain, r.address.trim()]));
   }
 
-  return policy;
+  return carryStored(policy, stored);
+}
+
+/**
+ * An approval block the form built, with the members of the stored one the
+ * form has no field for.
+ */
+export function approvalWithStored(built: Record<string, unknown>, stored: unknown): Record<string, unknown> {
+  return withUnknownKeys(built, stored, ['threshold', 'approvers', 'excluded_types', 'locked']);
 }
 
 // ============================================================================
@@ -470,6 +699,12 @@ export interface ParsedPolicy {
     required: string;
     approvers: string; // "account_id, role[, pubkey]" lines
   } | null;
+  /**
+   * Capabilities the stored policy allows while its own type rule refuses
+   * their operations: stored as on, never working. The form shows them off —
+   * switching one on is the owner's decision, not a side effect of a save.
+   */
+  inertCapabilities: string[];
   /** The full policy JSON for the editor */
   fullJson: Record<string, unknown>;
 }
@@ -517,11 +752,61 @@ export function parsePolicyResponse(
   const tr = rules.time_restrictions || {};
   const caps = data.capabilities || {};
 
+  // Every token key any window names gets a row, `*` included: a key the
+  // form did not carry would be dropped on the next save, and the token it
+  // capped would come back with no limit.
+  const limitTokens: string[] = [];
+  for (const w of LIMIT_WINDOWS) {
+    for (const token of Object.keys(limits[w] || {})) {
+      if (token !== NATIVE_TOKEN_KEY && !limitTokens.includes(token)) limitTokens.push(token);
+    }
+  }
+  const tokenLimits: TokenLimitRow[] = limitTokens.map((token) => ({
+    token,
+    per_transaction: String(limits.per_transaction?.[token] ?? ''),
+    hourly: String(limits.hourly?.[token] ?? ''),
+    daily: String(limits.daily?.[token] ?? ''),
+    monthly: String(limits.monthly?.[token] ?? ''),
+  }));
+
+  // A capability switch reads as on only when the operation would in fact be
+  // permitted: the capability allowed AND, under a type rule, its type listed.
+  const storedTypes: string[] | null = Array.isArray(rules.transaction_types) ? rules.transaction_types : null;
+  const inertCapabilities: string[] = [];
+  const capabilityOn = (name: string, flag: (typeof CAPABILITY_TYPES)[number]['flag']): boolean => {
+    if (caps[name]?.allowed !== true) return false;
+    if (!storedTypes) return true;
+    const aliases = CAPABILITY_TYPES.find((c) => c.flag === flag)!.aliases;
+    if (storedTypes.some((t) => aliases.includes(t))) return true;
+    inertCapabilities.push(name);
+    return false;
+  };
+
+  // `allowed_tokens` that names native and every limited token is the form's
+  // own switch: each further token it names is a row with no amounts yet (the
+  // token may move, uncapped), which is what the list alone says. A list that
+  // leaves out native or a limited token was written by hand and stays as
+  // written.
+  const storedTokens: string[] | null = Array.isArray(rules.allowed_tokens) ? rules.allowed_tokens : null;
+  const onlyLimited =
+    storedTokens !== null &&
+    storedTokens.includes(NATIVE_TOKEN_KEY) &&
+    !storedTokens.includes('*') &&
+    limitTokens.every((t) => t === '*' || storedTokens.includes(t));
+  if (onlyLimited) {
+    for (const token of storedTokens!) {
+      if (token !== NATIVE_TOKEN_KEY && !limitTokens.includes(token)) {
+        tokenLimits.push({ token, per_transaction: '', hourly: '', daily: '', monthly: '' });
+      }
+    }
+  }
+
   const form: PolicyForm = {
-    per_transaction_limit: yoctoToNear(limits.per_transaction?.native || limits.per_transaction?.['*'] || ''),
-    daily_limit: yoctoToNear(limits.daily?.native || limits.daily?.['*'] || ''),
-    hourly_limit: yoctoToNear(limits.hourly?.native || limits.hourly?.['*'] || ''),
-    monthly_limit: yoctoToNear(limits.monthly?.native || limits.monthly?.['*'] || ''),
+    per_transaction_limit: yoctoToNear(limits.per_transaction?.native || ''),
+    daily_limit: yoctoToNear(limits.daily?.native || ''),
+    hourly_limit: yoctoToNear(limits.hourly?.native || ''),
+    monthly_limit: yoctoToNear(limits.monthly?.native || ''),
+    token_limits: tokenLimits,
     // THREE states, and collapsing any two of them changes a wallet on save:
     //
     //   no `addresses` section     → no filtering. The engine's
@@ -541,19 +826,18 @@ export function parsePolicyResponse(
     // unrelated, changed what the wallet may do".
     address_mode: rules.addresses ? (addr.mode || 'whitelist') : 'none',
     addresses: (addr.list || []).join(', '),
-    // `limit_order` stays IN this string even though no checkbox shows it (the
-    // capability switch owns it). Cut out here, a policy whose only type is
-    // `limit_order` loads as an empty box — which means "no restriction" — and
-    // the next Save would drop the rule and permit every other type.
-    //
-    // A stored EMPTY list is "no type is permitted", and an empty box is "no
-    // restriction" — opposites. It loads as a bare separator: non-empty, so
-    // `buildPolicyRules` still emits the rule, and holding no type, so the
-    // rule it emits is `[]` again.
-    transaction_types: rules.transaction_types
-      ? (rules.transaction_types.join(',') || NO_TRANSACTION_TYPES)
+    // A capability's type is its switch's to write, so it is not kept in this
+    // string. A stored list that holds nothing else — or nothing at all — is
+    // still a RULE ("no other type is permitted"), and an empty box is "no
+    // restriction", the opposite: it loads as a bare separator, non-empty, so
+    // `buildPolicyRules` still emits the rule.
+    transaction_types: storedTypes
+      ? (storedTypes.filter((t) => !CAPABILITY_OWNED_TYPES.has(t)).join(',') || NO_TRANSACTION_TYPES)
       : '',
-    allowed_tokens: (rules.allowed_tokens || []).join(',') || '*',
+    only_limited_tokens: onlyLimited,
+    // A stored EMPTY list permits no token; an absent one permits every token.
+    // The empty one loads as a bare separator, so it is saved as empty again.
+    allowed_tokens: onlyLimited ? '*' : (storedTokens || []).join(',') || (storedTokens ? ',' : '*'),
     allowed_hours_start: tr.allowed_hours?.[0]?.toString() || '',
     allowed_hours_end: tr.allowed_hours?.[1]?.toString() || '',
     allowed_days: (tr.allowed_days || []).join(','),
@@ -562,14 +846,14 @@ export function parsePolicyResponse(
     additional_key_hashes: (data.authorized_key_hashes || [])
       .filter((h) => h !== currentApiKeyHash)
       .join('\n'),
-    raw_sign_enabled: caps.raw_sign?.allowed === true,
+    raw_sign_enabled: capabilityOn('raw_sign', 'raw_sign_enabled'),
     raw_sign_chains: (caps.raw_sign?.chains || []).join(', '),
     raw_sign_requires_approval: caps.raw_sign?.requires_approval === true,
-    confidential_enabled: caps.confidential?.allowed === true,
-    payment_check_enabled: caps.payment_check?.allowed === true,
-    swap_enabled: caps.swap?.allowed === true,
-    cross_chain_withdraw_enabled: caps.cross_chain_withdraw?.allowed === true,
-    limit_order_enabled: caps.limit_order?.allowed === true,
+    confidential_enabled: capabilityOn('confidential', 'confidential_enabled'),
+    payment_check_enabled: capabilityOn('payment_check', 'payment_check_enabled'),
+    swap_enabled: capabilityOn('swap', 'swap_enabled'),
+    cross_chain_withdraw_enabled: capabilityOn('cross_chain_withdraw', 'cross_chain_withdraw_enabled'),
+    limit_order_enabled: capabilityOn('limit_order', 'limit_order_enabled'),
     sign_message_allowed_recipients: (caps.sign_message?.allowed_recipients || []).join(', '),
     // evm_sign is DEFAULT-DENY: the form shows it enabled only when the policy
     // explicitly set allowed:true.
@@ -585,8 +869,15 @@ export function parsePolicyResponse(
   if (data.approval) {
     const ap = data.approval;
     const approverLines = (ap.approvers || []).map(approverLine).join('\n');
+    // The threshold is stored as a bare number or as `{required}`; an object
+    // that names no number means 2 to the engine.
+    const threshold = ap.threshold;
+    const required =
+      typeof threshold === 'number' ? threshold
+        : threshold && typeof threshold === 'object' ? (typeof threshold.required === 'number' ? threshold.required : 2)
+          : 1;
     approval = {
-      required: ap.threshold?.required?.toString() || '1',
+      required: String(required),
       approvers: approverLines,
     };
   }
@@ -602,16 +893,204 @@ export function parsePolicyResponse(
     fullJson.refund_addresses = data.refund_addresses;
   }
 
-  return { form, approval, fullJson };
+  return { form, approval, inertCapabilities, fullJson };
 }
 
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
 // ============================================================================
-// Submit policy: encrypt → sign → store on-chain → invalidate cache
+// The protected start, the address list, and the policy in words
 // ============================================================================
 
-export interface SubmitPolicyParams {
+/** The addresses of a form's list, as written. */
+export function addressList(form: Pick<PolicyForm, 'addresses'>): string[] {
+  return form.addresses.split(',').map((a) => a.trim()).filter(Boolean);
+}
+
+/** Whether two spellings name one address: account ids and hex addresses compare without case. */
+export function sameAddress(a: string, b: string): boolean {
+  return a.trim().toLowerCase() === b.trim().toLowerCase();
+}
+
+/**
+ * The policy a new agent wallet starts from: money leaves only to the listed
+ * addresses — the owner's account and the wallet's own, where a withdrawal
+ * with no recipient lands — as a transfer or a withdrawal, on NEAR or to
+ * another chain. No contract call, so a contract listed by mistake opens
+ * nothing; every other capability off; only tokens with a limit row move.
+ */
+export function protectedAgentPolicy(params: {
+  ownerAccount: string;
+  walletAccount: string;
+  /** Tokens to open a limit row for (the amounts are the owner's to type). */
+  tokens?: string[];
+}): PolicyForm {
+  const { ownerAccount, walletAccount, tokens = [] } = params;
+  return {
+    ...DEFAULT_POLICY,
+    address_mode: 'whitelist',
+    addresses: [ownerAccount, walletAccount].filter(Boolean).join(', '),
+    transaction_types: 'transfer,intents_withdraw,intents_transfer',
+    cross_chain_withdraw_enabled: true,
+    only_limited_tokens: true,
+    token_limits: tokens.map((token) => ({ token, per_transaction: '', hourly: '', daily: '', monthly: '' })),
+  };
+}
+
+/**
+ * A form with `addresses` put on its list. `added` are the ones that were not
+ * there; on a form that filters nothing, or blocks its list, nothing is added
+ * — `mode` says which, for the page to explain.
+ */
+export function withAddresses(form: PolicyForm, addresses: string[]): { form: PolicyForm; added: string[]; mode: PolicyForm['address_mode'] } {
+  if (form.address_mode !== 'whitelist') return { form, added: [], mode: form.address_mode };
+  const list = addressList(form);
+  const added: string[] = [];
+  for (const raw of addresses) {
+    const address = raw.trim();
+    if (!address || list.some((a) => sameAddress(a, address))) continue;
+    list.push(address);
+    added.push(address);
+  }
+  return { form: added.length > 0 ? { ...form, addresses: list.join(', ') } : form, added, mode: 'whitelist' };
+}
+
+/** Why an address cannot go on the list, or `null`: one printable token, no separators the list uses. */
+export function addressProblem(address: string): string | null {
+  const a = address.trim();
+  if (!a) return 'An address is empty.';
+  if (a.length > 128 || !/^[\x21-\x7e]+$/.test(a) || a.includes(',')) {
+    return `'${a.slice(0, 40)}' is not an address: 1-128 printable characters, no spaces or commas.`;
+  }
+  return null;
+}
+
+/** How a token is named and scaled in the summary; `null` when the catalog does not know it. */
+export type TokenLabel = (tokenKey: string) => { symbol: string; decimals: number } | null;
+
+export interface PolicySummary {
+  /** What the wallet's key may do. */
+  can: string[];
+  /** What it may not, of the things an owner would ask about. */
+  cannot: string[];
+  /** What deserves a second look: a missing limit, a capability that reaches past the address list. */
+  cautions: string[];
+}
+
+const WINDOW_WORDS: Record<LimitWindow, string> = {
+  per_transaction: 'per transaction',
+  hourly: 'per hour',
+  daily: 'per day',
+  monthly: 'per month',
+};
+
+/**
+ * The form in words, for the owner who opens nothing else. Built from the
+ * form, so it describes the policy only while the JSON is the form's own.
+ */
+export function summarizePolicy(form: PolicyForm, options: { approval: boolean; tokenLabel?: TokenLabel }): PolicySummary {
+  const can: string[] = [];
+  const cannot: string[] = [];
+  const cautions: string[] = [];
+  const types = effectiveTransactionTypes(form);
+  const typeOn = (t: string) => types === null || types.includes(t);
+  const list = addressList(form);
+
+  const sends = typeOn('transfer') || typeOn('intents_withdraw') || typeOn('intents_transfer') || form.cross_chain_withdraw_enabled;
+  if (!sends) {
+    cannot.push('Send money anywhere: no transfer or withdrawal is permitted.');
+  } else if (form.address_mode === 'whitelist') {
+    if (list.length === 0) cannot.push('Send money anywhere: the address list is empty.');
+    else can.push(`Send money only to the ${list.length} listed address${list.length === 1 ? '' : 'es'}${form.cross_chain_withdraw_enabled ? ', on NEAR or another chain' : ', on NEAR'}.`);
+  } else if (form.address_mode === 'blacklist') {
+    can.push(`Send money to any address except the ${list.length} listed.`);
+    cautions.push('Any address not on the block list can be paid.');
+  } else {
+    can.push('Send money to any address.');
+    cautions.push('No address list: a leaked key can pay anyone, within the limits.');
+  }
+  if (sends && !form.cross_chain_withdraw_enabled) cannot.push('Send to another chain.');
+
+  // Limits, token by token.
+  const amount = (units: string, decimals: number) => decimalFromUnits(units, decimals);
+  const limitWords = (values: Record<LimitWindow, string>) =>
+    LIMIT_WINDOWS.filter((w) => values[w]).map((w) => `${values[w]} ${WINDOW_WORDS[w]}`).join(', ');
+  const nativeWords = limitWords({
+    per_transaction: form.per_transaction_limit,
+    hourly: form.hourly_limit,
+    daily: form.daily_limit,
+    monthly: form.monthly_limit,
+  });
+  const wildcard = form.token_limits.find((r) => r.token.trim() === '*');
+  const wildcardHasLimit = wildcard ? LIMIT_WINDOWS.some((w) => wildcard[w]) : false;
+  if (sends) {
+    if (nativeWords) can.push(`NEAR: up to ${nativeWords}.`);
+    else if (!wildcardHasLimit) cautions.push('NEAR has no limit.');
+    for (const row of form.token_limits) {
+      const token = row.token.trim();
+      if (!token || token === '*') continue;
+      const label = options.tokenLabel?.(token) ?? null;
+      const name = label ? label.symbol : token;
+      const words = limitWords({
+        per_transaction: row.per_transaction && label ? amount(row.per_transaction, label.decimals) : row.per_transaction,
+        hourly: row.hourly && label ? amount(row.hourly, label.decimals) : row.hourly,
+        daily: row.daily && label ? amount(row.daily, label.decimals) : row.daily,
+        monthly: row.monthly && label ? amount(row.monthly, label.decimals) : row.monthly,
+      });
+      if (words) can.push(`${name}: up to ${words}${label ? '' : ' (minimal units)'}.`);
+      else if (!wildcardHasLimit) cautions.push(`${name} has no limit.`);
+    }
+    if (form.only_limited_tokens) {
+      cannot.push('Move a token that has no limit row.');
+    } else if (form.allowed_tokens.trim() && form.allowed_tokens.trim() !== '*') {
+      can.push(`Move only these tokens: ${form.allowed_tokens}.`);
+    } else if (!wildcardHasLimit) {
+      cautions.push('Any other token moves with no limit.');
+    }
+  }
+
+  const switchable: Array<[boolean, string, string]> = [
+    [form.swap_enabled, 'Swap tokens.', 'Swap tokens.'],
+    [form.limit_order_enabled, 'Place limit orders, paid out to a listed address.', 'Place limit orders.'],
+    [form.payment_check_enabled, 'Create payment links anyone holding the link can claim.', 'Create payment links.'],
+    [form.confidential_enabled, 'Use confidential balances and transfers.', 'Use confidential balances.'],
+    [form.evm_sign_enabled, 'Sign on EVM chains.', 'Sign on EVM chains.'],
+    [form.solana_sign_enabled, 'Sign on Solana.', 'Sign on Solana.'],
+    [typeOn('call'), 'Call contracts on NEAR.', 'Call contracts.'],
+    [typeOn('delete'), 'Delete the wallet account.', 'Delete the wallet account.'],
+    [form.raw_sign_enabled, 'Sign raw payloads.', 'Sign raw payloads.'],
+    [form.intents_call_enabled && typeOn('call'), 'Call the NEAR Intents contract directly.', ''],
+  ];
+  for (const [on, yes, no] of switchable) {
+    if (on) can.push(yes);
+    else if (no) cannot.push(no);
+  }
+
+  if (form.payment_check_enabled && form.address_mode === 'whitelist') {
+    cautions.push('A payment link pays whoever holds it: the address list does not apply to it.');
+  }
+  if (form.evm_sign_enabled) cautions.push('An EVM signature can move whatever the wallet holds on its EVM address, to anyone.');
+  if (form.solana_sign_enabled && form.solana_sign_raw_tx) cautions.push('A Solana transaction signature can move whatever the wallet holds on its Solana address, to anyone.');
+  if (form.raw_sign_enabled) cautions.push('A raw signature is outside the address list and the limits.');
+  if (form.intents_call_enabled && typeOn('call')) cautions.push('A direct call to NEAR Intents can hand the wallet’s intents balance to another key for good.');
+  if (typeOn('call') && form.address_mode === 'whitelist') {
+    cautions.push('A contract on the address list can be called with any arguments: list a token contract and its transfers go anywhere.');
+  }
+  if (options.approval) can.push('Operations you chose wait for your approval before they run.');
+
+  return { can, cannot, cautions };
+}
+
+// ============================================================================
+// Store a policy: prepare (encrypt → sign → estimate, no wallet) and store
+// (one transaction, from a click)
+// ============================================================================
+
+type ViewMethod = (params: { contractId: string; method: string; args?: Record<string, unknown> }) => Promise<unknown>;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type SignAndSendTransaction = (params: any) => Promise<any>;
+
+export interface PreparePolicyParams {
   coordinatorUrl: string;
   apiKey: string;
   walletId: string;
@@ -619,30 +1098,17 @@ export interface SubmitPolicyParams {
   contractId: string;
   /**
    * The NEAR account that will SEND `store_wallet_policy` — the connected
-   * wallet, since it is what signs the transaction below.
+   * wallet, since it is what signs the transaction.
    *
-   * It is part of the signed message, so the signature is good for that account
-   * and no other. Before that, a policy signature was made over the bare
-   * ciphertext hash: anyone who read one off the chain could file it again, and
-   * any other signature of the same wallet could be filed as a policy.
+   * It is part of the signed message, so the signature is good for that
+   * account and no other: a signature read off the chain cannot be filed by
+   * anyone else, and no other signature of the wallet can be filed as a policy.
    */
   callerAccountId: string;
-  viewMethod: (params: { contractId: string; method: string; args?: Record<string, unknown> }) => Promise<unknown>;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  signAndSendTransaction: (params: any) => Promise<any>;
+  viewMethod: ViewMethod;
 }
 
-/**
- * Either the policy is on chain, or — when the policy it replaces is locked
- * (`approval.locked`) — the write waits for that policy's approvers: nothing
- * was sent, and the signature appears on the request once the threshold is
- * met (`submitApprovedPolicy`).
- */
-export type SubmitPolicyResult =
-  | { pending: false; walletPubkey: string }
-  | { pending: true; approvalId: string; requestId: string; requiredApprovals: number };
-
-/** The signed write a locked policy's approvers released, as `GET /wallet/v1/requests/:id` carries it. */
+/** A signed write, as the contract's `store_wallet_policy` takes it. */
 export interface ApprovedPolicyWrite {
   walletPubkey: string;
   encryptedData: string;
@@ -653,14 +1119,38 @@ export interface ApprovedPolicyWrite {
   validUntil: number;
 }
 
-export async function submitPolicy(params: SubmitPolicyParams): Promise<SubmitPolicyResult> {
-  const { coordinatorUrl, apiKey, walletId, policyJsonText, contractId, callerAccountId, viewMethod, signAndSendTransaction } = params;
+/** A write that needs only the owner's transaction: the signed blob and its storage deposit. */
+export interface PreparedPolicyWrite {
+  write: ApprovedPolicyWrite;
+  /** The storage deposit `store_wallet_policy` is sent with, in yoctoNEAR. */
+  depositYocto: string;
+}
+
+/**
+ * Either the write is ready for the owner's transaction, or — when the policy
+ * it replaces is locked (`approval.locked`) — it waits for that policy's
+ * approvers: the signature appears on the request once the threshold is met
+ * (`prepareApprovedPolicy`).
+ */
+export type PreparePolicyResult =
+  | { pending: false; prepared: PreparedPolicyWrite }
+  | { pending: true; approvalId: string; requestId: string; requiredApprovals: number };
+
+/**
+ * Everything a policy write needs short of the owner's transaction: the
+ * coordinator encrypts the policy to the keystore, the keystore signs it for
+ * `callerAccountId`, and the contract prices its storage. Opens no wallet.
+ *
+ * Replacing a LOCKED policy files a request with its approvers, so this is
+ * not something to run speculatively against a wallet that has a policy.
+ */
+export async function preparePolicyWrite(params: PreparePolicyParams): Promise<PreparePolicyResult> {
+  const { coordinatorUrl, apiKey, walletId, policyJsonText, contractId, callerAccountId, viewMethod } = params;
 
   if (!callerAccountId) {
     throw new Error('Connect your NEAR wallet first — the policy signature names the account that submits it.');
   }
 
-  // Parse policy JSON
   let policyData: Record<string, unknown>;
   try {
     policyData = JSON.parse(policyJsonText);
@@ -673,39 +1163,30 @@ export async function submitPolicy(params: SubmitPolicyParams): Promise<SubmitPo
     throw new Error(refundProblems.join(' '));
   }
 
-  // Step 1: Encrypt policy via coordinator
   const encryptResp = await fetch(`${coordinatorUrl}/wallet/v1/encrypt-policy`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
     body: JSON.stringify({ wallet_id: walletId, ...policyData }),
   });
-
   if (!encryptResp.ok) {
     const errorData = await encryptResp.json().catch(() => ({}));
     throw new Error(errorData.message || `Policy encryption failed (HTTP ${encryptResp.status})`);
   }
-
   const encrypted = await encryptResp.json();
 
-  // Step 2: Sign encrypted policy with agent's ed25519 key. `caller` is signed
-  // alongside the blob, so what comes back can only be submitted by the account
-  // named here — which is the one that signs the transaction in step 3.
   const signResp = await fetch(`${coordinatorUrl}/wallet/v1/sign-policy`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
     body: JSON.stringify({ encrypted_data: encrypted.encrypted_base64, caller: callerAccountId }),
   });
-
   if (!signResp.ok) {
     const signErr = await signResp.json().catch(() => ({}));
     throw new Error(signErr.message || `Policy signing failed (HTTP ${signResp.status})`);
   }
-
   const signed = await signResp.json();
 
   // A locked policy: the approvers of the policy being replaced decide, and
-  // nothing goes on chain until they have. Stop here — before the estimate,
-  // the transaction and the cache — and hand back what to wait on.
+  // nothing goes on chain until they have.
   if (signed.status === 'pending_approval') {
     return {
       pending: true,
@@ -714,49 +1195,77 @@ export async function submitPolicy(params: SubmitPolicyParams): Promise<SubmitPo
       requiredApprovals: Number(signed.required_approvals ?? 0),
     };
   }
-  const walletPubkey = `ed25519:${signed.public_key_hex}`;
 
-  await storePolicyOnChain({
-    contractId,
-    viewMethod,
-    signAndSendTransaction,
-    write: {
-      walletPubkey,
-      encryptedData: encrypted.encrypted_base64,
-      walletSignature: signed.signature_hex,
-      // All three are inside the signature: the keystore's answer, never a value of our own.
-      version: Number(signed.version),
-      locked: Boolean(signed.locked),
-      validUntil: Number(signed.valid_until),
+  const write: ApprovedPolicyWrite = {
+    walletPubkey: `ed25519:${signed.public_key_hex}`,
+    encryptedData: encrypted.encrypted_base64,
+    walletSignature: signed.signature_hex,
+    // All three are inside the signature: the keystore's answer, never a value of our own.
+    version: Number(signed.version),
+    locked: Boolean(signed.locked),
+    validUntil: Number(signed.valid_until),
+  };
+  return { pending: false, prepared: { write, depositYocto: await policyStorageDeposit(contractId, viewMethod, write) } };
+}
+
+/** Whether a prepared write's signature is still good to send. */
+export function preparedWriteIsFresh(prepared: PreparedPolicyWrite): boolean {
+  return prepared.write.validUntil * 1000 > Date.now();
+}
+
+/**
+ * Send `store_wallet_policy` with a prepared write. Call this from a click
+ * and nowhere else: the wallet opens on its first line, with nothing awaited
+ * before it.
+ */
+export async function storePreparedPolicy(params: {
+  coordinatorUrl: string;
+  walletId: string;
+  contractId: string;
+  prepared: PreparedPolicyWrite;
+  signAndSendTransaction: SignAndSendTransaction;
+}): Promise<void> {
+  const { coordinatorUrl, walletId, contractId, prepared, signAndSendTransaction } = params;
+  const { write, depositYocto } = prepared;
+  const action = actionCreators.functionCall(
+    'store_wallet_policy',
+    {
+      wallet_pubkey: write.walletPubkey,
+      encrypted_data: write.encryptedData,
+      wallet_signature: write.walletSignature,
+      version: write.version,
+      locked: write.locked,
+      valid_until: write.validUntil,
     },
-  });
+    BigInt('100000000000000'),
+    BigInt(depositYocto),
+  );
+  await signAndSendTransaction({ receiverId: contractId, actions: [action] });
 
-  // Step 4: Invalidate coordinator cache (it re-reads the chain; the body's
-  // policy_json is not accepted there and is sent for nothing)
+  // The coordinator re-reads the chain; nothing of the policy is sent here.
   await fetch(`${coordinatorUrl}/wallet/v1/invalidate-cache`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ wallet_id: walletId }),
   }).catch(() => {});
-
-  return { pending: false, walletPubkey };
 }
 
 /**
- * The approvers released the write: read the signature off the request and
- * send `store_wallet_policy` with it. Call this from a click and nowhere else —
- * it opens the wallet.
+ * The write a locked policy's approvers released, read off its request and
+ * priced — ready for `storePreparedPolicy`. Opens no wallet.
  */
-export async function submitApprovedPolicy(params: {
+export async function prepareApprovedPolicy(params: {
   coordinatorUrl: string;
   apiKey: string;
-  walletId: string;
   requestId: string;
   contractId: string;
-  viewMethod: SubmitPolicyParams['viewMethod'];
-  signAndSendTransaction: SubmitPolicyParams['signAndSendTransaction'];
-}): Promise<{ status: 'pending_approval' | 'failed' | 'stored'; error?: string }> {
-  const { coordinatorUrl, apiKey, walletId, requestId, contractId, viewMethod, signAndSendTransaction } = params;
+  viewMethod: ViewMethod;
+}): Promise<
+  | { status: 'pending_approval' }
+  | { status: 'failed'; error: string }
+  | { status: 'ready'; prepared: PreparedPolicyWrite }
+> {
+  const { coordinatorUrl, apiKey, requestId, contractId, viewMethod } = params;
   const resp = await fetch(`${coordinatorUrl}/wallet/v1/requests/${encodeURIComponent(requestId)}`, {
     headers: { Authorization: `Bearer ${apiKey}` },
   });
@@ -770,63 +1279,31 @@ export async function submitApprovedPolicy(params: {
     return { status: 'failed', error: request.result?.error || `The request is ${request.status}` };
   }
   const result = request.result ?? {};
-  if (Number(result.valid_until) * 1000 < Date.now()) {
+  const write: ApprovedPolicyWrite = {
+    walletPubkey: String(result.wallet_pubkey),
+    encryptedData: String(result.encrypted_data),
+    walletSignature: String(result.wallet_signature),
+    version: Number(result.version),
+    locked: Boolean(result.locked),
+    validUntil: Number(result.valid_until),
+  };
+  if (write.validUntil * 1000 < Date.now()) {
     return { status: 'failed', error: 'the approved signature expired before it was stored; submit the policy again' };
   }
-  await storePolicyOnChain({
-    contractId,
-    viewMethod,
-    signAndSendTransaction,
-    write: {
-      walletPubkey: String(result.wallet_pubkey),
-      encryptedData: String(result.encrypted_data),
-      walletSignature: String(result.wallet_signature),
-      version: Number(result.version),
-      locked: Boolean(result.locked),
-      validUntil: Number(result.valid_until),
-    },
-  });
-  await fetch(`${coordinatorUrl}/wallet/v1/invalidate-cache`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ wallet_id: walletId }),
-  }).catch(() => {});
-  return { status: 'stored' };
+  return { status: 'ready', prepared: { write, depositYocto: await policyStorageDeposit(contractId, viewMethod, write) } };
 }
 
-/** Estimate the deposit and send `store_wallet_policy` with a signed write. */
-async function storePolicyOnChain(params: {
-  contractId: string;
-  viewMethod: SubmitPolicyParams['viewMethod'];
-  signAndSendTransaction: SubmitPolicyParams['signAndSendTransaction'];
-  write: ApprovedPolicyWrite;
-}): Promise<void> {
-  const { contractId, viewMethod, signAndSendTransaction, write } = params;
-  let storageCost = '100000000000000000000000'; // default 0.1 NEAR
+/** The contract's price for storing a write; 0.1 NEAR when the view cannot be read. */
+async function policyStorageDeposit(contractId: string, viewMethod: ViewMethod, write: ApprovedPolicyWrite): Promise<string> {
   try {
     const cost = await viewMethod({
       contractId,
       method: 'estimate_wallet_policy_cost',
       args: { wallet_pubkey: write.walletPubkey, encrypted_data: write.encryptedData },
     });
-    if (cost) storageCost = cost as string;
+    if (cost) return String(cost);
   } catch (e) {
     console.warn('estimate_wallet_policy_cost failed, using default:', e);
   }
-
-  const action = actionCreators.functionCall(
-    'store_wallet_policy',
-    {
-      wallet_pubkey: write.walletPubkey,
-      encrypted_data: write.encryptedData,
-      wallet_signature: write.walletSignature,
-      version: write.version,
-      locked: write.locked,
-      valid_until: write.validUntil,
-    },
-    BigInt('100000000000000'),
-    BigInt(storageCost),
-  );
-
-  await signAndSendTransaction({ receiverId: contractId, actions: [action] });
+  return '100000000000000000000000';
 }

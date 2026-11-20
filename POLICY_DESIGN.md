@@ -349,3 +349,75 @@ then one `ruleSpec` here):
 - [ ] Both themes; tokens only
 - [ ] `test/policy-<connector>.test.mjs` round-trips the JSON and
       `test/policy-decision.test.mjs` still passes
+
+## 10. The wallet policy page
+
+`/wallet` sets the policy of an agent wallet itself — who it may pay, how much,
+and which capabilities it has. It is not a connector page and does not use the
+decision table: a wallet policy has no list of operations to sort into columns,
+it has a default that refuses and a few switches that open. Sections 2–9 do not
+apply to it; this section does. Its form is
+`components/wallet/WalletPolicyForm.tsx`, its values `lib/wallet-policy.ts`.
+
+**The start.** A wallet with no policy opens on the protected form
+(`protectedAgentPolicy`): an address list holding the owner's account and the
+wallet's own, transfers and withdrawals only, sending to other chains on,
+every other capability off, only tokens with a limit row may move. The page
+calls it "Basic protection" and offers "Custom", an empty form, beside it under
+"Start from": both are starting values of the same form, not two modes. A wallet that has a policy opens on
+that policy and is never offered a start.
+
+**The page says whether the wallet is protected.** A badge in the header:
+"No policy: this key is unrestricted" until the chain holds one, "Protected:
+policy on chain" after. The API key is handed over on the screen that follows
+the stored policy, not before.
+
+**Five questions, in this order.** Where may money go? · When must it ask you
+first? · How much? · What else may it do? · Which keys run the wallet? Each is a
+section; on a wide screen they sit side by side
+(`[grid-template-columns:repeat(auto-fit,minmax(min(100%,22rem),1fr))]`).
+
+**The rail.** Beside the form from its first line — the wallet's status strip
+and the start cards included (`xl:grid-cols-[minmax(0,1fr)_22rem]`; sticky
+under the shell's header, `xl:top-[4.5rem]`, scrolling inside itself when it is
+taller than the screen; under the form below `xl`): what the key can do, what it cannot, what is worth
+a second look, any reason the form cannot be stored, and the primary button.
+The lists come from `summarizePolicy` over the form; while the JSON is edited
+by hand the rail says it no longer describes it.
+
+**A capability is one switch.** Its type in `transaction_types` follows it
+(`CAPABILITY_TYPES`), so a capability cannot be on in the form and refused by
+the engine.
+
+**Warnings are hints until they are true.**
+
+* Off: the switch, its name, one neutral line, and the full account of what it
+  opens behind `InfoHint`. No colour.
+* On: the line becomes its consequence, and the rail names it — under "can",
+  and under "worth a second look" when it reaches past the address list or the
+  limits.
+* `warning`, with its icon, only where a switched-on capability outlives the
+  policy or escapes it entirely: raw signing with `near` listed, direct calls
+  to NEAR Intents.
+* `destructive` only for a form that cannot be stored or would leave the
+  wallet unusable: an empty address list, no kind of operation, an unreadable
+  limit.
+
+**Advanced folds.** Kinds of operation, the hourly and monthly windows, hours
+and days, the rate limit, the webhook, raw signing, direct Intents calls,
+sign-in recipients and refund addresses sit in one `details`, whose summary
+counts what is set inside. Nothing a protected wallet needs is in it. The JSON
+that will be stored is a second `details`, "Policy as JSON", under it.
+
+**One button, and it names the transaction.** "Sign: store the policy (X NEAR
+deposit)" calls the wallet and nothing else. Everything before it — encrypting,
+the enclave's signature, the deposit — is done without a wallet: in the
+background while a wallet has no policy, on "Prepare the policy change" when it
+has one (replacing a locked policy files a request with its approvers). What
+the transaction stores, who becomes the owner, who can read it and how to undo
+it are one line under the button and a `details` beside it.
+
+**A link can ask for an address.** `?wallet=<account>&add_address=<address>`
+puts the address on the list of the loaded policy and says so in a banner,
+showing the address and nothing the link's author wrote. The link carries no
+key.

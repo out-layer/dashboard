@@ -1,23 +1,51 @@
 'use client';
 
-import { useState, useEffect, useCallback, Suspense } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { useNearWallet } from '@/contexts/NearWalletContext';
-import WalletConnectionModal from '@/components/WalletConnectionModal';
-import { getCoordinatorApiUrl } from '@/lib/api';
 import Link from 'next/link';
-import { saveWalletKey, computeKeyHash, getWalletKey } from '@/lib/wallet-keys';
-import { submitPolicy, submitApprovedPolicy, parsePolicyResponse, parseApproverLine, type Approver } from '@/lib/wallet-policy';
+import { useNearWallet } from '@/contexts/NearWalletContext';
+import { getCoordinatorApiUrl } from '@/lib/api';
+import { saveWalletKey, getWalletKey } from '@/lib/wallet-keys';
+import {
+  preparePolicyWrite,
+  prepareApprovedPolicy,
+  storePreparedPolicy,
+  preparedWriteIsFresh,
+  parsePolicyResponse,
+  parseApproverLine,
+  tokenLimitsProblems,
+  protectedAgentPolicy,
+  summarizePolicy,
+  withAddresses,
+  addressProblem,
+  addressList,
+  DEFAULT_POLICY,
+  approvalWithStored,
+  type Approver,
+  type PolicyForm,
+  type PreparedPolicyWrite,
+} from '@/lib/wallet-policy';
 import { useApiKeyHash } from '@/hooks/useApiKeyHash';
 import { usePolicyForm } from '@/hooks/usePolicyForm';
-import { PolicyFormFields } from '@/components/wallet/PolicyFormFields';
+import { PageHeader } from '@/components/ui/page-header';
+import { RequireWallet } from '@/components/ui/require-wallet';
+import { AgentChip } from '@/components/ui/agent-chip';
+import { Badge } from '@/components/ui/badge';
+import { CopyText } from '@/components/ui/copy-text';
+import { SkillUrlBox } from '@/components/ui/skill-url-box';
+import { InfoHint } from '@/components/ui/info-hint';
+import { WalletPolicyForm } from '@/components/wallet/WalletPolicyForm';
 import { PolicyJsonEditor } from '@/components/wallet/PolicyJsonEditor';
+import { policyTokensFromCatalog, type PolicyToken } from '@/components/wallet/TokenLimitsSection';
+
+const SKILL_URL = 'https://skills.outlayer.ai/agent-custody/SKILL.md';
+const FIELD =
+  'w-full max-w-xl rounded-md border border-border-strong px-3 py-2 text-sm outline-none focus:border-accent focus:ring-1 focus:ring-accent';
 
 interface WalletInfo {
   wallet_id: string;
   address: string;
-  chain: string;
-  /** Phase 7 F2: vault binding read back from `/address` response. */
+  /** The customer vault the wallet's keys derive from, when it has one. */
   vault_id?: string | null;
 }
 
@@ -33,6 +61,32 @@ interface WalletInfo {
  */
 const MAX_APPROVERS = 16;
 
+/**
+ * Every type the engine holds to the approval threshold. A type missing here
+ * could not be excluded in the form, and an exclusion set through the API
+ * would be dropped on the next save.
+ */
+const APPROVAL_TYPES = [
+  ['transfer', 'Send NEAR'],
+  ['intents_withdraw', 'Withdraw on NEAR'],
+  ['intents_transfer', 'Pay inside NEAR Intents'],
+  ['cross_chain_withdraw', 'Send to other chains'],
+  ['call', 'Contract calls'],
+  ['delete', 'Delete the wallet account'],
+  ['intents_swap', 'Swaps'],
+  ['limit_order', 'Limit orders'],
+  ['payment_check', 'Payment links'],
+] as const;
+const ALL_APPROVAL_TYPES: readonly string[] = APPROVAL_TYPES.map(([type]) => type);
+const DEFAULT_APPROVAL_TYPES = ALL_APPROVAL_TYPES.filter((t) => t !== 'intents_swap');
+
+/** A storage deposit in NEAR, rounded up to four decimals. */
+function depositNear(yocto: string): string {
+  const unit = BigInt('100000000000000000000'); // 1e20 yocto = 0.0001 NEAR
+  const tenThousandths = (BigInt(yocto) + unit - BigInt(1)) / unit;
+  return (Number(tenThousandths) / 10000).toString();
+}
+
 /** Count the approvers a policy would declare: the primary one plus each non-empty extra line. */
 function countApprovers(primaryOwner: string, additional: string): number {
   const extra = additional
@@ -42,70 +96,164 @@ function countApprovers(primaryOwner: string, additional: string): number {
   return (primaryOwner ? 1 : 0) + extra;
 }
 
-export default function WalletHandoffPage() {
+/** What `/wallet/new` left for this page about a sponsor code it redeemed. */
+function takeSponsorNote(address: string): { ok: boolean; text: string } | null {
+  if (typeof window === 'undefined') return null;
+  const key = `outlayer:sponsorship:${address}`;
+  try {
+    const raw = sessionStorage.getItem(key);
+    if (!raw) return null;
+    sessionStorage.removeItem(key);
+    const note = JSON.parse(raw);
+    return typeof note?.text === 'string' ? { ok: Boolean(note.ok), text: note.text } : null;
+  } catch {
+    return null;
+  }
+}
+
+export default function AgentPolicyPage() {
   return (
- <Suspense fallback={<div className="w-full py-8 text-faint-foreground">Loading...</div>}>
-      <WalletHandoffContent />
+    <Suspense fallback={null}>
+      <AgentPolicyGate />
     </Suspense>
   );
 }
 
-function WalletHandoffContent() {
+const HEADER = {
+  title: 'Agent policy',
+  description: 'What the agent’s key may do with the wallet’s money. You own the policy; the enclave that holds the keys enforces it.',
+};
+
+function AgentPolicyGate() {
   const searchParams = useSearchParams();
-  const router = useRouter();
+  const { isConnected } = useNearWallet();
+  const walletParam = searchParams.get('wallet');
   // `?key=` as given, or, for `?wallet=<account>`, the key this browser saved
   // for that wallet — a link can name a wallet without carrying its key.
-  const apiKey =
-    searchParams.get('key') ||
-    (searchParams.get('wallet') ? getWalletKey(`ed25519:${searchParams.get('wallet')}`) : null);
+  const apiKey = searchParams.get('key') || (walletParam ? getWalletKey(`ed25519:${walletParam}`) : null);
 
-  const {
-    accountId,
-    isConnected,
-    network,
-    contractId,
-    viewMethod,
-    signAndSendTransaction,
-  } = useNearWallet();
+  if (!apiKey) {
+    return (
+      <div className="w-full">
+        <PageHeader {...HEADER} />
+        <div className="max-w-3xl rounded-lg border border-border bg-card p-4 text-sm text-muted-foreground">
+          {walletParam ? (
+            <p>
+              This browser holds no key for <AgentChip account={walletParam} className="font-mono" />. Open this link in
+              the browser where the agent was created, or add the wallet&apos;s key on{' '}
+              <Link href="/wallet/manage" className="text-accent-text hover:underline">Wallets</Link>.
+            </p>
+          ) : (
+            <p>
+              A policy belongs to one agent wallet.{' '}
+              <Link href="/wallet/new" className="text-accent-text hover:underline">Create an agent</Link>, pick one on{' '}
+              <Link href="/wallet/manage" className="text-accent-text hover:underline">Wallets</Link>, or open the link your
+              agent gave you.
+            </p>
+          )}
+        </div>
+      </div>
+    );
+  }
+  if (!isConnected) {
+    return (
+      <div className="w-full">
+        <PageHeader {...HEADER} />
+        <div className="mb-4 max-w-3xl rounded-lg border border-border bg-card p-4 text-sm">
+          <p className="text-foreground">
+            {walletParam ? (
+              <>The agent wallet <AgentChip account={walletParam} className="font-mono" /> is ready.</>
+            ) : (
+              <>The agent wallet is ready.</>
+            )}{' '}
+            Next, connect the NEAR account that owns it — or will own it. You then choose who the agent may pay and how
+            much, and store that with one transaction: a small storage deposit in NEAR, returned if you remove the policy.
+          </p>
+          <details className="mt-2 text-muted-foreground">
+            <summary className="text-accent-text">I have no NEAR account</summary>
+            <p className="mt-2">
+              A policy needs a NEAR account to own it; any NEAR wallet creates one in a minute. Without a policy the
+              agent wallet still works, but whoever holds its key moves everything in it, with no limits. If you accept
+              that for now, this is the key — keep the wallet empty until a policy is stored:
+            </p>
+            <div className="mt-2 rounded-md border border-border px-3 py-2 font-mono text-sm break-all text-foreground">
+              <CopyText value={apiKey} />
+            </div>
+          </details>
+        </div>
+        <RequireWallet subject="this agent's policy" />
+      </div>
+    );
+  }
+  return <AgentPolicy apiKey={apiKey} />;
+}
+
+type AddRequest = {
+  /** Addresses the link asked for that went onto the list. */
+  added: string[];
+  /** Asked for, already on the list. */
+  present: string[];
+  /** Asked for, not addresses. */
+  invalid: string[];
+  mode: PolicyForm['address_mode'];
+};
+
+function AgentPolicy({ apiKey }: { apiKey: string }) {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const { accountId, isConnected, network, contractId, viewMethod, signAndSendTransaction } = useNearWallet();
   const coordinatorUrl = getCoordinatorApiUrl(network);
+  const requestedAddresses = useMemo(
+    () => searchParams.getAll('add_address').flatMap((v) => v.split(',')).map((a) => a.trim()).filter(Boolean),
+    [searchParams],
+  );
 
-  const [showWalletModal, setShowWalletModal] = useState(false);
   const [walletInfo, setWalletInfo] = useState<WalletInfo | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [sponsorNote, setSponsorNote] = useState<{ ok: boolean; text: string } | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [existingPolicy, setExistingPolicy] = useState<boolean | null>(null);
+  /** The policy on chain could not be read back: storing the form would replace it unseen. */
+  const [policyUnread, setPolicyUnread] = useState(false);
+  /** The policy is on chain as of this visit's own transaction. */
+  const [stored, setStored] = useState(false);
+  const [addRequest, setAddRequest] = useState<AddRequest | null>(null);
+  /** How a wallet with no policy starts: the protected form, or an open one. */
+  const [start, setStart] = useState<'protected' | 'custom'>('protected');
 
-  // Owner mode: connect wallet or enter manually
-  const [ownerMode, setOwnerMode] = useState<'wallet' | 'manual'>('wallet');
-  const [manualOwner, setManualOwner] = useState('');
+  // The owner is the account that sends `store_wallet_policy`: the contract
+  // takes it from the transaction, so it is the connected wallet and nothing
+  // a field could name.
+  const owner = accountId ?? '';
 
-  // The effective owner account
-  const effectiveOwner = ownerMode === 'wallet' ? accountId : (manualOwner.trim() || null);
-  const ownerReady = ownerMode === 'wallet' ? isConnected : !!manualOwner.trim();
+  const [tokens, setTokens] = useState<PolicyToken[] | null>(null);
+  /**
+   * A write ready for the owner's transaction, and the policy text it was
+   * made from: it is good only for that text.
+   */
+  const [prepared, setPrepared] = useState<{ jsonText: string; caller: string; write: PreparedPolicyWrite } | null>(null);
+  const [preparing, setPreparing] = useState(false);
+  /** Why the last attempt failed, and the policy text it was for: an edit makes it worth repeating. */
+  const [prepareFailure, setPrepareFailure] = useState<{ jsonText: string; message: string } | null>(null);
+  /** Counts prepare runs, so an answer for an older text is dropped. */
+  const prepareRun = useRef(0);
 
-  // SHA256 hash of current API key (for authorized_key_hashes in policy)
   const apiKeyHash = useApiKeyHash(apiKey);
-
-  // Build knownKeyHashes map from the handoff API key
-  const [knownKeyHashes, setKnownKeyHashes] = useState<Map<string, string>>(new Map());
-
-  useEffect(() => {
-    if (apiKey && apiKeyHash) {
-      setKnownKeyHashes(new Map([[apiKeyHash, 'current handoff key']]));
-    }
-  }, [apiKey, apiKeyHash]);
-
-  const handleSaveKey = useCallback((newKey: string) => {
-    if (walletInfo) {
-      const pk = `ed25519:${walletInfo.address}`;
-      saveWalletKey(pk, newKey, 'generated key');
-    }
-  }, [walletInfo]);
+  const knownKeyHashes = useMemo(
+    () => (apiKeyHash ? new Map([[apiKeyHash, 'the key this browser holds']]) : new Map<string, string>()),
+    [apiKeyHash],
+  );
+  /**
+   * A key the owner asked this browser to use from now on. It replaces the
+   * stored one only after the policy naming it is on chain: before that it
+   * opens nothing, and this page would lock itself out.
+   */
+  const [nextBrowserKey, setNextBrowserKey] = useState<string | null>(null);
 
   // Approval
-  const [requireApproval, setRequireApproval] = useState(true);
+  const [requireApproval, setRequireApproval] = useState(false);
   const [approvalRequired, setApprovalRequired] = useState('1');
   const [additionalApprovers, setAdditionalApprovers] = useState('');
   /**
@@ -117,18 +265,19 @@ function WalletHandoffContent() {
   /** A write the current policy's approvers have to release before it goes on chain. */
   const [pendingWrite, setPendingWrite] = useState<{ approvalId: string; requestId: string; requiredApprovals: number } | null>(null);
   const [pickingUp, setPickingUp] = useState(false);
+  /** The approvers' released write, read and priced: one click from the chain. */
+  const [approvedPrepared, setApprovedPrepared] = useState<PreparedPolicyWrite | null>(null);
   /** The key the stored policy pins the owner's own vote to, kept across a save. */
   const [ownerPubkey, setOwnerPubkey] = useState<string | undefined>(undefined);
-  // Which types require approval (unchecked = excluded_types). Built kinds AND the Trusted kinds
-  // (swap, cross_chain_withdraw, limit_order, payment_check) can require approval — at execution
-  // the keystore verifies the approver signatures, then signs the (re-fetched, fresh) Trusted
-  // artifact. (Confidential also requires approval when a threshold is set.) Every type the
-  // engine holds to the threshold is listed here: a type missing from this list cannot be
-  // excluded from the UI, and an exclusion set through the API is dropped on the next save.
-  const allTxTypes = ['transfer', 'call', 'delete', 'intents_withdraw', 'intents_swap', 'cross_chain_withdraw', 'limit_order', 'payment_check'] as const;
-  const [approvalTypes, setApprovalTypes] = useState<Set<string>>(new Set(['transfer', 'call', 'delete', 'intents_withdraw', 'cross_chain_withdraw', 'limit_order', 'payment_check']));
+  const [approvalTypes, setApprovalTypes] = useState<Set<string>>(new Set(DEFAULT_APPROVAL_TYPES));
+  /** Exclusions the stored policy carries for types this form has no checkbox for: kept as stored. */
+  const [otherExcluded, setOtherExcluded] = useState<string[]>([]);
+  /** Capabilities stored as allowed that the stored type rule refuses: shown off, and said so. */
+  const [inertCapabilities, setInertCapabilities] = useState<string[]>([]);
 
-  // Policy form with augmentPolicy that adds owner-based approval
+  /** The policy on chain as it was read: what the form has no field for is kept from it. */
+  const [storedPolicy, setStoredPolicy] = useState<Record<string, unknown> | null>(null);
+
   const {
     policyForm,
     setPolicyForm,
@@ -139,203 +288,295 @@ function WalletHandoffContent() {
     resetJson,
   } = usePolicyForm({
     apiKeyHash,
+    storedPolicy,
     augmentPolicy: useCallback((base: Record<string, unknown>) => {
       if (!requireApproval) return base;
       const approvers: Approver[] = [
-        ownerPubkey ? { id: effectiveOwner || '', role: 'admin', pubkey: ownerPubkey } : { id: effectiveOwner || '', role: 'admin' },
+        ownerPubkey ? { id: owner, role: 'admin', pubkey: ownerPubkey } : { id: owner, role: 'admin' },
       ];
       for (const line of additionalApprovers.split('\n')) {
         const approver = parseApproverLine(line);
         if (approver) approvers.push(approver);
       }
-      const excluded_types = allTxTypes.filter((t) => !approvalTypes.has(t));
+      const excluded_types = [...ALL_APPROVAL_TYPES.filter((t) => !approvalTypes.has(t)), ...otherExcluded];
       return {
         ...base,
-        approval: {
-          threshold: { required: parseInt(approvalRequired, 10) || 1 },
-          ...(excluded_types.length > 0 ? { excluded_types } : {}),
-          approvers,
-          ...(lockPolicy ? { locked: true } : {}),
-        },
+        approval: approvalWithStored(
+          {
+            threshold: { required: parseInt(approvalRequired, 10) || 1 },
+            ...(excluded_types.length > 0 ? { excluded_types } : {}),
+            approvers,
+            ...(lockPolicy ? { locked: true } : {}),
+          },
+          storedPolicy?.approval,
+        ),
       };
-    }, [requireApproval, approvalRequired, additionalApprovers, effectiveOwner, ownerPubkey, approvalTypes, lockPolicy]),
+    }, [requireApproval, approvalRequired, additionalApprovers, owner, ownerPubkey, approvalTypes, otherExcluded, lockPolicy, storedPolicy]),
   });
 
-  // Fetch wallet info using the API key
-  const loadWalletInfo = useCallback(async () => {
-    if (!apiKey) return;
-    setLoading(true);
-    setError(null);
+  /** The form a wallet with no policy opens with. */
+  const startingForm = useCallback(
+    (kind: 'protected' | 'custom', address: string, catalog: PolicyToken[] | null): PolicyForm => {
+      if (kind === 'custom') return DEFAULT_POLICY;
+      const usdc = (catalog ?? []).find((t) => t.symbol === 'USDC' && t.chain.split(', ').includes('near'));
+      return protectedAgentPolicy({ ownerAccount: owner, walletAccount: address, tokens: usdc ? [usdc.key] : [] });
+    },
+    [owner],
+  );
 
-    try {
-      const resp = await fetch(`${coordinatorUrl}/wallet/v1/address?chain=near`, {
-        headers: { 'Authorization': `Bearer ${apiKey}` },
-      });
+  /** Put the addresses the link asked for on the form's list, and say what happened to each. */
+  const applyRequested = useCallback((form: PolicyForm): PolicyForm => {
+    if (requestedAddresses.length === 0) return form;
+    const valid = requestedAddresses.filter((a) => !addressProblem(a));
+    const result = withAddresses(form, valid);
+    setAddRequest({
+      added: result.added,
+      present: valid.filter((a) => !result.added.includes(a)),
+      invalid: requestedAddresses.filter((a) => addressProblem(a)),
+      mode: result.mode,
+    });
+    return result.form;
+  }, [requestedAddresses]);
 
-      if (!resp.ok) {
-        const data = await resp.json().catch(() => ({}));
-        throw new Error(data.message || `Failed to fetch wallet info (HTTP ${resp.status})`);
-      }
+  // One read of everything the page stands on: the wallet, its token catalog,
+  // whether a policy is on chain, and that policy.
+  useEffect(() => {
+    // The stored policy is read against this key's hash (the form names the
+    // key apart from the others), so the read waits for it.
+    if (!apiKeyHash) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const headers = { Authorization: `Bearer ${apiKey}` };
+        const [addressResp, tokensResp] = await Promise.all([
+          fetch(`${coordinatorUrl}/wallet/v1/address?chain=near`, { headers }),
+          fetch(`${coordinatorUrl}/wallet/v1/tokens`, { headers }).catch(() => null),
+        ]);
+        if (!addressResp.ok) {
+          const data = await addressResp.json().catch(() => ({}));
+          throw new Error(data.message || `The wallet could not be read (HTTP ${addressResp.status})`);
+        }
+        const data = await addressResp.json();
+        const info: WalletInfo = { wallet_id: data.wallet_id, address: data.address, vault_id: data.vault_id ?? null };
+        const catalog = tokensResp && tokensResp.ok ? policyTokensFromCatalog(await tokensResp.json().catch(() => null)) : null;
 
-      const data = await resp.json();
-      setWalletInfo({
-        wallet_id: data.wallet_id,
-        address: data.address,
-        chain: 'near',
-        vault_id: data.vault_id ?? null,
-      });
-    } catch (err) {
-      setError((err as Error).message);
-    } finally {
-      setLoading(false);
-    }
-  }, [apiKey, coordinatorUrl]);
+        const onChain = await viewMethod({
+          contractId,
+          method: 'get_wallet_policy',
+          args: { wallet_pubkey: `ed25519:${info.address}` },
+        }).catch(() => null);
+        if (cancelled) return;
 
-  // Check if policy already exists on-chain, and if so load it into the form
-  const checkExistingPolicy = useCallback(async () => {
-    if (!walletInfo || !apiKey) return;
+        setWalletInfo(info);
+        setTokens(catalog);
+        setSponsorNote(takeSponsorNote(info.address));
 
-    try {
-      const walletPubkey = `ed25519:${walletInfo.address}`;
-      const result = await viewMethod({
-        contractId,
-        method: 'get_wallet_policy',
-        args: { wallet_pubkey: walletPubkey },
-      }).catch(() => null);
-
-      const exists = result !== null;
-      setExistingPolicy(exists);
-
-      // Load current policy from coordinator and pre-fill the form
-      if (exists) {
-        try {
-          const resp = await fetch(`${coordinatorUrl}/wallet/v1/policy`, {
-            headers: { 'Authorization': `Bearer ${apiKey}` },
-          });
-          if (resp.ok) {
-            const data = await resp.json();
-            const parsed = parsePolicyResponse(data, apiKeyHash || undefined);
-            setPolicyForm(parsed.form);
-
+        if (onChain === null) {
+          setExistingPolicy(false);
+          setPolicyForm(applyRequested(startingForm('protected', info.address, catalog)));
+        } else {
+          setExistingPolicy(true);
+          const resp = await fetch(`${coordinatorUrl}/wallet/v1/policy`, { headers });
+          if (cancelled) return;
+          if (!resp.ok) {
+            setPolicyUnread(true);
+          } else {
+            const policy = await resp.json();
+            const parsed = parsePolicyResponse(policy, apiKeyHash);
+            if (cancelled) return;
+            setStoredPolicy(policy);
+            setPolicyForm(applyRequested(parsed.form));
+            setInertCapabilities(parsed.inertCapabilities);
+            setRequireApproval(Boolean(parsed.approval));
             if (parsed.approval) {
-              setRequireApproval(true);
               setApprovalRequired(parsed.approval.required);
               // The owner is the primary approver, written by the form itself:
               // its line leaves the textarea, and its pinned key (if any) is kept.
               const lines = parsed.approval.approvers.split('\n');
-              setOwnerPubkey(lines.map(parseApproverLine).find((a) => a?.id === effectiveOwner)?.pubkey);
-              setAdditionalApprovers(lines.filter((line) => parseApproverLine(line)?.id !== effectiveOwner).join('\n'));
-              // Restore approvalTypes from excluded_types
-              const excluded = (data.approval?.excluded_types || []) as string[];
-              setApprovalTypes(new Set(allTxTypes.filter((t) => !excluded.includes(t))));
-              setLockPolicy(Boolean(data.approval?.locked));
+              setOwnerPubkey(lines.map(parseApproverLine).find((a) => a?.id === owner)?.pubkey);
+              setAdditionalApprovers(lines.filter((line) => parseApproverLine(line)?.id !== owner).join('\n'));
+              const excluded = (policy.approval?.excluded_types || []) as string[];
+              setApprovalTypes(new Set(ALL_APPROVAL_TYPES.filter((t) => !excluded.includes(t))));
+              setOtherExcluded(excluded.filter((t) => !ALL_APPROVAL_TYPES.includes(t)));
+              setLockPolicy(Boolean(policy.approval?.locked));
             }
           }
-        } catch {
-          // Failed to load — form stays default
         }
+
+        // A handoff link carries the key in its query. Once this browser holds
+        // it, the address bar names the wallet instead.
+        if (searchParams.get('key')) {
+          const pubkey = `ed25519:${info.address}`;
+          const saved = getWalletKey(pubkey);
+          if (!saved) saveWalletKey(pubkey, apiKey, 'handoff link');
+          if (!saved || saved === apiKey) {
+            const next = new URLSearchParams(searchParams.toString());
+            next.delete('key');
+            next.set('wallet', info.address);
+            router.replace(`/wallet?${next.toString()}`);
+          }
+        }
+      } catch (err) {
+        if (!cancelled) setError((err as Error).message);
+      } finally {
+        if (!cancelled) setLoading(false);
       }
-    } catch {
-      setExistingPolicy(false);
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // Read once per wallet key, account and network: the form is the owner's
+    // to edit after that, and nothing here may overwrite it.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [apiKey, apiKeyHash, coordinatorUrl, contractId, owner]);
+
+  const tokenLabel = useCallback(
+    (key: string) => {
+      const token = (tokens ?? []).find((t) => t.key === key);
+      return token ? { symbol: token.symbol, decimals: token.decimals } : null;
+    },
+    [tokens],
+  );
+  const summary = useMemo(
+    () => summarizePolicy(policyForm, { approval: requireApproval, tokenLabel }),
+    [policyForm, requireApproval, tokenLabel],
+  );
+
+  /** Why the form cannot be stored as it stands, or `null`. */
+  const policyProblem: string | null = (() => {
+    if (policyUnread) {
+      return 'The policy on chain could not be read, so this form does not show it. Reload the page before changing anything: storing now would replace it.';
     }
-  }, [walletInfo, contractId, viewMethod, apiKey, coordinatorUrl, apiKeyHash, setPolicyForm, setRequireApproval, setApprovalRequired, setAdditionalApprovers]);
-
-  useEffect(() => {
-    loadWalletInfo();
-  }, [loadWalletInfo]);
-
-  useEffect(() => {
-    if (walletInfo) {
-      checkExistingPolicy();
-    }
-  }, [walletInfo, checkExistingPolicy]);
-
-  const handleSubmitPolicy = async () => {
-    if (!effectiveOwner || !walletInfo) return;
-
-    // Manual mode requires connected wallet to sign the transaction
-    if (ownerMode === 'manual' && !isConnected) {
-      setError('Connect your NEAR wallet to sign the transaction. The manual account will be set as owner.');
-      return;
-    }
-
-    // The keystore refuses a signing request carrying more than MAX_APPROVAL_VOTES (16) votes,
-    // so a policy needing more approvers than that could never be satisfied. Catch it here,
-    // while the policy is being written, instead of at the first signature that needs approval.
-    if (requireApproval && countApprovers(effectiveOwner ?? '', additionalApprovers) > MAX_APPROVERS) {
-      setError(
-        `Too many approvers: ${countApprovers(effectiveOwner ?? '', additionalApprovers)} (limit ${MAX_APPROVERS}, including the primary approver). ` +
+    // The keystore refuses a signing request carrying more than MAX_APPROVERS
+    // votes, so a larger set could never reach its threshold.
+    if (requireApproval && countApprovers(owner, additionalApprovers) > MAX_APPROVERS) {
+      return (
+        `Too many approvers: ${countApprovers(owner, additionalApprovers)} (limit ${MAX_APPROVERS}, including you). ` +
         `A signing request cannot carry more votes than that, so a larger set could never reach its threshold.`
       );
-      return;
     }
+    if (!jsonEdited) {
+      const limitProblems = tokenLimitsProblems(policyForm.token_limits);
+      if (limitProblems.length > 0) return limitProblems.join(' ');
+      if (policyForm.address_mode === 'whitelist' && addressList(policyForm).length === 0) {
+        return 'The address list is empty: the wallet could pay no one, you included.';
+      }
+    }
+    return null;
+  })();
 
-    setError(null);
-    setSubmitting(true);
+  /** The prepared write, when it is for the policy text on screen and still good to send. */
+  const ready =
+    prepared && prepared.jsonText === policyJsonText && prepared.caller === accountId && preparedWriteIsFresh(prepared.write)
+      ? prepared.write
+      : null;
+  const prepareError = prepareFailure && prepareFailure.jsonText === policyJsonText ? prepareFailure.message : null;
+  const prepareFailed = prepareError !== null;
 
+  /** Encrypt, sign and price the policy on screen. Opens no wallet. */
+  const runPrepare = useCallback(async (jsonText: string) => {
+    if (!walletInfo || !accountId) return;
+    const run = ++prepareRun.current;
+    setPreparing(true);
+    setPrepareFailure(null);
     try {
-      const result = await submitPolicy({
+      const result = await preparePolicyWrite({
         coordinatorUrl,
-        apiKey: apiKey!,
+        apiKey,
         walletId: walletInfo.wallet_id,
-        policyJsonText,
+        policyJsonText: jsonText,
         contractId,
         // The connected wallet sends the transaction, so it is the account the
         // signature must name.
-        callerAccountId: accountId ?? '',
+        callerAccountId: accountId,
         viewMethod,
+      });
+      if (run !== prepareRun.current) return;
+      if (result.pending) {
+        // The policy on chain is locked: its approvers decide. Nothing is sent.
+        setPendingWrite(result);
+        setApprovedPrepared(null);
+      } else {
+        setPrepared({ jsonText, caller: accountId, write: result.prepared });
+      }
+    } catch (err) {
+      if (run === prepareRun.current) setPrepareFailure({ jsonText, message: (err as Error).message });
+    } finally {
+      if (run === prepareRun.current) setPreparing(false);
+    }
+  }, [walletInfo, apiKey, accountId, coordinatorUrl, contractId, viewMethod]);
+
+  // A wallet with NO policy on chain is prepared as the form is filled, so the
+  // button that opens the wallet has nothing to wait for. Only then: replacing
+  // a locked policy files a request with its approvers, which is not something
+  // to do on a keystroke — a wallet that has a policy is prepared on a click.
+  useEffect(() => {
+    if (existingPolicy !== false || stored || !isConnected || !walletInfo || !policyJsonText || !apiKeyHash) return;
+    if (policyProblem || pendingWrite || ready || prepareFailed || submitting) return;
+    const timer = setTimeout(() => runPrepare(policyJsonText), 900);
+    return () => clearTimeout(timer);
+  }, [existingPolicy, stored, isConnected, walletInfo, policyJsonText, apiKeyHash, policyProblem, pendingWrite, ready, prepareFailed, submitting, runPrepare]);
+
+  /** The one place the wallet opens: a click on a button that names the transaction. */
+  const handleStore = async (write: PreparedPolicyWrite) => {
+    if (!walletInfo) return;
+    setError(null);
+    setNotice(null);
+    setSubmitting(true);
+    try {
+      await storePreparedPolicy({
+        coordinatorUrl,
+        walletId: walletInfo.wallet_id,
+        contractId,
+        prepared: write,
         signAndSendTransaction,
       });
-
-      if (result.pending) {
-        // The policy on chain is locked: its approvers decide. Nothing was sent.
-        setPendingWrite(result);
-        setSuccess(
-          `The current policy is locked: this change waits for ${result.requiredApprovals} approval(s) of its approvers ` +
-          `(approval ${result.approvalId}). Once they have voted, store it from here.`
-        );
-        return;
+      // Kept in this browser, for this page and the approvals.
+      saveWalletKey(write.write.walletPubkey, nextBrowserKey ?? apiKey);
+      const onChain = await viewMethod({
+        contractId,
+        method: 'get_wallet_policy',
+        args: { wallet_pubkey: write.write.walletPubkey },
+      }).catch(() => null);
+      setPrepared(null);
+      setApprovedPrepared(null);
+      setPendingWrite(null);
+      if (onChain === null) {
+        setNotice('The transaction was sent, but the policy is not readable on chain yet. Reload this page in a moment: the wallet is protected only once the policy shows here.');
+      } else {
+        setExistingPolicy(true);
+        setStored(true);
+        window.scrollTo({ top: 0 });
       }
-      const { walletPubkey } = result;
-
-      // Save API key to browser localStorage for approvals
-      saveWalletKey(walletPubkey, apiKey!);
-
-      setSuccess('Policy stored on-chain! Redirecting to wallet management...');
-      setExistingPolicy(true);
-      setTimeout(() => router.push('/wallet/manage'), 2000);
     } catch (err) {
+      // A refused wallet leaves the prepared write where it was.
       setError((err as Error).message);
     } finally {
       setSubmitting(false);
     }
   };
 
-  /** The approvers voted: read the signature off the request and store the policy. A click, nothing else. */
-  const handlePickUpApprovedWrite = async () => {
-    if (!pendingWrite || !walletInfo || !apiKey) return;
+  /** The approvers voted: read the signed change off the request. Opens no wallet. */
+  const handleCheckVotes = async () => {
+    if (!pendingWrite || !walletInfo) return;
     setError(null);
+    setNotice(null);
     setPickingUp(true);
     try {
-      const outcome = await submitApprovedPolicy({
+      const outcome = await prepareApprovedPolicy({
         coordinatorUrl,
         apiKey,
-        walletId: walletInfo.wallet_id,
         requestId: pendingWrite.requestId,
         contractId,
         viewMethod,
-        signAndSendTransaction,
       });
       if (outcome.status === 'pending_approval') {
-        setSuccess(`Still waiting for the approvers (approval ${pendingWrite.approvalId}).`);
+        setNotice(`Still waiting for the approvers (approval ${pendingWrite.approvalId}).`);
       } else if (outcome.status === 'failed') {
         setPendingWrite(null);
-        setError(`The approvers' votes did not release this change: ${outcome.error}. Submit the policy again.`);
+        setError(`The approvers' votes did not release this change: ${outcome.error}. Prepare the change again.`);
       } else {
-        setPendingWrite(null);
-        setSuccess('Policy stored on-chain! Redirecting to wallet management...');
-        setExistingPolicy(true);
-        setTimeout(() => router.push('/wallet/manage'), 2000);
+        setApprovedPrepared(outcome.prepared);
       }
     } catch (err) {
       setError((err as Error).message);
@@ -344,414 +585,476 @@ function WalletHandoffContent() {
     }
   };
 
-  // No API key provided
-  if (!apiKey) {
+  const chooseStart = (kind: 'protected' | 'custom') => {
+    if (!walletInfo || kind === start) return;
+    setStart(kind);
+    setJsonEdited(false);
+    setPolicyForm(applyRequested(startingForm(kind, walletInfo.address, tokens)));
+  };
+
+  if (loading) {
     return (
- <div className="max-w-2xl mx-auto py-12">
- <h1 className="text-xl font-bold tracking-tight mb-4">Wallet Handoff</h1>
- <div className="bg-card border border-border rounded-lg p-6">
- <p className="text-muted-foreground mb-4">
-            This page is used to take control of an AI agent wallet.
-          </p>
- <p className="text-sm text-muted-foreground">
-            Your agent should have given you a handoff URL like:<br />
- <code className="text-xs bg-card-muted px-2 py-1 rounded mt-1 inline-block">
-              /wallet?key=wk_...
-            </code>
-          </p>
- <div className="mt-6">
-            <Link
-              href="/wallet/manage"
- className="text-accent-text hover:text-accent-text font-medium"
-            >
-              Or manage existing wallets &rarr;
-            </Link>
-          </div>
+      <div className="w-full">
+        <PageHeader {...HEADER} />
+        <div className="flex items-center gap-3 text-sm text-muted-foreground">
+          <span className="h-5 w-5 animate-spin rounded-full border-b-2 border-accent" />
+          Reading the wallet and its policy…
+        </div>
+      </div>
+    );
+  }
+  if (!walletInfo) {
+    return (
+      <div className="w-full">
+        <PageHeader {...HEADER} />
+        <div className="rounded-md border border-destructive/30 bg-destructive/10 p-3">
+          <p className="text-sm text-destructive-text">{error ?? 'The wallet could not be read.'}</p>
         </div>
       </div>
     );
   }
 
+  const statusBadge = existingPolicy ? (
+    <Badge variant="success">Protected: policy on chain</Badge>
+  ) : (
+    <Badge variant="warning">
+      <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden className="mr-1 h-3 w-3"><path d="M8 1.5 15 14H1zM7.25 6v4h1.5V6zm0 5v1.5h1.5V11z" /></svg>
+      No policy: this key is unrestricted
+    </Badge>
+  );
+
+  if (stored) {
+    return (
+      <div className="w-full">
+        <PageHeader {...HEADER} badge={statusBadge} />
+        <div className="grid items-start gap-6 xl:grid-cols-2">
+          <section className="rounded-lg border border-border bg-card p-4 sm:p-5">
+            <h2 className="text-sm font-semibold text-foreground">The policy is on chain</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              <AgentChip account={walletInfo.address} className="font-mono" /> now signs only what the policy permits.
+              You, <span className="font-mono">{owner}</span>, are its owner.
+            </p>
+            <ul className="mt-3 space-y-1 text-sm text-foreground">
+              {summary.can.map((line) => <li key={line}>{line}</li>)}
+            </ul>
+            {summary.cautions.length > 0 && (
+              <ul className="mt-2 space-y-1 text-xs text-muted-foreground">
+                {summary.cautions.map((line) => <li key={line}>{line}</li>)}
+              </ul>
+            )}
+            <div className="mt-4 flex flex-wrap gap-x-4 gap-y-2 text-sm">
+              <Link href={`/wallet/fund?to=${encodeURIComponent(walletInfo.address)}`} className="text-accent-text hover:underline">
+                Fund the wallet
+              </Link>
+              <button type="button" onClick={() => setStored(false)} className="text-accent-text hover:underline">
+                Change the policy
+              </button>
+            </div>
+          </section>
+
+          <section className="rounded-lg border border-border bg-card p-4 sm:p-5">
+            <h2 className="text-sm font-semibold text-foreground">Give the key to the agent</h2>
+            <div className="mt-2 rounded-md border border-border px-3 py-2 font-mono text-sm break-all">
+              <CopyText value={nextBrowserKey ?? apiKey} />
+            </div>
+            <p className="mt-1 text-xs text-muted-foreground">
+              The service keeps only the key&apos;s hash; this browser keeps a copy for this page. If the key leaks it
+              can do what the policy permits and nothing else, and you can replace it here under &quot;Which keys run
+              the wallet?&quot;.
+            </p>
+            <HandOff />
+          </section>
+        </div>
+      </div>
+    );
+  }
+
+  const approval = (
+    <div>
+      <label className="flex items-start gap-2 text-sm text-foreground">
+        <input
+          type="checkbox"
+          checked={requireApproval}
+          onChange={(e) => setRequireApproval(e.target.checked)}
+          className="mt-0.5 h-4 w-4 accent-accent"
+        />
+        <span>
+          Ask for my approval: a second factor
+          <span className="block text-xs text-muted-foreground">
+            {requireApproval
+              ? 'Each ticked operation waits until you approve it with your NEAR account on the Approvals page.'
+              : 'Off: the agent acts at once, inside this policy. On: the operations you tick wait for your signature.'}
+          </span>
+        </span>
+      </label>
+      {requireApproval && (
+        <div className="mt-3 space-y-3 pl-6">
+          <div className="grid gap-x-6 gap-y-1 sm:grid-cols-2">
+            {APPROVAL_TYPES.map(([type, label]) => (
+              <label key={type} className="flex items-center gap-2 text-sm text-foreground">
+                <input
+                  type="checkbox"
+                  checked={approvalTypes.has(type)}
+                  onChange={() =>
+                    setApprovalTypes((prev) => {
+                      const next = new Set(prev);
+                      if (next.has(type)) next.delete(type);
+                      else next.add(type);
+                      return next;
+                    })
+                  }
+                  className="h-4 w-4 accent-accent"
+                />
+                {label}
+              </label>
+            ))}
+          </div>
+          <p className="text-xs text-faint-foreground">
+            An unticked operation runs without asking. Confidential flows wait whenever approvals are on.
+          </p>
+          <details>
+            <summary className="text-xs text-accent-text">More approvers, threshold, lock</summary>
+            <div className="mt-2 space-y-3">
+              <div>
+                <label className="mb-1 block text-xs font-medium text-muted-foreground">Approvals required</label>
+                <input
+                  type="number"
+                  min="1"
+                  value={approvalRequired}
+                  onChange={(e) => setApprovalRequired(e.target.value)}
+                  className={`${FIELD} max-w-[8rem]`}
+                />
+              </div>
+              <div>
+                <label className="mb-1 flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+                  Other approvers, one per line: account, role[, pinned key]
+                  <InfoHint text="You are always the first approver, as admin. Roles: admin can also change the policy, signer only approves. A third value (ed25519:…) pins the approver to one key; without it any full-access key of the account votes." />
+                </label>
+                <textarea
+                  value={additionalApprovers}
+                  onChange={(e) => setAdditionalApprovers(e.target.value)}
+                  placeholder={'alice.near, signer\nbob.near, signer'}
+                  rows={3}
+                  spellCheck={false}
+                  className={`${FIELD} font-mono`}
+                />
+              </div>
+              <label className="flex items-start gap-2 text-sm text-foreground">
+                <input
+                  type="checkbox"
+                  checked={lockPolicy}
+                  onChange={(e) => setLockPolicy(e.target.checked)}
+                  className="mt-0.5 h-4 w-4 accent-accent"
+                />
+                <span>
+                  Lock: changes need the approvers&apos; quorum
+                  <span className="block text-xs text-muted-foreground">
+                    Every later change to this policy, unlocking and removing it included, waits for{' '}
+                    {approvalRequired || '1'} of the approvers. You can set this alone; you cannot undo it alone.
+                    Freezing the wallet stays yours.
+                  </span>
+                </span>
+              </label>
+            </div>
+          </details>
+        </div>
+      )}
+    </div>
+  );
+
   return (
- <div className="max-w-3xl mx-auto py-8">
- <h1 className="text-xl font-bold tracking-tight mb-2">Wallet Handoff</h1>
- <p className="text-muted-foreground mb-6">
-        Take control of your AI agent&apos;s wallet by setting a spending policy.
-      </p>
+    <div className="w-full">
+      <PageHeader {...HEADER} badge={statusBadge} />
 
       {error && (
- <div className="mb-4 bg-destructive/10 border border-destructive/30 rounded-md p-3">
- <p className="text-sm text-destructive-text">{error}</p>
+        <div className="mb-4 rounded-md border border-destructive/30 bg-destructive/10 p-3">
+          <p className="text-sm text-destructive-text">{error}</p>
+        </div>
+      )}
+      {notice && (
+        <div className="mb-4 rounded-md border border-info/30 bg-info/10 p-3">
+          <p className="text-sm text-info">{notice}</p>
+        </div>
+      )}
+      {sponsorNote && (
+        <div className={`mb-4 rounded-md border p-3 ${sponsorNote.ok ? 'border-success/30 bg-success/10' : 'border-destructive/30 bg-destructive/10'}`}>
+          <p className={`text-sm ${sponsorNote.ok ? 'text-success-text' : 'text-destructive-text'}`}>{sponsorNote.text}</p>
         </div>
       )}
 
-      {success && (
- <div className="mb-4 bg-success/10 border border-success/30 rounded-md p-3">
- <p className="text-sm text-success-text">{success}</p>
+      {inertCapabilities.length > 0 && (
+        <div className="mb-4 rounded-md border border-info/30 bg-info/10 p-3 text-sm text-foreground">
+          The stored policy allows <span className="font-mono">{inertCapabilities.join(', ')}</span> but its list of
+          permitted operations leaves {inertCapabilities.length === 1 ? 'it' : 'them'} out, so the wallet has been
+          refusing {inertCapabilities.length === 1 ? 'it' : 'them'}. {inertCapabilities.length === 1 ? 'It is' : 'They are'} shown
+          off below; switch {inertCapabilities.length === 1 ? 'it' : 'them'} on to make {inertCapabilities.length === 1 ? 'it' : 'them'} work.
         </div>
       )}
 
-      {pendingWrite && (
- <div className="mb-4 bg-card border border-accent/50 rounded-md p-4">
- <p className="text-sm text-foreground mb-2">
-            Approval <code className="bg-card-muted px-1 rounded">{pendingWrite.approvalId}</code> needs{' '}
-            {pendingWrite.requiredApprovals} vote(s) of the current policy&apos;s approvers. They vote on the{' '}
- <Link href="/wallet/approvals" className="text-accent-text underline">approvals page</Link>; the button below reads
-            the signed change and sends <code className="bg-card-muted px-1 rounded">store_wallet_policy</code> from your wallet
-            &mdash; the new policy, under your account, replacing the current one.
-          </p>
-          <button
-            type="button"
-            onClick={handlePickUpApprovedWrite}
-            disabled={pickingUp}
- className="px-4 py-2 bg-accent text-on-accent rounded text-sm font-medium disabled:opacity-50"
-          >
-            {pickingUp ? 'Checking the votes…' : 'Store the approved policy on-chain'}
-          </button>
-        </div>
-      )}
-
-      {/* Step 1: Wallet Info */}
- <div className="bg-card border border-border rounded-lg p-6 mb-6">
- <h2 className="text-lg font-semibold text-foreground mb-3">
- <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-accent text-on-accent text-xs mr-2">1</span>
-          Wallet Info
-        </h2>
-
-        {loading ? (
- <div className="flex items-center py-4">
- <svg className="animate-spin h-5 w-5 text-accent-text mr-3" fill="none" viewBox="0 0 24 24">
- <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
- <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-            </svg>
- <span className="text-muted-foreground">Loading wallet...</span>
-          </div>
-        ) : walletInfo ? (
- <div className="space-y-2">
-            <div>
- <span className="text-xs text-muted-foreground uppercase">Wallet ID</span>
- <p className="text-sm font-mono text-foreground break-all">{walletInfo.wallet_id}</p>
-            </div>
-            <div>
- <span className="text-xs text-muted-foreground uppercase">NEAR Address (implicit)</span>
- <p className="text-sm font-mono text-foreground break-all">{walletInfo.address}</p>
-            </div>
-            <div>
- <span className="text-xs text-muted-foreground uppercase">Master key</span>
-              {walletInfo.vault_id ? (
- <p className="text-sm font-mono text-success-text break-all">
- Vault <code>{walletInfo.vault_id}</code> — recoverable through cessation or unilateral exit
-                </p>
-              ) : (
- <p className="text-sm text-foreground">
- OutLayer default master <span className="text-xs text-muted-foreground">(not recoverable if OutLayer ceases)</span>
-                </p>
-              )}
-            </div>
-            {existingPolicy === true && (
- <div className="mt-2 bg-info/10 border border-info/30 rounded p-2">
- <p className="text-sm text-info">This wallet already has a policy on-chain. Submitting a new one will replace it.</p>
-              </div>
-            )}
-          </div>
-        ) : null}
-      </div>
-
-      {/* Step 2: Policy Owner */}
-      {walletInfo && (
- <div className="bg-card border border-border rounded-lg p-6 mb-6">
- <h2 className="text-lg font-semibold text-foreground mb-3">
- <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-accent text-on-accent text-xs mr-2">2</span>
-            Policy Owner
-          </h2>
-
- <p className="text-sm text-muted-foreground mb-4">
-            The owner can freeze the wallet, update the policy, and approve transactions.
-          </p>
-
- <div className="flex space-x-3 mb-4">
-            <button
-              type="button"
-              onClick={() => setOwnerMode('wallet')}
- className={`px-4 py-2 text-sm rounded-lg border ${
-                ownerMode === 'wallet'
-                  ? 'bg-accent text-on-accent border-accent'
-                  : 'bg-card text-foreground border-border-strong hover:bg-card-muted'
-              }`}
-            >
-              Connect Wallet
-            </button>
-            <button
-              type="button"
-              onClick={() => setOwnerMode('manual')}
- className={`px-4 py-2 text-sm rounded-lg border ${
-                ownerMode === 'manual'
-                  ? 'bg-accent text-on-accent border-accent'
-                  : 'bg-card text-foreground border-border-strong hover:bg-card-muted'
-              }`}
-            >
-              Enter Account ID
-            </button>
-          </div>
-
-          {ownerMode === 'wallet' ? (
-            isConnected ? (
- <p className="text-sm text-success-text">
- Connected as <span className="font-mono font-medium">{accountId}</span>
-              </p>
-            ) : (
-              <div>
-                <button
-                  onClick={() => setShowWalletModal(true)}
- className="px-4 py-2 bg-accent text-on-accent rounded-lg font-medium"
-                >
-                  Connect Wallet
-                </button>
-              </div>
-            )
-          ) : (
-            <div>
-              <input
-                type="text"
-                value={manualOwner}
-                onChange={(e) => setManualOwner(e.target.value)}
-                placeholder="e.g. alice.near"
- className="w-full border border-border-strong rounded px-3 py-2 text-sm font-mono"
-              />
- <p className="text-xs text-faint-foreground mt-1">
-                This NEAR account will be the policy owner. You still need to connect a wallet to sign the transaction.
-              </p>
-              {manualOwner.trim() && !isConnected && (
- <div className="mt-3">
-                  <button
-                    onClick={() => setShowWalletModal(true)}
- className="px-4 py-2 text-sm border border-accent text-accent-text rounded-lg hover:bg-card-muted"
-                  >
-                    Connect wallet to sign transaction
-                  </button>
-                </div>
-              )}
-            </div>
+      {addRequest && (
+        <div className="mb-4 rounded-md border border-info/30 bg-info/10 p-3 text-sm text-foreground">
+          {addRequest.added.length > 0 && (
+            <p>
+              Your agent asks to pay {addRequest.added.length === 1 ? 'a new address' : 'new addresses'}:{' '}
+              <span className="break-all font-mono">{addRequest.added.join(', ')}</span>. {addRequest.added.length === 1 ? 'It is' : 'They are'} on
+              the list below, not yet on chain: check {addRequest.added.length === 1 ? 'it' : 'them'} against what you expect
+              to pay, then store the policy.
+            </p>
+          )}
+          {addRequest.present.length > 0 && addRequest.mode === 'whitelist' && (
+            <p><span className="break-all font-mono">{addRequest.present.join(', ')}</span>: already on the list.</p>
+          )}
+          {addRequest.mode === 'none' && (
+            <p>This policy has no address list: the wallet already pays any address, <span className="break-all font-mono">{requestedAddresses.join(', ')}</span> included.</p>
+          )}
+          {addRequest.mode === 'blacklist' && (
+            <p>This policy blocks the addresses on its list and pays every other. Nothing was added; remove an address from the list to unblock it.</p>
+          )}
+          {addRequest.invalid.length > 0 && (
+            <p className="text-destructive-text">Not addresses, left out: <span className="break-all font-mono">{addRequest.invalid.join(', ')}</span></p>
           )}
         </div>
       )}
 
-      {/* Step 3: Set Policy */}
-      {walletInfo && ownerReady && (
- <div className="bg-card border border-border rounded-lg p-6 mb-6">
- <h2 className="text-lg font-semibold text-foreground mb-6">
- <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-accent text-on-accent text-xs mr-2">3</span>
-            Set Spending Policy
-          </h2>
-
- <div className="space-y-6">
-            {/* Transaction Approval */}
-            <div>
- <h3 className="text-sm font-semibold text-foreground mb-3">Transaction Approval</h3>
-              <div
- className={`border-2 rounded-lg p-4 cursor-pointer transition-colors ${
-                  requireApproval
-                    ? 'border-accent bg-card-muted'
-                    : 'border-border hover:border-border-strong'
-                }`}
-                onClick={() => setRequireApproval(!requireApproval)}
-              >
- <div className="flex items-start">
-                  <input
-                    type="checkbox"
-                    checked={requireApproval}
-                    onChange={(e) => setRequireApproval(e.target.checked)}
- className="mt-1 mr-3 h-4 w-4 accent-accent"
-                  />
- <div className="flex-1">
- <p className="font-medium text-foreground">Require personal approval</p>
- <p className="text-sm text-muted-foreground mt-1">
-                      Transactions will need approval before being executed. You can approve or reject from the dashboard.
-                    </p>
-                  </div>
-                </div>
-
-                {requireApproval && (
- <div className="mt-4 ml-7 space-y-3" onClick={(e) => e.stopPropagation()}>
- <div className="grid grid-cols-2 gap-3">
-                      <div>
- <label className="block text-xs font-medium text-muted-foreground mb-1">Required Approvals</label>
-                        <input
-                          type="number"
-                          min="1"
-                          value={approvalRequired}
-                          onChange={(e) => setApprovalRequired(e.target.value)}
- className="w-full border border-border-strong rounded px-3 py-2 text-sm"
-                        />
-                      </div>
-                      <div>
- <label className="block text-xs font-medium text-muted-foreground mb-1">Primary Approver</label>
- <div className="px-3 py-2 text-sm bg-card-muted border border-border rounded font-mono truncate">
-                          {effectiveOwner} (admin)
-                        </div>
-                      </div>
-                    </div>
-
-                    <div>
- <label className="block text-xs font-medium text-muted-foreground mb-1">
-                        Additional Approvers (one per line: account_id, role[, pinned key])
-                      </label>
-                      <textarea
-                        value={additionalApprovers}
-                        onChange={(e) => setAdditionalApprovers(e.target.value)}
-                        placeholder={"alice.near, signer\nbob.near, signer"}
-                        rows={3}
- className="w-full border border-border-strong rounded px-3 py-2 text-sm font-mono"
-                      />
- <p className="text-xs text-faint-foreground mt-1">
-                        Roles: admin (can update policy), signer (can only approve). A third value pins the approver to one key
-                        (<code>ed25519:…</code>): only that key&apos;s signature counts. Without it, any full-access key of the account votes.
-                      </p>
-                      {(() => {
-                        const total = countApprovers(effectiveOwner ?? '', additionalApprovers);
-                        return total > MAX_APPROVERS ? (
- <p className="text-xs text-destructive-text mt-1">
-                            {total} approvers — the limit is {MAX_APPROVERS} including the primary one.
-                            A signing request cannot carry more votes than that, so this policy could
-                            never reach its threshold.
-                          </p>
-                        ) : null;
-                      })()}
-                    </div>
-
-                    <label className="flex items-start cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={lockPolicy}
-                        onChange={(e) => setLockPolicy(e.target.checked)}
- className="mt-1 mr-3 h-4 w-4 accent-accent"
-                      />
-                      <span>
- <span className="block text-sm font-medium text-foreground">Lock: changes need the approvers&apos; quorum</span>
- <span className="block text-xs text-faint-foreground mt-1">
-                          Every later change to this policy &mdash; including unlocking it &mdash; and deleting it will wait for{' '}
-                          {approvalRequired || '1'} of the approvers above. You can set this alone; you cannot undo it alone.
-                          Freezing the wallet stays yours.
-                        </span>
-                      </span>
-                    </label>
-
-                    <div>
- <label className="block text-xs font-medium text-muted-foreground mb-2">Require approval for:</label>
-                      {(() => {
-                        const txTypeLabels: Record<string, string> = {
-                          transfer: 'Transfer (send native currency)',
-                          call: 'Contract call (incl. Deposit to Intents)',
-                          delete: 'Delete wallet',
-                          intents_withdraw: 'Withdraw (same-chain)',
-                          intents_swap: 'Swap',
-                          cross_chain_withdraw: 'Send cross-chain (bridge off NEAR)',
-                          limit_order: 'Limit order',
-                          payment_check: 'Payment check (claimable link)',
-                        };
-                        const directTypes = ['transfer', 'call', 'delete'] as const;
-                        const intentsTypes = ['intents_withdraw', 'intents_swap', 'cross_chain_withdraw', 'limit_order', 'payment_check'] as const;
-                        const renderCheckbox = (txType: string) => (
- <label key={txType} className="flex items-center gap-1.5 text-sm cursor-pointer">
-                            <input
-                              type="checkbox"
-                              checked={approvalTypes.has(txType)}
-                              onChange={() => {
-                                setApprovalTypes((prev) => {
-                                  const next = new Set(prev);
-                                  next.has(txType) ? next.delete(txType) : next.add(txType);
-                                  return next;
-                                });
-                              }}
- className="rounded border-border-strong"
-                            />
- <span>{txTypeLabels[txType] || txType}</span>
-                          </label>
-                        );
-                        return (
- <div className="space-y-3">
-                            <div>
- <span className="text-xs text-faint-foreground">Direct on-chain operations:</span>
- <div className="flex flex-col gap-1 mt-1">
-                                {directTypes.map(renderCheckbox)}
-                              </div>
-                            </div>
-                            <div>
- <span className="text-xs text-faint-foreground">NEAR Intents:</span>
- <div className="flex flex-col gap-1 mt-1">
-                                {intentsTypes.map(renderCheckbox)}
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })()}
- <p className="text-xs text-faint-foreground mt-1">
-                        Unchecked types execute immediately without approval. Swap and cross-chain
-                        quotes are re-fetched fresh at execution, so approval delays don&apos;t
-                        invalidate them. (Swap / cross-chain / confidential also need their
-                        default-DENY capability enabled below.)
-                      </p>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Shared policy form fields */}
-            <PolicyFormFields policyForm={policyForm} onChange={setPolicyForm} apiKeyHash={apiKeyHash} knownKeyHashes={knownKeyHashes} onSaveKey={handleSaveKey} />
-          </div>
-
-          {/* Policy JSON Editor */}
-          <PolicyJsonEditor
-            policyJsonText={policyJsonText}
-            onChangeText={(text) => { setPolicyJsonText(text); setJsonEdited(true); }}
-            jsonEdited={jsonEdited}
-            onReset={resetJson}
-          />
-
- <div className="mt-4 pt-4 border-t flex items-center justify-between">
- <p className="text-xs text-faint-foreground">
- Policy will be encrypted in TEE and stored on-chain with <span className="font-mono">{effectiveOwner}</span> as owner.
-            </p>
+      {pendingWrite && (
+        <div className="mb-4 rounded-md border border-accent/50 bg-card p-4">
+          <p className="mb-2 text-sm text-foreground">
+            The policy on chain is locked: this change (approval{' '}
+            <code className="rounded bg-card-muted px-1">{pendingWrite.approvalId}</code>) needs{' '}
+            {pendingWrite.requiredApprovals} vote(s) of its approvers, given on the{' '}
+            <Link href="/wallet/approvals" className="text-accent-text underline">Approvals</Link> page. Once they have
+            voted, one transaction from your wallet stores the new policy under your account, replacing the current one.
+          </p>
+          {approvedPrepared ? (
             <button
-              onClick={handleSubmitPolicy}
-              disabled={submitting || !isConnected}
- className="px-5 py-2 bg-accent text-on-accent rounded-lg font-medium disabled:opacity-50"
+              type="button"
+              onClick={() => handleStore(approvedPrepared)}
+              disabled={submitting}
+              className="rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-on-accent hover:bg-accent-hover disabled:opacity-50"
             >
-              {submitting ? 'Encrypting & Storing...' : 'Store Policy On-Chain'}
+              {submitting ? 'Waiting for your wallet…' : `Sign: store the approved policy (${depositNear(approvedPrepared.depositYocto)} NEAR deposit)`}
             </button>
+          ) : (
+            <button
+              type="button"
+              onClick={handleCheckVotes}
+              disabled={pickingUp}
+              className="rounded-lg border border-border-strong px-4 py-2 text-sm text-foreground hover:border-accent hover:text-accent-text disabled:opacity-50"
+            >
+              {pickingUp ? 'Checking the votes…' : 'Check the votes'}
+            </button>
+          )}
+        </div>
+      )}
+
+      <div className="grid items-start gap-8 xl:grid-cols-[minmax(0,1fr)_22rem]">
+        <div className="min-w-0">
+      <div className="mb-6 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
+        <span className="text-muted-foreground">
+          Agent wallet <AgentChip account={walletInfo.address} className="font-mono" />
+        </span>
+        <span className="text-muted-foreground">
+          Owner <span className="font-mono text-foreground">{owner}</span>
+        </span>
+        <span className="text-muted-foreground">
+          Network <span className="text-foreground">{network}</span>
+        </span>
+        <span className="flex items-center gap-1 text-muted-foreground">
+          Keys
+          <span className="text-foreground">{walletInfo.vault_id ? `vault ${walletInfo.vault_id}` : 'OutLayer vault'}</span>
+          <InfoHint
+            text={
+              walletInfo.vault_id
+                ? 'The wallet’s keys derive from your own vault: recoverable through cessation or unilateral exit.'
+                : 'The wallet’s keys derive from OutLayer’s master secret inside the enclave. They are not recoverable by you if OutLayer ceases; a vault of your own changes that.'
+            }
+          />
+        </span>
+      </div>
+
+      {existingPolicy === false && (
+        <>
+        <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-faint-foreground">Start from</p>
+        <div className="mb-6 grid max-w-3xl gap-3 sm:grid-cols-2">
+          {([
+            ['protected', 'Basic protection', 'The form below is filled in for you: the agent pays only you and the addresses you add. Change anything you like.'],
+            ['custom', 'Custom', 'The form below starts empty: nothing is restricted until you add the rules yourself.'],
+          ] as const).map(([kind, title, about]) => (
+            <button
+              key={kind}
+              type="button"
+              aria-pressed={start === kind}
+              onClick={() => chooseStart(kind)}
+              className={`rounded-lg border p-3 text-left ${start === kind ? 'border-accent bg-card' : 'border-border bg-card hover:border-border-strong'}`}
+            >
+              <span className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                <span className={`h-3 w-3 rounded-full border ${start === kind ? 'border-accent bg-accent' : 'border-border-strong'}`} />
+                {title}
+                {kind === 'protected' && <span className="text-xs font-normal text-muted-foreground">recommended</span>}
+              </span>
+              <span className="mt-1 block text-xs text-muted-foreground">{about}</span>
+            </button>
+          ))}
+        </div>
+        </>
+      )}
+
+        <WalletPolicyForm
+          policyForm={policyForm}
+          onChange={setPolicyForm}
+          ownerAccount={owner}
+          walletAccount={walletInfo.address}
+          tokens={tokens}
+          apiKeyHash={apiKeyHash}
+          knownKeyHashes={knownKeyHashes}
+          onSaveKey={setNextBrowserKey}
+          approval={approval}
+          jsonEditor={
+            <PolicyJsonEditor
+              policyJsonText={policyJsonText}
+              onChangeText={(text) => { setPolicyJsonText(text); setJsonEdited(true); }}
+              jsonEdited={jsonEdited}
+              onReset={resetJson}
+            />
+          }
+        />
+        </div>
+
+        <aside className="rounded-lg border border-border bg-card p-4 xl:sticky xl:top-[4.5rem] xl:max-h-[calc(100vh-5.5rem)] xl:overflow-y-auto">
+          <h2 className="text-sm font-semibold text-foreground">With this policy, the key</h2>
+          {jsonEdited ? (
+            <p className="mt-2 text-xs text-muted-foreground">
+              The JSON was edited by hand, so this summary no longer describes what will be stored. Reset it from the form
+              under &quot;Policy as JSON&quot; to see it again.
+            </p>
+          ) : (
+            <>
+              <p className="mt-3 text-[11px] font-semibold uppercase tracking-wider text-faint-foreground">Can</p>
+              <ul className="mt-1 space-y-1 text-sm text-foreground">
+                {summary.can.length > 0 ? summary.can.map((line) => <li key={line}>{line}</li>) : <li className="text-muted-foreground">Nothing.</li>}
+              </ul>
+              <p className="mt-3 text-[11px] font-semibold uppercase tracking-wider text-faint-foreground">Cannot</p>
+              <ul className="mt-1 space-y-1 text-sm text-muted-foreground">
+                {summary.cannot.map((line) => <li key={line}>{line}</li>)}
+              </ul>
+              {summary.cautions.length > 0 && (
+                <>
+                  <p className="mt-3 flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wider text-warning">
+                    <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden className="h-3 w-3"><path d="M8 1.5 15 14H1zM7.25 6v4h1.5V6zm0 5v1.5h1.5V11z" /></svg>
+                    Worth a second look
+                  </p>
+                  <ul className="mt-1 space-y-1 text-xs text-foreground">
+                    {summary.cautions.map((line) => <li key={line}>{line}</li>)}
+                  </ul>
+                </>
+              )}
+            </>
+          )}
+
+          <div className="mt-4 border-t border-border pt-4">
+            {(policyProblem || prepareError) && (
+              <p className="mb-3 text-sm text-destructive-text">{policyProblem || prepareError}</p>
+            )}
+            {ready ? (
+              <button
+                type="button"
+                onClick={() => handleStore(ready)}
+                disabled={submitting}
+                className="w-full rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-on-accent hover:bg-accent-hover disabled:opacity-50"
+              >
+                {submitting ? 'Waiting for your wallet…' : `Sign: store the policy (${depositNear(ready.depositYocto)} NEAR deposit)`}
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => runPrepare(policyJsonText)}
+                disabled={preparing || !!policyProblem || !!pendingWrite}
+                className="w-full rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-on-accent hover:bg-accent-hover disabled:opacity-50"
+              >
+                {preparing ? 'Preparing…' : existingPolicy ? 'Prepare the policy change' : 'Prepare the policy'}
+              </button>
+            )}
+            <p className="mt-2 text-xs text-muted-foreground">
+              One transaction from <span className="font-mono">{owner}</span> stores this policy for the wallet
+              {existingPolicy ? ', replacing the current one' : ''}. Nothing opens your wallet before you press the
+              button.
+            </p>
+            <details className="mt-1 text-xs text-muted-foreground">
+              <summary className="text-accent-text">What this transaction does</summary>
+              <ul className="mt-2 list-disc space-y-1 pl-4">
+                <li>
+                  Stores the policy, encrypted to the keystore enclave, in <span className="font-mono">{contractId}</span>{' '}
+                  under the wallet&apos;s key <span className="break-all font-mono">ed25519:{walletInfo.address}</span>.
+                </li>
+                <li>
+                  Makes <span className="font-mono">{owner}</span> the owner: the account that can change or remove the
+                  policy and freeze the wallet{lockPolicy && requireApproval ? ' — changes and removal wait for the approvers’ quorum' : ''}.
+                </li>
+                <li>
+                  The stored text is ciphertext anyone can see and only the enclave can open. A holder of one of the
+                  wallet&apos;s API keys reads the policy through the API.
+                </li>
+                <li>The storage deposit is returned when the policy is removed.</li>
+                <li>
+                  To undo: store another policy here, or remove it on{' '}
+                  <Link href="/wallet/manage" className="text-accent-text underline">Wallets</Link> — the wallet is then
+                  without limits again.
+                </li>
+              </ul>
+            </details>
           </div>
-        </div>
-      )}
+        </aside>
+      </div>
+    </div>
+  );
+}
 
-      {/* After success — next steps */}
-      {success && (
- <div className="bg-card border border-border rounded-lg p-6">
- <h2 className="text-lg font-semibold text-foreground mb-3">Next Steps</h2>
- <ul className="space-y-2 text-sm text-foreground">
-            <li>
- <Link href={`/wallet/approvals?key=${apiKey}`} className="text-accent-text hover:text-accent-text font-medium">
-                Approvals
-              </Link>
-              {' '}&mdash; review and approve pending transactions
-            </li>
-            <li>
- <Link href={`/wallet/manage?key=${apiKey}`} className="text-accent-text hover:text-accent-text font-medium">
-                Manage Wallets
-              </Link>
-              {' '}&mdash; edit policy, freeze wallet
-            </li>
-            <li>
- <Link href={`/wallet/audit?key=${apiKey}`} className="text-accent-text hover:text-accent-text font-medium">
-                Audit Log
-              </Link>
-              {' '}&mdash; view transaction history
-            </li>
-          </ul>
-        </div>
-      )}
-
-      <WalletConnectionModal isOpen={showWalletModal} onClose={() => setShowWalletModal(false)} />
+/** Where the key goes, for an agent on a host or on the owner's machine. */
+function HandOff() {
+  const [host, setHost] = useState<'hosted' | 'local'>('hosted');
+  return (
+    <div className="mt-4">
+      <div className="flex flex-wrap gap-2">
+        {([
+          ['hosted', 'My agent runs on a host (Railway, Fly, a server)'],
+          ['local', 'My agent runs on my machine (Claude Code, Cursor)'],
+        ] as const).map(([kind, label]) => (
+          <button
+            key={kind}
+            type="button"
+            aria-pressed={host === kind}
+            onClick={() => setHost(kind)}
+            className={`rounded-md border px-3 py-1.5 text-xs font-medium ${
+              host === kind ? 'border-accent bg-accent text-on-accent' : 'border-border-strong text-foreground hover:border-accent hover:text-accent-text'
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+      <ol className="mt-3 list-decimal space-y-2 pl-5 text-sm text-foreground">
+        {host === 'hosted' ? (
+          <li>
+            Add the key to the service as a variable named <code className="rounded bg-card-muted px-1">OUTLAYER_WK</code>{' '}
+            (on Railway: the service, Variables, New Variable). Do not put it in the repository or the prompt.
+          </li>
+        ) : (
+          <li>
+            Put the key in the agent&apos;s environment as <code className="rounded bg-card-muted px-1">OUTLAYER_WK</code>:{' '}
+            <code className="rounded bg-card-muted px-1">export OUTLAYER_WK=wk_…</code> in the shell that starts it.
+          </li>
+        )}
+        <li>
+          Give the agent the skill; it reads the key from <code className="rounded bg-card-muted px-1">OUTLAYER_WK</code>.
+          <div className="mt-2">
+            <SkillUrlBox url={SKILL_URL} />
+          </div>
+        </li>
+        <li>
+          When the agent needs to pay an address that is not on the list, it sends you a link to this page with the
+          address filled in. You check it and sign.
+        </li>
+      </ol>
     </div>
   );
 }

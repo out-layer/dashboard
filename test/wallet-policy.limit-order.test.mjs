@@ -12,7 +12,7 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { buildPolicyRules, parsePolicyResponse, effectiveTransactionTypes, DEFAULT_POLICY } from '../lib/wallet-policy.ts';
+import { buildPolicyRules, parsePolicyResponse, effectiveTransactionTypes, toggledTransactionTypes, DEFAULT_POLICY } from '../lib/wallet-policy.ts';
 
 const build = (form) => buildPolicyRules({ ...DEFAULT_POLICY, ...form });
 
@@ -83,14 +83,15 @@ test('a wallet restricted to limit orders ONLY is not opened up by a Save', () =
 });
 
 test('the type stays out of sight when other checkboxes are toggled, and is kept', () => {
-  // PolicyFormFields rebuilds the string from the parsed list on every toggle;
-  // `limit_order` has no checkbox, so it must ride along untouched.
+  // `limit_order` has no checkbox: its switch writes it. Unticking the last
+  // checkbox must leave the rule in place, with the switch's type in it.
   const { form } = parsePolicyResponse({
     rules: { transaction_types: ['transfer', 'limit_order'] },
     capabilities: { limit_order: { allowed: true } },
   });
-  const toggled = { ...form, transaction_types: form.transaction_types.split(',').filter((t) => t !== 'transfer').join(',') };
+  const toggled = { ...form, transaction_types: toggledTransactionTypes(form.transaction_types, 'transfer') };
   assert.deepEqual(buildPolicyRules(toggled).rules.transaction_types, ['limit_order']);
+  assert.deepEqual(buildPolicyRules({ ...toggled, limit_order_enabled: false }).rules.transaction_types, []);
 });
 
 test('enabling swap or cross-chain withdraw does not enable limit orders', () => {

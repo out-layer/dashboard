@@ -716,6 +716,12 @@ export default function ConnectorsDocsPage() {
             Redeeming it puts a subscription, paid by the sponsor, on the wallet&apos;s nonce-0 key: the trial&apos;s
             key if it was claimed (the trial is converted — no call count), a new key if not.
  </p>
+ <p className="text-foreground mt-2">
+            A sponsor hands the code out as a link,{' '}
+            <code className="bg-card-muted px-1 rounded">https://app.outlayer.ai/redeem?code=spn_…</code>: it opens the page
+            that creates an agent wallet and redeems the code with it. An agent that already has a wallet redeems the code
+            itself:
+ </p>
  <pre className="bg-card-muted p-3 rounded text-sm overflow-x-auto mt-2"><code>{`POST /wallet/v1/sponsorship        Authorization: Bearer wk_…  (or near:…)
 {"code": "spn_…"}
 

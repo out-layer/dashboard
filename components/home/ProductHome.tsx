@@ -208,23 +208,26 @@ export default function ProductHome() {
       <div className="mt-8 grid gap-4 lg:grid-cols-3">
         <Card>
           <CardHeader>
-            <CardTitle>If you use an AI agent</CardTitle>
+            <CardTitle>If you run an AI agent</CardTitle>
             <CardDescription>
-              Give it a wallet it can spend but never leak — no code involved.
+              A protected wallet for an agent that runs elsewhere — Railway, a server, Claude Code on your machine.
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-muted-foreground">
-              Paste this skill into Claude, Cursor or your own agent:
+            <ul className="space-y-1.5 text-sm text-muted-foreground">
+              <li>The keys stay in a hardware enclave; the agent holds an API key</li>
+              <li>A leaked key pays only the addresses you approved, within your limits, and withdraws only to you</li>
+              <li>Paid from any chain, pays on any chain; every signature is in an audit log</li>
+            </ul>
+            <Link href="/wallet/new" className="mt-3 inline-block">
+              <Button variant="outline">Create an agent wallet</Button>
+            </Link>
+            <p className="mt-3 text-sm text-muted-foreground">
+              Or let the agent set itself up with this skill:
             </p>
             <div className="mt-2">
               <SkillUrlBox url={SKILL_URL} />
             </div>
-            <ul className="mt-3 space-y-1.5 text-sm text-muted-foreground">
-              <li>It mints NEAR, EVM and Solana addresses backed by the TEE</li>
-              <li>Your policy caps spending; large transfers wait for your approval</li>
-              <li>Every signature lands in an audit log you can open anytime</li>
-            </ul>
             <Link href="/docs/agent-custody" className="mt-3 inline-block text-sm font-semibold text-accent-text hover:underline">
               Agent custody →
             </Link>

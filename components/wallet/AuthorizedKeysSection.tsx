@@ -1,6 +1,8 @@
 'use client';
 
 import { useState } from 'react';
+import { InfoHint } from '@/components/ui/info-hint';
+import { CopyText } from '@/components/ui/copy-text';
 import { computeKeyHash, validateWalletKeyFormat, generateWalletKey } from '@/lib/wallet-keys';
 
 interface AuthorizedKeysSectionProps {
@@ -8,14 +10,33 @@ interface AuthorizedKeysSectionProps {
   additionalKeyHashes: string;
   /** Callback when hashes change */
   onChangeHashes: (hashes: string) => void;
-  /** Current API key hash (auto-included, not editable) */
+  /** Hash of the key this browser uses for the wallet: always named by the policy. */
   apiKeyHash?: string;
-  /** Map of hash → label for hashes we can identify (from localStorage etc.) */
+  /** Hash → what the key is, for the keys this browser can tell apart. */
   knownKeyHashes?: Map<string, string>;
-  /** Callback to save a generated/entered key to localStorage */
+  /**
+   * The owner wants this browser to use a new key for the wallet. The page
+   * decides when: a key works only once the policy naming it is stored.
+   */
   onSaveKey?: (apiKey: string) => void;
 }
 
+const FIELD =
+  'w-full max-w-xl rounded-md border border-border-strong px-3 py-2 text-xs font-mono outline-none focus:border-accent focus:ring-1 focus:ring-accent';
+const QUIET = 'text-xs text-muted-foreground hover:text-accent-text';
+const SECONDARY =
+  'rounded-md border border-border-strong px-3 py-1.5 text-xs font-medium text-foreground hover:border-accent hover:text-accent-text disabled:opacity-50';
+
+/** A key as the list shows it: the ends of its fingerprint. */
+function fingerprint(hash: string): string {
+  return `${hash.slice(0, 8)}…${hash.slice(-6)}`;
+}
+
+/**
+ * The API keys that run the wallet. A policy names keys by SHA-256 hash, so
+ * the key itself is never stored with it; this section speaks of keys and
+ * keeps the hashes as fingerprints.
+ */
 export function AuthorizedKeysSection({
   additionalKeyHashes,
   onChangeHashes,
@@ -23,301 +44,202 @@ export function AuthorizedKeysSection({
   knownKeyHashes,
   onSaveKey,
 }: AuthorizedKeysSectionProps) {
-  const [keyInput, setKeyInput] = useState('');
-  const [validationError, setValidationError] = useState<string | null>(null);
-  const [lastGeneratedKey, setLastGeneratedKey] = useState<string | null>(null);
-  const [copied, setCopied] = useState(false);
-  const [showPasteHash, setShowPasteHash] = useState(false);
-  const [pasteHashInput, setPasteHashInput] = useState('');
-  const [pasteHashError, setPasteHashError] = useState<string | null>(null);
-  const [removalConfirm, setRemovalConfirm] = useState<string | null>(null);
+  const [adding, setAdding] = useState(false);
+  /** Which of the two quiet ways in is open, beside generating. */
+  const [own, setOwn] = useState<'key' | 'fingerprint' | null>(null);
+  const [input, setInput] = useState('');
+  const [problem, setProblem] = useState<string | null>(null);
+  /** A key made here: shown until the owner closes the panel. */
+  const [fresh, setFresh] = useState<string | null>(null);
+  const [keptInBrowser, setKeptInBrowser] = useState(false);
+  const [removing, setRemoving] = useState<string | null>(null);
 
-  // Parse hashes from the newline-separated string
-  const hashList = additionalKeyHashes
-    .split('\n')
-    .map((h) => h.trim())
-    .filter(Boolean);
-
-  // All hashes in the policy (auto-included + additional)
-  const allPolicyHashes = new Set(hashList);
-  if (apiKeyHash) allPolicyHashes.add(apiKeyHash);
-
-  // Check if any known key is orphaned (hash not in policy)
-  const orphanedEntries: Array<{ hash: string; label: string }> = [];
-  if (knownKeyHashes) {
-    for (const [hash, label] of knownKeyHashes) {
-      if (!allPolicyHashes.has(hash)) {
-        orphanedEntries.push({ hash, label });
-      }
+  const hashes = additionalKeyHashes.split('\n').map((h) => h.trim()).filter(Boolean);
+  const add = (hash: string): boolean => {
+    if (hash === apiKeyHash || hashes.includes(hash)) {
+      setProblem('This key is already on the list.');
+      return false;
     }
-  }
+    onChangeHashes([...hashes, hash].join('\n'));
+    return true;
+  };
 
-  const handleGenerate = () => {
+  const generate = async () => {
     const key = generateWalletKey();
-    setKeyInput(key);
-    setValidationError(null);
-    setLastGeneratedKey(null);
+    if (add(await computeKeyHash(key))) {
+      setFresh(key);
+      setKeptInBrowser(false);
+      setProblem(null);
+    }
   };
 
-  const handleHashAndAdd = async () => {
-    setValidationError(null);
-
-    const err = validateWalletKeyFormat(keyInput);
-    if (err) {
-      setValidationError(err);
+  const addOwn = async () => {
+    setProblem(null);
+    const value = input.trim();
+    if (own === 'key') {
+      const invalid = validateWalletKeyFormat(value);
+      if (invalid) {
+        setProblem(invalid);
+        return;
+      }
+      if (add(await computeKeyHash(value))) {
+        setInput('');
+        setOwn(null);
+      }
       return;
     }
-
-    const hash = await computeKeyHash(keyInput);
-
-    if (hash === apiKeyHash || hashList.includes(hash)) {
-      setValidationError('This key is already authorized');
-      return;
-    }
-
-    // Add hash to list
-    const updated = [...hashList, hash].join('\n');
-    onChangeHashes(updated);
-    setLastGeneratedKey(keyInput);
-    setKeyInput('');
-    setCopied(false);
-  };
-
-  const handleCopy = () => {
-    if (lastGeneratedKey) {
-      navigator.clipboard.writeText(lastGeneratedKey);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    }
-  };
-
-  const handleSaveToStorage = () => {
-    if (lastGeneratedKey && onSaveKey) {
-      onSaveKey(lastGeneratedKey);
-      setLastGeneratedKey(null);
-    }
-  };
-
-  const handleRemoveHash = (hash: string) => {
-    // If this hash matches a known key, require confirmation
-    if (knownKeyHashes?.has(hash) && removalConfirm !== hash) {
-      setRemovalConfirm(hash);
-      return;
-    }
-    setRemovalConfirm(null);
-    const updated = hashList.filter((h) => h !== hash).join('\n');
-    onChangeHashes(updated);
-  };
-
-  const handleAddOrphanHash = (hash: string) => {
-    const updated = [...hashList, hash].join('\n');
-    onChangeHashes(updated);
-  };
-
-  const handlePasteHash = () => {
-    setPasteHashError(null);
-    const cleaned = pasteHashInput.trim().toLowerCase().replace(/^0x/, '');
+    const cleaned = value.toLowerCase().replace(/^0x/, '');
     if (!/^[0-9a-f]{64}$/.test(cleaned)) {
-      setPasteHashError('Must be exactly 64 hex characters');
+      setProblem('A fingerprint is the key’s SHA-256: exactly 64 hex characters.');
       return;
     }
-    if (cleaned === apiKeyHash || hashList.includes(cleaned)) {
-      setPasteHashError('This hash is already in the policy');
-      return;
+    if (add(cleaned)) {
+      setInput('');
+      setOwn(null);
     }
-    const updated = [...hashList, cleaned].join('\n');
-    onChangeHashes(updated);
-    setPasteHashInput('');
-    setShowPasteHash(false);
+  };
+
+  const close = () => {
+    setAdding(false);
+    setOwn(null);
+    setInput('');
+    setProblem(null);
+    setFresh(null);
   };
 
   return (
     <div>
- <h3 className="text-sm font-semibold text-foreground mb-2">Authorized API Keys</h3>
- <p className="text-xs text-faint-foreground mb-2">
-        SHA256 hashes of API keys that can operate this wallet.
-      </p>
-
-      {/* Current key (auto-included) */}
-      {apiKeyHash && (
- <div className="flex items-center gap-2 mb-3">
- <span className="text-xs text-muted-foreground">Current key:</span>
- <code className="text-xs font-mono bg-card-muted px-2 py-0.5 rounded text-muted-foreground select-all">
-            {apiKeyHash.substring(0, 16)}...{apiKeyHash.slice(-8)}
-          </code>
- <span className="text-xs text-success-text font-medium">auto-included</span>
-        </div>
-      )}
-
-      {/* Generate / Enter key */}
- <div className="border border-border rounded p-3 mb-3 bg-card-muted">
- <div className="text-xs font-medium text-muted-foreground mb-2">Add a new key</div>
- <div className="flex gap-2 mb-1">
-          <input
-            type="text"
-            value={keyInput}
-            onChange={(e) => { setKeyInput(e.target.value); setValidationError(null); }}
-            placeholder="wk_... or click Generate"
- className="flex-1 border border-border-strong rounded px-2 py-1.5 text-xs font-mono"
-          />
-          <button
-            type="button"
-            onClick={handleGenerate}
- className="px-3 py-1.5 text-xs bg-card-muted text-foreground rounded hover:bg-card-muted"
-          >
-            Generate
-          </button>
-          <button
-            type="button"
-            onClick={handleHashAndAdd}
-            disabled={!keyInput.trim()}
- className="px-3 py-1.5 text-xs bg-accent text-on-accent rounded-lg hover:bg-accent-hover disabled:opacity-40"
-          >
-            Hash &amp; Add
-          </button>
-        </div>
-        {validationError && (
- <p className="text-xs text-destructive-text mt-1">{validationError}</p>
+      <ul className="divide-y divide-border rounded-md border border-border">
+        {apiKeyHash && (
+          <li className="flex items-center justify-between gap-3 px-3 py-2">
+            <span className="min-w-0 text-sm text-foreground">
+              This browser&apos;s key
+              <span className="ml-2 font-mono text-xs text-faint-foreground">{fingerprint(apiKeyHash)}</span>
+            </span>
+            <span className="shrink-0 text-xs text-muted-foreground">always on the list</span>
+          </li>
         )}
-
-        {/* After generating: show copy/save prompt */}
-        {lastGeneratedKey && (
- <div className="mt-2 p-2 bg-warning/10 border border-warning/30 rounded">
- <p className="text-xs text-warning font-medium mb-1">
-              Copy this key now — it won&apos;t be shown again.
-            </p>
- <div className="flex items-center gap-2">
- <code className="text-xs font-mono bg-card px-2 py-0.5 rounded border border-warning/40 select-all break-all">
-                {lastGeneratedKey}
-              </code>
-              <button
-                type="button"
-                onClick={handleCopy}
- className="px-2 py-1 text-xs bg-warning/10 text-warning rounded hover:bg-yellow-200 whitespace-nowrap"
-              >
-                {copied ? 'Copied!' : 'Copy'}
-              </button>
-              {onSaveKey && (
+        {hashes.map((hash) => (
+          <li key={hash} className="flex items-center justify-between gap-3 px-3 py-2">
+            <span className="min-w-0 text-sm text-foreground">
+              {knownKeyHashes?.get(hash) ?? 'Another key'}
+              <span className="ml-2 font-mono text-xs text-faint-foreground">{fingerprint(hash)}</span>
+            </span>
+            {removing === hash ? (
+              <span className="flex shrink-0 items-center gap-2 text-xs">
+                <span className="text-muted-foreground">It stops working once the policy is stored.</span>
                 <button
                   type="button"
-                  onClick={handleSaveToStorage}
- className="px-2 py-1 text-xs bg-accent text-on-accent rounded-lg hover:bg-accent-hover whitespace-nowrap"
+                  onClick={() => {
+                    onChangeHashes(hashes.filter((h) => h !== hash).join('\n'));
+                    setRemoving(null);
+                  }}
+                  className="font-medium text-destructive-text hover:underline"
                 >
-                  Save to Browser
+                  Remove
                 </button>
-              )}
-            </div>
-          </div>
-        )}
-      </div>
+                <button type="button" onClick={() => setRemoving(null)} className={QUIET}>
+                  Keep
+                </button>
+              </span>
+            ) : (
+              <button type="button" onClick={() => setRemoving(hash)} className={`shrink-0 ${QUIET}`}>
+                Remove
+              </button>
+            )}
+          </li>
+        ))}
+      </ul>
 
-      {/* Hash list */}
-      {hashList.length > 0 && (
- <div className="mb-3">
- <div className="text-xs font-medium text-muted-foreground mb-1">Hashes in policy:</div>
- <div className="space-y-1">
-            {hashList.map((hash) => {
-              const label = knownKeyHashes?.get(hash);
-              const isConfirming = removalConfirm === hash;
-
-              return (
- <div key={hash} className="flex items-center gap-2 group">
- <code className="text-xs font-mono bg-card-muted px-2 py-0.5 rounded text-muted-foreground">
-                    {hash.substring(0, 16)}...{hash.slice(-8)}
-                  </code>
-                  {label && (
- <span className="text-xs text-accent-text font-medium">({label})</span>
-                  )}
-                  {isConfirming ? (
- <span className="flex items-center gap-1">
- <span className="text-xs text-destructive-text">Revoke saved key?</span>
-                      <button
-                        type="button"
-                        onClick={() => { setRemovalConfirm(null); handleRemoveHash(hash); }}
- className="text-xs text-destructive-text font-medium hover:underline"
-                      >
-                        Yes
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setRemovalConfirm(null)}
- className="text-xs text-muted-foreground hover:underline"
-                      >
-                        No
-                      </button>
-                    </span>
+      {!adding ? (
+        <button type="button" onClick={() => setAdding(true)} className={`mt-2 ${QUIET}`}>
+          Add or replace a key
+        </button>
+      ) : (
+        <div className="mt-3 rounded-md border border-border p-3">
+          {fresh ? (
+            <>
+              <p className="text-sm font-medium text-foreground">The new key</p>
+              <div className="mt-1 rounded-md border border-border px-3 py-2 font-mono text-xs break-all">
+                <CopyText value={fresh} />
+              </div>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Copy it now: it is shown only here. It starts working when you store the policy.
+              </p>
+              <div className="mt-3 flex flex-wrap items-center gap-3">
+                {onSaveKey && (
+                  keptInBrowser ? (
+                    <span className="text-xs text-muted-foreground">This browser will use it once the policy is stored.</span>
                   ) : (
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveHash(hash)}
- className="text-xs text-red-400 hover:text-destructive-text opacity-0 group-hover:opacity-100"
-                    >
-                      &times;
+                    <span className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          onSaveKey(fresh);
+                          setKeptInBrowser(true);
+                        }}
+                        className={SECONDARY}
+                      >
+                        Use it in this browser too
+                      </button>
+                      <InfoHint text="Do this when the new key replaces the one this browser holds: once the policy is stored, this page and the approvals use the new key. To retire the old key, remove it from the list after that and store the policy again." />
+                    </span>
+                  )
+                )}
+                <button type="button" onClick={close} className={QUIET}>
+                  Done
+                </button>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="flex flex-wrap items-center gap-2">
+                <button type="button" onClick={generate} className={SECONDARY}>
+                  Generate a new key
+                </button>
+                <InfoHint text="The key is made in this browser and goes nowhere: the policy stores only its SHA-256 fingerprint. Give each agent its own key so you can remove one without touching the others. The limits are the wallet's, shared by all of its keys." />
+                <button type="button" onClick={close} className={`ml-auto ${QUIET}`}>
+                  Cancel
+                </button>
+              </div>
+
+              <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1">
+                <button type="button" onClick={() => { setOwn(own === 'key' ? null : 'key'); setInput(''); setProblem(null); }} className={QUIET}>
+                  I already have a key
+                </button>
+                <button type="button" onClick={() => { setOwn(own === 'fingerprint' ? null : 'fingerprint'); setInput(''); setProblem(null); }} className={QUIET}>
+                  I have only its fingerprint
+                </button>
+              </div>
+              {own && (
+                <div className="mt-2">
+                  <div className="flex max-w-xl gap-2">
+                    <input
+                      type="text"
+                      value={input}
+                      onChange={(e) => { setInput(e.target.value); setProblem(null); }}
+                      aria-label={own === 'key' ? 'API key' : 'Key fingerprint'}
+                      placeholder={own === 'key' ? 'wk_…' : '64 hex characters'}
+                      spellCheck={false}
+                      autoComplete="off"
+                      className={FIELD}
+                    />
+                    <button type="button" onClick={addOwn} disabled={!input.trim()} className={`shrink-0 ${SECONDARY}`}>
+                      Add
                     </button>
-                  )}
+                  </div>
+                  <p className="mt-1 text-xs text-faint-foreground">
+                    {own === 'key'
+                      ? 'The key stays in this page: only its fingerprint goes into the policy.'
+                      : 'The SHA-256 of a key made elsewhere, so the key itself never reaches this browser.'}
+                  </p>
                 </div>
-              );
-            })}
-          </div>
+              )}
+            </>
+          )}
+          {problem && <p className="mt-2 text-xs text-destructive-text">{problem}</p>}
         </div>
       )}
-
-      {/* Orphaned key warnings */}
-      {orphanedEntries.map(({ hash, label }) => (
- <div key={hash} className="mb-2 p-2 bg-warning/10 border border-warning/30 rounded flex items-center gap-2">
- <span className="text-xs text-warning">
-            Your key ({label}) is not in the policy — it won&apos;t work.
-          </span>
-          <button
-            type="button"
-            onClick={() => handleAddOrphanHash(hash)}
- className="text-xs text-accent-text font-medium hover:underline whitespace-nowrap"
-          >
-            Add it
-          </button>
-        </div>
-      ))}
-
-      {/* Advanced: paste hash directly */}
- <div className="mt-2">
-        {showPasteHash ? (
- <div className="flex gap-2 items-start">
-            <input
-              type="text"
-              value={pasteHashInput}
-              onChange={(e) => { setPasteHashInput(e.target.value); setPasteHashError(null); }}
-              placeholder="64 hex characters"
- className="flex-1 border border-border-strong rounded px-2 py-1.5 text-xs font-mono"
-            />
-            <button
-              type="button"
-              onClick={handlePasteHash}
-              disabled={!pasteHashInput.trim()}
- className="px-2 py-1.5 text-xs bg-card-muted text-foreground rounded hover:bg-card-muted disabled:opacity-40"
-            >
-              Add hash
-            </button>
-            <button
-              type="button"
-              onClick={() => { setShowPasteHash(false); setPasteHashInput(''); setPasteHashError(null); }}
- className="text-xs text-faint-foreground hover:text-foreground py-1.5"
-            >
-              cancel
-            </button>
-          </div>
-        ) : (
-          <button
-            type="button"
-            onClick={() => setShowPasteHash(true)}
- className="text-xs text-faint-foreground hover:text-foreground"
-          >
-            Paste hash directly...
-          </button>
-        )}
-        {pasteHashError && (
- <p className="text-xs text-destructive-text mt-1">{pasteHashError}</p>
-        )}
-      </div>
     </div>
   );
 }

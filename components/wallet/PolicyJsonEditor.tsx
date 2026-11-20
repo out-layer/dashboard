@@ -7,9 +7,9 @@ interface PolicyJsonEditorProps {
 
 export function PolicyJsonEditor({ policyJsonText, onChangeText, jsonEdited, onReset }: PolicyJsonEditorProps) {
   return (
- <div className="mt-4 pt-4 border-t">
+ <div className="pt-4">
  <div className="flex items-center justify-between mb-2">
- <h3 className="text-sm font-semibold text-foreground">Policy JSON</h3>
+ <h3 className="text-xs font-medium text-muted-foreground">Exactly what is encrypted and stored</h3>
         {jsonEdited && (
  <button onClick={onReset} className="text-xs text-accent-text hover:underline">
             Reset from form

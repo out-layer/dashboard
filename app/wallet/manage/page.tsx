@@ -109,6 +109,42 @@ function WalletManagePage() {
     })();
   }, [urlKey, coordinatorUrl]);
 
+  // Wallets this browser holds a key for that have no policy on chain: they are
+  // in no owner's list, so the keys are the only way to find them. A key is
+  // asked about on this network's service first — keys of the other network
+  // are kept in the same storage and are not this page's to show.
+  const [unprotected, setUnprotected] = useState<string[]>([]);
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const found: string[] = [];
+      for (const [pubkey, apiKey] of Object.entries(savedKeys)) {
+        const address = pubkey.replace(/^ed25519:/, '');
+        try {
+          const resp = await fetch(`${coordinatorUrl}/wallet/v1/address?chain=near`, {
+            headers: { Authorization: `Bearer ${apiKey}` },
+          });
+          if (!resp.ok) continue;
+          const data = await resp.json();
+          if (data.address !== address) continue;
+          const policy = await viewMethod({
+            contractId,
+            method: 'get_wallet_policy',
+            args: { wallet_pubkey: pubkey },
+          });
+          if (policy === null) found.push(address);
+        } catch {
+          // Unreachable service or chain: say nothing about this wallet rather
+          // than call it unprotected.
+        }
+      }
+      if (!cancelled) setUnprotected(found);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [savedKeys, coordinatorUrl, contractId, viewMethod]);
+
   // Load wallet policies owned by this account
   const loadWallets = useCallback(async () => {
     if (!accountId) return;
@@ -285,54 +321,45 @@ function WalletManagePage() {
         </div>
       )}
 
-      {/* API key wallet (from ?key= param) — new wallet without policy yet */}
-      {apiKeyWallet && !wallets.some((w) => w.wallet_pubkey === `ed25519:${apiKeyWallet.address}`) && (
- <div className="mb-4 bg-card rounded-lg border-2 border-dashed border-accent">
+      {/* Wallets with a key in this browser and no policy on chain */}
+      {unprotected.map((address) => (
+ <div key={address} className="mb-4 bg-card rounded-lg border-2 border-dashed border-accent">
  <div className="px-4 py-4 sm:px-6">
- <div className="flex items-center justify-between">
+ <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
  <div className="flex items-center space-x-2">
- <span className="text-sm font-medium">New Wallet</span>
+ <span className="text-sm font-medium">Agent wallet</span>
  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-warning/10 text-warning">
  <svg viewBox="0 0 16 16" fill="currentColor" className="h-3 w-3"><path d="M8 1.5 15 14H1zM7.25 6v4h1.5V6zm0 5v1.5h1.5V11z" /></svg>
-                    No Policy
+                    Unprotected: no policy
                   </span>
                 </div>
- <p className="mt-1 text-xs text-muted-foreground font-mono break-all">
-                  ed25519:{apiKeyWallet.address}
-                </p>
  <p className="text-xs text-faint-foreground mt-1">
-                  NEAR address: <AgentChip account={apiKeyWallet.address} className="font-mono" />
+                  <AgentChip account={address} className="font-mono" />
+                </p>
+ <p className="text-xs text-muted-foreground mt-1">
+                  Its API key moves whatever the wallet holds, without limits, until a policy is stored.
                 </p>
               </div>
  <div className="flex items-center gap-3">
-                {/* A wallet with no policy is invisible in the list below —
-                    that list comes from the on-chain policies. This card is the
-                    only place a NEW agent appears, so the subscription has to
-                    be reachable from here too, not only once a policy exists.
-                    The subscription page asks for the agent's PAYMENT key: a
+                {/* A wallet with no policy is in no owner's list, so the
+                    subscription has to be reachable from here. The
+                    subscription page asks for the agent's PAYMENT key: a
                     subscription belongs to one, and a `wk_` does not name it. */}
-                <Link
-                  href="/subscription"
- className="text-sm text-accent-text hover:underline"
-                >
+                <Link href="/subscription" className="text-sm text-accent-text hover:underline">
                   subscription
                 </Link>
                 <Link
-                  href={
-                    searchParams.get('wallet')
-                      ? `/wallet?wallet=${encodeURIComponent(searchParams.get('wallet') as string)}`
-                      : `/wallet?key=${urlKey}`
-                  }
+                  href={`/wallet?wallet=${encodeURIComponent(address)}`}
  className="px-3 py-1.5 text-sm bg-accent text-on-accent rounded hover:bg-accent-hover"
                 >
-                  Set Policy
+                  Finish setup
                 </Link>
  </div>
             </div>
           </div>
         </div>
-      )}
+      ))}
 
       {loading ? (
  <div className="flex items-center justify-center py-12">
@@ -404,7 +431,7 @@ function WalletManagePage() {
  <div className="flex items-center space-x-2">
                     {walletKey ? (
                       <Link
-                        href={`/wallet?key=${walletKey}`}
+                        href={`/wallet?wallet=${encodeURIComponent(wallet.wallet_pubkey.replace(/^ed25519:/, ''))}`}
  className="px-3 py-1.5 text-sm border border-accent text-accent-text rounded hover:bg-accent/10"
                       >
                         Edit Policy

@@ -897,10 +897,29 @@ curl -s -X POST -H "Content-Type: application/json" \\
           </p>
         </div>
 
- <h3 className="text-lg font-semibold mt-4 mb-2">10. Configure policy (optional)</h3>
- <p className="text-foreground mb-2">Share the handoff URL with the wallet owner so they can set spending limits, whitelists, and multisig rules from the dashboard:</p>
+ <h3 className="text-lg font-semibold mt-4 mb-2">10. The owner&apos;s policy</h3>
+ <p className="text-foreground mb-2">
+          A wallet with no policy does whatever its key asks. The owner sets the policy on the dashboard, with one
+          transaction from their NEAR account. It opens protected: money leaves only to the addresses the policy lists
+          (the owner&apos;s account and the wallet&apos;s own to begin with), contract calls and every other capability are
+          off until the owner switches them on, and each token has its own limit. A leaked key then pays only the listed
+          addresses, within the limits.
+        </p>
+ <p className="text-foreground mb-2">
+          An owner starts from <a href="/wallet/new" className="text-accent-text underline">New agent</a>: the wallet is
+          created, the policy is stored, and the key is handed to the agent as <code className="bg-card-muted px-1 rounded">OUTLAYER_WK</code>.
+          An agent that registered itself shares its handoff URL instead:
+        </p>
         <SyntaxHighlighter language="text" style={vscDarkPlus} customStyle={{ borderRadius: '0.5rem', fontSize: '0.875rem' }}>
 {`https://app.outlayer.ai/wallet?key=wk_...`}
+        </SyntaxHighlighter>
+ <p className="text-foreground mt-3 mb-2">
+          A payment to an address the list does not hold is refused with <code className="bg-card-muted px-1 rounded">403 policy_denied</code> and
+          the address in the message. The agent asks the owner to add it with a link that names the address and carries no key;
+          the owner checks the address and signs:
+        </p>
+        <SyntaxHighlighter language="text" style={vscDarkPlus} customStyle={{ borderRadius: '0.5rem', fontSize: '0.875rem' }}>
+{`https://app.outlayer.ai/wallet?wallet=<agent account>&add_address=<address>`}
         </SyntaxHighlighter>
       </section>
 

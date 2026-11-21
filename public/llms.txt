@@ -27,6 +27,7 @@ Full text of every document below is available in one fetch at https://app.outla
 ## Features
 
 - [Agent Custody](https://app.outlayer.ai/docs/agent-custody): TEE-held wallets for agents: agent IDs, multi-chain signing, policy engine, multisig approval, confidential NEAR Intents, NEP-413 message signing, sub-agents
+- [Leaving OutLayer with Your Keys](https://app.outlayer.ai/docs/leaving): The two exits compared with a wallet that has none: the owner exit through the keystore DAO (one transaction, 24–48 h, wallet keys) and the vault exit (keys and secrets, code no upgrade can change); cost, wait, what leaves, what works if OutLayer stops
 - [MPC Vaults](https://app.outlayer.ai/docs/vaults): Per-customer sovereign vaults: creation, vault-scoped secrets and wallets, recovery procedures, end-user verification, threat model
 - [Payment Checks](https://app.outlayer.ai/docs/payment-checks): Gasless agent-to-agent payments: transfer mechanism, key derivation, check lifecycle, security model
 - [Secrets](https://app.outlayer.ai/docs/secrets): Encrypted secrets decrypted only inside the enclave: binding types, access control, storage costs, confidential key derivation (CKD), DAO-governed keystore

@@ -114,7 +114,7 @@ export default function AgentCustodyPage() {
  <div className="text-lg mb-1">&#128273;</div>
  <div className="text-xs font-semibold text-foreground">Key Derivation</div>
  <div className="text-xs text-muted-foreground mt-1">MPC master secret + HMAC</div>
- <div className="text-xs text-muted-foreground">Private keys never leave</div>
+ <div className="text-xs text-muted-foreground">Keys leave only to their owner</div>
                 </div>
  <div className="bg-card rounded-lg border border-border p-3 text-center">
  <div className="text-lg mb-1">&#9997;&#65039;</div>

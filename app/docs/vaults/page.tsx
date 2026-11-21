@@ -184,8 +184,11 @@ export default function VaultsDocsPage() {
             <li>
  <strong>Default master:</strong> shared keystore-DAO root, zero
               customer setup, no on-chain footprint. Best for prototyping
-              and low-value automation. You rely on OutLayer&rsquo;s
-              keystore as the only path to your derived keys.
+              and low-value automation. Without an owner, such a wallet has
+              no exit; with one — a NEAR account registered in the keystore
+              DAO, one transaction — the owner can leave with the wallet
+              keys and needs no vault for it (see{' '}
+              <Link href="/docs/leaving" className="text-accent-text hover:underline">Leaving with your keys</Link>).
             </li>
             <li>
  <strong>Per-customer MPC vault:</strong> on-chain CKD-issuer

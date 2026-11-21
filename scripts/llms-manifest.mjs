@@ -99,6 +99,12 @@ export const SECTIONS = [
           'TEE-held wallets for agents: agent IDs, multi-chain signing, policy engine, multisig approval, confidential NEAR Intents, NEP-413 message signing, sub-agents',
       },
       {
+        title: 'Leaving OutLayer with Your Keys',
+        path: '/docs/leaving',
+        summary:
+          'The two exits compared with a wallet that has none: the owner exit through the keystore DAO (one transaction, 24–48 h, wallet keys) and the vault exit (keys and secrets, code no upgrade can change); cost, wait, what leaves, what works if OutLayer stops',
+      },
+      {
         title: 'MPC Vaults',
         path: '/docs/vaults',
         summary:
@@ -302,8 +308,10 @@ export const FULL_TEXT_SOURCES = [
   { path: 'docs/outlayer-custody-advantages.md', title: 'Custody Design Rationale' },
   { path: 'docs/NON_CUSTODIAL.md', title: 'What OutLayer Can and Cannot Do (Trust Model)' },
 
+  { path: 'docs/EXITS.md', title: 'Leaving OutLayer with Your Keys: the Two Exits' },
+  { path: 'docs/OWNER_EXIT.md', title: 'Owner Exit through the Keystore DAO' },
   { path: 'VAULTS.md', title: 'Sovereign Vaults' },
-  { path: 'docs/LEAVING_OUTLAYER.md', title: 'Leaving OutLayer (Sovereign Exit)' },
+  { path: 'docs/LEAVING_OUTLAYER.md', title: 'Leaving OutLayer (Vault Exit)' },
 
   { path: 'VRF.md', title: 'Verifiable Random Function' },
   { path: 'WORKER_ATTESTATION.md', title: 'Worker Attestation' },

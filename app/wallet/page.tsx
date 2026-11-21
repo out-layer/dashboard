@@ -866,7 +866,7 @@ function AgentPolicy({ apiKey }: { apiKey: string }) {
             text={
               walletInfo.vault_id
                 ? 'The wallet’s keys derive from your own vault: recoverable through cessation or unilateral exit.'
-                : 'The wallet’s keys derive from OutLayer’s master secret inside the enclave. They are not recoverable by you if OutLayer ceases; a vault of your own changes that.'
+                : 'The wallet’s keys derive from OutLayer’s master secret inside the enclave, and this wallet has no exit. A wallet owned by your NEAR account (Owner exit) or under a vault of your own can be taken out with its keys, with or without OutLayer.'
             }
           />
         </span>

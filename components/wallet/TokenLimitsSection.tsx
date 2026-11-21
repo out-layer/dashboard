@@ -30,18 +30,20 @@ const WINDOW_LABELS: Record<LimitWindow, string> = {
 const WILDCARD = '*';
 
 /**
- * A limit typed as a decimal amount and stored in minimal units.
+ * An amount typed as a decimal and stored in minimal units.
  */
-function AmountInput({
+export function AmountInput({
   units,
   decimals,
   onChange,
   label,
+  placeholder = 'no limit',
 }: {
   units: string;
   decimals: number;
   onChange: (units: string) => void;
   label: string;
+  placeholder?: string;
 }) {
   const [draft, setDraft] = useState<string | null>(null);
   // The typed text stands while it still says `units`, or says nothing readable
@@ -62,7 +64,7 @@ function AmountInput({
           const next = unitsFromDecimal(e.target.value, decimals);
           if (next !== null) onChange(next);
         }}
-        placeholder="no limit"
+        placeholder={placeholder}
         className={`w-full border rounded px-3 py-2 text-sm ${invalid ? 'border-destructive' : 'border-border-strong'}`}
       />
       {invalid && (

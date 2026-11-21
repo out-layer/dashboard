@@ -9,6 +9,37 @@ import { useParams, useRouter } from 'next/navigation';
 import { checkOpAgainstHash, type OpCheck } from '@/lib/approval-hash';
 import { AgentChip } from '@/components/ui/agent-chip';
 import { implicitAccountOf } from '@/lib/short-account';
+import { getWalletKey } from '@/lib/wallet-keys';
+
+/** The engine's own comparison: exact, except that an EVM address is the same in any letter case. */
+function listsAddress(listed: string, destination: string): boolean {
+  const evm = (s: string) => /^0x[0-9a-fA-F]{40}$/.test(s);
+  return evm(listed) && evm(destination) ? listed.toLowerCase() === destination.toLowerCase() : listed === destination;
+}
+
+/** The address a payment goes to: the only kind of operation a policy asks about (`addresses.unlisted`). */
+function destinationOf(op: Record<string, unknown>): string | null {
+  const payment = ['transfer', 'withdraw', 'intents_transfer', 'cross_chain_withdraw'].includes(String(op.kind));
+  return payment && typeof op.to === 'string' && op.to ? op.to : null;
+}
+
+/**
+ * The address a payment goes to, when the wallet's policy is an address list
+ * that asks about addresses it does not name and this is one — read with the
+ * wallet key this browser holds. `null` when the address is listed, the policy
+ * does not ask, or it cannot be read.
+ */
+async function unlistedDestination(coordinatorUrl: string, walletPubkey: string, op: Record<string, unknown>): Promise<string | null> {
+  const destination = destinationOf(op);
+  const apiKey = getWalletKey(walletPubkey);
+  if (!destination || !apiKey) return null;
+  const resp = await fetch(`${coordinatorUrl}/wallet/v1/policy`, { headers: { Authorization: `Bearer ${apiKey}` } }).catch(() => null);
+  if (!resp || !resp.ok) return null;
+  const policy = await resp.json().catch(() => null);
+  const addresses = policy?.rules?.addresses;
+  if (!addresses || (addresses.mode ?? 'whitelist') !== 'whitelist' || addresses.unlisted !== 'ask' || !Array.isArray(addresses.list)) return null;
+  return addresses.list.some((a: unknown) => typeof a === 'string' && listsAddress(a, destination)) ? null : destination;
+}
 
 interface ApprovalDetail {
   id: string;
@@ -57,6 +88,10 @@ function ApprovalDetailContent() {
   const [voting, setVoting] = useState<null | 'approve' | 'reject'>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  /** The address this operation pays, when the wallet's address list does not name it. */
+  const [newAddress, setNewAddress] = useState<string | null>(null);
+  /** The operation ran on this page's approval: where to go next is the owner's choice. */
+  const [executed, setExecuted] = useState(false);
 
   const loadApproval = useCallback(async () => {
     if (!approvalId) return;
@@ -74,8 +109,11 @@ function ApprovalDetailContent() {
       const data = await resp.json();
       // Hashed here, on load — not on click, where nothing may be awaited before
       // the wallet opens. See lib/approval-hash.
-      setOpCheck(await checkOpAgainstHash(data.op_canonical, data.request_hash));
+      const check = await checkOpAgainstHash(data.op_canonical, data.request_hash);
+      setOpCheck(check);
       setApproval(data);
+      // Judged on the operation the hash was tied to, never on the server's description of it.
+      setNewAddress(check.status === 'match' ? await unlistedDestination(coordinatorUrl, data.wallet_pubkey, check.op) : null);
     } catch (err) {
       setError((err as Error).message);
     } finally {
@@ -152,7 +190,13 @@ function ApprovalDetailContent() {
         return;
       }
       if (result.request_id) {
-        // Threshold met — redirect to audit page
+        // Threshold met. A new address leaves a choice here — add it to the
+        // list or not — so the page stays; otherwise on to the audit log.
+        if (newAddress) {
+          setExecuted(true);
+          setSuccess('Approved: the payment is on its way.');
+          return;
+        }
         router.push('/wallet/audit');
         return;
       } else {
@@ -275,6 +319,29 @@ function ApprovalDetailContent() {
               </p>
             )}
           </div>
+
+          {newAddress && (
+ <div className="bg-warning/10 border border-warning/30 rounded-md p-4">
+ <p className="text-sm font-medium text-foreground">New address</p>
+ <p className="mt-1 text-sm text-muted-foreground">
+                <span className="font-mono break-all text-foreground">{newAddress}</span> is not on this wallet&apos;s
+                address list. Approving pays it this once; the list does not change, and the next payment to it asks again.
+              </p>
+              {executed && implicitAccountOf(approval.wallet_pubkey) && (
+ <p className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm">
+                  <Link
+                    href={`/wallet?wallet=${implicitAccountOf(approval.wallet_pubkey)}&add_address=${encodeURIComponent(newAddress)}`}
+ className="text-accent-text underline"
+                  >
+                    Add it to the address list
+                  </Link>
+ <Link href="/wallet/audit" className="text-muted-foreground hover:text-accent-text">
+                    Leave the list as it is
+                  </Link>
+                </p>
+              )}
+            </div>
+          )}
 
           {/* Existing approvers */}
           {approval.approvers && approval.approvers.length > 0 && (

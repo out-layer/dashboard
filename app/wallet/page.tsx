@@ -21,6 +21,14 @@ import {
   addressList,
   DEFAULT_POLICY,
   approvalWithStored,
+  buildAutoUpTo,
+  parseAutoUpTo,
+  autoUpToProblems,
+  AUTO_WINDOWS,
+  NATIVE_TOKEN_KEY,
+  NO_AUTO_APPROVAL,
+  type AutoApproval,
+  type AutoWindow,
   type Approver,
   type PolicyForm,
   type PreparedPolicyWrite,
@@ -36,7 +44,9 @@ import { SkillUrlBox } from '@/components/ui/skill-url-box';
 import { InfoHint } from '@/components/ui/info-hint';
 import { WalletPolicyForm } from '@/components/wallet/WalletPolicyForm';
 import { PolicyJsonEditor } from '@/components/wallet/PolicyJsonEditor';
-import { policyTokensFromCatalog, type PolicyToken } from '@/components/wallet/TokenLimitsSection';
+import { AmountInput, policyTokensFromCatalog, type PolicyToken } from '@/components/wallet/TokenLimitsSection';
+
+const AUTO_WINDOW_LABELS: Record<AutoWindow, string> = { hourly: 'per hour', daily: 'per day', monthly: 'per month' };
 
 const SKILL_URL = 'https://skills.outlayer.ai/agent-custody/SKILL.md';
 const FIELD =
@@ -272,6 +282,10 @@ function AgentPolicy({ apiKey }: { apiKey: string }) {
   const [approvalTypes, setApprovalTypes] = useState<Set<string>>(new Set(DEFAULT_APPROVAL_TYPES));
   /** Exclusions the stored policy carries for types this form has no checkbox for: kept as stored. */
   const [otherExcluded, setOtherExcluded] = useState<string[]>([]);
+  /** `approval.auto_up_to`: what leaves in a window without asking. */
+  const [auto, setAuto] = useState<AutoApproval>(NO_AUTO_APPROVAL);
+  /** A stored threshold over several windows: the form has one, so it is kept as stored and not edited. */
+  const [autoSeveral, setAutoSeveral] = useState<Record<string, unknown> | null>(null);
   /** Capabilities stored as allowed that the stored type rule refuses: shown off, and said so. */
   const [inertCapabilities, setInertCapabilities] = useState<string[]>([]);
 
@@ -299,6 +313,7 @@ function AgentPolicy({ apiKey }: { apiKey: string }) {
         if (approver) approvers.push(approver);
       }
       const excluded_types = [...ALL_APPROVAL_TYPES.filter((t) => !approvalTypes.has(t)), ...otherExcluded];
+      const auto_up_to = autoSeveral ?? buildAutoUpTo(auto);
       return {
         ...base,
         approval: approvalWithStored(
@@ -307,11 +322,12 @@ function AgentPolicy({ apiKey }: { apiKey: string }) {
             ...(excluded_types.length > 0 ? { excluded_types } : {}),
             approvers,
             ...(lockPolicy ? { locked: true } : {}),
+            ...(auto_up_to ? { auto_up_to } : {}),
           },
           storedPolicy?.approval,
         ),
       };
-    }, [requireApproval, approvalRequired, additionalApprovers, owner, ownerPubkey, approvalTypes, otherExcluded, lockPolicy, storedPolicy]),
+    }, [requireApproval, approvalRequired, additionalApprovers, owner, ownerPubkey, approvalTypes, otherExcluded, lockPolicy, storedPolicy, auto, autoSeveral]),
   });
 
   /** The form a wallet with no policy opens with. */
@@ -399,6 +415,9 @@ function AgentPolicy({ apiKey }: { apiKey: string }) {
               setApprovalTypes(new Set(ALL_APPROVAL_TYPES.filter((t) => !excluded.includes(t))));
               setOtherExcluded(excluded.filter((t) => !ALL_APPROVAL_TYPES.includes(t)));
               setLockPolicy(Boolean(policy.approval?.locked));
+              const storedAuto = parseAutoUpTo(policy.approval?.auto_up_to);
+              setAuto(storedAuto.auto);
+              setAutoSeveral(storedAuto.several);
             }
           }
         }
@@ -438,8 +457,8 @@ function AgentPolicy({ apiKey }: { apiKey: string }) {
     [tokens],
   );
   const summary = useMemo(
-    () => summarizePolicy(policyForm, { approval: requireApproval, tokenLabel }),
-    [policyForm, requireApproval, tokenLabel],
+    () => summarizePolicy(policyForm, { approval: requireApproval, tokenLabel, auto: autoSeveral ? null : auto, autoKept: Boolean(autoSeveral) }),
+    [policyForm, requireApproval, tokenLabel, auto, autoSeveral],
   );
 
   /** Why the form cannot be stored as it stands, or `null`. */
@@ -456,6 +475,13 @@ function AgentPolicy({ apiKey }: { apiKey: string }) {
       );
     }
     if (!jsonEdited) {
+      if (requireApproval && !autoSeveral) {
+        const autoProblems = autoUpToProblems(auto);
+        if (autoProblems.length > 0) return autoProblems.join(' ');
+      }
+      if (policyForm.ask_unlisted && policyForm.address_mode === 'whitelist' && !requireApproval) {
+        return 'Asking about a new address needs the second factor on: there is nobody to ask.';
+      }
       const limitProblems = tokenLimitsProblems(policyForm.token_limits);
       if (limitProblems.length > 0) return limitProblems.join(' ');
       if (policyForm.address_mode === 'whitelist' && addressList(policyForm).length === 0) {
@@ -675,7 +701,11 @@ function AgentPolicy({ apiKey }: { apiKey: string }) {
         <input
           type="checkbox"
           checked={requireApproval}
-          onChange={(e) => setRequireApproval(e.target.checked)}
+          onChange={(e) => {
+            setRequireApproval(e.target.checked);
+            // Nobody to ask: the switch that asks goes off with the approvers.
+            if (!e.target.checked && policyForm.ask_unlisted) setPolicyForm({ ...policyForm, ask_unlisted: false });
+          }}
           className="mt-0.5 h-4 w-4 accent-accent"
         />
         <span>
@@ -712,6 +742,82 @@ function AgentPolicy({ apiKey }: { apiKey: string }) {
           <p className="text-xs text-faint-foreground">
             An unticked operation runs without asking. Confidential flows wait whenever approvals are on.
           </p>
+
+          <div>
+            <p className="flex flex-wrap items-center gap-1.5 text-sm text-foreground">
+              Without asking me, up to
+              <InfoHint text="The total the agent may pay in the period before it starts asking. Everything the wallet spent in the period counts, payments you approved included, so after a large approved payment the rest of the period asks. A day is the UTC day, a month the calendar month. It covers transfers and withdrawals on NEAR. A token left empty always asks, and so do swaps, limit orders, payment links, sends to another chain, contract calls and deleting the account, unless you untick them above. The limits in “How much?” still hold: above a limit is a refusal, approved or not." />
+            </p>
+            {autoSeveral ? (
+              <p className="mt-1 text-xs text-muted-foreground">
+                This policy sets the amount for several periods at once, which this form does not edit. It is kept as
+                stored; change it in the policy JSON below.
+              </p>
+            ) : (
+              <div className="mt-2 space-y-2">
+                {[
+                  { key: NATIVE_TOKEN_KEY, symbol: 'NEAR', decimals: 24 as number | null },
+                  ...[...new Set([...policyForm.token_limits.map((row) => row.token.trim()), ...Object.keys(auto.amounts)])]
+                    .filter((token) => token && token !== '*' && token !== NATIVE_TOKEN_KEY)
+                    .map((token) => {
+                      const label = tokenLabel(token);
+                      return { key: token, symbol: label ? label.symbol : token, decimals: label ? label.decimals : null };
+                    }),
+                ].map((token) => (
+                  <div key={token.key} className="flex max-w-xl items-start gap-2">
+                    <div className="w-40 shrink-0">
+                      <AmountInput
+                        units={auto.amounts[token.key] ?? ''}
+                        decimals={token.decimals ?? 0}
+                        label={`${token.symbol}: without asking, up to`}
+                        placeholder="always ask"
+                        onChange={(units) => setAuto((prev) => ({ ...prev, amounts: { ...prev.amounts, [token.key]: units } }))}
+                      />
+                    </div>
+                    <span className="min-w-0 break-all pt-2 text-sm text-muted-foreground">
+                      {token.symbol}
+                      {token.decimals === null ? ' (minimal units)' : ''}
+                    </span>
+                  </div>
+                ))}
+                <select
+                  value={auto.window}
+                  aria-label="Period the amount is counted over"
+                  onChange={(e) => setAuto((prev) => ({ ...prev, window: e.target.value as AutoWindow }))}
+                  className="rounded-md border border-border-strong bg-card px-3 py-2 text-sm text-foreground"
+                >
+                  {AUTO_WINDOWS.map((w) => (
+                    <option key={w} value={w}>{AUTO_WINDOW_LABELS[w]}</option>
+                  ))}
+                </select>
+                <p className="text-xs text-faint-foreground">
+                  A token gets a row here once it has a limit row in “How much?”.
+                </p>
+              </div>
+            )}
+          </div>
+
+          {policyForm.address_mode === 'whitelist' && (
+            <label className="flex items-start gap-2 text-sm text-foreground">
+              <input
+                type="checkbox"
+                checked={policyForm.ask_unlisted}
+                onChange={(e) => setPolicyForm({ ...policyForm, ask_unlisted: e.target.checked })}
+                className="mt-0.5 h-4 w-4 accent-accent"
+              />
+              <span>
+                <span className="flex flex-wrap items-center gap-1.5">
+                  Ask me about a new address
+                  <InfoHint text="Asked about, when the address is not on the list: a NEAR transfer, a withdrawal, a transfer inside NEAR Intents, a withdrawal to another chain. Always refused for such an address, asking or not: a contract call, deleting the account, a limit order, a storage deposit, a confidential operation. An approval pays the address once and does not put it on the list." />
+                </span>
+                <span className="block text-xs text-muted-foreground">
+                  {policyForm.ask_unlisted
+                    ? 'A transfer or a withdrawal to an address that is not on the list waits for your approval, however small. The limits still refuse above them, and everything else aimed at such an address is still refused.'
+                    : 'Off: every operation aimed at an address that is not on the list is refused.'}
+                </span>
+              </span>
+            </label>
+          )}
           <details>
             <summary className="text-xs text-accent-text">More approvers, threshold, lock</summary>
             <div className="mt-2 space-y-3">
@@ -727,13 +833,13 @@ function AgentPolicy({ apiKey }: { apiKey: string }) {
               </div>
               <div>
                 <label className="mb-1 flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-                  Other approvers, one per line: account, role[, pinned key]
-                  <InfoHint text="You are always the first approver, as admin. Roles: admin can also change the policy, signer only approves. A third value (ed25519:…) pins the approver to one key; without it any full-access key of the account votes." />
+                  Other approvers, one per line: account[, pinned key]
+                  <InfoHint text="You are always the first approver. Every approver's vote counts the same, and under a lock each of them votes on changes to this policy too. A value starting with ed25519: pins the approver to one key; without it any full-access key of the account votes. A word after the account (admin, signer) is a label kept with the policy; it changes nothing." />
                 </label>
                 <textarea
                   value={additionalApprovers}
                   onChange={(e) => setAdditionalApprovers(e.target.value)}
-                  placeholder={'alice.near, signer\nbob.near, signer'}
+                  placeholder={'alice.near\nbob.near, ed25519:…'}
                   rows={3}
                   spellCheck={false}
                   className={`${FIELD} font-mono`}

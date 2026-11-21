@@ -333,7 +333,8 @@ The ephemeral account ID = hex(public_key) on intents.near.`}
           <code className="text-xs bg-card-muted px-1 rounded">request_hash</code> and a <code className="text-xs bg-card-muted px-1 rounded">poll_url</code>. The <code className="text-xs bg-card-muted px-1 rounded">check_key</code> comes back at once, but its account holds nothing
           until the threshold is met; then the check is funded for you and reads <code className="text-xs bg-card-muted px-1 rounded">unclaimed</code>. A claim or reclaim before that is refused.
           A veto, an approval that expires unmet (24 h), or the check&apos;s own <code className="text-xs bg-card-muted px-1 rounded">expires_in</code> running out while it waits, ends it <code className="text-xs bg-card-muted px-1 rounded">failed</code>. <code className="text-xs bg-card-muted px-1 rounded">approval.excluded_types: [&quot;payment_check&quot;]</code> keeps the
-          capability gate without the threshold. Each create counts as one custody operation against the wallet&apos;s ceiling; a claim or reclaim does not.
+          capability gate without the threshold. <code className="text-xs bg-card-muted px-1 rounded">approval.auto_up_to</code> does not apply to a check: it
+          waits whatever the window says. Each create counts as one custody operation against the wallet&apos;s ceiling; a claim or reclaim does not.
         </p>
  <p className="text-foreground mb-6">
  Send <code className="text-xs bg-card-muted px-1 rounded">X-Idempotency-Key</code> on the create, and <code className="text-xs bg-card-muted px-1 rounded">X-Answer-Within: &lt;seconds&gt;</code> below your own timeout to be answered

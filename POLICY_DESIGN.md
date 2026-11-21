@@ -377,6 +377,31 @@ first? · How much? · What else may it do? · Which keys run the wallet? Each i
 section; on a wide screen they sit side by side
 (`[grid-template-columns:repeat(auto-fit,minmax(min(100%,22rem),1fr))]`).
 
+**The second factor holds two rules of its own**, shown only while it is on,
+because neither means anything without approvers:
+
+* "Without asking me, up to" — one amount per token (NEAR, and every token
+  that has a limit row) and one period for all of them: per hour, per day, per
+  month (`approval.auto_up_to`). Empty is "always ask". A stored policy that
+  sets several periods at once is kept as stored and not edited here; the form
+  says so and points to the JSON.
+* "Ask me about a new address" — only under an address list
+  (`rules.addresses.unlisted`). Its hint names both halves, because the
+  switch's name alone promises more than it does: asked about are a NEAR
+  transfer, a withdrawal, a transfer inside NEAR Intents and a withdrawal to
+  another chain; refused either way are a contract call, deleting the account,
+  a limit order, a storage deposit and a confidential operation. The rail
+  repeats it under "can" and "cannot". It goes off with the second factor.
+
+The amount covers transfers and withdrawals on NEAR; every other operation
+asks as its checkbox says.
+
+The approval page marks a payment whose address the list does not hold as
+"New address", and after the approval offers "Add it to the address list" (the
+`add_address` link, a transaction from its own click) or "Leave the list as it
+is". It reads the policy with the wallet key this browser holds; without one
+the page shows the approval alone.
+
 **The rail.** Beside the form from its first line — the wallet's status strip
 and the start cards included (`xl:grid-cols-[minmax(0,1fr)_22rem]`; sticky
 under the shell's header, `xl:top-[4.5rem]`, scrolling inside itself when it is

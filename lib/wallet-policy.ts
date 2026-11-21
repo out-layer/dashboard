@@ -24,6 +24,10 @@ export interface PolicyForm {
   allowed_tokens: string;
   address_mode: 'whitelist' | 'blacklist' | 'none';
   addresses: string;
+  /** Under a whitelist: a payment to an address off the list waits for the
+   *  approvers instead of being refused (`addresses.unlisted: "ask"`). Needs
+   *  the approval block; the keystore refuses to store it without one. */
+  ask_unlisted: boolean;
   transaction_types: string;
   allowed_hours_start: string;
   allowed_hours_end: string;
@@ -119,6 +123,7 @@ export const DEFAULT_POLICY: PolicyForm = {
   allowed_tokens: '*',
   address_mode: 'none',
   addresses: '',
+  ask_unlisted: false,
   // cross_chain_withdraw is intentionally NOT a default — it is the riskiest exit and
   // must be opted in explicitly. intents_deposit folds into `call` (no separate type).
   transaction_types: 'transfer,call,delete,intents_withdraw,intents_swap',
@@ -504,7 +509,11 @@ function carryStored(built: Record<string, unknown>, stored: unknown): Record<st
     }
     for (const section of ['time_restrictions', 'rate_limit', 'addresses'] as const) {
       const builtSection = asObject(rules[section]);
-      if (builtSection) rules = { ...rules, [section]: { ...asObject(storedRules[section]), ...builtSection } };
+      if (!builtSection) continue;
+      const merged: Record<string, unknown> = { ...asObject(storedRules[section]), ...builtSection };
+      // `unlisted` is the form's own switch: off is its absence.
+      if (section === 'addresses' && !('unlisted' in builtSection)) delete merged.unlisted;
+      rules = { ...rules, [section]: merged };
     }
     if (Object.keys(rules).length > 0) out.rules = rules;
   }
@@ -566,6 +575,7 @@ export function buildPolicyRules(
     rules.addresses = {
       mode: form.address_mode,
       list: form.addresses.split(',').map((a) => a.trim()).filter(Boolean),
+      ...(form.address_mode === 'whitelist' && form.ask_unlisted ? { unlisted: 'ask' } : {}),
     };
   }
 
@@ -683,8 +693,65 @@ export function buildPolicyRules(
  * form has no field for.
  */
 export function approvalWithStored(built: Record<string, unknown>, stored: unknown): Record<string, unknown> {
-  return withUnknownKeys(built, stored, ['threshold', 'approvers', 'excluded_types', 'locked']);
+  return withUnknownKeys(built, stored, ['threshold', 'approvers', 'excluded_types', 'locked', 'auto_up_to']);
 }
+
+// ============================================================================
+// `approval.auto_up_to`: what leaves in a window without the approvers
+// ============================================================================
+
+/** The windows a threshold is counted over: the clock hour, the UTC day, the calendar month. */
+export const AUTO_WINDOWS = ['hourly', 'daily', 'monthly'] as const;
+export type AutoWindow = (typeof AUTO_WINDOWS)[number];
+
+/**
+ * The threshold as the form edits it: one window, and per policy token key
+ * (`native` included) the total in minimal units that may leave in it without
+ * the approvers. A token with no amount always waits.
+ */
+export interface AutoApproval {
+  window: AutoWindow;
+  amounts: Record<string, string>;
+}
+
+export const NO_AUTO_APPROVAL: AutoApproval = { window: 'daily', amounts: {} };
+
+/** `approval.auto_up_to` as the form writes it, or `null` when no token has an amount. */
+export function buildAutoUpTo(auto: AutoApproval): Record<string, Record<string, string>> | null {
+  const entries = Object.entries(auto.amounts)
+    .map(([token, amount]) => [token.trim(), amount.trim()] as const)
+    .filter(([token, amount]) => token && amount);
+  return entries.length > 0 ? { [auto.window]: Object.fromEntries(entries) } : null;
+}
+
+/**
+ * A stored `approval.auto_up_to` for the form. The form edits one window; a
+ * policy that sets several keeps them as stored (`several`) and the form shows
+ * them without editing.
+ */
+export function parseAutoUpTo(stored: unknown): { auto: AutoApproval; several: Record<string, unknown> | null } {
+  const from = asObject(stored);
+  if (!from) return { auto: NO_AUTO_APPROVAL, several: null };
+  const set = AUTO_WINDOWS.filter((w) => Object.keys(asObject(from[w]) ?? {}).length > 0);
+  const unknown = Object.keys(from).some((k) => !(AUTO_WINDOWS as readonly string[]).includes(k));
+  if (set.length === 0 && !unknown) return { auto: NO_AUTO_APPROVAL, several: null };
+  if (set.length !== 1 || unknown) return { auto: NO_AUTO_APPROVAL, several: from };
+  const amounts = Object.fromEntries(Object.entries(asObject(from[set[0]])!).map(([token, amount]) => [token, String(amount)]));
+  return { auto: { window: set[0], amounts }, several: null };
+}
+
+/** Why the threshold cannot be saved, one message per fault; empty when it can. */
+export function autoUpToProblems(auto: AutoApproval): string[] {
+  const problems: string[] = [];
+  for (const [token, amount] of Object.entries(auto.amounts)) {
+    if (!amount.trim()) continue;
+    if (token.trim() === '*') problems.push('The amount that runs without approval is set per token: there is no "every other token" row for it.');
+    else if (!/^\d+$/.test(amount.trim())) problems.push(`The amount of '${token}' that runs without approval is not a whole number of minimal units.`);
+  }
+  return problems;
+}
+
+const AUTO_WINDOW_WORDS: Record<AutoWindow, string> = { hourly: 'an hour', daily: 'a day', monthly: 'a month' };
 
 // ============================================================================
 // Parse policy API response back to form fields
@@ -697,7 +764,7 @@ export interface ParsedPolicy {
   /** Approval section (page-specific, returned as-is for the caller to handle) */
   approval: {
     required: string;
-    approvers: string; // "account_id, role[, pubkey]" lines
+    approvers: string; // "account_id[, role][, pubkey]" lines
   } | null;
   /**
    * Capabilities the stored policy allows while its own type rule refuses
@@ -715,7 +782,10 @@ export interface ParsedPolicy {
  */
 /**
  * One approver of the policy's multisig, as the form edits it: one line
- * `account_id, role[, pubkey]`. `pubkey` pins the approver to that one key —
+ * `account_id[, role][, pubkey]`. `role` is a label the policy carries and
+ * nothing reads — every approver's vote counts the same — so a stored one is
+ * shown and written back as it is, and a line without one is given `signer`.
+ * A value starting `ed25519:` is the key, wherever it stands. `pubkey` pins the approver to that one key —
  * without it the account votes with any of its full-access keys, or through
  * its wallet contract — so a line read from a stored policy keeps it, and a
  * save writes it back. Losing it on a round trip would quietly widen who may
@@ -730,9 +800,11 @@ export function approverLine(a: { id?: unknown; role?: unknown; pubkey?: unknown
 }
 
 export function parseApproverLine(line: string): Approver | null {
-  const [id, role, pubkey] = line.split(',').map((s) => s.trim());
+  const [id, ...rest] = line.split(',').map((s) => s.trim());
   if (!id) return null;
-  return pubkey ? { id, role: role || 'signer', pubkey } : { id, role: role || 'signer' };
+  const pubkey = rest.find((part) => part.startsWith('ed25519:'));
+  const role = rest.find((part) => part && !part.startsWith('ed25519:')) || 'signer';
+  return pubkey ? { id, role, pubkey } : { id, role };
 }
 
 export function parsePolicyResponse(
@@ -826,6 +898,7 @@ export function parsePolicyResponse(
     // unrelated, changed what the wallet may do".
     address_mode: rules.addresses ? (addr.mode || 'whitelist') : 'none',
     addresses: (addr.list || []).join(', '),
+    ask_unlisted: Boolean(rules.addresses) && (addr.mode || 'whitelist') === 'whitelist' && addr.unlisted === 'ask',
     // A capability's type is its switch's to write, so it is not kept in this
     // string. A stored list that holds nothing else — or nothing at all — is
     // still a RULE ("no other type is permitted"), and an empty box is "no
@@ -988,7 +1061,16 @@ const WINDOW_WORDS: Record<LimitWindow, string> = {
  * The form in words, for the owner who opens nothing else. Built from the
  * form, so it describes the policy only while the JSON is the form's own.
  */
-export function summarizePolicy(form: PolicyForm, options: { approval: boolean; tokenLabel?: TokenLabel }): PolicySummary {
+export function summarizePolicy(
+  form: PolicyForm,
+  options: {
+    approval: boolean;
+    tokenLabel?: TokenLabel;
+    auto?: AutoApproval | null;
+    /** The stored policy sets amounts for several periods, kept as stored: the form cannot put them in words. */
+    autoKept?: boolean;
+  },
+): PolicySummary {
   const can: string[] = [];
   const cannot: string[] = [];
   const cautions: string[] = [];
@@ -1076,7 +1158,27 @@ export function summarizePolicy(form: PolicyForm, options: { approval: boolean; 
   if (typeOn('call') && form.address_mode === 'whitelist') {
     cautions.push('A contract on the address list can be called with any arguments: list a token contract and its transfers go anywhere.');
   }
-  if (options.approval) can.push('Operations you chose wait for your approval before they run.');
+  if (options.approval) {
+    const alone = Object.entries(options.auto?.amounts ?? {})
+      .filter(([, units]) => units.trim())
+      .map(([token, units]) => {
+        if (token === NATIVE_TOKEN_KEY) return `${yoctoToNear(units)} NEAR`;
+        const label = options.tokenLabel?.(token) ?? null;
+        return label ? `${decimalFromUnits(units, label.decimals)} ${label.symbol}` : `${units} ${token} (minimal units)`;
+      });
+    if (alone.length > 0 && options.auto) {
+      can.push(`Transfer and withdraw without asking you while the total stays within ${alone.join(', ')} ${AUTO_WINDOW_WORDS[options.auto.window]}; past that, and for every other operation you chose, it waits for your approval.`);
+    } else if (options.autoKept) {
+      can.push('Transfer and withdraw without asking you up to the amounts the stored policy sets for several periods; past them, and for every other operation you chose, it waits for your approval.');
+    } else {
+      can.push('Operations you chose wait for your approval before they run.');
+    }
+    if (form.ask_unlisted && form.address_mode === 'whitelist') {
+      can.push('Ask you to approve a transfer or a withdrawal to an address that is not on the list.');
+      cannot.push('Call a contract, delete the account or place an order toward an address that is not on the list: refused, not asked.');
+      cautions.push('A new address asks instead of being refused: read the address before you approve.');
+    }
+  }
 
   return { can, cannot, cautions };
 }

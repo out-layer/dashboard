@@ -630,6 +630,98 @@ export default function AgentCustodyPage() {
           </p>
         </div>
 
+ <h3 id="approval-rules" className="text-xl font-semibold text-foreground mt-8 mb-3 scroll-mt-4">When an operation waits</h3>
+ <p className="text-foreground mb-3">
+          With a threshold set, every operation that moves money waits, except the types listed in{' '}
+ <code className="bg-card-muted px-1 rounded">approval.excluded_types</code>. Two rules narrow or widen that:
+        </p>
+        <SyntaxHighlighter language="json" style={vscDarkPlus} customStyle={{ borderRadius: '0.5rem', fontSize: '0.875rem' }}>
+{`{
+  "rules": {
+    "addresses": { "mode": "whitelist", "list": ["owner.near"], "unlisted": "ask" },
+    "limits": { "daily": { "nep141:<usdc>": "300000000" } }
+  },
+  "approval": {
+    "threshold": { "required": 1 },
+    "approvers": [{ "id": "owner.near", "role": "admin" }],
+    "auto_up_to": { "daily": { "nep141:<usdc>": "50000000" } }
+  }
+}`}
+        </SyntaxHighlighter>
+ <ul className="list-disc list-inside text-foreground mt-3 mb-4 space-y-2">
+          <li>
+ <code className="bg-card-muted px-1 rounded">approval.auto_up_to</code> &mdash; per window
+            (<code className="bg-card-muted px-1 rounded">hourly</code>, <code className="bg-card-muted px-1 rounded">daily</code>,{' '}
+ <code className="bg-card-muted px-1 rounded">monthly</code>) and token, the total that leaves without the approvers. A native
+            transfer, a withdrawal or an intents transfer runs at once while what the wallet already spent in the token in that window, plus this amount, is at most the entry;
+            the payment that would cross it waits. Above: $50 of USDC a day without asking, up to $300 a day with approval,
+            nothing past that. The windows are the limits&apos; own &mdash; the clock hour, the UTC day, the calendar month &mdash;
+            and count what the limits count, approved payments included. A token with no entry always waits; there is no{' '}
+ <code className="bg-card-muted px-1 rounded">*</code>. Every other operation is outside this rule and waits as before: swaps, limit orders, payment checks,
+            confidential flows, sends to another chain, contract calls, account deletion. An approval never raises a limit.
+          </li>
+          <li>
+ <code className="bg-card-muted px-1 rounded">rules.addresses.unlisted: &quot;ask&quot;</code> &mdash; under a whitelist, a payment to
+            an address off the list waits for the approvers instead of being refused, however small its amount; its type, its
+            token and the limits still refuse it first. Only a payment is
+            asked about; the table below is the whole rule. The approver signs over the exact address. Approving pays it once and does not list it; the approval page offers to add it,
+            which is a policy change of its own. It needs a threshold and enough named approvers to meet it, or the policy is
+            not stored. Addresses inside a <code className="bg-card-muted px-1 rounded">w_execute_extension</code> request are refused as before.
+          </li>
+        </ul>
+ <div className="overflow-x-auto mb-4">
+ <table className="min-w-full text-sm border border-border">
+ <thead className="bg-card-muted">
+              <tr>
+ <th className="px-4 py-2 text-left font-semibold border-b">Aimed at an address off the list</th>
+ <th className="px-4 py-2 text-left font-semibold border-b">With <code>unlisted: &quot;ask&quot;</code></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr className="border-b">
+ <td className="px-4 py-2"><code className="bg-card-muted px-1 rounded">transfer</code> <span className="text-muted-foreground">(native NEAR)</span></td>
+ <td className="px-4 py-2 text-foreground">waits for approval</td>
+              </tr>
+              <tr className="border-b">
+ <td className="px-4 py-2"><code className="bg-card-muted px-1 rounded">withdraw</code> <span className="text-muted-foreground">(out of NEAR Intents)</span></td>
+ <td className="px-4 py-2 text-foreground">waits for approval</td>
+              </tr>
+              <tr className="border-b">
+ <td className="px-4 py-2"><code className="bg-card-muted px-1 rounded">intents_transfer</code> <span className="text-muted-foreground">(inside NEAR Intents)</span></td>
+ <td className="px-4 py-2 text-foreground">waits for approval</td>
+              </tr>
+              <tr className="border-b">
+ <td className="px-4 py-2"><code className="bg-card-muted px-1 rounded">cross_chain_withdraw</code> <span className="text-muted-foreground">(to another chain; its capability must be on)</span></td>
+ <td className="px-4 py-2 text-foreground">waits for approval</td>
+              </tr>
+              <tr className="border-b">
+ <td className="px-4 py-2"><code className="bg-card-muted px-1 rounded">call</code> <span className="text-muted-foreground">(a contract call, w_execute_extension and the accounts inside it included)</span></td>
+ <td className="px-4 py-2 text-foreground">refused</td>
+              </tr>
+              <tr className="border-b">
+ <td className="px-4 py-2"><code className="bg-card-muted px-1 rounded">delete</code> <span className="text-muted-foreground">(the beneficiary)</span></td>
+ <td className="px-4 py-2 text-foreground">refused</td>
+              </tr>
+              <tr className="border-b">
+ <td className="px-4 py-2"><code className="bg-card-muted px-1 rounded">limit_order</code> <span className="text-muted-foreground">(the recipient)</span></td>
+ <td className="px-4 py-2 text-foreground">refused</td>
+              </tr>
+              <tr className="border-b">
+ <td className="px-4 py-2"><code className="bg-card-muted px-1 rounded">intents_storage_deposit</code> <span className="text-muted-foreground">(the token contract)</span></td>
+ <td className="px-4 py-2 text-foreground">refused</td>
+              </tr>
+              <tr className="border-b">
+ <td className="px-4 py-2"><code className="bg-card-muted px-1 rounded">confidential</code> <span className="text-muted-foreground">(the recipient)</span></td>
+ <td className="px-4 py-2 text-foreground">refused</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+ <p className="text-foreground mb-4">
+          Both are evaluated in the enclave. The amount rule reads the same spend counters as the daily limit, which the
+          service keeps and supplies with each request; when they cannot be read, nothing runs without the approvers.
+        </p>
+
         <SyntaxHighlighter language="text" style={vscDarkPlus} customStyle={{ borderRadius: '0.5rem', fontSize: '0.875rem' }}>
 {`Agent: POST /wallet/v1/intents/withdraw { amount: "$5,000" }
   -> Response: { status: "pending_approval", required: 2, approved: 0 }
@@ -645,28 +737,33 @@ Approver 2: Signs approval via NEAR wallet (dashboard)
  <table className="min-w-full text-sm border border-border">
  <thead className="bg-card-muted">
               <tr>
- <th className="px-4 py-2 text-left font-semibold border-b">Role</th>
- <th className="px-4 py-2 text-left font-semibold border-b">Approve transactions</th>
- <th className="px-4 py-2 text-left font-semibold border-b">Modify policy</th>
- <th className="px-4 py-2 text-left font-semibold border-b">Freeze wallet</th>
+ <th className="px-4 py-2 text-left font-semibold border-b">Who</th>
+ <th className="px-4 py-2 text-left font-semibold border-b">Approve operations</th>
+ <th className="px-4 py-2 text-left font-semibold border-b">Change the policy</th>
+ <th className="px-4 py-2 text-left font-semibold border-b">Freeze the wallet</th>
               </tr>
             </thead>
             <tbody>
  <tr className="border-b">
- <td className="px-4 py-2 font-semibold">Admin</td>
- <td className="px-4 py-2 text-foreground">&#10003;</td>
- <td className="px-4 py-2 text-foreground">&#10003; (quorum)</td>
+ <td className="px-4 py-2 font-semibold">The owner <span className="font-normal text-muted-foreground">(the NEAR account that stored the policy)</span></td>
+ <td className="px-4 py-2 text-foreground">only if also an approver</td>
+ <td className="px-4 py-2 text-foreground">&#10003; (a locked policy: only with the approvers&apos; quorum)</td>
  <td className="px-4 py-2 text-foreground">&#10003;</td>
               </tr>
               <tr>
- <td className="px-4 py-2 font-semibold">Signer</td>
+ <td className="px-4 py-2 font-semibold">An approver <span className="font-normal text-muted-foreground">(any account the policy lists)</span></td>
  <td className="px-4 py-2 text-foreground">&#10003;</td>
- <td className="px-4 py-2 text-destructive-text">&#10007;</td>
+ <td className="px-4 py-2 text-foreground">votes on a change to a locked policy</td>
  <td className="px-4 py-2 text-destructive-text">&#10007;</td>
               </tr>
             </tbody>
           </table>
         </div>
+ <p className="text-foreground mb-4">
+          All approvers are equal. An approver entry may carry a <code className="bg-card-muted px-1 rounded">role</code>{' '}
+          (<code className="bg-card-muted px-1 rounded">admin</code>, <code className="bg-card-muted px-1 rounded">signer</code>): it is a label
+          stored with the policy and nothing reads it.
+        </p>
 
  <h3 id="verify-approval" className="text-xl font-semibold text-foreground mt-8 mb-3 scroll-mt-4">What you sign when you approve</h3>
  <p className="text-foreground mb-3">
@@ -921,6 +1018,17 @@ curl -s -X POST -H "Content-Type: application/json" \\
         <SyntaxHighlighter language="text" style={vscDarkPlus} customStyle={{ borderRadius: '0.5rem', fontSize: '0.875rem' }}>
 {`https://app.outlayer.ai/wallet?wallet=<agent account>&add_address=<address>`}
         </SyntaxHighlighter>
+ <p className="text-foreground mt-3 mb-2">
+          An owner who would rather be asked than edit the list turns on &quot;Ask me about a new address&quot;: the payment
+          then waits for an approval that shows the address. &quot;Without asking me, up to&quot; sets how much the agent may
+          pay in an hour, a day or a month before each payment waits. Both are described under{' '}
+ <a href="#approval-rules" className="text-accent-text underline">When an operation waits</a>.
+        </p>
+ <p className="text-foreground mt-3 mb-2">
+          Under an address list an agent pays by transfer. An x402 payment is an EIP-3009 signature made through{' '}
+ <code className="bg-card-muted px-1 rounded">evm_sign</code>, which is off in a protected wallet: that signature pays any
+          address, so switching it on lifts the list for whatever the wallet holds on its EVM address.
+        </p>
       </section>
 
       {/* API Reference */}

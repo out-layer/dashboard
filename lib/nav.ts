@@ -39,6 +39,7 @@ export const APP_NAV: NavGroup[] = [
       // `/connect/<id>` are the owner pages of single connectors; they light this item too.
       { href: '/connectors', label: 'Connectors', match: '/connect' },
       { href: '/vault', label: 'Vaults' },
+      { href: '/exit', label: 'Owner exit' },
       { href: '/wallet/audit', label: 'Audit log' },
     ],
   },

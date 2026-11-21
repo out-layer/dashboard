@@ -604,7 +604,13 @@ function VaultDetailPanel(props: {
             </tr>
             <tr className="border-b border-border">
               <td className="py-1.5 pr-3 align-top text-muted-foreground">Exit window</td>
-              <td className="py-1.5 tabular-nums">{formatSeconds(s.unilateral_exit_window_secs)}</td>
+              <td className="py-1.5 tabular-nums">
+                {formatSeconds(s.unilateral_exit_window_secs)}
+                {s.pending_exit_window &&
+                  ` — lowering to ${formatSeconds(s.pending_exit_window.secs)} on ${new Date(
+                    Number(BigInt(s.pending_exit_window.effective_at) / BigInt(1_000_000)),
+                  ).toLocaleString()}`}
+              </td>
             </tr>
             <tr className="border-b border-border">
               <td

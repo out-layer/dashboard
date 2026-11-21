@@ -92,7 +92,10 @@ export interface VaultState {
   registered_tee_keys: string[];
   recovery: RecoveryState | null;
   unlocked: boolean;
+  /** The exit window in force. */
   unilateral_exit_window_secs: number;
+  /** A lowering not in force yet; `effective_at` is a block timestamp in ns. */
+  pending_exit_window?: { secs: number; effective_at: number | string } | null;
 }
 
 export interface RecoveryState {

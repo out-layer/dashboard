@@ -198,6 +198,12 @@ export default function AccountBindingPage() {
           It has its own page:{' '}
  <Link href="/docs/agent-connect" className="text-accent-text underline">Agent Connect</Link>.
  </p>
+ <p className="text-foreground mt-4">
+          A wallet whose keys can leave with an exit — one made from an owner&apos;s exit link, or one in a
+          vault — is bound only to the account its keys leave to: the owner&apos;s own account, or the
+          vault&apos;s parent. Any other account is refused, and a leased account always is, so an exit never
+          takes an account that is not the leaver&apos;s.
+ </p>
  </section>
 
  <section id="acting-as" className="mb-10 scroll-mt-4">

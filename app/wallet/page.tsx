@@ -695,6 +695,10 @@ function AgentPolicy({ apiKey }: { apiKey: string }) {
     );
   }
 
+  // The engine that reads `approval.auto_up_to` and `addresses.unlisted` runs
+  // on testnet only; mainnet's would ignore both. Shown where they are read.
+  const approvalRulesLive = network === 'testnet';
+
   const approval = (
     <div>
       <label className="flex items-start gap-2 text-sm text-foreground">
@@ -743,6 +747,7 @@ function AgentPolicy({ apiKey }: { apiKey: string }) {
             An unticked operation runs without asking. Confidential flows wait whenever approvals are on.
           </p>
 
+          {approvalRulesLive && (
           <div>
             <p className="flex flex-wrap items-center gap-1.5 text-sm text-foreground">
               Without asking me, up to
@@ -796,8 +801,9 @@ function AgentPolicy({ apiKey }: { apiKey: string }) {
               </div>
             )}
           </div>
+          )}
 
-          {policyForm.address_mode === 'whitelist' && (
+          {approvalRulesLive && policyForm.address_mode === 'whitelist' && (
             <label className="flex items-start gap-2 text-sm text-foreground">
               <input
                 type="checkbox"

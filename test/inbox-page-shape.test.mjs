@@ -129,7 +129,8 @@ test('the only element made by hand is the link that hands a file over', () => {
  * Every `href` of the inbox is one of three, and nothing else:
  *
  *   1. a JSX attribute whose value is a string literal that is a path of this
- *      site: `href="/…"`, with no `//` at its start;
+ *      site: `href="/…"`, with no `//` at its start, and at most a fragment
+ *      (`#…`) at its end;
  *   2. a JSX attribute whose value is a template literal that starts with a
  *      path of this site, and whose every `${…}` is exactly `task.id` or
  *      `approval.id`;
@@ -150,7 +151,7 @@ test('no link of the inbox is built from what a task carries', () => {
       const literal = /^="([^"]*)"/.exec(after);
       const template = /^=\{`([^`]*)`\}/.exec(after);
       if (literal) {
-        assert.match(literal[1], /^\/(?!\/)[a-z0-9/_-]*$/, `${here}: a literal that is a path of this site`);
+        assert.match(literal[1], /^\/(?!\/)[a-z0-9/_-]*(#[a-z0-9-]+)?$/, `${here}: a literal that is a path of this site`);
         seen.literal += 1;
       } else if (template) {
         assert.match(template[1], /^\/(?!\/)/, `${here}: starts with a path of this site`);

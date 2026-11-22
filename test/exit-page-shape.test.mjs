@@ -93,7 +93,7 @@ test('an action is done when the chain shows it, not when the wallet returns', (
   const send = PAGE.slice(PAGE.indexOf('const send = useCallback('), PAGE.indexOf('return { accountId, network, dao'));
   const sent = send.indexOf('await signAndSendTransaction(');
   const failed = send.indexOf('sent?.status?.Failure');
-  const reread = send.indexOf('await read(accountId)');
+  const reread = send.indexOf('await read(sentBy)');
   const judged = send.indexOf('await landed(found.record)');
   assert.ok(sent !== -1 && sent < failed && failed < reread && reread < judged, 'the outcome is not read from the chain after the send');
   assert.ok(!/setOutcome\(\{ name, done: saidAfter \}\)/.test(send), 'a done that no read of the chain stands behind');

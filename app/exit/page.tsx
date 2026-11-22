@@ -9,7 +9,7 @@
  * transaction: a step that finished shows the next button and stops.
  */
 
-import { Suspense, useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { actionCreators } from '@near-js/transactions';
 import { Button } from '@/components/ui/button';
@@ -39,6 +39,9 @@ import {
 
 const said = (e: unknown) => (e instanceof Error ? e.message : String(e));
 const GAS = BigInt('100000000000000');
+/** How often, and how many times, the DAO's record is read again for a change that was just sent. */
+const LANDING_READ_MS = 1500;
+const LANDING_READS = 10;
 const ONE_YOCTO = BigInt(1);
 
 const field =
@@ -117,6 +120,13 @@ function useExit() {
    * from the chain, not taken from the wallet: `landed` says whether the record now shows
    * what the call was for. A wallet that resolves on a failed transaction is not a "done".
    */
+  // The account connected now: a reply that arrives after the user switched accounts is
+  // not shown under the new one.
+  const accountNow = useRef(accountId);
+  useEffect(() => {
+    accountNow.current = accountId;
+  }, [accountId]);
+
   const send = useCallback(
     async (
       name: string,
@@ -133,15 +143,40 @@ function useExit() {
         const sent = await signAndSendTransaction({ receiverId: dao, actions: [actionCreators.functionCall(method, args, GAS, deposit)] });
         const failure = sent?.status?.Failure;
         if (failure) throw new Error(`The transaction failed: ${typeof failure === 'string' ? failure : JSON.stringify(failure)}`);
-        const found = await read(accountId);
-        show(found);
+        // The record is read at final finality, and a wallet answers once the transaction
+        // has executed, a few blocks earlier: the change is looked for until it shows. The
+        // transaction is sent by now, so a read that fails is a read to make again, never a
+        // failure of the transaction.
+        const sentBy = accountId;
+        let found: Awaited<ReturnType<typeof read>> | null = null;
+        let shows = false;
+        let unread: unknown = null;
+        for (let n = 0; !shows && n <= LANDING_READS; n++) {
+          if (n > 0) await new Promise((resolve) => setTimeout(resolve, LANDING_READ_MS));
+          if (accountNow.current !== sentBy) return;
+          try {
+            found = await read(sentBy);
+            shows = await landed(found.record);
+            unread = null;
+          } catch (e) {
+            unread = e;
+          }
+        }
+        // Another account connected while the record was read: what was read is not its.
+        if (accountNow.current !== sentBy) return;
+        if (found) show(found);
         setOutcome(
-          (await landed(found.record))
+          shows
             ? { name, done: saidAfter }
-            : {
-                name,
-                error: `The record in ${dao} does not show this change. If your wallet reports the transaction as sent, reload the page in a few seconds; if it failed, the wallet's history says why.`,
-              },
+            : unread && !found
+              ? {
+                  name,
+                  error: `The transaction was sent, and the record in ${dao} could not be read to confirm it (${said(unread)}). Reload the page in a few seconds to see where it stands.`,
+                }
+              : {
+                  name,
+                  error: `The record in ${dao} does not show this change. If your wallet reports the transaction as sent, reload the page in a few seconds; if it failed, the wallet's history says why.`,
+                },
         );
       } catch (e) {
         setOutcome({ name, error: said(e) });

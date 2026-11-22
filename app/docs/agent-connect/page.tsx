@@ -29,9 +29,8 @@ export default function AgentConnectPage() {
           <strong>Status.</strong> Agent Connect is the House of Stake lease programme. The lane is
           implemented end to end — binding, decoding, grant enforcement and refusal classes — and its
           rules are derived from the published{' '}
-          <code className="bg-card px-1 rounded">hos-wallet</code> contract source. It has been
-          exercised on testnet against a partner-provisioned account under a real grant, with the
-          account&apos;s own on-chain spend meters moving. Mainnet is not open yet. For the calls,
+          <code className="bg-card px-1 rounded">hos-wallet</code> contract source. It is live on
+          mainnet and testnet. For the calls,
           arguments and refusal classes, see the{' '}
           <Link href="/docs/binding-api" className="text-accent-text underline">
             Binding API reference
@@ -40,7 +39,7 @@ export default function AgentConnectPage() {
           <Link href="/docs/account-binding" className="text-accent-text underline">
             Personal Account Binding
           </Link>{' '}
-          instead — that mode is live.
+          instead.
         </p>
       </div>
 

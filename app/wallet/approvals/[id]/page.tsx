@@ -10,36 +10,7 @@ import { checkOpAgainstHash, type OpCheck } from '@/lib/approval-hash';
 import { AgentChip } from '@/components/ui/agent-chip';
 import { implicitAccountOf } from '@/lib/short-account';
 import { getWalletKey } from '@/lib/wallet-keys';
-
-/** The engine's own comparison: exact, except that an EVM address is the same in any letter case. */
-function listsAddress(listed: string, destination: string): boolean {
-  const evm = (s: string) => /^0x[0-9a-fA-F]{40}$/.test(s);
-  return evm(listed) && evm(destination) ? listed.toLowerCase() === destination.toLowerCase() : listed === destination;
-}
-
-/** The address a payment goes to: the only kind of operation a policy asks about (`addresses.unlisted`). */
-function destinationOf(op: Record<string, unknown>): string | null {
-  const payment = ['transfer', 'withdraw', 'intents_transfer', 'cross_chain_withdraw'].includes(String(op.kind));
-  return payment && typeof op.to === 'string' && op.to ? op.to : null;
-}
-
-/**
- * The address a payment goes to, when the wallet's policy is an address list
- * that asks about addresses it does not name and this is one — read with the
- * wallet key this browser holds. `null` when the address is listed, the policy
- * does not ask, or it cannot be read.
- */
-async function unlistedDestination(coordinatorUrl: string, walletPubkey: string, op: Record<string, unknown>): Promise<string | null> {
-  const destination = destinationOf(op);
-  const apiKey = getWalletKey(walletPubkey);
-  if (!destination || !apiKey) return null;
-  const resp = await fetch(`${coordinatorUrl}/wallet/v1/policy`, { headers: { Authorization: `Bearer ${apiKey}` } }).catch(() => null);
-  if (!resp || !resp.ok) return null;
-  const policy = await resp.json().catch(() => null);
-  const addresses = policy?.rules?.addresses;
-  if (!addresses || (addresses.mode ?? 'whitelist') !== 'whitelist' || addresses.unlisted !== 'ask' || !Array.isArray(addresses.list)) return null;
-  return addresses.list.some((a: unknown) => typeof a === 'string' && listsAddress(a, destination)) ? null : destination;
-}
+import { readWalletPolicy, unlistedDestination, paymentDestination } from '@/lib/approval-address';
 
 interface ApprovalDetail {
   id: string;
@@ -112,8 +83,10 @@ function ApprovalDetailContent() {
       const check = await checkOpAgainstHash(data.op_canonical, data.request_hash);
       setOpCheck(check);
       setApproval(data);
-      // Judged on the operation the hash was tied to, never on the server's description of it.
-      setNewAddress(check.status === 'match' ? await unlistedDestination(coordinatorUrl, data.wallet_pubkey, check.op) : null);
+      // Judged on the operation the hash was tied to, read with the key this browser holds.
+      const walletKey = check.status === 'match' && paymentDestination(check.op) ? getWalletKey(data.wallet_pubkey) : null;
+      const policy = walletKey ? await readWalletPolicy(coordinatorUrl, walletKey) : null;
+      setNewAddress(check.status === 'match' ? unlistedDestination(policy, check.op) : null);
     } catch (err) {
       setError((err as Error).message);
     } finally {

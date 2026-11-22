@@ -18,7 +18,8 @@ import { SignInPrompt } from '@/components/inbox/SignInPrompt';
 import * as inbox from '@/lib/inbox/api';
 import { checkOpAgainstHash, type OpCheck } from '@/lib/approval-hash';
 import Link from 'next/link';
-import { findKeyForWallets, saveWalletKey } from '@/lib/wallet-keys';
+import { findKeyForWallets, getWalletKey, saveWalletKey } from '@/lib/wallet-keys';
+import { paymentDestination, readWalletPolicy, unlistedDestination } from '@/lib/approval-address';
 
 interface PendingApproval {
   id: string;
@@ -36,6 +37,8 @@ interface PendingApproval {
   created_at: string;
   // display helpers
   wallet_pubkey?: string;
+  /** The address the payment goes to, when the wallet's address list asks about it as new. */
+  new_address?: string | null;
 }
 
 /** How often the page asks again, and what the countdown counts. */
@@ -65,6 +68,8 @@ function WalletApprovalsContent() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  /** A payment to a new address that this page's approval let through: whether to list the address is the owner's next choice. */
+  const [paidNewAddress, setPaidNewAddress] = useState<{ wallet: string; address: string } | null>(null);
   const [approvingId, setApprovingId] = useState<string | null>(null);
   const [hasPolicies, setHasPolicies] = useState(false);
   const [nextRefreshIn, setNextRefreshIn] = useState<number | null>(null);
@@ -112,6 +117,14 @@ function WalletApprovalsContent() {
       pubkeys.map(async (pubkey): Promise<PendingApproval[]> => {
         try {
           const rows = await inbox.pendingApprovals(coordinatorUrl, token, pubkey);
+          // The wallet's policy, read once per wallet with the key this browser
+          // holds, and only when something waiting on it is a payment.
+          let policy: Promise<unknown> | null = null;
+          const walletPolicy = () => {
+            const key = getWalletKey(pubkey);
+            policy ??= key ? readWalletPolicy(coordinatorUrl, key) : Promise.resolve(null);
+            return policy;
+          };
           return await Promise.all(
             rows.map(async (row) => {
               const pa = row as unknown as PendingApproval;
@@ -119,7 +132,12 @@ function WalletApprovalsContent() {
               // click with nothing awaited in between, and the page has to be able to
               // say "do not sign this" before anyone reaches for the button.
               const op_check = await checkOpAgainstHash(pa.op_canonical, pa.request_hash);
-              return { ...pa, wallet_pubkey: pubkey, op_check };
+              // Judged on the operation the hash was tied to, never on the server's description of it.
+              const new_address =
+                op_check.status === 'match' && paymentDestination(op_check.op)
+                  ? unlistedDestination(await walletPolicy(), op_check.op)
+                  : null;
+              return { ...pa, wallet_pubkey: pubkey, op_check, new_address };
             }),
           );
         } catch (e) {
@@ -212,6 +230,7 @@ function WalletApprovalsContent() {
     setApprovingId(approvalId);
     setError(null);
     setSuccess(null);
+    setPaidNewAddress(null);
 
     try {
       // Generate 32-byte random nonce
@@ -257,7 +276,14 @@ function WalletApprovalsContent() {
       }
       const data = await resp.json();
       if (data.request_id) {
-        // Threshold met — redirect to audit page
+        // Threshold met. A new address leaves a choice — list it or not — so
+        // the page stays; otherwise on to the audit log.
+        const wallet = approval.wallet_pubkey ? implicitAccountOf(approval.wallet_pubkey) : null;
+        if (approval.new_address && wallet) {
+          setPaidNewAddress({ wallet, address: approval.new_address });
+          await loadApprovals();
+          return;
+        }
         const auditUrl = apiKey ? `/wallet/audit?key=${encodeURIComponent(apiKey)}` : '/wallet/audit';
         router.push(auditUrl);
         return;
@@ -379,6 +405,44 @@ function WalletApprovalsContent() {
         </div>
       )}
 
+      {paidNewAddress && (
+
+       <div className="mb-4 rounded-md border border-success/30 bg-success/10 p-4">
+
+       <p className="text-sm text-foreground">
+
+            Approved: the payment to <span className="font-mono break-all">{paidNewAddress.address}</span> is on its way. The
+
+            address is still not on the wallet&apos;s list, so the next payment to it asks again.
+
+          </p>
+
+       <p className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm">
+
+            <Link
+
+              href={`/wallet?wallet=${paidNewAddress.wallet}&add_address=${encodeURIComponent(paidNewAddress.address)}`}
+
+       className="text-accent-text underline"
+
+            >
+
+              Add it to the address list
+
+            </Link>
+
+            <button type="button" onClick={() => setPaidNewAddress(null)} className="text-muted-foreground hover:text-accent-text">
+
+              Leave the list as it is
+
+            </button>
+
+          </p>
+
+        </div>
+
+      )}
+
       {success && (
  <div className="mb-4 rounded-md border border-success/30 bg-success/10 p-3">
  <p className="text-sm text-success-text">{success}</p>
@@ -494,6 +558,17 @@ function WalletApprovalsContent() {
                     </p>
                   </div>
                 </div>
+
+                {approval.new_address && (
+ <div className="mt-3 rounded-md border border-warning/30 bg-warning/10 p-3">
+ <p className="text-sm font-medium text-foreground">New address</p>
+ <p className="mt-1 text-sm text-muted-foreground">
+                      <span className="font-mono break-all text-foreground">{approval.new_address}</span> is not on this
+                      wallet&apos;s address list. Approving pays it this once; the list does not change, and the next payment
+                      to it asks again.
+                    </p>
+                  </div>
+                )}
 
                 {/* What is shown as "what you sign" is the parse of the very string this
                     browser hashed and matched to `request_hash`. The request is only how the

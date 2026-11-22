@@ -1167,9 +1167,9 @@ export function summarizePolicy(
         return label ? `${decimalFromUnits(units, label.decimals)} ${label.symbol}` : `${units} ${token} (minimal units)`;
       });
     if (alone.length > 0 && options.auto) {
-      can.push(`Transfer and withdraw without asking you while the total stays within ${alone.join(', ')} ${AUTO_WINDOW_WORDS[options.auto.window]}; past that, and for every other operation you chose, it waits for your approval.`);
+      can.push(`Send NEAR, and withdraw or transfer from the Intents balance, without asking you while the total stays within ${alone.join(', ')} ${AUTO_WINDOW_WORDS[options.auto.window]}; past that, and for every other operation you chose, it waits for your approval.`);
     } else if (options.autoKept) {
-      can.push('Transfer and withdraw without asking you up to the amounts the stored policy sets for several periods; past them, and for every other operation you chose, it waits for your approval.');
+      can.push('Send NEAR, and withdraw or transfer from the Intents balance, without asking you up to the amounts the stored policy sets for several periods; past them, and for every other operation you chose, it waits for your approval.');
     } else {
       can.push('Operations you chose wait for your approval before they run.');
     }

@@ -652,8 +652,16 @@ export default function AgentCustodyPage() {
           <li>
  <code className="bg-card-muted px-1 rounded">approval.auto_up_to</code> &mdash; per window
             (<code className="bg-card-muted px-1 rounded">hourly</code>, <code className="bg-card-muted px-1 rounded">daily</code>,{' '}
- <code className="bg-card-muted px-1 rounded">monthly</code>) and token, the total that leaves without the approvers. A native
-            transfer, a withdrawal or an intents transfer runs at once while what the wallet already spent in the token in that window, plus this amount, is at most the entry;
+ <code className="bg-card-muted px-1 rounded">monthly</code>) and token, the total that leaves without the approvers. It covers three operations: a native NEAR transfer from the wallet&apos;s
+            account (token <code className="bg-card-muted px-1 rounded">native</code>), a withdrawal out of NEAR Intents and a
+            transfer inside NEAR Intents. A token other than NEAR is therefore covered only when it leaves the wallet&apos;s
+            Intents balance: sent from the wallet&apos;s NEAR account it is a contract call, which always waits. NEAR inside
+            Intents is wNEAR, <code className="bg-card-muted px-1 rounded">nep141:wrap.near</code>, and needs its own entry &mdash;
+            in <code className="bg-card-muted px-1 rounded">rules.limits</code> as well. For example,{' '}
+ <code className="bg-card-muted px-1 rounded">{'"daily": { "native": "…", "nep141:wrap.near": "…", "nep141:<usdc>": "…" }'}</code>{' '}
+            sets NEAR on the account, NEAR inside Intents and USDC inside Intents apart. On the policy page the NEAR row is{' '}
+ <code className="bg-card-muted px-1 rounded">native</code>; wNEAR and USDC are added in &quot;How much?&quot;.
+            Such an operation runs at once while what the wallet already spent in the token in that window, plus this amount, is at most the entry;
             the payment that would cross it waits. Above: $50 of USDC a day without asking, up to $300 a day with approval,
             nothing past that. The windows are the limits&apos; own &mdash; the clock hour, the UTC day, the calendar month &mdash;
             and count what the limits count, approved payments included. A token with no entry always waits; there is no{' '}

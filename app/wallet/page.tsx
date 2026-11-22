@@ -751,7 +751,7 @@ function AgentPolicy({ apiKey }: { apiKey: string }) {
           <div>
             <p className="flex flex-wrap items-center gap-1.5 text-sm text-foreground">
               Without asking me, up to
-              <InfoHint text="The total the agent may pay in the period before it starts asking. Everything the wallet spent in the period counts, payments you approved included, so after a large approved payment the rest of the period asks. A day is the UTC day, a month the calendar month. It covers transfers and withdrawals on NEAR. A token left empty always asks, and so do swaps, limit orders, payment links, sends to another chain, contract calls and deleting the account, unless you untick them above. The limits in “How much?” still hold: above a limit is a refusal, approved or not." />
+              <InfoHint text="The total the agent may pay in the period before it starts asking. Everything the wallet spent in the period counts, payments you approved included, so after a large approved payment the rest of the period asks. A day is the UTC day, a month the calendar month. It covers three operations: a NEAR transfer from the wallet's account, a withdrawal out of NEAR Intents and a transfer inside NEAR Intents. So a token other than NEAR runs without asking only from the wallet's Intents balance; sent from the wallet's NEAR account it is a contract call, which always asks. NEAR inside Intents is wNEAR, a token of its own: the NEAR row does not cover it. A token left empty always asks, and so do swaps, limit orders, payment links, sends to another chain, contract calls and deleting the account, unless you untick them above. The limits in “How much?” still hold: above a limit is a refusal, approved or not." />
             </p>
             {autoSeveral ? (
               <p className="mt-1 text-xs text-muted-foreground">
@@ -796,7 +796,9 @@ function AgentPolicy({ apiKey }: { apiKey: string }) {
                   ))}
                 </select>
                 <p className="text-xs text-faint-foreground">
-                  A token gets a row here once it has a limit row in “How much?”.
+                  NEAR is NEAR on the wallet&apos;s account. Other tokens, and NEAR inside NEAR Intents (wNEAR), count
+                  only when they leave the Intents balance. A token gets a row here once it has a limit row in “How much?” —
+                  for NEAR inside Intents, add wNEAR there.
                 </p>
               </div>
             )}

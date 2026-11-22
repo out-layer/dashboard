@@ -18,7 +18,7 @@ import { SignInPrompt } from '@/components/inbox/SignInPrompt';
 import * as inbox from '@/lib/inbox/api';
 import { checkOpAgainstHash, type OpCheck } from '@/lib/approval-hash';
 import Link from 'next/link';
-import { findKeyForWallets, getWalletKey, saveWalletKey } from '@/lib/wallet-keys';
+import { findKeyForWallets, getWalletKey } from '@/lib/wallet-keys';
 import { paymentDestination, readWalletPolicy, unlistedDestination } from '@/lib/approval-address';
 
 interface PendingApproval {
@@ -80,8 +80,6 @@ function WalletApprovalsContent() {
 
   // API key for approve action
   const [apiKey, setApiKey] = useState<string>('');
-  const [showApiKeyPrompt, setShowApiKeyPrompt] = useState(false);
-  const [pendingApprovalId, setPendingApprovalId] = useState<string | null>(null);
 
   // Read API key from URL params on mount
   useEffect(() => {
@@ -222,8 +220,11 @@ function WalletApprovalsContent() {
     return () => clearInterval(tick);
   }, [hasPolicies, isConnected, token, visible, fetchPendingApprovals]);
 
-  // Approve a pending request (requires NEAR wallet signature, not API key)
-  const handleApprove = async (approvalId: string) => {
+  // A vote on a pending request: the approver's NEP-413 signature, from the
+  // click itself (nothing is awaited before the wallet opens). The wallet's
+  // signing prompt is the confirmation; no browser dialog stands in front of
+  // it, since one spends the click the wallet needs.
+  const handleVote = async (approvalId: string, vote: 'approve' | 'reject') => {
     const approval = approvals.find((a) => a.id === approvalId);
     if (!approval) return;
 
@@ -240,13 +241,14 @@ function WalletApprovalsContent() {
       // Build message: "approve:{approval_id}:{wallet_pubkey}:{request_hash}" — wallet_pubkey
       // binds the vote to THIS wallet (no cross-wallet replay). Must match the keystore.
       if (!approval.wallet_pubkey) {
-        throw new Error('Missing wallet_pubkey for this approval — open the approval detail to approve.');
+        throw new Error('Missing wallet_pubkey for this approval — open the approval detail to vote on it.');
       }
-      // Never sign a hash this browser could not tie to the operation on screen.
-      if (approval.op_check?.status !== 'match') {
+      // Never approve a hash this browser could not tie to the operation on
+      // screen. A rejection moves nothing and needs no such proof.
+      if (vote === 'approve' && approval.op_check?.status !== 'match') {
         throw new Error('The operation shown could not be matched to the hash you would sign. Nothing was signed.');
       }
-      const message = `approve:${approvalId}:${approval.wallet_pubkey}:${approval.request_hash}`;
+      const message = `${vote}:${approvalId}:${approval.wallet_pubkey}:${approval.request_hash}`;
 
       // Sign with NEAR wallet (NEP-413)
       const signed = await signMessage({
@@ -260,7 +262,7 @@ function WalletApprovalsContent() {
       }
 
       // Send signature to coordinator (no Bearer token needed)
-      const resp = await fetch(`${coordinatorUrl}/wallet/v1/approve/${approvalId}`, {
+      const resp = await fetch(`${coordinatorUrl}/wallet/v1/${vote}/${approvalId}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -275,6 +277,15 @@ function WalletApprovalsContent() {
         throw new Error(err.message || err.error || `API error: ${resp.status}`);
       }
       const data = await resp.json();
+      if (vote === 'reject') {
+        setSuccess(
+          data.status === 'rejected'
+            ? 'Request rejected: it will not run.'
+            : 'Rejection recorded; the request is cancelled once the vote is final on chain.',
+        );
+        await loadApprovals();
+        return;
+      }
       if (data.request_id) {
         // Threshold met. A new address leaves a choice — list it or not — so
         // the page stays; otherwise on to the audit log.
@@ -298,55 +309,6 @@ function WalletApprovalsContent() {
     } finally {
       setApprovingId(null);
     }
-  };
-
-  // Reject a pending request
-  const handleReject = async (approvalId: string) => {
-    if (!apiKey) {
-      setPendingApprovalId(approvalId);
-      setShowApiKeyPrompt(true);
-      return;
-    }
-
-    if (!confirm('Reject this request? This cannot be undone.')) return;
-
-    setApprovingId(approvalId);
-    setError(null);
-    setSuccess(null);
-
-    try {
-      const resp = await fetch(`${coordinatorUrl}/wallet/v1/reject/${approvalId}`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${apiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ approver_account: accountId }),
-      });
-      if (!resp.ok) {
-        const err = await resp.json().catch(() => ({ error: resp.statusText }));
-        throw new Error(err.message || err.error || `API error: ${resp.status}`);
-      }
-      setSuccess('Request rejected.');
-      await loadApprovals();
-    } catch (err) {
-      setError((err as Error).message);
-    } finally {
-      setApprovingId(null);
-    }
-  };
-
-  const handleApiKeySubmit = () => {
-    setShowApiKeyPrompt(false);
-    if (pendingApprovalId && apiKey) {
-      // Save key to localStorage for the wallet
-      const approval = approvals.find((a) => a.id === pendingApprovalId);
-      if (approval?.wallet_pubkey) {
-        saveWalletKey(approval.wallet_pubkey, apiKey);
-      }
-      handleReject(pendingApprovalId);
-    }
-    setPendingApprovalId(null);
   };
 
   const formatDate = (dateStr: string) => {
@@ -446,40 +408,6 @@ function WalletApprovalsContent() {
       {success && (
  <div className="mb-4 rounded-md border border-success/30 bg-success/10 p-3">
  <p className="text-sm text-success-text">{success}</p>
-        </div>
-      )}
-
-      {/* API key prompt dialog */}
-      {showApiKeyPrompt && (
- <div className="mb-4 rounded-md border border-info/30 bg-info/10 p-4">
- <p className="text-sm text-info mb-2">
-            Enter the wallet API key to reject this request.
-            It will be saved in this browser for future use.
-          </p>
- <div className="flex gap-3">
-            <input
-              type="text"
-              value={apiKey}
-              onChange={(e) => setApiKey(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleApiKeySubmit()}
-              placeholder="wk_..."
- className="flex-1 px-4 py-2 border border-border-strong bg-background rounded-lg outline-none focus:border-accent focus:ring-1 focus:ring-accent font-mono text-sm"
-              autoFocus
-            />
-            <button
-              onClick={handleApiKeySubmit}
-              disabled={!apiKey.trim()}
- className="px-4 py-2 bg-accent text-on-accent rounded-lg text-sm font-semibold disabled:opacity-50 cursor-pointer"
-            >
-              Submit
-            </button>
-            <button
-              onClick={() => { setShowApiKeyPrompt(false); setPendingApprovalId(null); }}
- className="px-4 py-2 text-muted-foreground hover:text-foreground text-sm cursor-pointer"
-            >
-              Cancel
-            </button>
-          </div>
         </div>
       )}
 
@@ -612,14 +540,14 @@ function WalletApprovalsContent() {
                     </p>
  <div className="flex items-center space-x-2">
                       <button
-                        onClick={() => handleReject(approval.id)}
+                        onClick={() => handleVote(approval.id, 'reject')}
                         disabled={approvingId === approval.id}
  className="px-4 py-2 border border-destructive/40 text-destructive-text text-sm rounded-lg font-semibold hover:bg-destructive/10 disabled:opacity-50 cursor-pointer"
                       >
                         Reject
                       </button>
                       <button
-                        onClick={() => handleApprove(approval.id)}
+                        onClick={() => handleVote(approval.id, 'approve')}
                         disabled={approvingId === approval.id || approval.op_check?.status !== 'match'}
  className="px-4 py-2 bg-accent text-on-accent text-sm rounded-lg font-semibold hover:bg-accent-hover disabled:opacity-50 cursor-pointer"
                       >

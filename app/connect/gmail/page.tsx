@@ -19,6 +19,7 @@ import { emptyValue, fromJson, toJson, validate } from '@/lib/policies/policy';
 import type { PolicyValue } from '@/lib/policies/types';
 import { formatAccessCondition } from '@/app/secrets/components/utils';
 import { isImplicitAccount, shortAccount } from '@/lib/short-account';
+import { fetchKeystorePubkey, type PubkeyAccessor } from '@/lib/keystore-pubkey';
 
 /**
  * Connecting a Gmail account, and looking after the connection afterwards.
@@ -231,7 +232,7 @@ function ConnectGmail() {
   // coordinator's enum is internally tagged (`#[serde(tag = "type")]`), the
   // contract's is externally tagged. Sending one where the other is expected is
   // a 422 with nothing in it to explain itself.
-  const forCoordinator = useMemo(() => ({ type: 'Project', project_id: projectId }), [projectId]);
+  const forCoordinator = useMemo<PubkeyAccessor>(() => ({ type: 'Project', project_id: projectId }), [projectId]);
   const forContract = useMemo(() => ({ Project: { project_id: projectId } }), [projectId]);
 
   const policyErrors = validate(gmailPolicy, policy);
@@ -312,17 +313,12 @@ function ConnectGmail() {
       try {
         // The names are what the keystore checks here — a reserved one would be
         // refused — and they do not change with the policy's content.
-        const pubkeyResponse = await fetch(`${coordinatorUrl}/secrets/pubkey`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            accessor: forCoordinator,
-            owner: accountId,
-            secrets_json: JSON.stringify({ GMAIL_REFRESH_TOKEN: token, GMAIL_POLICY: '{}' }),
-          }),
-        });
-        if (!pubkeyResponse.ok) throw new Error(await pubkeyResponse.text());
-        const { pubkey } = await pubkeyResponse.json();
+        if (!accountId) throw new Error('Connect a wallet first.');
+        const { pubkey } = await fetchKeystorePubkey(
+          coordinatorUrl,
+          { accessor: forCoordinator, owner: accountId },
+          ['GMAIL_REFRESH_TOKEN', 'GMAIL_POLICY'],
+        );
         setRefreshToken(token);
         setRowPubkey(pubkey);
         setStage('ready');

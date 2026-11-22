@@ -3,6 +3,7 @@
 import { shortKey } from '@/lib/short-key';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { eciesEncrypt } from '@/lib/ecies';
+import { fetchKeystorePubkey, type PubkeyAccessor } from '@/lib/keystore-pubkey';
 import { AccessConditionBuilder } from './AccessConditionBuilder';
 import { AccessCondition, FormData, SecretSourceType } from './types';
 import {
@@ -18,6 +19,19 @@ import {
 } from './utils';
 import { useNearWallet } from '@/contexts/NearWalletContext';
 import { VaultScopeToggle } from '@/components/VaultScopeToggle';
+
+/**
+ * The names of the secrets, which is all the keystore is told when it is
+ * asked for the key they are sealed to: it refuses a reserved name or a
+ * `PROTECTED_` one and reads nothing else, so that request carries no value.
+ */
+function secretNames(plaintext: string): string[] {
+  const parsed: unknown = JSON.parse(plaintext);
+  if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) {
+    throw new Error('Secrets must be a JSON object of names and values');
+  }
+  return Object.keys(parsed);
+}
 
 // Update mode for existing secrets - preserves PROTECTED_ secrets
 type UpdateMode = 'append' | 'reset';
@@ -490,7 +504,7 @@ export function SecretsForm({
   };
 
   // The keystore's accessor for the row the form targets.
-  const formAccessor = () =>
+  const formAccessor = (): PubkeyAccessor =>
     sourceType === 'wasm_hash'
       ? { type: 'WasmHash', hash: wasmHash.trim() }
       : { type: 'Project', project_id: projectId.trim() };
@@ -586,36 +600,13 @@ export function SecretsForm({
           // Build accessor based on source type
           const accessor = formAccessor();
 
-          // Get public key and encrypt. Phase 7 F2: when the user
-          // selected a vault, forward `X-Customer-Vault` so the
-          // keystore derives the encryption pubkey from the per-vault
-          // master instead of the OutLayer default master.
-          const pubkeyHeaders: Record<string, string> = {
-            'Content-Type': 'application/json',
-          };
-          if (vaultId) pubkeyHeaders['X-Customer-Vault'] = vaultId;
-          const pubkeyResp = await fetch(`${coordinatorUrl}/secrets/pubkey`, {
-            method: 'POST',
-            headers: pubkeyHeaders,
-            body: JSON.stringify({
-              accessor,
-              owner: accountId,
-              secrets_json: plaintextSecrets,
-            }),
-          });
-
-          if (!pubkeyResp.ok) {
-            const errorText = await pubkeyResp.text();
-            try {
-              const errorJson = JSON.parse(errorText);
-              throw new Error(errorJson.error || errorText);
-            } catch {
-              throw new Error(errorText);
-            }
-          }
-
-          const pubkeyData = await pubkeyResp.json();
-          const pubkeyHex = pubkeyData.pubkey;
+          // The key the row is sealed to: derived from the vault's master
+          // when a vault is selected.
+          const { pubkey: pubkeyHex } = await fetchKeystorePubkey(
+            coordinatorUrl,
+            { accessor, owner: accountId, vaultId },
+            secretNames(plaintextSecrets),
+          );
 
           // Encrypt with ECIES (X25519 ECDH + HKDF + ChaCha20-Poly1305)
           const plaintextBytes = new TextEncoder().encode(plaintextSecrets);
@@ -629,9 +620,11 @@ export function SecretsForm({
         // Build accessor for generated secrets endpoint
         const generatedAccessor = formAccessor();
 
+        // The same vault as the key above: what is generated joins the row
+        // under the master its manual part was sealed to.
         const response = await fetch(`${coordinatorUrl}/secrets/add_generated_secret`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', ...(vaultId ? { 'X-Customer-Vault': vaultId } : {}) },
           body: JSON.stringify({
             accessor: generatedAccessor,
             owner: accountId,
@@ -693,33 +686,11 @@ export function SecretsForm({
         // Build accessor based on source type
         const accessor = formAccessor();
 
-        // Same vault-scope forwarding as the manual-secrets path above.
-        const pubkeyHeaders2: Record<string, string> = {
-          'Content-Type': 'application/json',
-        };
-        if (vaultId) pubkeyHeaders2['X-Customer-Vault'] = vaultId;
-        const pubkeyResp = await fetch(`${coordinatorUrl}/secrets/pubkey`, {
-          method: 'POST',
-          headers: pubkeyHeaders2,
-          body: JSON.stringify({
-            accessor,
-            owner: accountId,
-            secrets_json: plaintextSecrets,
-          }),
-        });
-
-        if (!pubkeyResp.ok) {
-          const errorText = await pubkeyResp.text();
-          try {
-            const errorJson = JSON.parse(errorText);
-            throw new Error(errorJson.error || errorText);
-          } catch {
-            throw new Error(errorText);
-          }
-        }
-
-        const pubkeyData = await pubkeyResp.json();
-        const pubkeyHex = pubkeyData.pubkey;
+        const { pubkey: pubkeyHex } = await fetchKeystorePubkey(
+          coordinatorUrl,
+          { accessor, owner: accountId, vaultId },
+          secretNames(plaintextSecrets),
+        );
 
         const plaintextBytes = new TextEncoder().encode(plaintextSecrets);
         const encrypted = eciesEncrypt(pubkeyHex, plaintextBytes);
@@ -887,10 +858,13 @@ export function SecretsForm({
       const encryptedArray = Array.from(atob(result.encrypted_secrets_base64), c => c.charCodeAt(0));
       const contractAccess = keptAccess ?? convertAccessToContractFormat(accessCondition);
 
-      // Use current form values (user may have changed accessor)
+      // Use current form values (user may have changed accessor). The vault
+      // is the one the keystore sealed the row under, as it answers: the
+      // contract binds a vault per accessor, so a row moved to a new accessor
+      // is bound by what this store names.
       const formData: FormData = {
         sourceType,
-        vaultId,
+        vaultId: (result.vault_id as string | null | undefined) ?? null,
         wasmHash: wasmHash.trim(),
         projectId: projectId.trim(),
         profile: profile.trim(),

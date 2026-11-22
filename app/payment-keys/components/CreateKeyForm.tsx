@@ -5,6 +5,7 @@ import { actionCreators } from '@near-js/transactions';
 import { Button } from '@/components/ui/button';
 import { eciesEncrypt } from '@/lib/ecies';
 import { StablecoinConfig } from '@/contexts/NearWalletContext';
+import { fetchKeystorePubkey } from '@/lib/keystore-pubkey';
 import { CreationState, parseUsdToMinimalUnits, PaymentKeySecret } from './types';
 
 interface CreateKeyFormProps {
@@ -50,32 +51,17 @@ export function CreateKeyForm({
   useEffect(() => {
     const fetchPubkey = async () => {
       try {
-        // Accessor formats differ:
-        // - Coordinator API (internally tagged): { type: "System", PaymentKey: {} }
-        const accessorForCoordinator = { type: 'System', PaymentKey: {} };
-
-        const response = await fetch(`${coordinatorUrl}/secrets/pubkey`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            accessor: accessorForCoordinator,
-            owner: accountId,
-            profile: nextNonce.toString(),
-            secrets_json: '{}', // Dummy, pubkey is the same for all
-          }),
-        });
-
-        if (!response.ok) {
-          const errorText = await response.text();
-          throw new Error(`Failed to get encryption key: ${errorText}`);
-        }
-
-        const { pubkey } = await response.json();
+        // The key is the same whatever the payment key holds, so no name is sent.
+        const { pubkey } = await fetchKeystorePubkey(
+          coordinatorUrl,
+          { accessor: { type: 'System', PaymentKey: {} }, owner: accountId, profile: nextNonce.toString() },
+          [],
+        );
         setPrefetchedPubkey(pubkey);
         setPubkeyError(null);
       } catch (err) {
         console.error('Failed to pre-fetch pubkey:', err);
-        setPubkeyError((err as Error).message);
+        setPubkeyError(`Failed to get encryption key: ${(err as Error).message}`);
       }
     };
 
@@ -134,13 +120,6 @@ export function CreateKeyForm({
       setCreationState({ step: 'generating' });
       const generatedKey = generateKey();
       const nonce = nextNonce;
-
-      // Log the full API key to console for debugging (in case popup fails)
-      const fullApiKey = `${accountId}:${nonce}:${generatedKey}`;
-      console.log('=== GENERATED PAYMENT KEY ===');
-      console.log('Full API key:', fullApiKey);
-      console.log('Copy this before approving transactions!');
-      console.log('=============================');
 
       // Save to localStorage in case of page reload (will be updated before each transaction)
       // Initial save - will update step before each signAndSendTransaction

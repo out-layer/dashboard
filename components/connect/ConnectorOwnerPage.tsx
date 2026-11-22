@@ -19,6 +19,7 @@ import { isImplicitAccount, shortAccount } from '@/lib/short-account';
 import { getAllWalletKeys } from '@/lib/wallet-keys';
 import { listAllUserSecrets } from '@/lib/user-secrets';
 import { shortKey } from '@/lib/short-key';
+import { fetchKeystorePubkey, type PubkeyAccessor } from '@/lib/keystore-pubkey';
 
 /**
  * The owner's page of a connector: connecting an account, and looking after the
@@ -433,7 +434,7 @@ export function ConnectorOwnerPage({ spec }: { spec: ConnectorSpec }) {
   // coordinator's enum is internally tagged (`#[serde(tag = "type")]`), the
   // contract's is externally tagged. One where the other is expected is a 422
   // with nothing in it to explain itself.
-  const forCoordinator = useMemo(() => ({ type: 'Project', project_id: projectId }), [projectId]);
+  const forCoordinator = useMemo<PubkeyAccessor>(() => ({ type: 'Project', project_id: projectId }), [projectId]);
   const forContract = useMemo(() => ({ Project: { project_id: projectId } }), [projectId]);
 
   const policyErrors = validate(spec.policy, policy);
@@ -490,16 +491,11 @@ export function ConnectorOwnerPage({ spec }: { spec: ConnectorSpec }) {
   /** The key the row is sealed to, derived in the keystore from the accessor and the owner. */
   const fetchRowPubkey = useCallback(async () => {
     // The names are what the keystore checks here — a reserved one would be
-    // refused — and they do not change with the policy's content.
-    const names: Record<string, string> = { ...extraKeys, [policyKey]: '{}' };
-    if (credentialKey) names[credentialKey] = 'x';
-    const pubkeyResponse = await fetch(`${coordinatorUrl}/secrets/pubkey`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ accessor: forCoordinator, owner: accountId, secrets_json: JSON.stringify(names) }),
-    });
-    if (!pubkeyResponse.ok) throw new Error(await pubkeyResponse.text());
-    const { pubkey } = (await pubkeyResponse.json()) as { pubkey: string };
+    // refused — and they do not change with the policy's content. No value
+    // goes with them: the request is not sealed.
+    if (!accountId) throw new Error('Connect a wallet first.');
+    const names = [policyKey, ...Object.keys(extraKeys), ...(credentialKey ? [credentialKey] : [])];
+    const { pubkey } = await fetchKeystorePubkey(coordinatorUrl, { accessor: forCoordinator, owner: accountId }, names);
     return pubkey;
   }, [accountId, coordinatorUrl, credentialKey, extraKeys, forCoordinator, policyKey]);
 

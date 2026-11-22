@@ -297,7 +297,7 @@ function Webhook() {
   return (
     <Section
       title="Webhook"
-      about="A URL that is told when a task is made for you, answered, or expired. An event says who asked, of which project and when, and links to the task. It carries nothing of what the task shows: that is read here, on a signed-in device. Naming or removing the URL is signed by your wallet; the wallet shows the URL as its hash."
+      about="A URL that is told when a task is made for you, answered, or expired. An event says who asked, of which project and when, and links to the task. It carries nothing of what the task shows: that is read here, on a signed-in device. Every event is signed by OutLayer (X-Webhook-Signature-Ed25519): your receiver checks it with OutLayer's public keys, no secret needed, and checks that X-Wallet-Id is owner: and your account — a signature says OutLayer sent the event, not that it is yours. Naming or removing the URL is signed by your wallet; the wallet shows the URL as its hash."
     >
       {found !== null && (
         <p className="text-sm text-foreground">
@@ -367,12 +367,23 @@ function Webhook() {
       {secret && found?.url && (
         <div className="space-y-2 rounded-md border border-accent/50 bg-card-muted p-3 text-sm text-foreground">
           <p>
-            <span className="font-semibold">The secret the events are signed with. </span>
+            <span className="font-semibold">Your own secret for these events. </span>
             Shown now and never again: keep it where your receiver checks{' '}
             <span className="font-mono">X-Webhook-Signature</span>, the HMAC-SHA256 of the body in hex. Naming a
             URL again makes a new one.
           </p>
           <CopyText value={secret} className="break-all font-mono text-xs" />
+          <p className="text-xs text-muted-foreground">
+            It is the second of two checks. The first needs no secret: every event carries{' '}
+            <span className="font-mono">X-Webhook-Signature-Ed25519</span>, verified with the public keys of{' '}
+            <span className="font-mono">GET /wallet/v1/webhook-keys</span>, and it covers the time and the delivery&apos;s id as
+            well as the body. A receiver that uses it also checks that <span className="font-mono">X-Wallet-Id</span> is{' '}
+            <span className="font-mono">owner:</span> and your account: anyone may name your URL as their own webhook, and
+            their events arrive signed too.{' '}
+            <Link href="/docs/tasks#events" className="text-accent-text underline">
+              How to verify an event
+            </Link>
+          </p>
         </div>
       )}
     </Section>

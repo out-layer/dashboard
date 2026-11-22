@@ -910,6 +910,17 @@ curl -s -X POST -H "Content-Type: application/json" \\
  <code className="bg-card-muted px-1 rounded">request_completed</code> webhook, not as a
           synchronous 422.
         </p>
+        <p className="text-sm text-foreground mt-3">
+          A webhook sent to the <code className="bg-card-muted px-1 rounded">webhook_url</code> of the policy is signed by
+          OutLayer (<code className="bg-card-muted px-1 rounded">X-Webhook-Signature-Ed25519</code>). Verify it with the public
+          keys of <code className="bg-card-muted px-1 rounded">GET /wallet/v1/webhook-keys</code>, as described under{' '}
+          <Link href="/docs/tasks#events" className="text-accent-text underline">
+            Being told
+          </Link>
+          , and check that <code className="bg-card-muted px-1 rounded">X-Wallet-Id</code> is your wallet&apos;s id: a
+          signature says OutLayer sent the event, not that it is about your wallet. Where money depends on it, read the
+          request (<code className="bg-card-muted px-1 rounded">GET /wallet/v1/requests/&#123;id&#125;</code>) before acting.
+        </p>
 
  <h3 className="text-lg font-semibold mt-4 mb-2">7. Withdraw (gasless cross-chain via Intents)</h3>
         <SyntaxHighlighter language="bash" style={vscDarkPlus} customStyle={{ borderRadius: '0.5rem', fontSize: '0.875rem' }}>

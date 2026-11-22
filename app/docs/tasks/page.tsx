@@ -100,6 +100,8 @@ const STATEMENT = `Sign in to OutLayer as alice.near. Device key: p256:BFFcPW65�
 
 const APPROVAL = `Approve in OutLayer as alice.near: task 0b9c1a52-7c1e-4a53-9c58-2f0c8f6f3b11-0 with hash 92067502a74314ee… and supply 93121736c33115cb…. At 2026-10-29T12:00:00Z.`;
 
+const WEBHOOK_SIGNED = `outlayer-webhook-v1\\n<X-Webhook-Id>\\n<X-Webhook-Timestamp>\\n<X-Wallet-Id>\\n<X-Event-Type>\\n<body>`;
+
 const KEYS = `project key (keystore)   HMAC-SHA256(master, "task-key:v1:{project_uuid}:{owner}")
   task key               HMAC-SHA256(project key, "task:" || id)
     seal key             XChaCha20-Poly1305, bound to the task's id
@@ -583,10 +585,49 @@ export default function TasksDocsPage() {
             devices, and a URL is not one of them.
           </p>
           <p className="text-foreground mt-3">
-            Each request carries <C>X-Wallet-Id: owner:&lt;account&gt;</C> and <C>X-Webhook-Signature</C>, the HMAC-SHA256 of
-            the body in hex under a secret made when the URL was named and shown to the owner once; naming a URL again makes a
-            new one. The sender follows no redirect and connects only to a public address. The agent is told nothing: it learns
-            a task&apos;s outcome from <C>task_status</C> the next time it asks.
+            Each request carries <C>X-Wallet-Id: owner:&lt;account&gt;</C>, <C>X-Event-Type</C> and two signatures. The first
+            is OutLayer&apos;s Ed25519 signature, which needs no secret: <C>X-Webhook-Signature-Ed25519</C> (hex), made with the
+            key <C>X-Webhook-Key-Id</C> names, over the delivery&apos;s id (<C>X-Webhook-Id</C>, a random UUID, the same on each
+            attempt of one delivery), the moment of the attempt (<C>X-Webhook-Timestamp</C>, Unix seconds), the wallet id, the
+            event type and the body as it was received:
+          </p>
+          <CodeBlock language="text" code={WEBHOOK_SIGNED} />
+          <p className="text-foreground mt-3">
+            The public keys are at <C>GET /wallet/v1/webhook-keys</C>, without authentication:{' '}
+            <C>&#123;&quot;keys&quot;: [&#123;&quot;id&quot;, &quot;algorithm&quot;: &quot;ed25519&quot;, &quot;public_key&quot;, &quot;public_key_near&quot;&#125;]&#125;</C>,
+            the public key as 64 hex characters, one list per network. The signature says OutLayer sent the request. It does not
+            say the event is yours: anyone may name any URL as their own webhook, and their events arrive there correctly
+            signed. A receiver accepts a request only when all four hold:
+          </p>
+          <ol className="list-decimal list-inside space-y-2 text-foreground mt-3">
+            <li>the key whose <C>id</C> the request names verifies the signature over those bytes;</li>
+            <li>
+              <C>X-Wallet-Id</C> is one it expects — <C>owner:</C> and its own account for task events, its own wallet&apos;s id
+              for a wallet&apos;s events;
+            </li>
+            <li>
+              <C>X-Webhook-Timestamp</C> is within five minutes of its clock, which bounds how long a captured request can be
+              sent again;
+            </li>
+            <li>
+              it has not accepted this <C>X-Webhook-Id</C> before: it remembers the ids it accepted for those five minutes, and
+              inside them this is what refuses a repeat.
+            </li>
+          </ol>
+          <p className="text-foreground mt-3">
+            It reads the key list again at least every ten minutes and replaces the one it holds, so a key that left the list
+            is trusted no more; a request naming a key it does not hold is a reason to read the list again, at most once a
+            minute; with no list read in the last ten minutes it refuses. <C>createWebhookKeyCache</C> and{' '}
+            <C>verifyWebhook</C> of <C>@outlayer/sdk</C> hold the keys this way and do the first three steps. Every webhook
+            OutLayer sends carries this signature — a wallet&apos;s events at the <C>webhook_url</C> of its policy too, with the
+            wallet&apos;s id in <C>X-Wallet-Id</C>.
+          </p>
+          <p className="text-foreground mt-3">
+            The second signature is the owner&apos;s own: <C>X-Webhook-Signature</C>, the HMAC-SHA256 of the body in hex under
+            a secret made when the URL was named and shown to the owner once; naming a URL again makes a new one. It holds only
+            for events of the owner who holds the secret, and it covers the body alone — no time and no delivery id. The sender
+            follows no redirect and connects only to a public address. The agent is told nothing: it learns a task&apos;s
+            outcome from <C>task_status</C> the next time it asks.
           </p>
         </section>
 

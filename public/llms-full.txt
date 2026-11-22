@@ -5765,7 +5765,8 @@ What it is not:
    its operation is priced zero — a priced one fails the task
    `operation_priced` — and its compute is paid by the agent's payment key,
    as any call of the agent's is, up to the compute limit of the run that
-   prepared the task. A key that cannot pay for it fails the task
+   prepared the task. A key that cannot pay for it — a key of a wallet whose
+   keys left custody with an exit included — fails the task
    `preparer_key_unavailable`; nothing is charged to the owner.
 
 ### Telling the owner something
@@ -9484,8 +9485,18 @@ consent: each is a contract on NEAR, the NEAR MPC network, and a tool you run yo
   wait in force has passed: a stolen key cannot shorten the time its victim has to react.
 - After the exit OutLayer no longer serves those wallets, and the wallet's policy no
   longer applies: the keys are the owner's, and so is every decision.
+- No payment key of those wallets spends after the exit — the nonce-0 key's trial,
+  sponsored or gift credit ends there — and each answers `403 wallet_exited`. The money on
+  a funded key comes back on chain, signed by the wallet's NEAR account with its derived
+  key: `outlayer keys close <nonce>`, then a day later `outlayer keys claim <nonce>`; a
+  deposited stablecoin balance comes back with the contract's `withdraw_balance`.
 - Funds held by a venue under a key of its own — a Polymarket or Hyperliquid account — are
   withdrawn before leaving.
+- An exit carries no account but the one it leaves to. A wallet's NEAR key is the executor
+  of the account it is bound to through Agent Connect, so a wallet with an exit is bound
+  only to the owner account (owner exit) or the vault's parent (vault exit), and never to a
+  leased account; a leased account is bound to a wallet with no owner. The keystore signs
+  no extension call of such a wallet on any other account.
 
 ## What an exit is not
 
@@ -9602,7 +9613,10 @@ chain. An owner whose wallets need different approver sets uses different accoun
 ## Leaving
 
 Before the exit: withdraw from Polymarket and Hyperliquid, and reclaim open payment
-checks. Their funds sit under keys of their own, which the steps below do not derive.
+checks, while OutLayer does it for the wallet. After the exit their keys come from the
+master too (`derive-wallet-key` below: the venues' EVM sub-keys
+`connector.hyperliquid.trading` and `connector.polymarket.trading`, and the checks' NEAR
+keys), but moving those funds then takes the venue's or NEAR Intents' own tools.
 
 The tool is [`scripts/customer-recovery`](https://github.com/out-layer/outlayer/blob/main/scripts/customer-recovery/README.md). Pass the
 owner's key in the environment, never on the command line.
@@ -9644,8 +9658,14 @@ With the master, the wallets:
 export CUSTOMER_RECOVERY_MASTER=<master_hex>
 customer-recovery owner-exit wallets $C --generation 1
 #   seed=0 wallet_id=… near_account=… on_chain=true
-customer-recovery derive-wallet-key --wallet-id <wallet_id>
+customer-recovery derive-wallet-key --wallet-id <wallet_id> --chain all
 ```
+
+`derive-wallet-key --chain all` prints every key of the wallet: NEAR, EVM (one key for
+every EVM network) and Solana, each with its address, public key and private key in the
+form that chain's wallets import. `--sub-path <p>` (repeatable) adds an EVM sub-key, and
+`--checks <n>` the keys of payment checks 0 to n−1. Without these flags it prints the NEAR
+key alone. The seeds and formats: [LEAVING_OUTLAYER.md](https://github.com/out-layer/outlayer/blob/main/docs/LEAVING_OUTLAYER.md#b2-re-derive-each-wallets-keys).
 
 `wallets` walks the numbered seeds from 0 and stops after five in a row with no NEAR
 account on chain. A wallet that never held NEAR — used only on another chain, or never
@@ -9660,11 +9680,53 @@ funded — has no such account: it is not listed and counts toward the five. A w
   — to a request by the owner's own `Bearer near:` signature the answer then is 409 — and
   ends if MPC does not answer the claim. This follows the generation in the DAO, which moves
   when the claim's callback sees MPC's answer.
+- No payment key of the wallets of the generation left spends: not the nonce-0 key —
+  its trial, sponsored or gift credit ends with the exit — and not a funded key. A call and
+  a subscription bought with a key's balance answer `403` with `reason: "wallet_exited"`;
+  the same while a claim is in flight (then with `terminal: false`), and `503` when the
+  chain does not answer whether the wallet is still in custody. The run of an approved task
+  answers nothing: the task fails `preparer_key_unavailable`, or `queue_unavailable` when
+  that read fails. A call admitted before the exit settles as it would have. The money
+  on a funded key is the wallet's, and the wallet's NEAR account — whose key
+  `derive-wallet-key` gives — takes it back on chain: `outlayer login` with that account
+  and key, `outlayer keys close <nonce>` (`close_payment_key`), and 24 hours later
+  `outlayer keys claim <nonce>` (`claim_payment_key_refund`). A stablecoin balance
+  deposited on the account comes back with the contract's `withdraw_balance`. Allowance,
+  grants and trial credit are not refunded.
 - The owner's next wallet is created in the next generation: a new wallet id, new
   addresses, its own escrow.
 - Secrets are untouched. A project's secrets belong to the owner's account and its
   applications keep reading them. An agent's secret filed under a wallet that left stays on
   chain as ciphertext; its deletion is signed by the wallet's key, which the owner holds.
+
+## A wallet with an exit is bound only to its owner's account
+
+A wallet's NEAR key is the executor of the account it is bound to through Agent Connect
+(`PUT /wallet/v1/binding`), and that key leaves with the owner's master. A binding to any
+other account would hand that account to whoever holds the master after the exit. So an
+owner's wallet is bound to the owner's own account, in the `personal_account` mode, and
+to nothing else:
+
+- `PUT /wallet/v1/binding` with any other `asset_account_id` answers 400: "A wallet whose
+  keys leave with an exit is bound only to the account they leave to. This wallet's keys
+  leave with its owner's exit, to '<owner>': '<account>' is not that account".
+- `kind=hos_lease` is refused for an owner's wallet whatever the account: a leased account
+  is never the owner's own. A leased account is bound to a wallet with no owner and no
+  vault.
+- The keystore holds the same line on its own: it signs no `w_execute_extension` of an
+  owner's wallet whose receiver is not the owner's account, under any policy and whatever
+  binding is recorded.
+- An owner's wallet signs no raw NEAR payload (`raw_sign` on `near`), whatever its policy
+  lists: 32 bytes signed with the wallet's NEAR key are any NEAR transaction, this one
+  included, and the keystore cannot read them. NEAR is signed through `call`, `transfer` and
+  the intents operations, which the keystore reads.
+
+An account can give a wallet's NEAR account rights over itself without OutLayer: an
+extension that names the wallet's address is that account owner's own transaction, and
+nothing here stops it. Before the exit the keystore still signs nothing of the wallet that
+acts on such an account. After it, the wallet's key is the owner's, and so is whatever that
+key may do on the account that named it. Do not give an account to the address of a wallet
+whose keys can leave unless the account is the wallet owner's own.
 
 ## A wallet never calls the keystore DAO
 
@@ -9676,8 +9738,9 @@ claim the owner's exit. The keystore therefore signs no call to the keystore DAO
 exit call is a transaction the owner signs with the account's own key.
 
 For the same reason `sign-message` signs no message whose recipient has the form NEP-641
-gives an account's off-chain authorization (`<chain>: <account>[ -> …] @ <time>`): such a
-signature would be the bound account's word, given off chain.
+gives an account's off-chain authorization (`<chain>: <account>[ -> …] @ <time>`, or the same
+without ` @ <time>`): such a signature would be the bound account's word, given off chain. A
+recipient that only looks like one — `Login: alice` — is refused as well.
 
 A keystore starts only under a DAO this rule names.
 
@@ -9855,6 +9918,24 @@ made only after both pass, so the master is first derived after
 answers `423 Locked` for an unlocked vault, `403` for an unverified
 one.
 
+The same two checks stand before every spend by a payment key of a
+vault's wallet — a call, a subscription purchase, the run of an
+approved task — and a vault the gate refuses spends nothing. A served
+vault is remembered for 30 s, only after `get_state` answered
+`unlocked: false`. A call and a purchase answer `403` with
+`reason: "wallet_exited"`, and `503` when a read fails. The run of an
+approved task answers nothing: the task fails `preparer_key_unavailable`,
+or `queue_unavailable` when a read fails. Closing the key
+(`close_payment_key`, `outlayer keys close <nonce>`), claiming its
+refund a day later (`claim_payment_key_refund`, `outlayer keys claim
+<nonce>`) and `withdraw_balance` stay open to the wallet's NEAR
+account, whose key the vault's master gives. After the vault's exit the
+parent holds the master. A vault the DAO does not verify is not
+unlocked and not served: its keys spend again if the DAO verifies it
+again, and until then the master — and with it the wallet's NEAR key —
+comes only from the vault's recovery
+([`docs/LEAVING_OUTLAYER.md`](https://github.com/out-layer/outlayer/blob/main/docs/LEAVING_OUTLAYER.md), Phases A and B).
+
 ## Trust model
 
 ### What the vault guarantees
@@ -9921,6 +10002,28 @@ That is the sovereignty feature working as designed. For end-users:
   the full exit window of warning before the customer gains control.
 - A `parent` controlled by a multisig or a contract shifts the trust
   from "the customer" to "the customer's signers".
+
+### A vault wallet is bound only to the parent
+
+A wallet's NEAR key is the executor of the account it is bound to
+through Agent Connect (`PUT /wallet/v1/binding`), and every key of a
+vault wallet leaves with the vault's master to `parent`. A vault wallet
+is therefore bound to `parent` itself, in the `personal_account` mode,
+and to no other account: the coordinator refuses any other
+`asset_account_id` (400, naming the parent), and refuses
+`kind=hos_lease` outright — a leased account is never the parent's own.
+The keystore holds the same line on its own: it signs no
+`w_execute_extension` of a vault wallet whose receiver is not the
+`parent` named by the vault's `get_state` — the answer its serving gate
+reads on every request — under any policy and whatever binding is
+recorded.
+
+A vault wallet also signs no raw NEAR payload (`raw_sign` on `near`),
+whatever its policy lists: 32 bytes signed with its NEAR key are any
+NEAR transaction, and the keystore cannot read them. And an account
+that names a vault wallet's address in its own extensions, outside
+OutLayer, hands itself to whoever holds the vault's master after the
+exit — name it only from `parent`'s own account.
 
 ### Duplicate-derivation monitor
 
@@ -10113,6 +10216,11 @@ What the exit does **not** do:
 - **The wallet policy no longer applies.** Limits, allowlists and
   approvals were enforced by the keystore before it signed. A key you
   hold locally signs anything.
+- **It carries no account but yours.** A vault wallet's NEAR key is
+  the executor of any account bound to it through Agent Connect, so a
+  vault wallet is bound only to the vault's `parent`, and never to a
+  leased (`hos_lease`) account
+  ([VAULTS.md](https://github.com/out-layer/outlayer/blob/main/VAULTS.md#a-vault-wallet-is-bound-only-to-the-parent)).
 
 ---
 
@@ -10127,9 +10235,9 @@ Do this once when you deploy each vault and store the result offline:
    finalize any recovery. Treat it like a cold-storage wallet.
 3. **`wallet_id`** (UUID) and **`near_account_id`** of every custody
    wallet minted under the vault. `POST /register {"vault_id": "..."}`
-   returns them once; save the response. A wallet's NEAR key is
-   `HMAC-SHA256(per_vault_master, "wallet:<wallet_id>:near")`, so
-   without the UUID you cannot reach a specific wallet's key. Wallets
+   returns them once; save the response. Every key of a wallet is
+   `HMAC-SHA256(per_vault_master, <seed>)` with the wallet id in the
+   seed (B.2), so without the UUID you cannot reach a wallet's keys. Wallets
    created by a signed claim (`PUT /wallet/v1/api-key` or `Bearer
    near:` with a `vault_id`) have a deterministic id you can recompute
    offline with `customer-recovery compute-wallet-id --account-id
@@ -10357,51 +10465,82 @@ encrypted under it.
 
 #### B.2 Re-derive each wallet's keys
 
-For every NEAR wallet you minted under the vault:
+For every wallet you minted under the vault:
 
 ```bash
 ./scripts/customer-recovery/target/release/customer-recovery derive-wallet-key \
     --master "$MASTER_HEX" \
-    --wallet-id "<the UUID you saved at registration>"
+    --wallet-id "<the UUID you saved at registration>" \
+    --chain all
 ```
 
-Output is JSON:
+Output is JSON, one entry per key:
 
 ```json
 {
   "wallet_id": "...",
-  "near_address": "<hex>",
-  "public_key": "ed25519:...",
-  "private_key": "ed25519:..."
+  "keys": [
+    { "chain": "near",   "seed": "wallet:<id>:near",   "address": "<hex>",   "public_key": "ed25519:<base58>",  "private_key": "ed25519:<base58>" },
+    { "chain": "evm",    "seed": "wallet:<id>:evm",    "address": "0x<hex>", "public_key": "secp256k1:<hex>",   "private_key": "0x<hex>" },
+    { "chain": "solana", "seed": "wallet:<id>:solana", "address": "<base58>", "public_key": "<base58>",         "private_key": "<base58>" }
+  ]
 }
 ```
 
-`near_address` MUST equal the `near_account_id` the coordinator
-returned at registration. If it differs, the derivation recipe and the
-keystore have diverged — file a bug.
+What it derives, and the flags that pick it:
+
+| Flag | Key | Seed | Address | `private_key` (the form wallets import) |
+|---|---|---|---|---|
+| `--chain near` | NEAR | `wallet:<wallet_id>:near` | implicit account: hex of the ed25519 public key | `ed25519:<base58 of seed ‖ public key>` — near-cli, NEAR wallets |
+| `--chain evm` (or any EVM network name: `ethereum`, `base`, …) | EVM, one key for every EVM network | `wallet:<wallet_id>:evm` | `0x` + last 20 bytes of keccak256(uncompressed public key), lower case | `0x` + the 32-byte secp256k1 scalar — MetaMask and every EVM wallet |
+| `--chain solana` (or `sol`) | Solana | `wallet:<wallet_id>:solana` | base58 of the ed25519 public key | base58 of the 64-byte `seed ‖ public key` keypair — Phantom, Solflare, Backpack; solana-cli's keypair file is the same 64 bytes as a JSON array |
+| `--sub-path <p>` (repeatable) | EVM sub-key | `subkey:<wallet_id>:evm:<p>` | as EVM | as EVM |
+| `--checks <n>` | payment checks 0 … n−1 | `wallet:<wallet_id>:near:check:<i>` | NEAR implicit account | as NEAR |
+
+`--chain all` is the first three rows; `--chain` repeats. Every key is
+`HMAC-SHA256(master, seed)` used as the key material: an ed25519 seed
+for NEAR and Solana, a secp256k1 scalar (big-endian) for EVM
+(keystore `api.rs::wallet_seed`, `subkey_seed`,
+`ephemeral_keys.rs`, `crypto.rs`). The EVM and sub-key `public_key`
+is the compressed point, `secp256k1:<hex>`, as `GET
+/wallet/v1/address` serves it; the NEAR `public_key` is NEAR's
+`ed25519:<base58>`, where that endpoint serves `ed25519:<hex>` of the
+same key.
+
+- **Sub-keys.** A sub-key is a separate EVM address of the wallet. Its
+  path is what the integration used: a connector's is
+  `connector.<connector_id>.<label>` — Hyperliquid's account is
+  `connector.hyperliquid.trading`, Polymarket's
+  `connector.polymarket.trading`. A path is taken exactly as the
+  keystore takes it, `[a-z0-9][a-z0-9._-]{0,63}`; any other is refused.
+  The master cannot list the paths a wallet used: pass each one.
+- **Payment checks.** A check's funds sit in `intents.near` under the
+  check's own NEAR implicit account until someone claims them. The
+  checks of a wallet are numbered from 0 in the order they were
+  created; `--checks <n>` derives the first n. The same key was given
+  to the check's recipient, who can claim it first.
+
+Without `--chain`, `--sub-path` or `--checks`, the tool prints the NEAR
+key alone, as `{wallet_id, near_address, public_key, private_key}`.
+
+The NEAR `address` MUST equal the `near_account_id` the coordinator
+returned at registration, and every other address the one `GET
+/wallet/v1/address?chain=<chain>[&sub_path=<p>]` served. If one
+differs, the derivation recipe and the keystore have diverged — file a
+bug.
 
 You can now sign any NEAR transaction as that wallet:
 
 ```bash
-near tokens "<near_address>" send-near alice.near '0.01 NEAR' \
+near tokens "<near address>" send-near alice.near '0.01 NEAR' \
     network-config mainnet \
     sign-with-plaintext-private-key 'ed25519:...' send
 ```
 
 Balances held for the wallet in other contracts (for example
 `intents.near`) belong to the same account and move with transactions
-signed by this key.
-
-`derive-wallet-key` covers the NEAR key only. The wallet's other chain
-keys use the same master with these seeds (keystore
-`api.rs::wallet_seed`, `crypto.rs`); the tool has no subcommand for
-them, so derive them with any HMAC-SHA256 implementation:
-
-| Chain | Seed | Key |
-|---|---|---|
-| NEAR | `wallet:<wallet_id>:near` | ed25519 seed = HMAC output |
-| EVM (all EVM chains, one address) | `wallet:<wallet_id>:evm` | secp256k1 secret scalar = HMAC output (big-endian) |
-| Solana | `wallet:<wallet_id>:solana` | ed25519 seed = HMAC output |
+signed by this key. The EVM and Solana keys import into any wallet of
+their chain.
 
 #### B.3 Decrypt each on-chain secret
 
@@ -10465,6 +10604,26 @@ A copy of the master taken before the exit is not affected by it — see
 - **`/call/<owner>/<project>` with vault-bound secrets** — refused with
   HTTP 423. Execution that does not use vault-bound secrets is
   unaffected.
+- **Spending with the payment keys of the vault's wallets** — every key
+  a wallet of the vault owns, the nonce-0 key (trial, sponsored or gift
+  credit, which ends here) and funded keys alike, answers `403` with
+  `reason: "wallet_exited"` to a call and a subscription purchase. The
+  run of an approved task answers nothing: the task fails
+  `preparer_key_unavailable`, or `queue_unavailable` when the chain does
+  not answer whether the wallet is still in custody. The money on a
+  funded key stays the wallet's: sign as the wallet's NEAR account with
+  the key re-derived in B.2 (`outlayer login` with that account and
+  key), run `outlayer keys close <nonce>` (`close_payment_key`), and
+  24 hours later `outlayer keys claim <nonce>` (`claim_payment_key_refund`).
+  A stablecoin balance deposited on the account comes back with the
+  contract's `withdraw_balance`. Allowance, grants and trial credit are
+  not refunded.
+
+  The same keys spend nothing while the keystore DAO does not verify
+  the vault (`403 wallet_exited` with `terminal: false`: they spend
+  again if the DAO verifies it again). The vault is then not served, so
+  the wallet's NEAR key comes only from the master this exit recovers:
+  Phase A, then B.1 and B.2, then the same close and claim.
 - **The dashboard** shows the vault as `UNLOCKED (recovered)`. Unlock
   is one-way: no method re-locks a vault.
 

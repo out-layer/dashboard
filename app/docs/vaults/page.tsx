@@ -396,10 +396,14 @@ outlayer vault finalize-recovery vault.alice.near "$NEW_PUBKEY"
  Changing the window via <code>set_exit_window</code> only
           affects future recoveries &mdash; an in-flight
           recovery&rsquo;s finalize timestamps are frozen at initiate
- time. Like cessation, <strong>finalize is parent-only</strong>          and atomically swaps OutLayer&rsquo;s TEE keys for <code>new_parent_pubkey</code>.
+ time. A longer window applies at once; a shorter one applies only
+          after the window in force has elapsed (<code>outlayer vault status</code> shows
+          the lowering and the time it applies), so a holder of the parent key cannot shorten the
+          wait faster than the wait itself. A vault of the first contract
+          version lowers its window at once. Like cessation, <strong>finalize is parent-only</strong>          and atomically swaps OutLayer&rsquo;s TEE keys for <code>new_parent_pubkey</code>.
         </p>
         <SyntaxHighlighter language="bash" style={vscDarkPlus}>
-{`outlayer vault set-exit-window               vault.alice.near 24h  # optional, only affects future recoveries
+{`outlayer vault set-exit-window               vault.alice.near 7d   # optional: longer applies at once, shorter after the current window
 outlayer vault initiate-unilateral-recovery  vault.alice.near
 # (wait the configured window)
 NEW_PUBKEY=$(jq -r .public_key ~/.outlayer-recovery/vault.alice.near.json)

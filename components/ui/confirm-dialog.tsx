@@ -5,7 +5,9 @@ import { useEffect, useRef, type ReactNode } from 'react';
 /**
  * A dialog that says what an action will do before the wallet is opened for
  * it. The action runs from the click on its button inside the dialog, and
- * from nothing else; Cancel, Escape and a click outside close it.
+ * from nothing else; Cancel, Escape and a click outside close it. A wallet
+ * that refuses leaves the dialog open with `error` under the text, so the same
+ * button tries again.
  */
 export function ConfirmDialog({
   title,
@@ -13,6 +15,7 @@ export function ConfirmDialog({
   action,
   destructive = false,
   busy = false,
+  error = null,
   onConfirm,
   onClose,
 }: {
@@ -22,6 +25,8 @@ export function ConfirmDialog({
   action: string;
   destructive?: boolean;
   busy?: boolean;
+  /** Why the last attempt did not go through. */
+  error?: string | null;
   onConfirm: () => void;
   onClose: () => void;
 }) {
@@ -47,6 +52,11 @@ export function ConfirmDialog({
           {title}
         </h2>
         <div className="mt-3 space-y-2 text-sm text-muted-foreground">{children}</div>
+        {error && (
+          <p role="alert" className="mt-3 break-words rounded border border-destructive/30 bg-destructive/10 p-2 text-sm text-destructive-text">
+            {error}
+          </p>
+        )}
         <div className="mt-5 flex justify-end gap-2">
           <button
             ref={cancel}

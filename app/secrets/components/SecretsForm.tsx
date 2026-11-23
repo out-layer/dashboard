@@ -710,8 +710,13 @@ export function SecretsForm({
         resetForm();
       }
     } catch (err) {
-      console.error('Encryption error:', err);
-      setError(`Failed to encrypt secrets: ${(err as Error).message}`);
+      // A closed signing dialog keeps what was typed and says only that.
+      if ((err as Error).name === 'NotSigned') {
+        setError((err as Error).message);
+      } else {
+        console.error('Encryption error:', err);
+        setError(`Failed to encrypt secrets: ${(err as Error).message}`);
+      }
     } finally {
       setEncrypting(false);
     }

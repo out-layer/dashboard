@@ -7,6 +7,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNearWallet } from '@/contexts/NearWalletContext';
 import { actionCreators } from '@near-js/transactions';
 import { EmptyState } from '@/components/ui/empty-state';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { ProjectCard } from './components/ProjectCard';
 import { CreateProjectForm } from './components/CreateProjectForm';
 import { AddVersionForm } from './components/AddVersionForm';
@@ -33,6 +34,12 @@ export default function ProjectsPage() {
 
   // Messages
   const [error, setError] = useState<string | null>(null);
+  /** A removal said in words before the wallet opens; its button sends the transaction. */
+  const [confirming, setConfirming] = useState<
+    { kind: 'version'; project: string; version: string } | { kind: 'project'; project: string } | null
+  >(null);
+  const [sending, setSending] = useState(false);
+  const [confirmError, setConfirmError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
   // Load user's projects
@@ -282,62 +289,89 @@ export default function ProjectsPage() {
 
   // Remove version handler
   const handleRemoveVersion = async (projectName: string, versionKey: string) => {
-    if (!confirm(`Remove version "${versionKey}"? This cannot be undone.`)) {
-      return;
-    }
+    const action = actionCreators.functionCall(
+      'remove_version',
+      { project_name: projectName, version_key: versionKey },
+      BigInt('30000000000000'), // 30 TGas
+      BigInt('0')
+    );
 
-    try {
-      const action = actionCreators.functionCall(
-        'remove_version',
-        { project_name: projectName, version_key: versionKey },
-        BigInt('30000000000000'), // 30 TGas
-        BigInt('0')
-      );
+    await signAndSendTransaction({
+      receiverId: contractId,
+      actions: [action],
+    });
 
-      await signAndSendTransaction({
-        receiverId: contractId,
-        actions: [action],
-      });
-
-      setSuccess('Version removed! Storage deposit refunded.');
-      const projectId = `${accountId}/${projectName}`;
-      const project = projects.find(p => p.project_id === projectId);
-      if (project) {
-        setTimeout(() => loadVersions(projectId, project.uuid), 2000);
-      }
-    } catch (err) {
-      setError(`Failed to remove version: ${(err as Error).message}`);
+    setSuccess('Version removed! Storage deposit refunded.');
+    const projectId = `${accountId}/${projectName}`;
+    const project = projects.find(p => p.project_id === projectId);
+    if (project) {
+      setTimeout(() => loadVersions(projectId, project.uuid), 2000);
     }
   };
 
   // Delete project handler
   const handleDeleteProject = async (projectName: string) => {
-    if (!confirm(`Delete project "${projectName}"? This will remove all versions and cannot be undone.`)) {
-      return;
-    }
+    const action = actionCreators.functionCall(
+      'delete_project',
+      { project_name: projectName },
+      BigInt('50000000000000'), // 50 TGas
+      BigInt('0')
+    );
 
+    await signAndSendTransaction({
+      receiverId: contractId,
+      actions: [action],
+    });
+
+    setSuccess('Project deleted! Storage deposit refunded.');
+    setTimeout(() => loadProjects(), 2000);
+  };
+
+  // The wallet opens from the click on the dialog's button, with nothing
+  // awaited before it; a browser dialog in front of it would spend that click.
+  const sendConfirmed = async () => {
+    if (!confirming) return;
+    setSending(true);
+    setConfirmError(null);
     try {
-      const action = actionCreators.functionCall(
-        'delete_project',
-        { project_name: projectName },
-        BigInt('50000000000000'), // 50 TGas
-        BigInt('0')
-      );
-
-      await signAndSendTransaction({
-        receiverId: contractId,
-        actions: [action],
-      });
-
-      setSuccess('Project deleted! Storage deposit refunded.');
-      setTimeout(() => loadProjects(), 2000);
+      if (confirming.kind === 'version') await handleRemoveVersion(confirming.project, confirming.version);
+      else await handleDeleteProject(confirming.project);
+      setConfirming(null);
     } catch (err) {
-      setError(`Failed to delete project: ${(err as Error).message}`);
+      setConfirmError((err as Error).message);
+    } finally {
+      setSending(false);
     }
   };
 
   return (
  <div className="w-full">
+      {confirming && (
+        <ConfirmDialog
+          title={confirming.kind === 'version' ? 'Remove this version?' : `Delete project “${confirming.project}”?`}
+          action={confirming.kind === 'version' ? 'Sign: remove the version' : 'Sign: delete the project'}
+          destructive
+          busy={sending}
+          error={confirmError}
+          onConfirm={sendConfirmed}
+          onClose={() => {
+            setConfirming(null);
+            setConfirmError(null);
+          }}
+        >
+          {confirming.kind === 'version' ? (
+            <p>
+              Version <code className="break-all font-mono text-xs">{confirming.version}</code> of {confirming.project} is
+              removed from the contract, and its storage deposit comes back to your account. This cannot be undone.
+            </p>
+          ) : (
+            <p>
+              The project and every version of it are removed from the contract, and the storage deposit comes back to
+              your account. This cannot be undone.
+            </p>
+          )}
+        </ConfirmDialog>
+      )}
       {/* Header */}
       <PageHeader
         title="Projects"
@@ -422,8 +456,8 @@ export default function ProjectsPage() {
                     )}
                     onAddVersion={() => setAddVersionForProject(project.name)}
                     onSetActiveVersion={(wasmHash) => handleSetActiveVersion(project.name, wasmHash)}
-                    onRemoveVersion={(wasmHash) => handleRemoveVersion(project.name, wasmHash)}
-                    onDeleteProject={() => handleDeleteProject(project.name)}
+                    onRemoveVersion={(versionKey) => setConfirming({ kind: 'version', project: project.name, version: versionKey })}
+                    onDeleteProject={() => setConfirming({ kind: 'project', project: project.name })}
                   />
                   {addVersionForProject === project.name && (
  <div className="mt-2">

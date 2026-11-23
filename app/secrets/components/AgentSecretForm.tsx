@@ -5,6 +5,8 @@ import { eciesEncrypt } from '@/lib/ecies';
 import { getAllWalletKeys } from '@/lib/wallet-keys';
 import { listAllUserSecrets } from '@/lib/user-secrets';
 import { InfoHint } from '@/components/ui/info-hint';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { formatNear } from '@/lib/owner-exit';
 import { actionCreators } from '@near-js/transactions';
 
 /**
@@ -150,6 +152,16 @@ export function AgentSecretForm({
   const [plaintext, setPlaintext] = useState('{\n  "API_KEY": "your-api-key"\n}');
   const [agentAccount, setAgentAccount] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  /** Which button's call is being prepared, before any dialog. */
+  const [preparing, setPreparing] = useState<'store' | 'delete' | null>(null);
+  /**
+   * A call the coordinator prepared and this page checked: one click from the
+   * wallet. A refusing wallet leaves it in place, with the reason.
+   */
+  const [prepared, setPrepared] = useState<
+    { kind: 'store' | 'delete'; call: PreparedCall; agentAccount: string; where: string } | null
+  >(null);
+  const [sendError, setSendError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [held, setHeld] = useState<AgentSecret[] | null>(null);
@@ -274,6 +286,7 @@ export function AgentSecretForm({
     }
 
     setBusy(true);
+    setPreparing('store');
     try {
       // 1. The key to seal to, and the account this secret will belong to.
       const { pubkey, agent_account } = await fetchPubkey();
@@ -308,25 +321,14 @@ export function AgentSecretForm({
       });
       if (complaint) throw new Error(complaint);
 
-      // 4. Send it. The receiver is OUR contract id, not the one the answer
-      //    named — they were just compared.
-      const action = actionCreators.functionCall(
-        prepared.method_name,
-        prepared.args,
-        BigInt(prepared.gas),
-        BigInt(prepared.deposit || DEPOSIT_YOCTO),
-      );
-      const sent = await signAndSendTransaction({ receiverId: contractId, actions: [action] });
-
-      setSuccess(
-        `Stored for agent ${agent_account.substring(0, 12)}… on ${scopeLabel(scope)} — paid by ${accountId}. Transaction: ${sent?.transaction?.hash || 'completed'}`,
-      );
-      // The chain trails a transaction that has only just landed.
-      setTimeout(() => loadHeld(agent_account), 2000);
+      // 4. Sent from the dialog's button.
+      setSendError(null);
+      setPrepared({ kind: 'store', call: prepared, agentAccount: agent_account, where: scopeLabel(scope) });
     } catch (err) {
       setError((err as Error).message);
     } finally {
       setBusy(false);
+      setPreparing(null);
     }
   };
 
@@ -342,11 +344,9 @@ export function AgentSecretForm({
       setError("Choose the agent's wallet key and name the project or WASM hash whose secret should go.");
       return;
     }
-    if (!confirm(`Delete the secret left for this agent on ${scopeLabel(scope)}?\n\nThis cannot be undone — the plaintext exists nowhere else.`)) {
-      return;
-    }
-
+    // The unsigned work first; the wallet opens later, from the dialog's button.
     setBusy(true);
+    setPreparing('delete');
     try {
       const resp = await fetch(`${coordinatorUrl}/wallet/v1/agent-secret/delete/prepare`, {
         method: 'POST',
@@ -371,21 +371,44 @@ export function AgentSecretForm({
         agentAccount: prepared.agent_account,
       });
       if (complaint) throw new Error(complaint);
-
-      const action = actionCreators.functionCall(
-        prepared.method_name,
-        prepared.args,
-        BigInt(prepared.gas),
-        BigInt(0), // not payable; the deposit travels back to the sender
-      );
-      const sent = await signAndSendTransaction({ receiverId: contractId, actions: [action] });
-
-      setSuccess(
-        `Deleted the secret for agent ${prepared.agent_account.substring(0, 12)}… — the storage deposit went back to ${accountId}. Transaction: ${sent?.transaction?.hash || 'completed'}`,
-      );
-      setTimeout(() => loadHeld(prepared.agent_account), 2000);
+      setSendError(null);
+      setPrepared({ kind: 'delete', call: prepared, agentAccount: prepared.agent_account, where: scopeLabel(scope) });
     } catch (err) {
       setError((err as Error).message);
+    } finally {
+      setBusy(false);
+      setPreparing(null);
+    }
+  };
+
+  // From the click on the dialog's button, with nothing awaited before the
+  // wallet. The receiver is OUR contract id, not the one the answer named —
+  // they were compared when it was prepared.
+  const sendPrepared = async () => {
+    const step = prepared;
+    if (!step) return;
+    setBusy(true);
+    setSendError(null);
+    try {
+      const action = actionCreators.functionCall(
+        step.call.method_name,
+        step.call.args,
+        BigInt(step.call.gas),
+        // A delete is not payable; its deposit travels back to the sender.
+        step.kind === 'store' ? BigInt(step.call.deposit || DEPOSIT_YOCTO) : BigInt(0),
+      );
+      const sent = await signAndSendTransaction({ receiverId: contractId, actions: [action] });
+      const hash = sent?.transaction?.hash || 'completed';
+      setSuccess(
+        step.kind === 'store'
+          ? `Stored for agent ${step.agentAccount.substring(0, 12)}… on ${step.where} — paid by ${accountId}. Transaction: ${hash}`
+          : `Deleted the secret for agent ${step.agentAccount.substring(0, 12)}… — the storage deposit went back to ${accountId}. Transaction: ${hash}`,
+      );
+      setPrepared(null);
+      // The chain trails a transaction that has only just landed.
+      setTimeout(() => loadHeld(step.agentAccount), 2000);
+    } catch (err) {
+      setSendError((err as Error).message);
     } finally {
       setBusy(false);
     }
@@ -395,6 +418,44 @@ export function AgentSecretForm({
 
   return (
  <div className="border border-border rounded-lg bg-card p-5">
+      {prepared && (
+        <ConfirmDialog
+          title={prepared.kind === 'store' ? 'Store the secret for this agent?' : "Delete the agent's secret?"}
+          action={prepared.kind === 'store' ? 'Sign: store the secret' : 'Sign: delete the secret'}
+          destructive={prepared.kind === 'delete'}
+          busy={busy}
+          error={sendError}
+          onConfirm={sendPrepared}
+          onClose={() => {
+            setPrepared(null);
+            setSendError(null);
+          }}
+        >
+          {prepared.kind === 'store' ? (
+            <>
+              <p>
+                Stored in the contract under the agent&rsquo;s account{' '}
+                <span className="break-all font-mono text-xs text-foreground">{prepared.agentAccount}</span>, for{' '}
+                {prepared.where}, encrypted in this browser to that agent&rsquo;s key. A secret already stored there is
+                replaced.
+              </p>
+              <p>Who can read it: only that agent, for that code — not you.</p>
+              <p>
+                You pay: up to {formatNear(BigInt(prepared.call.deposit || DEPOSIT_YOCTO))} NEAR storage deposit from{' '}
+                {accountId}; what storage does not take comes back. To undo, delete it with the same key and project here;
+                the deposit returns to {accountId}.
+              </p>
+            </>
+          ) : (
+            <p>
+              The secret left for agent{' '}
+              <span className="break-all font-mono text-xs text-foreground">{prepared.agentAccount}</span> on{' '}
+              {prepared.where} is removed from the contract, and the storage deposit comes back to {accountId}. This cannot
+              be undone: the plaintext exists nowhere else.
+            </p>
+          )}
+        </ConfirmDialog>
+      )}
  <div className="flex items-start justify-between gap-3">
  <div>
  <h2 className="text-lg font-semibold text-foreground">
@@ -596,14 +657,14 @@ export function AgentSecretForm({
             disabled={busy || !isConnected}
  className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
           >
-            {busy ? 'Working…' : 'Store for agent'}
+            {preparing === 'store' ? 'Preparing…' : 'Store for agent'}
  </button>
  <button
             onClick={remove}
             disabled={busy || !isConnected}
  className="rounded-md border border-destructive px-4 py-2 text-sm font-medium text-destructive-text disabled:opacity-50"
           >
-            Delete agent secret
+            {preparing === 'delete' ? 'Preparing…' : 'Delete agent secret'}
  </button>
  </div>
  <p className="text-xs text-muted-foreground">

@@ -1,12 +1,13 @@
 'use client';
 
 import { CopyText } from '@/components/ui/copy-text';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { PageHeader } from '@/components/ui/page-header';
 import { RequireWallet } from '@/components/ui/require-wallet';
-import { Suspense, useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { Suspense, useState, useEffect, useCallback, useMemo, useRef, type ReactNode } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useNearWallet } from '@/contexts/NearWalletContext';
-import { actionCreators } from '@near-js/transactions';
+import { actionCreators, type Action } from '@near-js/transactions';
 import { SecretsForm } from './components/SecretsForm';
 import { AgentSecretForm } from './components/AgentSecretForm';
 import { SecretsList } from './components/SecretsList';
@@ -15,6 +16,27 @@ import { UserSecret, SecretAccessor, FormData, isRepoAccessor, isWasmHashAccesso
 import { grantsOf, withoutGrant, implicitAccountOf, nsToIsoUtc, openPersonalRows, chainReadRefusal, buildHashRefusal } from './components/utils';
 import { getCoordinatorApiUrl } from '@/lib/api';
 import { listAllUserSecrets } from '@/lib/user-secrets';
+import { formatNear } from '@/lib/owner-exit';
+
+/** A transaction prepared on this page, said in words; the dialog's button opens the wallet for it. */
+interface SignStep {
+  title: string;
+  action: string;
+  destructive?: boolean;
+  body: ReactNode;
+  actions: Action[];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  resolve: (outcome: any) => void;
+  reject: (err: Error) => void;
+}
+
+/** The dialog was closed without signing: nothing was sent. */
+class NotSigned extends Error {
+  constructor() {
+    super('Not signed: nothing was sent.');
+    this.name = 'NotSigned';
+  }
+}
 
 // The form's accessor for a row it may update. A row bound to a repository is
 // shown and deleted, never updated.
@@ -263,6 +285,38 @@ function SecretsPageContent() {
     }
   }, [isConnected, accountId, loadUserSecrets]);
 
+  // Every transaction on this page is prepared first — priced, checked — and
+  // then said in a dialog; the wallet opens from the click on its button, with
+  // nothing awaited before it. A refusing wallet leaves the dialog open.
+  const [signStep, setSignStep] = useState<SignStep | null>(null);
+  const [signing, setSigning] = useState(false);
+  const [signError, setSignError] = useState<string | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const askToSign = (step: Omit<SignStep, 'resolve' | 'reject'>): Promise<any> =>
+    new Promise((resolve, reject) => {
+      setSignError(null);
+      setSignStep({ ...step, resolve, reject });
+    });
+  const sendSignStep = async () => {
+    if (!signStep) return;
+    setSigning(true);
+    setSignError(null);
+    try {
+      const outcome = await signAndSendTransaction({ receiverId: contractId, actions: signStep.actions });
+      setSignStep(null);
+      signStep.resolve(outcome);
+    } catch (err) {
+      setSignError((err as Error).message);
+    } finally {
+      setSigning(false);
+    }
+  };
+  const closeSignStep = () => {
+    signStep?.reject(new NotSigned());
+    setSignStep(null);
+    setSignError(null);
+  };
+
   // Clear messages after 5 seconds
   useEffect(() => {
     if (error || success) {
@@ -319,7 +373,7 @@ function SecretsPageContent() {
         vault_id: formData.vaultId,
       };
 
-      // Estimate storage cost via viewMethod
+      // The unsigned work first; the wallet opens from the dialog's button.
       const estimatedCost = await viewMethod({
         contractId,
         method: estimateMethod,
@@ -343,12 +397,41 @@ function SecretsPageContent() {
         BigInt(costString) // Exact storage cost
       );
 
-      const response = await signAndSendTransaction({
-        receiverId: contractId,
+      const target = `${getAccessorLabel(accessor as SecretAccessor)} / ${formData.profile}`;
+      const replaces =
+        !!editingSecret ||
+        userSecrets.some(
+          (s) => s.accessor && getAccessorLabel(s.accessor) === getAccessorLabel(accessor as SecretAccessor) && s.profile === formData.profile,
+        );
+      const response = await askToSign({
+        title: replaces ? 'Replace these secrets?' : 'Store these secrets?',
+        action: replaces ? 'Sign: replace the secrets' : 'Sign: store the secrets',
+        destructive: replaces,
         actions: [action],
+        body: (
+          <>
+            <p>
+              Stored in the contract under your account <span className="break-all font-mono text-xs text-foreground">{accountId}</span>:
+              the secrets for <span className="break-all font-mono text-xs text-foreground">{target}</span>, encrypted in this
+              browser to the keystore&rsquo;s key.
+            </p>
+            <p>
+              Who can read them: the keystore decrypts them only for a run of that code that meets the access condition. The
+              contract holds ciphertext only.
+            </p>
+            {replaces && (
+              <p className="text-destructive-text">
+                The secrets stored there now are replaced and cannot be recovered.
+              </p>
+            )}
+            <p>
+              Storage deposit: {formatNear(BigInt(costString))} NEAR, returned when you delete them on this page.
+            </p>
+          </>
+        ),
       });
 
-      setSuccess(`Secrets ${editingSecret ? 'updated' : 'created'} successfully! Transaction: ${response?.transaction?.hash || 'completed'}`);
+      setSuccess(`Secrets ${replaces ? 'replaced' : 'created'} successfully! Transaction: ${response?.transaction?.hash || 'completed'}`);
       setEditingSecret(null);
 
       // Reload secrets list
@@ -356,8 +439,10 @@ function SecretsPageContent() {
         loadUserSecrets();
       }, 2000);
     } catch (err) {
-      setError(`Failed to save secrets: ${(err as Error).message}`);
-      console.error(err);
+      if (!(err instanceof NotSigned)) {
+        setError(`Failed to save secrets: ${(err as Error).message}`);
+        console.error(err);
+      }
       throw err;
     }
   };
@@ -408,8 +493,13 @@ function SecretsPageContent() {
   // whitelist asks only for the growth and narrowing one refunds the
   // difference. The list carries metadata only, so the row is re-read for the
   // ciphertext the price depends on.
-  const sendAccess = async (secret: UserSecret, newAccess: unknown) => {
+  const sendAccess = async (
+    secret: UserSecret,
+    newAccess: unknown,
+    wording: { title: string; action: string; destructive?: boolean; what: ReactNode },
+  ) => {
     let deposit = BigInt('0');
+    let priced = false;
     try {
       const row = await viewMethod({
         contractId,
@@ -433,6 +523,7 @@ function SecretsPageContent() {
         },
       });
       deposit = BigInt(String(estimate ?? '0'));
+      priced = true;
     } catch (err) {
       // An unpriced edit is refused by the contract when it grows the row, and
       // the message says so. Failing here instead would also stop the edits
@@ -445,7 +536,23 @@ function SecretsPageContent() {
       BigInt('30000000000000'), // 30 TGas
       deposit
     );
-    await signAndSendTransaction({ receiverId: contractId, actions: [action] });
+    await askToSign({
+      title: wording.title,
+      action: wording.action,
+      destructive: wording.destructive,
+      actions: [action],
+      body: (
+        <>
+          {wording.what}
+          <p>The encrypted value is not touched.</p>
+          <p>
+            {priced
+              ? `Attached: ${formatNear(deposit)} NEAR. The deposit already held counts towards it; the contract keeps what the new condition takes to store and sends the rest back in the same transaction.`
+              : 'The storage could not be priced, so nothing is attached. If the new condition takes more storage than the deposit already held, the contract refuses it and nothing changes.'}
+          </p>
+        </>
+      ),
+    });
     setSuccess('Access updated. The secret itself was not touched.');
     setTimeout(() => loadUserSecrets(), 2000);
   };
@@ -459,7 +566,19 @@ function SecretsPageContent() {
       // The editor catches this and shows it beside the tree being edited.
       throw new Error(tooWide);
     }
-    await sendAccess(accessSecret, newAccess);
+    await sendAccess(accessSecret, newAccess, {
+      title: 'Change who can read this secret?',
+      action: 'Sign: update access',
+      what: (
+        <p>
+          The access condition of{' '}
+          <span className="break-all font-mono text-xs text-foreground">
+            {getAccessorLabel(accessSecret.accessor)} / {accessSecret.profile}
+          </span>{' '}
+          becomes the one in the editor. Change it back the same way, with Access.
+        </p>
+      ),
+    });
     setAccessSecret(null);
   };
 
@@ -480,14 +599,27 @@ function SecretsPageContent() {
         setError(`${tooWide} Open “Access” on this secret to edit the condition as a whole.`);
         return;
       }
-      await sendAccess(secret, next);
+      await sendAccess(secret, next, {
+        title: 'Revoke this account?',
+        action: 'Sign: revoke access',
+        destructive: true,
+        what: (
+          <p>
+            <span className="break-all font-mono text-xs text-foreground">{account}</span> can no longer have{' '}
+            <span className="break-all font-mono text-xs text-foreground">
+              {getAccessorLabel(secret.accessor)} / {secret.profile}
+            </span>{' '}
+            decrypted. The rest of the condition stays as it is; to hand it back, add the account with Access.
+          </p>
+        ),
+      });
       // This revoke's condition came from the loaded list. Releasing the
       // buttons before the list catches up lets the NEXT revoke start from the
       // state before this one — which puts the account just removed back.
       await new Promise((resolve) => setTimeout(resolve, 2000));
       await loadUserSecrets();
     } catch (e) {
-      setError(`Failed to revoke: ${(e as Error).message}`);
+      if (!(e instanceof NotSigned)) setError(`Failed to revoke: ${(e as Error).message}`);
     } finally {
       setRevoking(null);
     }
@@ -556,33 +688,30 @@ function SecretsPageContent() {
       return;
     }
 
-    if (!confirm(`Delete secrets for ${label}? Storage deposit will be refunded automatically.`)) {
-      return;
-    }
-
+    const action = actionCreators.functionCall(
+      'delete_secrets',
+      { accessor: secret.accessor, profile: secret.profile },
+      BigInt('30000000000000'), // 30 TGas
+      BigInt('0') // the storage deposit comes back by itself
+    );
     try {
-      // Unified API - same method for both types
-      const args = {
-        accessor: secret.accessor,
-        profile: secret.profile,
-      };
-
-      const action = actionCreators.functionCall(
-        'delete_secrets',
-        args,
-        BigInt('30000000000000'), // 30 TGas
-        BigInt('0') // No deposit needed - storage deposit will be refunded automatically
-      );
-
-      await signAndSendTransaction({
-        receiverId: contractId,
+      await askToSign({
+        title: 'Delete these secrets?',
+        action: 'Sign: delete the secrets',
+        destructive: true,
         actions: [action],
+        body: (
+          <p>
+            <span className="break-all font-mono text-xs text-foreground">{label}</span> is removed from the contract, and
+            its storage deposit comes back to your account. Nobody can decrypt it afterwards — the plaintext is not kept
+            anywhere else.
+          </p>
+        ),
       });
-
       setSuccess('Secrets deleted successfully! Storage deposit refunded.');
       setTimeout(() => loadUserSecrets(), 2000);
     } catch (err) {
-      setError(`Failed to delete: ${(err as Error).message}`);
+      if (!(err instanceof NotSigned)) setError(`Failed to delete: ${(err as Error).message}`);
     }
   };
 
@@ -601,6 +730,19 @@ function SecretsPageContent() {
 
   return (
  <div className="w-full">
+      {signStep && (
+        <ConfirmDialog
+          title={signStep.title}
+          action={signStep.action}
+          destructive={signStep.destructive}
+          busy={signing}
+          error={signError}
+          onConfirm={sendSignStep}
+          onClose={closeSignStep}
+        >
+          {signStep.body}
+        </ConfirmDialog>
+      )}
       {/* Header */}
       <PageHeader
         title="Secrets"

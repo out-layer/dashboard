@@ -4,6 +4,8 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'next/navigation';
 import { actionCreators } from '@near-js/transactions';
 import { PageHeader } from '@/components/ui/page-header';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { formatNear } from '@/lib/owner-exit';
 import { PolicyEditor } from '@/components/policy/PolicyEditor';
 import { LoadPolicyBar } from '@/components/policy/LoadPolicyBar';
 import { ConfirmNeedsInbox } from '@/components/inbox/ConfirmNeedsInbox';
@@ -407,6 +409,10 @@ export function ConnectorOwnerPage({ spec }: { spec: ConnectorSpec }) {
   const [txHash, setTxHash] = useState<string | null>(null);
   /** The agent the first store named, for the done screen. */
   const [grantedTo, setGrantedTo] = useState<string | null>(null);
+  /** A first store sealed, checked and priced: one click from the wallet (rule 2). */
+  const [preparedStore, setPreparedStore] = useState<{ args: Record<string, unknown>; cost: string; agent: string | null } | null>(null);
+  const [pricing, setPricing] = useState(false);
+  const [storeError, setStoreError] = useState<string | null>(null);
   const attempted = useRef(false);
 
   // ---- the policy, as this page knows it ------------------------------
@@ -421,6 +427,8 @@ export function ConnectorOwnerPage({ spec }: { spec: ConnectorSpec }) {
   const [updateStage, setUpdateStage] = useState<UpdateStage>('idle');
   const [pendingCiphertext, setPendingCiphertext] = useState<string | null>(null);
   const [pendingSummary, setPendingSummary] = useState<{ total: number; updated: string[] } | null>(null);
+  /** The storage deposit for the re-sealed row, quoted before step 2 is shown. */
+  const [pendingCost, setPendingCost] = useState<string | null>(null);
   const [saved, setSaved] = useState<string | null>(null);
   /** A new credential for an existing row, waiting for the owner's signature. */
   const [reconnectCredential, setReconnectCredential] = useState<string | null>(null);
@@ -533,15 +541,18 @@ export function ConnectorOwnerPage({ spec }: { spec: ConnectorSpec }) {
     }
   }, [row, reconnectCredential, stage, prepareWithCredential]);
 
-  /** A first connection, step two, from a click: seal credential and policy, then one transaction. */
+  /**
+   * A first connection, step two, from a click: seal credential and policy,
+   * check and price the store. The wallet opens from the dialog that follows.
+   */
   const finish = useCallback(async () => {
     if (!policyOnly && (!credential || !rowPubkey)) return;
     if (grantAgentProblem) return;
     setError(null);
-    setStage('storing');
+    setStoreError(null);
+    setPricing(true);
     try {
-      // Rule 19: nothing was prepared ahead, so the row's key is fetched now —
-      // still before the wallet, and still from this click.
+      // Rule 19: nothing was prepared ahead, so the row's key is fetched now.
       const pubkey = rowPubkey ?? (await fetchRowPubkey());
       // Values are strings: a secret row is `HashMap<String, String>`, so the
       // policy travels as JSON text.
@@ -567,19 +578,11 @@ export function ConnectorOwnerPage({ spec }: { spec: ConnectorSpec }) {
       }
       const cost = await viewMethod({ contractId, method: 'estimate_storage_cost', args: { ...args, owner: accountId } });
       if (!cost) throw new Error('The contract would not quote the storage cost.');
-      const response = await signAndSendTransaction({
-        receiverId: contractId,
-        actions: [actionCreators.functionCall('store_secrets', args, BigInt('50000000000000'), BigInt(String(cost)))],
-      });
-      setTxHash(response?.transaction?.hash ?? null);
-      setCredential(null);
-      setGrantedTo(grantAgentTrimmed || null);
-      setStage('done');
+      setPreparedStore({ args, cost: String(cost), agent: grantAgentTrimmed || null });
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
-      // Back to `ready`, not to the start (rule 3). A policy-only page has no
-      // `ready`: its first screen is the stop, so it goes back there.
-      setStage(policyOnly ? 'idle' : 'ready');
+    } finally {
+      setPricing(false);
     }
   }, [
     accountId,
@@ -598,10 +601,32 @@ export function ConnectorOwnerPage({ spec }: { spec: ConnectorSpec }) {
     profile,
     published,
     rowPubkey,
-    signAndSendTransaction,
     spec,
     viewMethod,
   ]);
+
+  /** From the dialog's button, with nothing awaited before the wallet (rule 1). */
+  const sendStore = async () => {
+    const step = preparedStore;
+    if (!step) return;
+    setStoreError(null);
+    setStage('storing');
+    try {
+      const response = await signAndSendTransaction({
+        receiverId: contractId,
+        actions: [actionCreators.functionCall('store_secrets', step.args, BigInt('50000000000000'), BigInt(step.cost))],
+      });
+      setPreparedStore(null);
+      setTxHash(response?.transaction?.hash ?? null);
+      setCredential(null);
+      setGrantedTo(step.agent);
+      setStage('done');
+    } catch (e) {
+      // Rule 3: the dialog stays, with the reason, and the same button tries again.
+      setStoreError(e instanceof Error ? e.message : String(e));
+      setStage(policyOnly ? 'idle' : 'ready');
+    }
+  };
 
   // ---- an existing row: read the policy by running the connector ----------
   const openAnswer = useCallback(
@@ -710,6 +735,24 @@ export function ConnectorOwnerPage({ spec }: { spec: ConnectorSpec }) {
   }, [REPLY_KEY, accountId, loadRow, openAnswer, route, rpcUrl]);
 
   // ---- an existing row: merge new keys into it -----------------------------
+  /** The args that store a re-sealed row under the rule it has now. */
+  const updateArgs = useCallback(
+    (ciphertext: string) => {
+      if (!loaded) throw new Error('The stored row is not loaded; reload the page.');
+      return { accessor: forContract, profile, encrypted_secrets_base64: ciphertext, access: loaded.access, vault_id: vaultId };
+    },
+    [forContract, loaded, profile, vaultId],
+  );
+  /** The storage deposit the contract asks for a re-sealed row. */
+  const quoteRow = useCallback(
+    async (ciphertext: string) => {
+      const cost = await viewMethod({ contractId, method: 'estimate_storage_cost', args: { ...updateArgs(ciphertext), owner: accountId } });
+      if (!cost) throw new Error('The contract would not quote the storage cost.');
+      return String(cost);
+    },
+    [accountId, contractId, updateArgs, viewMethod],
+  );
+
   /** Step one, from a click: the owner signs, the keystore re-seals the row. Nothing on chain yet. */
   const beginUpdate = useCallback(
     async (next: Update) => {
@@ -767,6 +810,10 @@ export function ConnectorOwnerPage({ spec }: { spec: ConnectorSpec }) {
         }
         setPendingCiphertext(answer.encrypted_secrets_base64);
         setPendingSummary({ total, updated });
+        // Quoted now, so that step 2 is one click that opens the wallet and
+        // nothing else (rule 1). A quote that fails here is asked for again on
+        // step 2 — the re-sealed row stays in hand.
+        setPendingCost(await quoteRow(answer.encrypted_secrets_base64).catch(() => null));
         setUpdateStage('ready-to-store');
       } catch (e) {
         setError(e instanceof Error ? e.message : String(e));
@@ -774,24 +821,30 @@ export function ConnectorOwnerPage({ spec }: { spec: ConnectorSpec }) {
         setUpdate(null);
       }
     },
-    [accountId, coordinatorUrl, forCoordinator, profile, rowKeyCount, signMessage],
+    [accountId, coordinatorUrl, forCoordinator, profile, quoteRow, rowKeyCount, signMessage],
   );
 
-  /** Step two, from a click: the re-sealed row goes on chain, under the rule it already has. */
+  /** Step two, from a click: the quote, if step one could not get it; else the wallet, with nothing before it. */
   const storeUpdate = useCallback(async () => {
     if (!pendingCiphertext || !update || !loaded) return;
     setError(null);
+    if (!pendingCost) {
+      try {
+        setPendingCost(await quoteRow(pendingCiphertext));
+      } catch (e) {
+        setError(e instanceof Error ? e.message : String(e));
+      }
+      return;
+    }
     setUpdateStage('storing');
     try {
-      const args = { accessor: forContract, profile, encrypted_secrets_base64: pendingCiphertext, access: loaded.access, vault_id: vaultId };
-      const cost = await viewMethod({ contractId, method: 'estimate_storage_cost', args: { ...args, owner: accountId } });
-      if (!cost) throw new Error('The contract would not quote the storage cost.');
       await signAndSendTransaction({
         receiverId: contractId,
-        actions: [actionCreators.functionCall('store_secrets', args, BigInt('50000000000000'), BigInt(String(cost)))],
+        actions: [actionCreators.functionCall('store_secrets', updateArgs(pendingCiphertext), BigInt('50000000000000'), BigInt(pendingCost))],
       });
       setSaved(update.label);
       setPendingCiphertext(null);
+      setPendingCost(null);
       setPendingSummary(null);
       setUpdate(null);
       setUpdateStage('idle');
@@ -805,7 +858,7 @@ export function ConnectorOwnerPage({ spec }: { spec: ConnectorSpec }) {
       // The re-sealed row is still in hand: one more click, not another signature.
       setUpdateStage('ready-to-store');
     }
-  }, [accountId, contractId, forContract, loadRow, loaded, pendingCiphertext, policyKey, profile, signAndSendTransaction, update, vaultId, viewMethod]);
+  }, [contractId, loadRow, loaded, pendingCiphertext, pendingCost, policyKey, quoteRow, signAndSendTransaction, update, updateArgs]);
 
   // ---- back from the provider (rule 14) -----------------------------------
   useEffect(() => {
@@ -873,6 +926,37 @@ export function ConnectorOwnerPage({ spec }: { spec: ConnectorSpec }) {
 
   return (
     <div className="w-full space-y-4">
+      {preparedStore && (
+        <ConfirmDialog
+          title={policyOnly ? `Store your ${spec.provider} policy?` : `Store your ${spec.provider} credential?`}
+          action={policyOnly ? 'Sign: store the encrypted policy' : 'Sign: store the encrypted credential'}
+          busy={stage === 'storing'}
+          error={storeError}
+          onConfirm={sendStore}
+          onClose={() => {
+            setPreparedStore(null);
+            setStoreError(null);
+          }}
+        >
+          <p>
+            Stored in the contract under your account <span className="break-all font-mono text-xs text-foreground">{accountId}</span>:{' '}
+            {policyOnly ? 'the policy you set' : `your ${spec.provider} credential and the policy you set`}, encrypted in this browser
+            to a key whose private half exists only inside the keystore enclave.
+          </p>
+          <p>
+            Who can read it: the {spec.provider} connector, when you
+            {preparedStore.agent ? (
+              <>
+                {' '}or agent <span className="font-mono" title={preparedStore.agent}>{shortAccount(preparedStore.agent)}</span>
+              </>
+            ) : null}{' '}
+            run it.
+          </p>
+          <p>
+            Storage deposit: {formatNear(BigInt(preparedStore.cost))} NEAR. Deleting the row on the secrets page returns it.
+          </p>
+        </ConfirmDialog>
+      )}
       <PageHeader title={spec.title} description={spec.description} />
 
       {!spec.configured && <p className="text-sm text-red-600">{spec.notConfigured}</p>}
@@ -977,7 +1061,7 @@ export function ConnectorOwnerPage({ spec }: { spec: ConnectorSpec }) {
               </p>
             </More>
           </div>
-          <PolicyEditor schema={spec.policy} value={policy} onChange={setPolicy} disabled={stage === 'storing'} />
+          <PolicyEditor schema={spec.policy} value={policy} onChange={setPolicy} disabled={pricing || stage === 'storing'} />
           {/* Rule 20: one line, closed; the agent chosen shows as a chip. */}
           <div className="max-w-3xl text-sm">
             {grantAgentTrimmed && !grantAgentProblem ? (
@@ -985,7 +1069,7 @@ export function ConnectorOwnerPage({ spec }: { spec: ConnectorSpec }) {
                 <span>Readable by you and</span>
                 <span className="inline-flex items-center gap-1 rounded bg-gray-100 px-2 py-0.5 font-mono text-xs" title={grantAgentTrimmed}>
                   🤖 {shortAccount(grantAgentTrimmed)}
-                  <button type="button" aria-label="Remove" onClick={() => setGrantAgent('')} disabled={stage === 'storing'} className="ml-1 text-muted-foreground hover:text-foreground">
+                  <button type="button" aria-label="Remove" onClick={() => setGrantAgent('')} disabled={pricing || stage === 'storing'} className="ml-1 text-muted-foreground hover:text-foreground">
                     ×
                   </button>
                 </span>
@@ -997,7 +1081,7 @@ export function ConnectorOwnerPage({ spec }: { spec: ConnectorSpec }) {
                   setGrantOpen(true);
                   if (knownAgents === null) void loadKnownAgents();
                 }}
-                disabled={stage === 'storing'}
+                disabled={pricing || stage === 'storing'}
                 className="text-sm text-accent-text underline hover:no-underline"
               >
                 Add the agent that will use it
@@ -1030,7 +1114,7 @@ export function ConnectorOwnerPage({ spec }: { spec: ConnectorSpec }) {
                     value={grantAgent}
                     placeholder="64 hex characters, as the agent reports it"
                     onChange={(e) => setGrantAgent(e.target.value)}
-                    disabled={stage === 'storing'}
+                    disabled={pricing || stage === 'storing'}
                     className="mt-1.5 block w-full max-w-xl rounded border border-gray-300 px-2 py-1 font-mono text-sm disabled:opacity-50"
                   />
                   {grantAgentProblem && <span className="mt-1 block text-xs text-red-600">{grantAgentProblem}</span>}
@@ -1043,12 +1127,14 @@ export function ConnectorOwnerPage({ spec }: { spec: ConnectorSpec }) {
           </div>
           <button
             onClick={finish}
-            disabled={stage === 'storing' || policyErrors.length > 0 || grantAgentProblem !== null || !accountId}
+            disabled={pricing || stage === 'storing' || policyErrors.length > 0 || grantAgentProblem !== null || !accountId}
             className="rounded bg-[#cc6600] px-4 py-2 text-sm text-white disabled:opacity-50"
           >
             {stage === 'storing'
               ? 'Waiting for your wallet…'
-              : policyOnly
+              : pricing
+                ? 'Sealing and pricing…'
+                : policyOnly
                 ? 'Store the encrypted policy on the contract'
                 : 'Finish: store the encrypted credential on the contract'}
           </button>
@@ -1122,8 +1208,11 @@ export function ConnectorOwnerPage({ spec }: { spec: ConnectorSpec }) {
               <p className="text-amber-900">
                 Your signature only encrypted the new {updatingPolicy ? 'policy' : 'credential'}. It takes effect when you save it on chain.
               </p>
+              {pendingCost && (
+                <p className="text-amber-900">Storage deposit: {formatNear(BigInt(pendingCost))} NEAR, less what the row already holds.</p>
+              )}
               <button onClick={storeUpdate} disabled={updateStage === 'storing'} className="rounded bg-[#cc6600] px-5 py-2.5 text-sm font-medium text-white disabled:opacity-50">
-                {updateStage === 'storing' ? 'Waiting for your wallet…' : 'Save on chain'}
+                {updateStage === 'storing' ? 'Waiting for your wallet…' : pendingCost ? 'Save on chain' : 'Quote the storage deposit'}
               </button>
               <More label="What does this transaction do?">
                 {pendingSummary && (

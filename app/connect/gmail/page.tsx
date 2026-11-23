@@ -5,6 +5,8 @@ import React, { Suspense, useCallback, useEffect, useMemo, useRef, useState } fr
 import { useSearchParams } from 'next/navigation';
 import { actionCreators } from '@near-js/transactions';
 import { PageHeader } from '@/components/ui/page-header';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { formatNear } from '@/lib/owner-exit';
 import { RequireWallet } from '@/components/ui/require-wallet';
 import { PolicyEditor } from '@/components/policy/PolicyEditor';
 import { LoadPolicyBar } from '@/components/policy/LoadPolicyBar';
@@ -196,6 +198,10 @@ function ConnectGmail() {
   /** The row's public key, derived inside the keystore enclave from the accessor and the owner. */
   const [rowPubkey, setRowPubkey] = useState<string | null>(null);
   const [txHash, setTxHash] = useState<string | null>(null);
+  /** A first store sealed, checked and priced: one click from the wallet (rule 2). */
+  const [preparedStore, setPreparedStore] = useState<{ args: Record<string, unknown>; cost: string } | null>(null);
+  const [pricing, setPricing] = useState(false);
+  const [storeError, setStoreError] = useState<string | null>(null);
   const attempted = useRef(false);
 
   // ---- the policy, as this page knows it ------------------------------
@@ -215,6 +221,8 @@ function ConnectGmail() {
   const [pendingCiphertext, setPendingCiphertext] = useState<string | null>(null);
   /** What the keystore says it re-sealed, shown before the owner stores it. */
   const [pendingSummary, setPendingSummary] = useState<{ total: number; updated: string[] } | null>(null);
+  /** The storage deposit for the re-sealed row, quoted before step 2 is shown. */
+  const [pendingCost, setPendingCost] = useState<string | null>(null);
   const [saved, setSaved] = useState<string | null>(null);
   /** A new token for an existing row, waiting for the owner's signature. */
   const [reconnectToken, setReconnectToken] = useState<string | null>(null);
@@ -354,11 +362,15 @@ function ConnectGmail() {
     }
   }, [row, reconnectToken, stage, prepareWithToken]);
 
-  /** A first connection, step two, from a click: seal token and policy, then one transaction. */
+  /**
+   * A first connection, step two, from a click: seal token and policy, check
+   * and price the store. The wallet opens from the dialog that follows.
+   */
   const finish = useCallback(async () => {
     if (!refreshToken || !rowPubkey) return;
     setError(null);
-    setStage('storing');
+    setStoreError(null);
+    setPricing(true);
     try {
       // Values are strings: a secret row is `HashMap<String, String>`, so the
       // policy travels as JSON text. `{}` is the widest it goes.
@@ -391,21 +403,37 @@ function ConnectGmail() {
       }
       const cost = await viewMethod({ contractId, method: 'estimate_storage_cost', args: { ...args, owner: accountId } });
       if (!cost) throw new Error('The contract would not quote the storage cost.');
+      setPreparedStore({ args, cost: String(cost) });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setPricing(false);
+    }
+  }, [accountId, contractId, forContract, network, policy, published, refreshToken, rowPubkey, viewMethod]);
+
+  /** From the dialog's button, with nothing awaited before the wallet (rule 1). */
+  const sendStore = async () => {
+    const step = preparedStore;
+    if (!step) return;
+    setStoreError(null);
+    setStage('storing');
+    try {
       const response = await signAndSendTransaction({
         receiverId: contractId,
-        actions: [actionCreators.functionCall('store_secrets', args, BigInt('50000000000000'), BigInt(String(cost)))],
+        actions: [actionCreators.functionCall('store_secrets', step.args, BigInt('50000000000000'), BigInt(step.cost))],
       });
+      setPreparedStore(null);
       setTxHash(response?.transaction?.hash ?? null);
       setRefreshToken(null);
       setStage('done');
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
-      // Back to `ready`, not to the start: the credential is still in hand, so
+      // The dialog stays, with the reason: the credential is still in hand, so
       // a refused or closed wallet costs another click and not another trip
       // through Google.
+      setStoreError(e instanceof Error ? e.message : String(e));
       setStage('ready');
     }
-  }, [accountId, contractId, forContract, network, policy, published, refreshToken, rowPubkey, signAndSendTransaction, viewMethod]);
+  };
 
   // ---- an existing row: read the policy by running the connector ----------
   /** The connector's answer, opened with the reply key and put into the editor. */
@@ -650,6 +678,24 @@ function ConnectGmail() {
   }, [accountId, answerOf, loadRow, openAnswer, rpcUrl]);
 
   // ---- an existing row: merge new keys into it -----------------------------
+  /** The args that store a re-sealed row under the rule it has now. */
+  const updateArgs = useCallback(
+    (ciphertext: string) => {
+      if (!loaded) throw new Error('The stored row is not loaded; reload the page.');
+      return { accessor: forContract, profile: PROFILE, encrypted_secrets_base64: ciphertext, access: loaded.access, vault_id: vaultId };
+    },
+    [forContract, loaded, vaultId],
+  );
+  /** The storage deposit the contract asks for a re-sealed row. */
+  const quoteRow = useCallback(
+    async (ciphertext: string) => {
+      const cost = await viewMethod({ contractId, method: 'estimate_storage_cost', args: { ...updateArgs(ciphertext), owner: accountId } });
+      if (!cost) throw new Error('The contract would not quote the storage cost.');
+      return String(cost);
+    },
+    [accountId, contractId, updateArgs, viewMethod],
+  );
+
   /** Step one, from a click: the owner signs, the keystore re-seals the row
    *  with these keys merged in. Nothing on chain yet. */
   const beginUpdate = useCallback(
@@ -710,6 +756,10 @@ function ConnectGmail() {
         }
         setPendingCiphertext(answer.encrypted_secrets_base64);
         setPendingSummary({ total, updated });
+        // Quoted now, so that step 2 is one click that opens the wallet and
+        // nothing else. A quote that fails here is asked for again on step 2 —
+        // the re-sealed row stays in hand.
+        setPendingCost(await quoteRow(answer.encrypted_secrets_base64).catch(() => null));
         setUpdateStage('ready-to-store');
       } catch (e) {
         setError(e instanceof Error ? e.message : String(e));
@@ -717,30 +767,30 @@ function ConnectGmail() {
         setUpdate(null);
       }
     },
-    [accountId, coordinatorUrl, forCoordinator, signMessage],
+    [accountId, coordinatorUrl, forCoordinator, quoteRow, signMessage],
   );
 
-  /** Step two, from a click: the re-sealed row goes on chain, under the rule it already has. */
+  /** Step two, from a click: the quote, if step one could not get it; else the wallet, with nothing before it. */
   const storeUpdate = useCallback(async () => {
     if (!pendingCiphertext || !update || !loaded) return;
     setError(null);
+    if (!pendingCost) {
+      try {
+        setPendingCost(await quoteRow(pendingCiphertext));
+      } catch (e) {
+        setError(e instanceof Error ? e.message : String(e));
+      }
+      return;
+    }
     setUpdateStage('storing');
     try {
-      const args = {
-        accessor: forContract,
-        profile: PROFILE,
-        encrypted_secrets_base64: pendingCiphertext,
-        access: loaded.access,
-        vault_id: vaultId,
-      };
-      const cost = await viewMethod({ contractId, method: 'estimate_storage_cost', args: { ...args, owner: accountId } });
-      if (!cost) throw new Error('The contract would not quote the storage cost.');
       await signAndSendTransaction({
         receiverId: contractId,
-        actions: [actionCreators.functionCall('store_secrets', args, BigInt('50000000000000'), BigInt(String(cost)))],
+        actions: [actionCreators.functionCall('store_secrets', updateArgs(pendingCiphertext), BigInt('50000000000000'), BigInt(pendingCost))],
       });
       setSaved(update.label);
       setPendingCiphertext(null);
+      setPendingCost(null);
       setPendingSummary(null);
       setUpdate(null);
       setUpdateStage('idle');
@@ -756,7 +806,7 @@ function ConnectGmail() {
       // The re-sealed row is still in hand: one more click, not another signature.
       setUpdateStage('ready-to-store');
     }
-  }, [accountId, contractId, forContract, loadRow, loaded, pendingCiphertext, policyRead, signAndSendTransaction, update, vaultId, viewMethod]);
+  }, [contractId, loadRow, loaded, pendingCiphertext, pendingCost, quoteRow, signAndSendTransaction, update, updateArgs]);
 
   // ---- back from Google ---------------------------------------------------
   // The state it carries has to be the one this tab generated: without that
@@ -805,6 +855,27 @@ function ConnectGmail() {
 
   return (
     <div className="w-full space-y-4">
+      {preparedStore && (
+        <ConfirmDialog
+          title="Store your Gmail credential?"
+          action="Sign: store the encrypted key"
+          busy={stage === 'storing'}
+          error={storeError}
+          onConfirm={sendStore}
+          onClose={() => {
+            setPreparedStore(null);
+            setStoreError(null);
+          }}
+        >
+          <p>
+            Stored in the contract under your account <span className="break-all font-mono text-xs text-foreground">{accountId}</span>:
+            the Google refresh token and the policy you set, encrypted in this browser to a key whose private half exists only
+            inside the keystore enclave.
+          </p>
+          <p>Who can read it: the Gmail connector, when you run it. Nobody can send until you grant an agent.</p>
+          <p>Storage deposit: {formatNear(BigInt(preparedStore.cost))} NEAR. Deleting the row on the secrets page returns it.</p>
+        </ConfirmDialog>
+      )}
       <PageHeader title="Connect Gmail" description="Let an agent send mail from your own address." />
 
       {!clientId && (
@@ -875,13 +946,13 @@ function ConnectGmail() {
               </p>
             </More>
           </div>
-          <PolicyEditor schema={gmailPolicy} value={policy} onChange={setPolicy} disabled={stage === 'storing'} />
+          <PolicyEditor schema={gmailPolicy} value={policy} onChange={setPolicy} disabled={pricing || stage === 'storing'} />
           <button
             onClick={finish}
-            disabled={stage === 'storing' || policyErrors.length > 0}
+            disabled={pricing || stage === 'storing' || policyErrors.length > 0}
             className="rounded bg-[#cc6600] px-4 py-2 text-sm text-white disabled:opacity-50"
           >
-            {stage === 'storing' ? 'Waiting for your wallet…' : 'Finish: store the encrypted key on the contract'}
+            {stage === 'storing' ? 'Waiting for your wallet…' : pricing ? 'Sealing and pricing…' : 'Finish: store the encrypted key on the contract'}
           </button>
           {stage === 'storing' && <p className="text-xs text-gray-500">Approve the transaction in your wallet.</p>}
         </>
@@ -949,12 +1020,15 @@ function ConnectGmail() {
                   ? 'Your signature only encrypted the new policy. It takes effect when you save it on chain.'
                   : 'Your signature only encrypted the new credential. It takes effect when you save it on chain.'}
               </p>
+              {pendingCost && (
+                <p className="text-amber-900">Storage deposit: {formatNear(BigInt(pendingCost))} NEAR, less what the row already holds.</p>
+              )}
               <button
                 onClick={storeUpdate}
                 disabled={updateStage === 'storing'}
                 className="rounded bg-[#cc6600] px-5 py-2.5 text-sm font-medium text-white disabled:opacity-50"
               >
-                {updateStage === 'storing' ? 'Waiting for your wallet…' : 'Save on chain'}
+                {updateStage === 'storing' ? 'Waiting for your wallet…' : pendingCost ? 'Save on chain' : 'Quote the storage deposit'}
               </button>
               <More label="What does this transaction do?">
                 {pendingSummary && (

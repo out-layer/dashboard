@@ -5,6 +5,8 @@ import { useState, useCallback, useRef } from 'react';
 import { useNearWallet } from '@/contexts/NearWalletContext';
 import { RequireWallet } from '@/components/ui/require-wallet';
 import { PageHeader } from '@/components/ui/page-header';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { formatNear } from '@/lib/owner-exit';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -57,6 +59,15 @@ export default function VaultPage() {
   // and panics — wallet UI shows two confusing prompts. The ref blocks
   // re-entry within the same event tick.
   const inFlight = useRef(false);
+  /** A deploy checked and built: one click from the wallet. A refusing wallet leaves it in place. */
+  const [preparedDeploy, setPreparedDeploy] = useState<{
+    vaultAccountId: string;
+    actions: ReturnType<typeof buildVaultDeployActions>;
+    exitWindowLabel: string;
+    teePubkey: string;
+  } | null>(null);
+  const [deploySigning, setDeploySigning] = useState(false);
+  const [deployError, setDeployError] = useState<string | null>(null);
 
   // Create-vault form
   const [name, setName] = useState('vault');
@@ -164,7 +175,6 @@ deploy requires at least ${(Number(VAULT_PARENT_BUDGET_YOCTO) / 1e24).toFixed(2)
       //    on-chain global vault contract by hash instead of shipping
       //    the 150 KB WASM in this tx. Tx payload < 1 KB so it fits
       //    inside MyNearWallet's URL limit.
-      setBusy('Signing atomic deploy (5 actions, global contract by hash)…');
       const cfg = getVaultNetworkConfig(network);
       const actions = buildVaultDeployActions({
         parent: accountId,
@@ -175,10 +185,43 @@ deploy requires at least ${(Number(VAULT_PARENT_BUDGET_YOCTO) / 1e24).toFixed(2)
         wasmCodeHash: hashBytes,
         teePublicKey: teePubkey,
       });
-      const outcome = await signAndSendTransaction({
-        receiverId: vaultAccountId,
+      setDeployError(null);
+      setPreparedDeploy({
+        vaultAccountId,
         actions,
+        exitWindowLabel: EXIT_WINDOW_OPTIONS.find((o) => o.value === exitWindow)?.label ?? exitWindow,
+        teePubkey,
       });
+    } catch (e) {
+      setError(`Vault init failed: ${(e as Error).message}`);
+    } finally {
+      setBusy(null);
+      inFlight.current = false;
+    }
+  };
+
+  // From the dialog's button, with nothing awaited before the wallet.
+  const sendDeploy = async () => {
+    const step = preparedDeploy;
+    if (!step || inFlight.current) return;
+    inFlight.current = true;
+    setDeployError(null);
+    setDeploySigning(true);
+    const { vaultAccountId } = step;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let outcome: any;
+    try {
+      outcome = await signAndSendTransaction({ receiverId: vaultAccountId, actions: step.actions });
+    } catch (e) {
+      // Refused or failed in the wallet: the dialog stays, the same button tries again.
+      setDeployError((e as Error).message);
+      setDeploySigning(false);
+      inFlight.current = false;
+      return;
+    }
+    setDeploySigning(false);
+    setPreparedDeploy(null);
+    try {
       const txHash = outcome?.transaction?.hash || outcome?.transaction_outcome?.id || '<unknown>';
 
       // 4. Drive sign-verification (mark_vault_verified). Deploy
@@ -312,6 +355,35 @@ deploy requires at least ${(Number(VAULT_PARENT_BUDGET_YOCTO) / 1e24).toFixed(2)
   // ── Render ────────────────────────────────────────────────────────────
   return (
     <div className="w-full">
+      {preparedDeploy && (
+        <ConfirmDialog
+          title="Deploy this vault?"
+          action="Sign: create and deploy the vault"
+          busy={deploySigning}
+          error={deployError}
+          onConfirm={sendDeploy}
+          onClose={() => {
+            setPreparedDeploy(null);
+            setDeployError(null);
+          }}
+        >
+          <p>
+            One transaction from <span className="break-all font-mono text-xs text-foreground">{accountId}</span> creates{' '}
+            <span className="break-all font-mono text-xs text-foreground">{preparedDeploy.vaultAccountId}</span>, sends it{' '}
+            {formatNear(VAULT_INITIAL_YOCTO)} NEAR, and installs the vault version the keystore DAO approved.
+          </p>
+          <p>
+            The vault gets one key, held by the TEE (
+            <span className="break-all font-mono text-xs text-foreground">{preparedDeploy.teePubkey}</span>), that can only
+            call <code>request_master</code> on the vault itself. You stay its parent: the only account that can start a
+            recovery or change the exit window.
+          </p>
+          <p>
+            Exit window: {preparedDeploy.exitWindowLabel}. To take the vault back from the TEE you start a recovery; once the
+            window has passed you finalize it, which removes the TEE&rsquo;s key and installs a full-access key of your choosing.
+          </p>
+        </ConfirmDialog>
+      )}
       <PageHeader
         title="Vaults"
         description="Per-customer custody roots: on-chain CKD-issuer contracts bound to your NEAR account."

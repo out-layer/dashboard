@@ -219,7 +219,37 @@ export default function VaultsDocsPage() {
           half-deployed state.
         </p>
 
+ <h4 className="font-semibold mt-4 mb-2">CLI (recommended)</h4>
+        <p className="mb-3 text-sm">
+          Install the{' '}
+          <a
+            href="https://github.com/out-layer/outlayer-cli#install"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-accent-text hover:underline"
+          >
+            OutLayer CLI
+          </a>
+          , log in once, then create the vault. <code>outlayer login</code> asks for a full-access key of the account that
+          becomes the vault&rsquo;s parent; the CLI keeps it on your machine and signs the transaction itself, so no browser
+          wallet is involved.
+        </p>
+        <SyntaxHighlighter language="bash" style={vscDarkPlus}>
+{`outlayer login            # mainnet; on testnet: outlayer login testnet
+
+# defaults: --name vault --exit-window 24h
+outlayer vault init
+
+# custom
+outlayer vault init --name treasury --exit-window 7d`}
+        </SyntaxHighlighter>
+
  <h4 className="font-semibold mt-4 mb-2">Dashboard</h4>
+        <p className="mb-3 text-sm">
+          Not every wallet can sign the deployment: referencing the contract by hash is the{' '}
+          <code>UseGlobalContract</code> action (NEP-591), and most NEAR wallets refuse it. Intear Wallet signs it; with
+          another wallet, use the CLI.
+        </p>
  <ol className="list-decimal list-inside text-sm space-y-1 mb-4">
  <li>Open <Link href="/vault" className="text-accent-text hover:underline">Vaults</Link> from My Workspace.</li>
  <li>Pick a sub-account name (default: <code>vault</code>) and an exit window (24h / 7d / 30d).</li>
@@ -232,15 +262,6 @@ export default function VaultsDocsPage() {
  {`{vault_id}`}</code>, returns <code>wk_...</code>).
           </li>
         </ol>
-
- <h4 className="font-semibold mt-4 mb-2">CLI</h4>
-        <SyntaxHighlighter language="bash" style={vscDarkPlus}>
-{`# defaults: --name vault --exit-window 24h
-outlayer vault init
-
-# custom
-outlayer vault init --name treasury --exit-window 7d`}
-        </SyntaxHighlighter>
 
  <h4 className="font-semibold mt-4 mb-2">What happens technically</h4>
  <ol className="list-decimal list-inside text-sm space-y-1 mb-4">

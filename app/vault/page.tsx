@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useCallback, useRef } from 'react';
+import Link from 'next/link';
 
 import { useNearWallet } from '@/contexts/NearWalletContext';
 import { RequireWallet } from '@/components/ui/require-wallet';
@@ -8,6 +9,7 @@ import { PageHeader } from '@/components/ui/page-header';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { formatNear } from '@/lib/owner-exit';
 import { Button } from '@/components/ui/button';
+import { CodeBlock } from '@/components/ui/code-block';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
 import { HashChip } from '@/components/ui/hash-chip';
@@ -28,6 +30,13 @@ import {
   viewAccountInfo,
   type VerifyReport,
 } from '@/lib/vault';
+
+// NEAR sub-account name rule: lowercase a-z, 0-9, `_`, `-`,
+// 2-64 chars per label, no leading/trailing/consecutive separators.
+// Matching the parser at near-account-id ensures the wallet popup
+// doesn't surface a cryptic "InvalidAccountId" after the user
+// already approved the deploy.
+const NAME_RE = /^[a-z0-9](?:[a-z0-9_-]{0,62}[a-z0-9])?$/;
 
 const EXIT_WINDOW_OPTIONS = [
   { label: '24 hours (default)', value: '24h' },
@@ -107,12 +116,6 @@ export default function VaultPage() {
     setSuccess(null);
     setIssuedApiKey(null);
 
-    // NEAR sub-account name rule: lowercase a-z, 0-9, `_`, `-`,
-    // 2-64 chars per label, no leading/trailing/consecutive separators.
-    // Matching the parser at near-account-id ensures the wallet popup
-    // doesn't surface a cryptic "InvalidAccountId" after the user
-    // already approved the deploy.
-    const NAME_RE = /^[a-z0-9](?:[a-z0-9_-]{0,62}[a-z0-9])?$/;
     if (!NAME_RE.test(name)) {
       setError(
         "Name must be 1-64 lowercase letters, digits, '_' or '-' " +
@@ -414,6 +417,29 @@ deploy requires at least ${(Number(VAULT_PARENT_BUDGET_YOCTO) / 1e24).toFixed(2)
           <RequireWallet subject="vault deployment" />
         </div>
       )}
+
+      {/* ── Create with the CLI (recommended) ────────────────────────── */}
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle>Recommended: create the vault with the OutLayer CLI</CardTitle>
+          <CardDescription>
+            Deploying a vault uses an action most browser wallets do not sign (
+            <code>UseGlobalContract</code>, NEP-591). Intear Wallet does. The CLI signs it with your own key:{' '}
+            <code>outlayer login</code> asks for a full-access key of your account.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <CodeBlock
+            className="max-w-3xl"
+            code={`outlayer login ${network}\noutlayer vault init --name ${NAME_RE.test(name) ? name : 'vault'} --exit-window ${exitWindow}`}
+          />
+          <p className="mt-3 text-sm">
+            <Link href="/docs/vaults#create" className="text-accent-text hover:underline">
+              How to create a vault with the CLI
+            </Link>
+          </p>
+        </CardContent>
+      </Card>
 
       {/* ── Create vault ─────────────────────────────────────────────── */}
       <Card className="mb-6">

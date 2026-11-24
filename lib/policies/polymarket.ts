@@ -43,13 +43,11 @@ export function marketProblem(entry: string): string | null {
   return `"${entry}" is neither a condition id (0x…, 64 hex characters) nor a token id (digits)`;
 }
 
-/** `intents`, `confidential`, or a NEAR account. */
+/** `intents` or `confidential`: the connector withdraws nowhere else. */
 export function withdrawToProblem(entry: string): string | null {
   const to = entry.trim();
   if (to === 'intents' || to === 'confidential') return null;
-  const account = /^(([a-z\d]+[-_])*[a-z\d]+\.)*([a-z\d]+[-_])*[a-z\d]+$/;
-  if (to.length >= 2 && to.length <= 64 && account.test(to)) return null;
-  return 'Write intents, confidential, or a NEAR account';
+  return 'Write intents or confidential';
 }
 
 export const polymarketPolicy: PolicySchema = {
@@ -90,7 +88,7 @@ export const polymarketPolicy: PolicySchema = {
           label: 'At risk at once',
           kind: 'number',
           unit: 'USD',
-          help: 'Open orders plus positions together, read from the venue before each order rather than from a counter.',
+          help: 'Resting buys plus positions together, read from the venue before each buy. Selling is never held back by it. Several buys sent at once can pass it: the daily volume is the hard limit, so set both.',
           absentMeans: 'Empty: no cap on what is open at once (the two above still apply).',
           min: 1,
         },
@@ -143,7 +141,7 @@ export const polymarketPolicy: PolicySchema = {
           key: 'withdraw_to',
           label: 'Withdraw only to',
           kind: 'text',
-          help: 'intents (the wallet’s own balance), confidential, or one NEAR account.',
+          help: 'intents (the wallet’s own balance) or confidential. Anything else allows no withdrawal.',
           absentMeans: 'Empty: withdrawals may go to intents and nowhere else.',
           placeholder: 'intents',
         },

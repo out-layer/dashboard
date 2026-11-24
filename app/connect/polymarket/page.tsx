@@ -19,7 +19,7 @@ const spec: ConnectorSpec = {
   id: 'polymarket',
   provider: 'Polymarket',
   title: 'Polymarket policy',
-  description: 'The caps under which an agent may take positions on Polymarket from its own wallet. Without a policy it can only read and cancel.',
+  description: 'The caps under which an agent may take positions on Polymarket from its own wallet. Without a policy the agent trades with no caps, and withdraws only back to its wallet.',
   projects: {
     // Mainnet only: the page checks the project on the current network and says so on testnet.
     testnet: 'connectors.outlayer.testnet/polymarket',

@@ -34,10 +34,10 @@ test('orders need both sizes', () => {
 });
 
 test('a destination or a deposit cap without its switch is flagged', () => {
-  assert.match(validate(polymarketPolicy, { withdraw_to: 'alice.near' }).join('\n'), /"Withdraw back" is off/);
+  assert.match(validate(polymarketPolicy, { withdraw_to: 'confidential' }).join('\n'), /"Withdraw back" is off/);
   assert.match(validate(polymarketPolicy, { max_deposit_usd: 50 }).join('\n'), /"Fund the venue from the wallet" is off/);
-  assert.deepEqual(validate(polymarketPolicy, { allow_withdraw: true, withdraw_to: 'alice.near' }), []);
-  assert.match(validate(polymarketPolicy, { allow_withdraw: true, withdraw_to: 'Not An Account' }).join('\n'), /Withdraw only to/);
+  assert.deepEqual(validate(polymarketPolicy, { allow_withdraw: true, withdraw_to: 'confidential' }), []);
+  assert.match(validate(polymarketPolicy, { allow_withdraw: true, withdraw_to: 'alice.near' }).join('\n'), /Withdraw only to/);
 });
 
 test('markets and destinations are judged by the connector’s shapes', () => {
@@ -46,9 +46,11 @@ test('markets and destinations are judged by the connector’s shapes', () => {
   assert.equal(marketProblem('71321045679252212594626385532706912750332728571942532289631379312455583992563'), null);
   assert.match(marketProblem('yes-token'), /neither a condition id/);
   assert.equal(withdrawToProblem('intents'), null);
-  assert.equal(withdrawToProblem('a'.repeat(64)), null);
-  // A lower-case hex string IS a well-formed NEAR account; upper case is not.
-  assert.match(withdrawToProblem('0x' + 'AB'.repeat(20)), /NEAR account/);
+  assert.equal(withdrawToProblem('confidential'), null);
+  // The connector withdraws nowhere else, so a pinned account would only lock withdrawals.
+  for (const elsewhere of ['alice.near', 'a'.repeat(64), '0x' + 'AB'.repeat(20)]) {
+    assert.match(withdrawToProblem(elsewhere), /intents or confidential/);
+  }
 });
 
 test('what the connector reports — nulls for absent fields — reads back as empty', () => {

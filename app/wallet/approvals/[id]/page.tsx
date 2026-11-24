@@ -280,6 +280,14 @@ function ApprovalDetailContent() {
  <pre className="bg-card-muted rounded p-4 text-sm text-foreground overflow-x-auto">
               {JSON.stringify(opCheck?.status === 'match' ? opCheck.op : approval.request_data, null, 2)}
             </pre>
+            {typeof approval.request_data?.amount_out === 'string' && (
+ <p className="text-sm text-foreground mt-2">
+                The amount in the operation above is a ceiling, not what will be spent. The request asks to deliver
+                exactly <code className="bg-card-muted px-1 rounded">{approval.request_data.amount_out}</code> of the
+                destination token for no more than that ceiling; what the quote does not need comes back to the
+                wallet. Your signature covers the ceiling, and the spending limit counts it.
+              </p>
+            )}
             {opCheck?.status === 'match' ? (
  <p className="text-xs text-faint-foreground mt-2">
                 Checked in this browser: the request hash is the sha256 of the operation above.

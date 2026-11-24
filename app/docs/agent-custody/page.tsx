@@ -349,6 +349,21 @@ export default function AgentCustodyPage() {
  <td className="px-4 py-2">1Click refused on grounds of its own (an amount under the bridge minimum, for one); <code className="bg-card-muted px-1 rounded">message</code> is its text, verbatim. The same request fails the same way again.</td>
               </tr>
  <tr className="border-b">
+ <td className="px-4 py-2 font-mono text-xs">below_min_amount_out</td>
+ <td className="px-4 py-2">400</td>
+ <td className="px-4 py-2">The fresh quote guarantees less than your <code className="bg-card-muted px-1 rounded">min_amount_out</code>. Nothing was signed. The body carries <code className="bg-card-muted px-1 rounded">quoted_min_amount_out</code>: re-price from it, or lower the floor.</td>
+              </tr>
+ <tr className="border-b">
+ <td className="px-4 py-2 font-mono text-xs">above_max_amount_in</td>
+ <td className="px-4 py-2">400</td>
+ <td className="px-4 py-2">An exact output whose fresh quote needs more input than your <code className="bg-card-muted px-1 rounded">max_amount_in</code>. Nothing was signed. The body carries <code className="bg-card-muted px-1 rounded">quoted_amount_in</code>.</td>
+              </tr>
+ <tr className="border-b">
+ <td className="px-4 py-2 font-mono text-xs">memo_not_supported</td>
+ <td className="px-4 py-2">400</td>
+ <td className="px-4 py-2">A withdrawal body with <code className="bg-card-muted px-1 rounded">memo</code>. No route delivers a memo or a destination tag to the recipient; do not withdraw to an address that needs one.</td>
+              </tr>
+ <tr className="border-b">
  <td className="px-4 py-2 font-mono text-xs">route_unavailable</td>
  <td className="px-4 py-2">503 + <code className="bg-card-muted px-1 rounded">Retry-After</code></td>
  <td className="px-4 py-2">1Click did not answer (a 5xx, a timeout, &ldquo;Failed to get quote&rdquo;). Nothing is known about the route; retry after the header.</td>
@@ -362,7 +377,10 @@ export default function AgentCustodyPage() {
           </table>
         </div>
  <p className="text-sm text-muted-foreground mb-4">
- A withdraw dry-run reports a bridge refusal as <code className="bg-card-muted px-1 rounded">would_succeed: false</code> with the same name in <code className="bg-card-muted px-1 rounded">reason</code>; a 1Click that did not answer, or a reached ceiling, is the error itself, since nothing was learned about the route.
+ A withdraw dry-run reports a bridge refusal as <code className="bg-card-muted px-1 rounded">would_succeed: false</code> with the same name in <code className="bg-card-muted px-1 rounded">reason</code>; a 1Click that did not answer, or a reached ceiling, is the error itself, since nothing was learned about the route. For a cross-chain withdrawal the dry-run carries the bridge quote as fields, with 1Click&apos;s own values: <code className="bg-card-muted px-1 rounded">amount_in</code>, <code className="bg-card-muted px-1 rounded">min_amount_in</code>, <code className="bg-card-muted px-1 rounded">amount_out</code>, <code className="bg-card-muted px-1 rounded">min_amount_out</code>, <code className="bg-card-muted px-1 rounded">withdraw_fee</code>, <code className="bg-card-muted px-1 rounded">refund_fee</code>, <code className="bg-card-muted px-1 rounded">amount_in_usd</code>, <code className="bg-card-muted px-1 rounded">amount_out_usd</code>, <code className="bg-card-muted px-1 rounded">time_estimate_seconds</code>. Read the fields, not the sentence in <code className="bg-card-muted px-1 rounded">message</code>.
+        </p>
+ <p className="text-sm text-muted-foreground mb-4">
+ A withdraw, swap or <code className="bg-card-muted px-1 rounded">/intents/transfer</code> body with a field the endpoint does not define is <code className="bg-card-muted px-1 rounded">400 bad_request</code> naming the field: a request that moves money never runs with part of it unread.
         </p>
 
  <div className="bg-destructive/10 border-l-4 border-red-500 p-4 mb-4">
@@ -890,8 +908,17 @@ curl -s -H "Authorization: Bearer $API_KEY" \\
 curl -s -X POST -H "Content-Type: application/json" \\
   -H "Authorization: Bearer $API_KEY" \\
   -d '{"token_in":"nep141:wrap.near","token_out":"nep141:usdt.tether-token.near","amount_in":"1000000000000000000000000"}' \\
+  "https://api.outlayer.ai/wallet/v1/intents/swap"
+
+# Receive exactly 0.1 wNEAR, spending at most 0.30 USDC:
+curl -s -X POST -H "Content-Type: application/json" \\
+  -H "Authorization: Bearer $API_KEY" \\
+  -d '{"token_in":"nep141:17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1","token_out":"nep141:wrap.near","amount_out":"100000000000000000000000","max_amount_in":"300000"}' \\
   "https://api.outlayer.ai/wallet/v1/intents/swap"`}
         </SyntaxHighlighter>
+ <p className="text-foreground mt-3 mb-2">
+ A swap is sized by its input (<code className="bg-card-muted px-1 rounded">amount_in</code>, with an optional <code className="bg-card-muted px-1 rounded">min_amount_out</code> floor) or by its output (<code className="bg-card-muted px-1 rounded">amount_out</code> with <code className="bg-card-muted px-1 rounded">max_amount_in</code>). The swap takes a fresh quote and holds your bound to it before anything is signed: the floor to the output 1Click <strong>guarantees</strong> (<code className="bg-card-muted px-1 rounded">min_amount_out</code> of a quote, 1% under its <code className="bg-card-muted px-1 rounded">amount_out</code> estimate), the ceiling to the input the quote needs. Leave the market room between a preview and your bound; a miss is <code className="bg-card-muted px-1 rounded">below_min_amount_out</code> or <code className="bg-card-muted px-1 rounded">above_max_amount_in</code> with the quote&apos;s figure, and nothing moves. On an exact output the unused input returns to the wallet, and your spending limit counts <code className="bg-card-muted px-1 rounded">max_amount_in</code>. The wallet must hold the whole <code className="bg-card-muted px-1 rounded">max_amount_in</code>, not only the quoted input. Every amount is decimal digits only: no sign, no leading zero.
+        </p>
 
  <h3 className="text-lg font-semibold mt-4 mb-2">6. Call a NEAR contract</h3>
         <SyntaxHighlighter language="bash" style={vscDarkPlus} customStyle={{ borderRadius: '0.5rem', fontSize: '0.875rem' }}>
@@ -960,8 +987,21 @@ curl -s -X POST -H "Content-Type: application/json" \\
 curl -s -X POST -H "Content-Type: application/json" \\
   -H "Authorization: Bearer $API_KEY" \\
   -d '{"to":"0xRecipient...","amount":"1000000","token":"usdt.tether-token.near","chain":"ethereum"}' \\
+  "https://api.outlayer.ai/wallet/v1/intents/withdraw"
+
+# Pay an invoice: the recipient receives exactly 0.30 USDC on Solana, the wallet spends at most 0.50.
+curl -s -X POST -H "Content-Type: application/json" \\
+  -H "Authorization: Bearer $API_KEY" \\
+  -d '{"to":"<solana address>","amount_out":"300000","max_amount_in":"500000","token":"nep141:17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1","chain":"solana","async":true}' \\
   "https://api.outlayer.ai/wallet/v1/intents/withdraw"`}
         </SyntaxHighlighter>
+
+ <p className="text-foreground mt-3 mb-2">
+ <strong>What leaves and what arrives.</strong> <code className="bg-card-muted px-1 rounded">amount</code> is what leaves the wallet: the recipient gets it less the bridge&apos;s fees, and on a chain that charges to open the recipient&apos;s account (a fresh Solana token account, about 0.18 USDC) that cost comes out of it too. On a cross-chain withdrawal you can fix what arrives instead: <code className="bg-card-muted px-1 rounded">amount_out</code> with <code className="bg-card-muted px-1 rounded">max_amount_in</code> delivers exactly <code className="bg-card-muted px-1 rounded">amount_out</code>, sends the fresh quote&apos;s <code className="bg-card-muted px-1 rounded">amount_in</code>, and 1Click returns the unused input to the wallet. A quote that needs more than the ceiling is refused before signing (<code className="bg-card-muted px-1 rounded">above_max_amount_in</code>). Your policy, spending limits and approvers judge <code className="bg-card-muted px-1 rounded">max_amount_in</code>, and the limit counts it. With <code className="bg-card-muted px-1 rounded">amount</code>, an optional <code className="bg-card-muted px-1 rounded">min_amount_out</code> is the least the recipient may receive, held to the quote&apos;s guarantee (<code className="bg-card-muted px-1 rounded">below_min_amount_out</code>). Price either with <code className="bg-card-muted px-1 rounded">/intents/withdraw/dry-run</code> first, and leave the market room between the preview and your bound. A withdrawal on NEAR delivers <code className="bg-card-muted px-1 rounded">amount</code> exactly and takes neither. The balance must cover the whole <code className="bg-card-muted px-1 rounded">max_amount_in</code>. A request refused at its quote after the call returned (an <code className="bg-card-muted px-1 rounded">async</code> withdrawal, an approved request) ends <code className="bg-card-muted px-1 rounded">failed</code> with <code className="bg-card-muted px-1 rounded">result.error_code</code> and the quote&apos;s figure; nothing moved.
+        </p>
+ <p className="text-foreground mt-3 mb-2">
+ <strong>No memo, no destination tag.</strong> A withdrawal delivers neither, on any chain, and a body with <code className="bg-card-muted px-1 rounded">memo</code> is refused (<code className="bg-card-muted px-1 rounded">memo_not_supported</code>). Do not withdraw to an exchange address that needs one. The request&apos;s <code className="bg-card-muted px-1 rounded">result.quote</code> is the quote the withdrawal ran with, and <code className="bg-card-muted px-1 rounded">result.refunded_amount</code> what 1Click returned.
+        </p>
 
  <p className="text-foreground mt-3 mb-2">
  <strong>Cross-chain withdrawals: prefer <code className="bg-card-muted px-1 rounded">&quot;async&quot;: true</code>.</strong>          The 1Click bridge can take longer than the synchronous response window, so add <code className="bg-card-muted px-1 rounded">&quot;async&quot;: true</code> to the body. The call then returns

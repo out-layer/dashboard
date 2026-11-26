@@ -273,9 +273,9 @@ const setup = await openSetup(options);
 // setup.key       → a one-time key; keep it in memory until the setup is collected`}
         </SyntaxHighlighter>
         <p className="text-sm text-muted-foreground mt-1 mb-4">
-          The wallet has to have an owner. Opening a setup again ends the earlier link. Whoever holds the link can name this
-          wallet&rsquo;s wallet contract until it expires; an account is taken only when its pair of keys on chain holds this
-          wallet&rsquo;s enclave key.
+          The wallet has to have an owner. Opening a setup again ends the earlier link. The link ends when the setup is finished. Whoever
+          holds it can name this wallet&rsquo;s wallet contract once, and only as the owner account or a sub-account of it; an
+          account is taken only when its pair of keys on chain holds this wallet&rsquo;s enclave key.
         </p>
 
         <h4 className="text-lg font-semibold mt-2 mb-2">2. The owner finishes it</h4>

@@ -283,7 +283,8 @@ function Inner() {
                 My own account, <span className="font-mono">{owner}</span>
                 <span className="block text-muted">
                   The wallet contract is installed on the account you are signing with. Your own key stays on it and acts
-                  on it directly, as it does today.
+                  on it directly, as it does today. The agent acts as this account toward every contract its policy lets
+                  it call.
                 </span>
               </span>
             </label>
@@ -297,9 +298,9 @@ function Inner() {
                   <span>
                     Keep my key on it
                     <span className="block text-muted">
-                      You can act on the account at any time with your own wallet, and install the contract again with a
-                      new agent key at the same address. A key of an account is above its contract: whoever holds yours
-                      moves everything on this account at once, and no policy applies to it.
+                      You can act on the account at any time with your own wallet. A key of an account is above its
+                      contract: whoever holds yours moves everything on this account at once, and no policy applies to
+                      it.
                     </span>
                   </span>
                 </label>
@@ -309,8 +310,7 @@ function Inner() {
                     Remove every key from it
                     <span className="block text-muted">
                       Nothing moves without the agent&apos;s signature and the enclave&apos;s. You alone act on it only
-                      through the owner&apos;s exit, after its window. This cannot be undone, and a new agent key means a
-                      new account.
+                      through the owner&apos;s exit, after its window. This cannot be undone.
                     </span>
                   </span>
                 </label>

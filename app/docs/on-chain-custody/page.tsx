@@ -160,7 +160,7 @@ const COMPROMISE: React.ReactNode[][] = [
   ],
   [
     'The agent’s machine',
-    'The agent’s key. Every operation still passes the enclave’s policy; the owner freezes the wallet and installs the contract again with another agent key, or sets up another account',
+    'The agent’s key. Every operation still passes the enclave’s policy; the owner freezes the wallet, sets up another agent on another account and moves the assets there',
   ],
   ['A prompt injection into the agent', 'An operation request, which the enclave judges by the policy'],
   [
@@ -306,11 +306,11 @@ const setup = await openSetup(options);
           rows={[
             [
               'Keep the owner’s key on it (the default)',
-              'The owner acts on the account at any time with their own wallet, and can install the contract again with another agent key at the same address. Whoever holds that key moves everything on the account at once, and no policy applies to it.',
+              'The owner acts on the account at any time with their own wallet. Whoever holds that key moves everything on the account at once, and no policy applies to it.',
             ],
             [
               'Remove every key from it',
-              'Nothing moves without the agent’s signature and the enclave’s. The owner alone acts on it only through the owner’s exit, after its window. It cannot be undone, and another agent key means another account.',
+              'Nothing moves without the agent’s signature and the enclave’s. The owner alone acts on it only through the owner’s exit, after its window. It cannot be undone.',
             ],
           ]}
         />
@@ -319,6 +319,16 @@ const setup = await openSetup(options);
           the account, the setup is undone from the owner&rsquo;s own wallet: another contract deployed on the account, or the account
           deleted.
         </p>
+        <p className="text-sm text-muted-foreground mb-4">
+          An agent on the owner&rsquo;s own account acts as that account toward every contract its policy lets it call: what the
+          account may do there, a vote in a DAO included, the agent does in its name. Calls to OutLayer&rsquo;s own contracts are
+          refused, so the agent cannot store the policy it is held to.
+        </p>
+        <p className="text-sm text-muted-foreground mb-4">
+          A key registered for an account in NEAR Intents is an access key for what the account holds there: it signs intents for
+          the account with no signature of the agent or of the enclave. A sub-account the setup creates has none. An owner account
+          that has used NEAR Intents has its own, as it has its NEAR key.
+        </p>
 
         <h4 className="text-lg font-semibold mt-2 mb-2">3. The agent collects its account and its key</h4>
         <SyntaxHighlighter language="typescript" style={vscDarkPlus} customStyle={codeStyle}>
@@ -326,9 +336,10 @@ const setup = await openSetup(options);
 if (collected === null) {
   // the owner has not finished; ask again later
 } else {
-  const { account, key } = collected;
-  // account → the wallet contract's account: the agent's address for its main balance
-  // key     → an AgentKey: it signs the agent's requests and its half of every move
+  const { account, key, teePublicKey } = collected;
+  // account      → the wallet contract's account: the agent's address for its main balance
+  // key          → an AgentKey: it signs the agent's requests and its half of every move
+  // teePublicKey → the enclave's key in the contract's pair: its half is verified against it
 }`}
         </SyntaxHighlighter>
         <p className="text-sm text-muted-foreground mt-1">
@@ -347,7 +358,7 @@ if (collected === null) {
         <SyntaxHighlighter language="typescript" style={vscDarkPlus} customStyle={codeStyle}>
 {`import { WalletContract } from '@outlayer/sdk';
 
-const contract = new WalletContract({ account, key });
+const contract = new WalletContract({ account, key, teePublicKey });
 
 const op = { kind: 'transfer', to: 'bob.near', amount: '1000000000000000000000000' } as const;
 const state = await contract.run('pay-1', op); // 'pay-1' is the agent's own id of the operation
@@ -365,8 +376,8 @@ if (state.status === 'pending_approval') {
           </li>
           <li>
             <strong>The agent signs last, and checks first.</strong> <C>run</C> signs only a request that is the operation that was asked
-            for, from this wallet contract: the receiver, the method, the arguments and the amounts. With{' '}
-            <C>teePublicKey</C> in the options it also verifies the enclave&rsquo;s half. A refused or a waiting operation leaves no
+            for, from this wallet contract: the receiver, the method, the arguments and the amounts. It verifies the enclave&rsquo;s
+            half against <C>teePublicKey</C>, and signs one request under an id. A refused or a waiting operation leaves no
             half of a move anywhere.
           </li>
           <li>
@@ -429,6 +440,11 @@ if (state.status === 'pending_approval') {
             <strong>A prepared request that is not relayed within an hour is closed.</strong> The wallet contract accepts a request for
             an hour.
           </li>
+          <li>
+            <strong>A freeze stops new requests, not the one already prepared.</strong> A prepared request carries the
+            enclave&rsquo;s half, and the wallet contract accepts it with the agent&rsquo;s half until its hour ends. One operation
+            runs at a time, so that is one request at most.
+          </li>
           <li>One operation of a wallet runs at a time; a second one is refused with <C>wallet_busy</C>.</li>
           <li>The working account pays the gas of every relay and needs NEAR for it.</li>
         </ul>
@@ -477,9 +493,10 @@ if (state.status === 'pending_approval') {
             .
           </li>
           <li>
-            The wallet contract has no operation that replaces a key. With a key of the owner&rsquo;s kept on the account, another
-            agent key is the contract installed again on the same account, and the address stays. With the account&rsquo;s keys removed
-            it is another account, and the assets move there by ordinary operations.
+            The pair of a wallet contract is set once, when it is installed, and both keys are derived for the owner and the
+            wallet: the same wallet always has the same pair. Another agent key is another agent: a new OutLayer wallet with a
+            wallet contract on another account. The owner moves the assets there with their key of the old account, or through
+            the exit where the keys were removed.
           </li>
           <li>An owner who keeps a key on the account acts on it at any time with that key, without an exit.</li>
         </ul>

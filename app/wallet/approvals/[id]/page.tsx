@@ -236,7 +236,9 @@ function ApprovalDetailContent() {
                 }`}>
                   {approval.status.toUpperCase()}
                 </span>
- <span className="text-sm text-muted-foreground">{approval.request_type}</span>
+ <span className="text-sm text-muted-foreground">
+                  {approval.request_type === 'wallet_contract' ? 'wallet contract operation' : approval.request_type}
+                </span>
               </div>
  <span className="text-sm text-faint-foreground">
                 {approval.approvers?.filter((a) => a.approver_role === 'signer').length || 0} / {approval.required_approvals} approved
@@ -277,6 +279,17 @@ function ApprovalDetailContent() {
               produce below covers request_hash = sha256(canonical_json(op)). */}
  <div className="bg-card border border-border rounded-lg p-6 border border-border">
  <h2 className="text-lg font-semibold text-foreground mb-3">Operation</h2>
+            {approval.request_type === 'wallet_contract' && (
+ <p className="text-sm text-foreground mb-3">
+                An operation of the wallet contract{' '}
+                <code className="bg-card-muted px-1 rounded break-all">{String(approval.request_data?.wallet_contract ?? '')}</code>{' '}
+                (on-chain custody), which the agent named{' '}
+                <code className="bg-card-muted px-1 rounded break-all">{String(approval.request_data?.id ?? '')}</code>. The
+                funds move from that account, not from the agent&rsquo;s own. Approving sends nothing by itself: the agent asks
+                for the operation again within 24 hours of this request, the enclave checks the votes and signs its half, and
+                the agent signs last.
+              </p>
+            )}
  <pre className="bg-card-muted rounded p-4 text-sm text-foreground overflow-x-auto">
               {JSON.stringify(opCheck?.status === 'match' ? opCheck.op : approval.request_data, null, 2)}
             </pre>

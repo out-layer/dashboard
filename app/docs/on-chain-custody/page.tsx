@@ -130,7 +130,7 @@ const STATUSES: React.ReactNode[][] = [
   [<C key="s">failed</C>, <>The chain refused; <C>result</C> carries its failure</>, 'Read the failure; the same thing again is another operation under another id'],
   [
     <C key="s">closed</C>,
-    <>Ended with nothing sent, for <C>reason</C>: the vote was rejected or expired, an approval was not used within its 24 hours, a prepared request was not relayed within ten minutes, or its transaction never reached the chain in that time</>,
+    <>Ended with nothing sent, for <C>reason</C>: the vote was rejected or expired, an approval was not used within its 24 hours, a prepared request was not relayed within ten minutes, its transaction never reached the chain in that time, or the node refused it three times</>,
     'Read the reason; the same thing again is another operation under another id',
   ],
 ];

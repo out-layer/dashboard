@@ -411,8 +411,8 @@ if (state.status === 'pending_approval') {
         <ul className="list-disc list-inside text-foreground space-y-2">
           <li>
             The policy&rsquo;s approval rules apply to a wallet contract&rsquo;s operation as they do to the same kind of operation of
-            any wallet. An operation that needs approvers is answered <C>pending_approval</C> with <C>approval_id</C>; the vote stays
-            open for 24 hours.
+            any wallet. An operation that needs approvers is answered <C>pending_approval</C> with <C>approval_id</C>; the vote lives
+            24 hours, and the agent asks again within them or the operation is closed.
           </li>
           <li>
             The policy&rsquo;s <C>webhook_url</C> receives <C>approval_needed</C> with <C>operation_id</C> (the agent&rsquo;s id),{' '}

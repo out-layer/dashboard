@@ -97,7 +97,9 @@ function Inner() {
     (async () => {
       setError(null);
       try {
-        const r = await fetch(`${coordinator}/wallet/v1/contract/setup/${token}`);
+        const r = await fetch(`${coordinator}/wallet/v1/contract/setup/owner`, {
+          headers: { authorization: `Bearer ${token}` },
+        });
         const body = await r.json().catch(() => ({}));
         if (cancelled) return;
         if (!r.ok) {
@@ -198,9 +200,9 @@ function Inner() {
     step('hand', async () => {
       if (!setup || !seed) return;
       const sealed = await sealAgentKey(setup.recipient_public_key, seed, setup.wallet_id);
-      const r = await fetch(`${coordinator}/wallet/v1/contract/setup/${token}`, {
-        method: 'PUT',
-        headers: { 'content-type': 'application/json' },
+      const r = await fetch(`${coordinator}/wallet/v1/contract/setup/owner`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
         body: JSON.stringify({ account_id: agentAccount, sealed_agent_key: toBase64(sealed) }),
       });
       const body = await r.json().catch(() => ({}));

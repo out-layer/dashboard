@@ -14,9 +14,9 @@ import {
   WALLET_CONTRACT_CODE_HASH,
   agentKeyMessage,
   agentKeySeed,
+  addPageKeyActions,
   createAccountActions,
   fromBase64,
-  installActions,
   installAndDropKeysActions,
   isSubAccountName,
   pairText,
@@ -164,32 +164,30 @@ function Inner() {
       }
     });
 
-  const createAccount = () =>
+  const prepareAccount = () =>
     step('create', async () => {
       if (!ownerKey) return;
       const key = pageKey ?? KeyPair.fromRandom('ed25519');
       setPageKey(key);
+      const pagePublicKey = key.getPublicKey().toString();
       await signAndSendTransaction({
         receiverId: agentAccount,
-        actions: createAccountActions(ownerKey, key.getPublicKey().toString()),
+        actions: where === 'own-account' ? addPageKeyActions(pagePublicKey) : createAccountActions(ownerKey, pagePublicKey),
       });
       setCreated(true);
     });
 
   const install = () =>
     step('install', async () => {
-      if (!pair) return;
-      if (where === 'own-account') {
-        await signAndSendTransaction({ receiverId: owner, actions: installActions(pair) });
-      } else {
-        if (!pageKey || !ownerKey) return;
-        await sendAsAccount(
-          rpcUrl,
-          agentAccount,
-          pageKey,
-          installAndDropKeysActions(pair, pageKey.getPublicKey().toString(), removeKeys ? ownerKey : null),
-        );
-      }
+      if (!pair || !pageKey || !ownerKey) return;
+      // The owner's own account keeps the owner's key, whatever was chosen for a sub-account.
+      const ownerKeyToRemove = where === 'sub-account' && removeKeys ? ownerKey : null;
+      await sendAsAccount(
+        rpcUrl,
+        agentAccount,
+        pageKey,
+        installAndDropKeysActions(pair, pageKey.getPublicKey().toString(), ownerKeyToRemove),
+      );
       if ((await viewPair(rpcUrl, agentAccount)) !== pair) {
         throw new Error(`The transaction was sent, but ${agentAccount} does not answer with the pair of keys yet. Try the next step in a few seconds.`);
       }
@@ -345,18 +343,27 @@ function Inner() {
             <div className={card}>
               <p className="font-medium">3. The wallet contract</p>
               <ol className="mt-2 list-decimal space-y-1 pl-5">
-                {where === 'sub-account' && (
-                  <li>
-                    Your wallet creates <code>{agentAccount}</code> with its NEAR, your own key and a key this page holds
-                    for the next action alone.
-                  </li>
-                )}
                 <li>
-                  {where === 'sub-account' ? 'This page, with that key,' : 'Your wallet'} points <code>{agentAccount}</code>{' '}
-                  at the published wallet contract by its hash <code className="break-all">{WALLET_CONTRACT_CODE_HASH}</code>{' '}
-                  (no code is uploaded) and initialises it with the pair above
-                  {where === 'sub-account' && (removeKeys ? ', then removes both keys from the account.' : ', then removes its own key; yours stays.')}
-                  {where === 'own-account' && '.'}
+                  {where === 'sub-account' ? (
+                    <>
+                      Your wallet creates <code>{agentAccount}</code> with its NEAR, your own key and a key this page holds
+                      for the next action alone.
+                    </>
+                  ) : (
+                    <>
+                      Your wallet adds to <code>{agentAccount}</code> a full-access key this page holds for the next
+                      action alone. It is made in this tab, stored nowhere, and removed by that action. If you leave before
+                      it, the key stays on your account and nobody holds it: remove it in your wallet.
+                    </>
+                  )}
+                </li>
+                <li>
+                  This page, with that key, points <code>{agentAccount}</code> at the published wallet contract by its hash{' '}
+                  <code className="break-all">{WALLET_CONTRACT_CODE_HASH}</code> (no code is uploaded) and initialises it
+                  with the pair above
+                  {where === 'sub-account' && removeKeys
+                    ? ', then removes both keys from the account.'
+                    : ', then removes its own key; yours stays.'}
                 </li>
               </ol>
               <p className="mt-3 text-muted">
@@ -364,12 +371,16 @@ function Inner() {
                 deploy another contract on it, or delete the account, from your own wallet.
               </p>
 
-              {where === 'sub-account' && !created && (
-                <button onClick={createAccount} disabled={!!busy} className={button}>
-                  {busy === 'create' ? 'Waiting for the wallet…' : `Create ${agentAccount}`}
+              {!created && (
+                <button onClick={prepareAccount} disabled={!!busy} className={button}>
+                  {busy === 'create'
+                    ? 'Waiting for the wallet…'
+                    : where === 'sub-account'
+                      ? `Create ${agentAccount}`
+                      : `Add this page’s one-time key to ${agentAccount}`}
                 </button>
               )}
-              {(where === 'own-account' || created) && !installed && (
+              {created && !installed && (
                 <button onClick={install} disabled={!!busy} className={button}>
                   {busy === 'install' ? 'Installing…' : `Install the wallet contract on ${agentAccount}`}
                 </button>

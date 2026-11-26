@@ -288,8 +288,9 @@ const setup = await openSetup(options);
           <li>For a sub-account, chooses what happens to the account&rsquo;s own keys (below).</li>
           <li>Signs one message. The page turns the signature into the agent&rsquo;s key; the signature is not sent anywhere.</li>
           <li>
-            Installs the wallet contract: the account is pointed at the published build by its code hash (no code is uploaded) and
-            initialised with the pair of keys.
+            Installs the wallet contract. The owner&rsquo;s wallet signs one plain transaction: the creation of the sub-account, or
+            one key added to the owner&rsquo;s own account for this step alone. The page then points the account at the published
+            build by its code hash (no code is uploaded), initialises it with the pair of keys and removes its own key.
           </li>
           <li>Hands the agent its key, sealed to the agent&rsquo;s one-time key. OutLayer carries the sealed key and cannot open it.</li>
           <li>

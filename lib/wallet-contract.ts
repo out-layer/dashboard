@@ -235,8 +235,18 @@ export function createAccountActions(ownerPublicKey: string, pagePublicKey: stri
 }
 
 /**
- * The agent account's own transaction: install the wallet contract, drop the
- * page's key, and, when the owner chose so, the owner's key too.
+ * The owner's transaction on their own account, when it is to be the agent's:
+ * a key this page holds for the installing transaction alone. Every wallet
+ * signs an added key; the install itself never goes through a wallet.
+ */
+export function addPageKeyActions(pagePublicKey: string): Action[] {
+  return [actionCreators.addKey(PublicKey.fromString(pagePublicKey), actionCreators.fullAccessKey())];
+}
+
+/**
+ * The agent account's own transaction, signed by the page's key: install the
+ * wallet contract, drop the page's key, and, when the owner chose so, the
+ * owner's key too.
  */
 export function installAndDropKeysActions(pair: string, pagePublicKey: string, ownerPublicKeyToRemove: string | null): Action[] {
   const drop = (key: string) => actionCreators.deleteKey(PublicKey.fromString(key));

@@ -130,7 +130,7 @@ const STATUSES: React.ReactNode[][] = [
   [<C key="s">failed</C>, <>The chain refused; <C>result</C> carries its failure</>, 'Read the failure; the same thing again is another operation under another id'],
   [
     <C key="s">closed</C>,
-    <>Ended with nothing sent, for <C>reason</C>: the vote was rejected or expired, an approval was not used within its 24 hours, a prepared request was not relayed within an hour, or its transaction never reached the chain in that hour</>,
+    <>Ended with nothing sent, for <C>reason</C>: the vote was rejected or expired, an approval was not used within its 24 hours, a prepared request was not relayed within ten minutes, or its transaction never reached the chain in that time</>,
     'Read the reason; the same thing again is another operation under another id',
   ],
 ];
@@ -442,12 +442,12 @@ if (state.status === 'pending_approval') {
             is not given back: not when the request is never relayed, and not when it fails on chain.
           </li>
           <li>
-            <strong>A prepared request that is not relayed within an hour is closed.</strong> The wallet contract accepts a request for
-            an hour.
+            <strong>A prepared request that is not relayed within ten minutes is closed.</strong> The wallet contract accepts a request for
+            ten minutes.
           </li>
           <li>
             <strong>A freeze stops new requests, not the one already prepared.</strong> A prepared request carries the
-            enclave&rsquo;s half, and the wallet contract accepts it with the agent&rsquo;s half until its hour ends. One operation
+            enclave&rsquo;s half, and the wallet contract accepts it with the agent&rsquo;s half until its ten minutes end. One operation
             runs at a time, so that is one request at most.
           </li>
           <li>One operation of a wallet runs at a time; a second one is refused with <C>wallet_busy</C>.</li>

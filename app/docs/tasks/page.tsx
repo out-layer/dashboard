@@ -695,7 +695,7 @@ export default function TasksDocsPage() {
               minutes ahead of its clock and up to thirty behind.
             </li>
             <li>
-              The run is admitted as the agent&apos;s own call: the agent&apos;s payment key, wallet and wallet-contract identity as
+              The run is admitted as the agent&apos;s own call: the agent&apos;s payment key, wallet and identity binding as
               the preparing run had them, and no more compute than that run was allowed. A run that cannot be
               started ends the task <C>failed</C> at once, with the reason.
             </li>

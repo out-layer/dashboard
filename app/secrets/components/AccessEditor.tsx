@@ -240,10 +240,10 @@ export function AccessEditor({ secret, accountId, wallets = [], onSave, onCancel
               <>
                 <span className="block">
                   A grant names the account that <strong>pays</strong> for the calls — any NEAR account. For an agent that is its custody
-                  wallet: 64 hex characters, because it is an implicit account, and not the account of its wallet contract.
+                  wallet: 64 hex characters, because it is an implicit account, and not the name the agent acts as under a binding.
                 </span>
                 <span className="mt-2 block">
-                  For an agent that works for a limited time, set the expiry to its end: the grant lapses with it and nobody has to remember to
+                  For an agent held under a lease, set the expiry to the lease end: the grant lapses with it and nobody has to remember to
                   revoke.
                 </span>
                 <span className="mt-2 block">

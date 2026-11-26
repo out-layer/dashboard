@@ -938,7 +938,7 @@ function SecretsPageContent() {
             <h3 className="text-sm font-semibold text-foreground">Secrets handed to other accounts</h3>
             <p className="mt-1 text-xs text-muted-foreground">
               Each account below can read the secrets listed under it, on the project those secrets are
-              stored for. A grant outlives the agent it was made for unless it carries an expiry
+              stored for. A grant outlives the agent&rsquo;s binding or lease unless it carries an expiry
               &mdash; revoke here what no longer has an agent behind it.
             </p>
             {/* Bounded on purpose: this list grows with every grant, and pushing

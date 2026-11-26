@@ -91,7 +91,7 @@ export default function AgentCustodyPage() {
  <div className="bg-card rounded-lg border-2 border-border p-3 text-center">
  <div className="text-lg mb-1">&#129302;</div>
  <div className="text-xs font-bold text-foreground">AI Agent</div>
- <div className="text-xs text-muted-foreground mt-1">Has an API key; with on-chain custody, also a key of its own</div>
+ <div className="text-xs text-muted-foreground mt-1">Has API key only</div>
               </div>
 
               {/* Spacer for the middle */}
@@ -557,7 +557,7 @@ export default function AgentCustodyPage() {
  <p className="text-foreground mb-3">
  <strong>A 1-yoctoNEAR marker is not a spend.</strong> The single yocto a payable method
           requires is protocol overhead, and it is deducted before anything is counted &mdash; so a
-          token transfer moves the token and nothing native. That also
+          token transfer through a bound account moves the token and nothing native. That also
           decides what <code className="bg-card-muted px-1 rounded">rate_limit.max_per_hour</code>{' '}
           counts: it counts <strong>money movements</strong>, not requests. A token transfer is one.
           A request moving NEAR <em>and</em> a token is two. A request the chain refused is still
@@ -704,7 +704,7 @@ export default function AgentCustodyPage() {
             token and the limits still refuse it first. Only a payment is
             asked about; the table below is the whole rule. The approver signs over the exact address. Approving pays it once and does not list it; the approval page offers to add it,
             which is a policy change of its own. It needs a threshold and enough named approvers to meet it, or the policy is
-            not stored.
+            not stored. Addresses inside a <code className="bg-card-muted px-1 rounded">w_execute_extension</code> request are refused as before.
           </li>
         </ul>
  <div className="overflow-x-auto mb-4">
@@ -733,7 +733,7 @@ export default function AgentCustodyPage() {
  <td className="px-4 py-2 text-foreground">waits for approval</td>
               </tr>
               <tr className="border-b">
- <td className="px-4 py-2"><code className="bg-card-muted px-1 rounded">call</code> <span className="text-muted-foreground">(a contract call)</span></td>
+ <td className="px-4 py-2"><code className="bg-card-muted px-1 rounded">call</code> <span className="text-muted-foreground">(a contract call, w_execute_extension and the accounts inside it included)</span></td>
  <td className="px-4 py-2 text-foreground">refused</td>
               </tr>
               <tr className="border-b">
@@ -1573,6 +1573,22 @@ curl -s -H "Authorization: Bearer $API_KEY" \\
         </p>
       </section>
 
+      {/* Bind Your Own Account */}
+ <section id="account-binding" className="mb-10 scroll-mt-4">
+ <AnchorHeading id="account-binding">Bind Your Own Account</AnchorHeading>
+ <p className="text-foreground mb-4">
+ Letting an agent act as an account it does not own — yours, or one leased to it — now has a page
+ of its own: <Link href="/docs/account-binding" className="text-accent-text underline">Personal Account Binding</Link>,
+ with the partner lease programme on <Link href="/docs/agent-connect" className="text-accent-text underline">Agent Connect</Link>.
+ It covers both modes, the transaction the account holder signs, and how an agent asks to run under
+ the bound name.
+ </p>
+ <p className="text-foreground mb-4">
+ It moved because it is the one part of custody a non-developer has to carry out, and it was the
+ least findable thing on this page.
+ </p>
+ </section>
+
       {/* Sign Message (NEP-413) */}
 
       {/* Sign Message (NEP-413) */}
@@ -1823,7 +1839,7 @@ curl -H "Authorization: Bearer wk_derived_key_here" \\
  <h3 className="font-semibold text-foreground">Agent compromise recovery</h3>
  <p className="text-sm text-foreground">
               If the agent&apos;s API key is compromised: (1) freeze the wallet from the dashboard (instant), (2) revoke the API key,
-              (3) create a new API key, (4) transfer funds to a new wallet if needed. The wallet&apos;s private key is never exposed &mdash; there is nothing to rotate. An agent with on-chain custody also holds a key of its own: if that one leaks, the owner freezes the wallet, sets up another agent on another account and moves the assets there.
+              (3) create a new API key, (4) transfer funds to a new wallet if needed. The private key itself is never exposed &mdash; there is nothing to rotate.
             </p>
           </div>
         </div>

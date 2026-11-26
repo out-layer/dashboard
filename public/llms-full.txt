@@ -93,7 +93,7 @@ Live on mainnet: 1.5M attested executions, self-hosted Intel TDX servers, five c
 
 - **The key is never stored.** It is derived on demand inside the enclave from a master secret. No endpoint exports it.
 - **The master comes from NEAR MPC, not from OutLayer.** The MPC network derives it (confidential key derivation) and releases it only to a keystore whose TDX attestation was verified on chain and whose build the DAO approved. Each release is a public transaction.
-- **The agent holds an API key, not the wallet's private key.** A leaked API key is bounded by the policy and is revoked or frozen by the owner. The addresses and the funds stay. (With [on-chain custody](#on-chain-custody-two-signatures-required-by-the-chain) the agent also holds a key of its own, one of the two the wallet contract requires.)
+- **The agent holds an API key, not a private key.** A leaked API key is bounded by the policy and is revoked or frozen by the owner. The addresses and the funds stay.
 - **No credential store for many users.** A deterministic wallet is addressed by a NEAR account plus a seed and authenticated by that account's signature. One NEAR key serves any number of user wallets, and removing the key revokes access within 60 seconds.
 - **Free to create.** A wallet is a NEAR implicit account: one API call, no transaction, no storage deposit, no key registration on `intents.near`. An agent can register itself and hand its owner a link to take control.
 
@@ -163,9 +163,13 @@ A signature costs one round trip to the keystore and one free view call. MPC is 
 - **HTTPS.** `POST https://api.outlayer.ai/call/{owner}/{project}` with a payment key: a prepaid stablecoin balance registered in the contract, with per-call and per-project limits. No wallet popup and no NEAR on the caller's side.
 - **Earnings.** A caller can attach a payment for the program's author on either door; the author withdraws it in stablecoins.
 
+### The agent can act as the user's own account
+
+By default an agent acts as its own implicit account. With account binding it acts as `alice.near`: the user installs a small wallet contract by hash (a global contract) and adds the agent's executor to it. The user's own keys keep signing, the agent gets only what the policy allows, and one transaction ends it.
+
 ### On-chain custody: two signatures, required by the chain
 
-An agent's wallet is an implicit account whose key is derived in the enclave: one API call, no transaction per operation, every feature. An owner who wants the chain itself to require two signatures installs a wallet contract on a NEAR account of their choice, and the agent's main balance lies there. The wallet contract executes a request only under both: the agent's own key and a key in OutLayer's enclave, which signs only for an operation the owner's policy allows. Each move is a NEAR transaction with gas, relayed and paid by the agent's OutLayer wallet, and the owner can leave and sign for both sides. With `use_bound_identity` a program runs as the wallet contract's account. The model, the setup and the routes: [docs/ON_CHAIN_CUSTODY.md](https://github.com/out-layer/outlayer/blob/main/docs/ON_CHAIN_CUSTODY.md).
+An agent's wallet is an implicit account whose key is derived in the enclave: one API call, no transaction per operation, every feature. An owner who wants the chain itself to require two signatures installs a wallet contract on a NEAR account of their choice, and the agent's main balance lies there. The wallet contract executes a request only under both: the agent's own key and a key in OutLayer's enclave, which signs only for an operation the owner's policy allows. Each move is a NEAR transaction with gas, relayed and paid by the agent's OutLayer wallet, and the owner can leave and sign for both sides. With `use_bound_identity` a program of a wallet that has no binding runs as the wallet contract's account. The model, the setup and the routes: [docs/ON_CHAIN_CUSTODY.md](https://github.com/out-layer/outlayer/blob/main/docs/ON_CHAIN_CUSTODY.md).
 
 ### Verifiable end to end
 
@@ -236,7 +240,7 @@ A request names the code as a registered project, or as a WASM file by URL and s
 
 **Hosts.** Workers and keystores run in Intel TDX confidential VMs on OutLayer's own bare-metal servers, deployed with [`deploy/self-hosted-tdx`](https://github.com/out-layer/self-hosted-tdx/blob/main/README.md). No third-party cloud service is in the attestation path.
 
-**Governance.** The keystore DAO (`dao.outlayer.near`) has three members and decides two of three. It approves keystore and worker builds and governs the three contracts, none of which carries a full-access key; every change of code or approved builds waits a 72-hour public delay. See [docs/GOVERNANCE.md](https://github.com/out-layer/outlayer/blob/main/docs/GOVERNANCE.md).
+**Governance.** The keystore DAO (`dao.outlayer.near`) has three members and decides two of three. It approves keystore and worker builds and governs the three contracts; proposals that change code or approved builds wait a 72-hour public delay. See [docs/GOVERNANCE.md](https://github.com/out-layer/outlayer/blob/main/docs/GOVERNANCE.md).
 
 What each party can and cannot do, and every limit stated plainly: [docs/NON_CUSTODIAL.md](https://github.com/out-layer/outlayer/blob/main/docs/NON_CUSTODIAL.md).
 
@@ -369,9 +373,8 @@ dashboard host `app.outlayer.ai` serves no API.
 | `X-Wallet-Id` | `/call` to a connector that acts on the wallet | The paying key's own wallet (`wallet_id` from `GET /wallet/v1/address`); without it the run has no wallet |
 | _(none)_ | `/register`, public read endpoints | No auth |
 
-> Only `X-Payment-Key`, `Authorization: Bearer wk_...` / `near:...` or, on
-> `/wallet/contract/v1/*`, the agent's signature headers are accepted for
-> authenticated calls. There is no `X-API-Key` header.
+> Only `X-Payment-Key` or `Authorization: Bearer wk_...` / `near:...` are
+> accepted for authenticated calls. There is no `X-API-Key` header.
 
 ## Execution API
 
@@ -425,6 +428,7 @@ secret issued by the NEAR MPC network. All endpoints except `/register` require
 | GET | `/wallet/v1/audit` | Audit log |
 | POST | `/wallet/v1/delete` | Delete wallet |
 
+### Confidential Intents (private balances)
 ### On-chain custody (wallet contract)
 
 A wallet with an owner can keep its main balance in a wallet contract: a NEAR
@@ -449,7 +453,6 @@ Operations: a NEAR transfer, a contract call, a transfer inside NEAR Intents, a
 swap and a withdrawal to another chain through 1Click, a withdrawal to NEAR.
 The model, the setup and every refusal: [docs/ON_CHAIN_CUSTODY.md](https://github.com/out-layer/outlayer/blob/main/docs/ON_CHAIN_CUSTODY.md).
 
-### Confidential Intents (private balances)
 
 **Mainnet only** — built on NEAR Intents, so unavailable on the testnet API.
 
@@ -1642,7 +1645,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 **Note**: `signer_account_id()` reads `NEAR_SENDER_ID` and returns:
 - `Some(account_id)` when called via blockchain transaction (the transaction's signer; for a meta-transaction, the account that signed the delegate action)
 - `Some(payment_key_owner)` when called via HTTPS API — every HTTPS call carries a payment key
-- the account of the caller's wallet contract instead, when the request sets `use_bound_identity`
+- the bound account instead, when the request sets `use_bound_identity` (Agent Connect)
 - `None` only outside OutLayer (e.g. local wasmtime)
 
 `predecessor_account_id()` (`NEAR_PREDECESSOR_ID`) names the account that
@@ -2021,6 +2024,11 @@ if !error.is_empty() {
         "policy_denied" | "wallet_frozen" => {
             return Ok(json!({ "needs_owner": true, "reason": error }))
         }
+        // Agent Connect refused before signing, so no gas was spent.
+        // `terminal=true` means the same request will never work.
+        "agent_connect_denied" if error.contains("terminal=true") => {
+            return Ok(json!({ "needs_owner": true, "reason": error }))
+        }
         _ => return Err(error.into()),
     }
 }
@@ -2032,7 +2040,7 @@ let moved: serde_json::Value = serde_json::from_str(&result)?; // fails obscurel
 ```
 
 Codes worth knowing: `no_wallet`, `wallet_busy`, `policy_denied`,
-`wallet_frozen`, `insufficient_balance`. A failure that is not one of
+`wallet_frozen`, `agent_connect_denied`, `insufficient_balance`. A failure that is not one of
 ours arrives verbatim rather than dressed in an invented code.
 
 **A wallet runs one money operation at a time.** Two of your own calls in
@@ -2631,9 +2639,9 @@ let display_name = sender_id.strip_suffix(account_suffix).unwrap_or(&sender_id);
 | `NEAR_USER_ACCOUNT_ID` | The account that sent the transaction (the payer) | Payment Key owner (the payer) |
 
 Always set in both modes. The two are the same account unless the request sets
-`use_bound_identity`: then `NEAR_SENDER_ID` is the account of the caller's
-wallet contract, confirmed by the enclave before the run starts, and
-`NEAR_USER_ACCOUNT_ID` stays the paying account.
+`use_bound_identity` (Agent Connect): then `NEAR_SENDER_ID` is the bound
+account, verified against the chain inside the worker's TEE before the run
+starts, and `NEAR_USER_ACCOUNT_ID` stays the paying account.
 
 **Recommended**: For WASI P2, use the OutLayer SDK instead:
 
@@ -4270,8 +4278,8 @@ the input can.
   the caller in them from the host, never from the input: the account that
   paid is `NEAR_USER_ACCOUNT_ID` (`env::var`), the account the run acts as
   is `NEAR_SENDER_ID` (`env::signer_account_id()`) — the same account,
-  except with `use_bound_identity`, where it is the account of the caller's
-  wallet contract (`WASM_ENV_VARS.md`) — every caller can make it sign whatever the module will sign for
+  except under Agent Connect's bound identity, where it is the bound
+  agent's (`WASM_ENV_VARS.md`) — every caller can make it sign whatever the module will sign for
   any of them. The environment is input too: a caller names secret rows of
   its own for the run (`secrets_ref`, `secrets_refs`), and their variables
   are the caller's. Take what a `none` key signs from the input, the code,
@@ -5225,10 +5233,9 @@ The full list of injected variables, and what each means, is in
 and cannot be chosen by the caller — that is what the two rules above are for.
 Treat it as the account you are acting for.
 
-`NEAR_USER_ACCOUNT_ID` is who **paid**. The two are the same unless the call
-sets `use_bound_identity`: the run then acts as the account of the caller's
-wallet contract. That is opt-in per call. Bill and attribute against the payer;
-act as the sender.
+`NEAR_USER_ACCOUNT_ID` is who **paid**. The two are the same unless the caller
+is an Agent Connect wallet running under a bound account's name, which is opt-in
+per call. Bill and attribute against the payer; act as the sender.
 
 A NEP-366 meta-transaction runs as the account that signed the delegate action:
 it is `NEAR_SENDER_ID`, `NEAR_USER_ACCOUNT_ID` and `NEAR_PREDECESSOR_ID`, its
@@ -5338,7 +5345,7 @@ legitimate, and you choose. A `none` key is driven by every caller alike: sign
 with it only what your code composes under its own prefix, name the caller from
 the host — `NEAR_USER_ACCOUNT_ID`, the account that paid, or `NEAR_SENDER_ID`
 (`env::signer_account_id()`), the account the run acts as, which differs only
-with `use_bound_identity` — and expect no `sign-nep413` from it — the
+under a bound identity — and expect no `sign-nep413` from it — the
 host refuses one, because it would log every caller in as the key's account.
 A caller's own secret rows are its input too: sign a variable only when
 `OUTLAYER_SECRETS_ROWS` shows it came from a row whose owner you trust.
@@ -5816,7 +5823,7 @@ interface takes an account.
 
 The run that **answers** a task is the preparer's, started by the platform
 on the owner's approval: it is admitted with the consent sealed in the task
-— the preparer's payment key, wallet, wallet-contract identity and compute limit, as
+— the preparer's payment key, wallet, identity binding and compute limit, as
 the preparing run had them — and the host refuses the answer in any other
 run (`not-the-preparer`), and in the preparer's own run without the owner's
 signature over this task, this hash and these words (`approval-invalid`).
@@ -5899,7 +5906,7 @@ the outcomes kept, stay.
 | `state` | bytes of the project's own, sealed beside the task and handed back when it is answered. The prepared action lives there. Never shown |
 | `policy_hash` | the hash of the policy the task was made under |
 | `build` | SHA-256 of the build that made the task: the code the owner's proof names, and the build the run that answers must be of |
-| consent | sealed beside the envelope, never shown: the preparing run's payment key (its nonce), wallet, whether it ran as its wallet contract's account, and its compute limit — what the run that carries the task out must be admitted with. The store keeps the same facts in the clear as the task's **voucher**, from which the platform starts that run |
+| consent | sealed beside the envelope, never shown: the preparing run's payment key (its nonce), wallet, whether its identity was bound, and its compute limit — what the run that carries the task out must be admitted with. The store keeps the same facts in the clear as the task's **voucher**, from which the platform starts that run |
 | `thread` | the id of the first task of the conversation; a turn keeps the conversation's preparer |
 | life | 24 hours at most; a project may ask for less, but not under 15 minutes for a task that takes an answer (a notice has no floor) |
 
@@ -6229,7 +6236,7 @@ is `ok([])`.
 | `unlock()` | owner | writes the copies for the devices now in force |
 
 `open` seals the run's consent into the task — its payment key, wallet,
-wallet-contract identity and compute limit — and sends the same facts to the store as
+identity binding and compute limit — and sends the same facts to the store as
 the voucher. `answered` holds the run it is in to that consent before it
 looks at the signature: another key, wallet, identity, or more compute than
 the preparing run was allowed is `not-the-preparer`. The refusals a run
@@ -6367,8 +6374,8 @@ near call outlayer.testnet request_execution '{
   - `attached_usd` (U128, stablecoin minimal units, `1000000` = $1) — payment to
     the project's owner, debited from the caller's stablecoin balance in the
     contract (`ft_on_transfer` with `deposit_balance`). `Project` source only.
-  - `use_bound_identity` (bool) — run the guest as the account of the
-    caller's wallet contract.
+  - `use_bound_identity` (bool) — run the guest under the caller's bound
+    account name.
   - `force_rebuild`, `store_on_fastfs`, `compile_only` — build controls.
     `force_rebuild` is refused for a `WasmUrl` source; `store_on_fastfs`
     requires `force_rebuild`; compile-only refuses a non-empty `input_data`.
@@ -7293,7 +7300,7 @@ let api_key = env::var("OPENAI_API_KEY");
 
 **Common environment variables:**
 - `OUTLAYER_EXECUTION_TYPE` - `NEAR` (on-chain request) or `HTTPS`
-- `NEAR_SENDER_ID` - On-chain: the transaction signer. HTTPS: the payment key owner (or the account of the caller's wallet contract with `use_bound_identity`)
+- `NEAR_SENDER_ID` - On-chain: the transaction signer. HTTPS: the payment key owner (or the bound account with `use_bound_identity`)
 - `NEAR_USER_ACCOUNT_ID` - The paying account
 - `NEAR_PREDECESSOR_ID` - Account that called OutLayer (empty over HTTPS)
 - `NEAR_TRANSACTION_HASH` - Transaction hash (empty over HTTPS)
@@ -9221,7 +9228,7 @@ refused, asking or not:
 | `withdraw` (out of NEAR Intents) | waits for approval |
 | `intents_transfer` (inside NEAR Intents) | waits for approval |
 | `cross_chain_withdraw` (to another chain; its capability must be on) | waits for approval |
-| `call` (a contract call) | refused |
+| `call` (a contract call, `w_execute_extension` and the accounts inside it included) | refused |
 | `delete` (the beneficiary) | refused |
 | `limit_order` (the recipient) | refused |
 | `intents_storage_deposit` (the token contract) | refused |
@@ -9249,13 +9256,14 @@ is a precondition enforced by measured code, using the public key pinned
 in the on-chain policy. An approver entry without a `pubkey` accepts any
 full-access key of that account, which the enclave checks on chain.
 
-## 6. The configurations
+## 6. The four configurations
 
 | Configuration | Who holds the API credential | Who can move funds | What OutLayer can do alone |
 |---|---|---|---|
 | **Default, no policy** | whoever registered the wallet | that credential holder, unrestricted | nothing outside the primitives, but the rules are empty — do not run value on this |
 | **Policy, no approvers** | the operator of the agent | the credential holder, within the owner's limits, whitelists and caps | nothing outside the policy; the controller can freeze on chain at any time |
 | **Policy with the owner as approver** | may be the platform or the agent | **no one without the owner's NEP-413 signature** | nothing; a proposal without the owner's signature never becomes a transaction |
+| **Bound personal account** | the agent holds only a scoped extension | the account holder, always | nothing; the account's own keys stay with its holder, and the extension is revoked in one transaction |
 
 These describe who may authorise a transaction. The last column holds for
 operations the enclave builds itself; the five intents operations in
@@ -9264,42 +9272,8 @@ governance keys in section 11 sit outside this table. The next two
 sections are about where the root itself lives and how its owner takes it
 out, which is a separate choice.
 
-> Availability: these three configurations and per-customer vaults are
-> live on mainnet.
-
-### On-chain custody
-
-A wallet with an owner — an account registered for the owner's exit in the
-keystore DAO — can keep its main balance in a wallet contract: a NEAR
-account running the two-key variant of the NEAR Intents wallet contract.
-The owner installs it on a sub-account of theirs or on their own account,
-with a pair of public
-keys: the agent's and the wallet's TEE key. The wallet contract executes a
-request only under both signatures.
-
-- The enclave signs its half only for an operation the owner's policy
-  allows, and only when a policy stored by the owner account is on chain.
-- The agent signs last, with its own key.
-- The agent's OutLayer wallet, its working account, relays the transaction
-  and pays its gas.
-
-A wallet contract does a NEAR transfer, a contract call, a transfer inside
-NEAR Intents, a swap and a withdrawal to another chain through 1Click, and
-a withdrawal to NEAR. What the agent works with — a confidential balance,
-a venue's trading account — stays on the working account, under the
-enclave's key as every OutLayer wallet.
-
-What it adds: the chain itself requires two signatures for anything to
-leave the wallet contract, so neither the enclave's key nor the agent's
-moves anything out of it alone, and the owner can leave and sign for both
-sides ([`OWNER_EXIT.md`](https://github.com/out-layer/outlayer/blob/main/docs/OWNER_EXIT.md#leaving-with-a-wallet-contract)).
-What it costs: a NEAR transaction and gas per move, a signature on the
-agent's side, and a setup by the owner. The setup, the operations, their
-routes and the byte formats: [`ON_CHAIN_CUSTODY.md`](https://github.com/out-layer/outlayer/blob/main/docs/ON_CHAIN_CUSTODY.md).
-
-No wallet signs a call to `w_execute_extension`, the method of an account
-with full control of a wallet contract: it is refused under any policy
-and under none.
+> Availability: all four configurations and per-customer vaults are live
+> on mainnet.
 
 ## 7. Per-customer vaults: your own custody root
 
@@ -9378,13 +9352,10 @@ one. The platform can assemble and submit work; it cannot complete a
 transfer. Best when the platform drives the workflow but must not have
 independent control.
 
-**Customer's wallet contract, two signatures.** The customer installs a
-wallet contract on a NEAR account of their choice and the agent's main
-balance lies there. The chain requires the agent's signature and the
-enclave's for anything to leave it, and the enclave signs only for an
-operation the customer's policy allows. Best when the customer wants that
-rule held by the chain itself and accepts a NEAR transaction and gas per
-move.
+**Customer's own account, scoped extension.** The customer's existing
+NEAR account keeps its own keys and grants a revocable, policy-bounded
+extension to the agent's executor. Best when the customer already holds a
+wallet and wants to keep signing with it.
 
 For escrow, hold the funds in an on-chain contract rather than in a
 platform wallet. Funds locked by contract rules are not held by anyone,
@@ -10002,7 +9973,9 @@ choice.
 
 A program run in OutLayer acts as the account in `NEAR_SENDER_ID`. With
 `use_bound_identity` set on a call, that account is the caller's wallet
-contract instead of the wallet's own NEAR account. The flag is on both ways of
+contract instead of the wallet's own NEAR account. A wallet with an active
+binding (Agent Connect) runs as its bound account, as before: the wallet
+contract is the name of a wallet that has no active binding. The flag is on both ways of
 starting a run: the body of the HTTPS call and the arguments of
 `request_execution` on chain. It is off by default and is the caller's choice
 on each call.
@@ -10010,7 +9983,7 @@ on each call.
 - Billing does not follow the name: `NEAR_USER_ACCOUNT_ID` stays the account
   that paid.
 - Over HTTPS the wallet is the one the paying key names. A call whose key
-  names no wallet, or whose wallet has no wallet contract, is refused with
+  names no wallet, or whose wallet has neither an active binding nor a wallet contract, is refused with
   `409 no_bound_identity` before it is priced or charged. On chain the wallet
   is the one whose NEAR account sent the transaction.
 - Before the program is given the name, the worker asks the enclave. The
@@ -10241,11 +10214,11 @@ consent: each is a contract on NEAR, the NEAR MPC network, and a tool you run yo
   deposited stablecoin balance comes back with the contract's `withdraw_balance`.
 - Funds held by a venue under a key of its own — a Polymarket or Hyperliquid account — are
   withdrawn before leaving.
-- A wallet with an exit acts on no other account through an extension: no wallet signs a
-  call to `w_execute_extension`, and a wallet with an exit signs no raw NEAR payload.
-- A wallet contract of the owner's leaves with the owner exit: the owner derives both of
-  its keys and acts on it alone
-  ([OWNER_EXIT.md](https://github.com/out-layer/outlayer/blob/main/docs/OWNER_EXIT.md#leaving-with-a-wallet-contract)).
+- An exit carries no account but the one it leaves to. A wallet's NEAR key is the executor
+  of the account it is bound to through Agent Connect, so a wallet with an exit is bound
+  only to the owner account (owner exit) or the vault's parent (vault exit), and never to a
+  leased account; a leased account is bound to a wallet with no owner. The keystore signs
+  no extension call of such a wallet on any other account.
 
 ## What an exit is not
 
@@ -10463,14 +10436,23 @@ service and to no chain, and any NEAR account sends the call. The commands and t
 they build: [scripts/customer-recovery/README.md](https://github.com/out-layer/outlayer/blob/main/scripts/customer-recovery/README.md#a-wallet-contract-after-an-exit).
 The wallet contract, its two keys and what each party holds: [ON_CHAIN_CUSTODY.md](https://github.com/out-layer/outlayer/blob/main/docs/ON_CHAIN_CUSTODY.md).
 
-## A wallet with an exit acts through no extension
+## A wallet with an exit is bound only to its owner's account
 
-A wallet's NEAR key leaves with the owner's master, and so would any right another account
-gave that key. Before the exit the keystore signs nothing that uses such a right:
+A wallet's NEAR key is the executor of the account it is bound to through Agent Connect
+(`PUT /wallet/v1/binding`), and that key leaves with the owner's master. A binding to any
+other account would hand that account to whoever holds the master after the exit. So an
+owner's wallet is bound to the owner's own account, in the `personal_account` mode, and
+to nothing else:
 
-- No wallet signs a call to `w_execute_extension`, the method of an account with full
-  control of a wallet contract. The call answers 403 `policy_denied` under any policy and
-  under none.
+- `PUT /wallet/v1/binding` with any other `asset_account_id` answers 400: "A wallet whose
+  keys leave with an exit is bound only to the account they leave to. This wallet's keys
+  leave with its owner's exit, to '<owner>': '<account>' is not that account".
+- `kind=hos_lease` is refused for an owner's wallet whatever the account: a leased account
+  is never the owner's own. A leased account is bound to a wallet with no owner and no
+  vault.
+- The keystore holds the same line on its own: it signs no `w_execute_extension` of an
+  owner's wallet whose receiver is not the owner's account, under any policy and whatever
+  binding is recorded.
 - An owner's wallet signs no raw NEAR payload (`raw_sign` on `near`), whatever its policy
   lists: 32 bytes signed with the wallet's NEAR key are any NEAR transaction, this one
   included, and the keystore cannot read them. NEAR is signed through `call`, `transfer` and
@@ -10485,16 +10467,17 @@ whose keys can leave unless the account is the wallet owner's own.
 
 ## A wallet never calls the keystore DAO
 
-The DAO takes whoever calls it for an owner. The keystore signs no call to the keystore DAO
-(`dao.outlayer.near`, `dao.outlayer.testnet`) under any policy, with no capability that
-opens it, and an operation of a wallet contract that calls it is refused as well. Every
+The DAO takes whoever calls it for an owner. A wallet bound to its owner's account through
+Agent Connect acts as that account, so the agent holding the wallet's key could start and
+claim the owner's exit. The keystore therefore signs no call to the keystore DAO
+(`dao.outlayer.near`, `dao.outlayer.testnet`) — sent directly, or as a promise of a
+`w_execute_extension` request — under any policy, with no capability that opens it. Every
 exit call is a transaction the owner signs with the account's own key.
 
-`sign-message` signs no message whose recipient has the form NEP-641 gives an account's
-off-chain authorization (`<chain>: <account>[ -> …] @ <time>`, or the same without
-` @ <time>`): such a signature is the account's authorization, given off chain, of itself
-and of every account that named it an extension. A recipient that only looks like one —
-`Login: alice` — is refused as well.
+For the same reason `sign-message` signs no message whose recipient has the form NEP-641
+gives an account's off-chain authorization (`<chain>: <account>[ -> …] @ <time>`, or the same
+without ` @ <time>`): such a signature would be the bound account's word, given off chain. A
+recipient that only looks like one — `Login: alice` — is refused as well.
 
 A keystore starts only under a DAO this rule names.
 
@@ -10757,21 +10740,27 @@ That is the sovereignty feature working as designed. For end-users:
 - A `parent` controlled by a multisig or a contract shifts the trust
   from "the customer" to "the customer's signers".
 
-### A vault wallet acts through no extension
+### A vault wallet is bound only to the parent
 
-Every key of a vault wallet leaves with the vault's master to `parent`,
-and so would any right another account gave its NEAR key. Before the
-exit the keystore signs nothing that uses such a right. No wallet signs
-a call to `w_execute_extension`, the method of an account with full
-control of a wallet contract: the call answers 403 `policy_denied`
-under any policy and under none. A vault wallet also signs no raw NEAR
-payload (`raw_sign` on `near`), whatever its policy lists: 32 bytes
-signed with its NEAR key are any NEAR transaction, and the keystore
-cannot read them.
+A wallet's NEAR key is the executor of the account it is bound to
+through Agent Connect (`PUT /wallet/v1/binding`), and every key of a
+vault wallet leaves with the vault's master to `parent`. A vault wallet
+is therefore bound to `parent` itself, in the `personal_account` mode,
+and to no other account: the coordinator refuses any other
+`asset_account_id` (400, naming the parent), and refuses
+`kind=hos_lease` outright — a leased account is never the parent's own.
+The keystore holds the same line on its own: it signs no
+`w_execute_extension` of a vault wallet whose receiver is not the
+`parent` named by the vault's `get_state` — the answer its serving gate
+reads on every request — under any policy and whatever binding is
+recorded.
 
-An account that names a vault wallet's address in its own extensions,
-outside OutLayer, hands itself to whoever holds the vault's master
-after the exit — name it only from `parent`'s own account.
+A vault wallet also signs no raw NEAR payload (`raw_sign` on `near`),
+whatever its policy lists: 32 bytes signed with its NEAR key are any
+NEAR transaction, and the keystore cannot read them. And an account
+that names a vault wallet's address in its own extensions, outside
+OutLayer, hands itself to whoever holds the vault's master after the
+exit — name it only from `parent`'s own account.
 
 ### Duplicate-derivation monitor
 
@@ -10964,10 +10953,11 @@ What the exit does **not** do:
 - **The wallet policy no longer applies.** Limits, allowlists and
   approvals were enforced by the keystore before it signed. A key you
   hold locally signs anything.
-- **It carries no right over another account that OutLayer signed
-  for.** No wallet signs a call to `w_execute_extension`, and a vault
-  wallet signs no raw NEAR payload
-  ([VAULTS.md](https://github.com/out-layer/outlayer/blob/main/VAULTS.md#a-vault-wallet-acts-through-no-extension)).
+- **It carries no account but yours.** A vault wallet's NEAR key is
+  the executor of any account bound to it through Agent Connect, so a
+  vault wallet is bound only to the vault's `parent`, and never to a
+  leased (`hos_lease`) account
+  ([VAULTS.md](https://github.com/out-layer/outlayer/blob/main/VAULTS.md#a-vault-wallet-is-bound-only-to-the-parent)).
 
 ---
 
@@ -11508,7 +11498,7 @@ vrf:{request_id}:{sender_id}:{user_seed}
 ```
 
 - **request_id** — the contract's request id (on-chain request) or the numeric request id the coordinator assigns to an HTTPS call. Auto-injected by worker, WASM cannot set it.
-- **sender_id** — the paying account: the transaction's sender (blockchain) or the payment key owner (HTTPS). It is not the wallet contract's account a `use_bound_identity` run acts as. Auto-injected by worker.
+- **sender_id** — the paying account: the transaction's sender (blockchain) or the payment key owner (HTTPS). It is not the bound name a `use_bound_identity` run uses. Auto-injected by worker.
 - **user_seed** — arbitrary string from developer's WASM module. Must not contain `:`.
 
 Example: `vrf:98321:alice.near:coin-flip`

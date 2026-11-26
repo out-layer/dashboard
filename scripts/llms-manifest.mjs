@@ -99,12 +99,6 @@ export const SECTIONS = [
           'TEE-held wallets for agents: agent IDs, multi-chain signing, policy engine, multisig approval, confidential NEAR Intents, NEP-413 message signing, sub-agents',
       },
       {
-        title: 'On-chain Custody',
-        path: '/docs/on-chain-custody',
-        summary:
-          'An agent whose main balance lies in a wallet contract on NEAR that executes a request only under two signatures, the agent\'s own key and a key in the enclave: when to choose it, the setup the owner completes from a link, running an operation with the SDK, statuses, approvals, limits, the working account, leaving',
-      },
-      {
         title: 'Leaving OutLayer with Your Keys',
         path: '/docs/leaving',
         summary:
@@ -181,6 +175,30 @@ export const SECTIONS = [
         path: '/docs/payment-keys',
         summary:
           'Creating payment keys, key format, restrictions, balance management, rate limits, security practices',
+      },
+      {
+        title: 'On-chain Custody',
+        path: '/docs/on-chain-custody',
+        summary:
+          'An agent whose main balance lies in a wallet contract on NEAR that executes a request only under two signatures, the agent\'s own key and a key in the enclave: when to choose it, the setup the owner completes from a link, running an operation with the SDK, statuses, approvals, limits, the working account, leaving',
+      },
+      {
+        title: 'Personal Account Binding',
+        path: '/docs/account-binding',
+        summary:
+          'Letting an agent act as a named account its owner already has: the one transaction the holder signs (the wallet contract installed by hash as a global contract, NEP-591, and which wallets can sign that), which wallets are refused, how an agent asks to run under the bound name on both the HTTPS and on-chain doors, and how the owner ends it',
+      },
+      {
+        title: 'Agent Connect (leased accounts)',
+        path: '/docs/agent-connect',
+        summary:
+          'The House of Stake lease mode: an account a partner provisions and lends to an agent under an on-chain spend grant, how that grant is a second ceiling above the owner policy, the narrower request shape a lease accepts, and the refusal classes a lease can answer with',
+      },
+      {
+        title: 'Binding API reference',
+        path: '/docs/binding-api',
+        summary:
+          'The calls a bound-account integration makes: which of the two account identities each endpoint is about (everything under /binding/ is the asset account, everything else is the wallet own account), the arguments of every binding endpoint and how they differ between the leased and personal modes, running a job under the bound name on both doors, the single per-wallet velocity purse both doors share, the agent_connect_denied refusal classes with which are terminal, and which HTTP failures are worth retrying (Retry-After, not the status code, is the signal)',
       },
       {
         title: 'Connectors',

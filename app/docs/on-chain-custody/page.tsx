@@ -130,7 +130,7 @@ const STATUSES: React.ReactNode[][] = [
   [<C key="s">failed</C>, <>The chain refused; <C>result</C> carries its failure</>, 'Read the failure; the same thing again is another operation under another id'],
   [
     <C key="s">closed</C>,
-    <>Ended with nothing sent, for <C>reason</C>: the vote did not end in approval, or a prepared request was not relayed within an hour</>,
+    <>Ended with nothing sent, for <C>reason</C>: the vote was rejected or expired, an approval was not used within its 24 hours, or a prepared request was not relayed within an hour</>,
     'Read the reason; the same thing again is another operation under another id',
   ],
 ];
@@ -163,6 +163,10 @@ const COMPROMISE: React.ReactNode[][] = [
     'The agent’s key. Every operation still passes the enclave’s policy; the owner freezes the wallet, sets up another agent on another account and moves the assets there',
   ],
   ['A prompt injection into the agent', 'An operation request, which the enclave judges by the policy'],
+  [
+    'A setup link',
+    'The right to name this wallet’s wallet contract once, within 24 hours, and only as the owner account or a sub-account of it, which nobody but the owner can make; the account is taken only when its pair holds this wallet’s enclave key. The link ends when the setup is finished. The sealed agent key opens with the agent’s one-time key alone',
+  ],
   [
     'The owner account’s key',
     'The agent’s key, by the setup’s signature. With a locked policy: what the policy allows as it stands, since a change of policy and an exit both need the approvers. Without a lock the owner’s key is the whole authority',
@@ -400,7 +404,7 @@ if (state.status === 'pending_approval') {
         </p>
         <Table head={[<C key="h">kind</C>, 'Fields', 'What it does']} rows={KINDS} />
         <p className="text-foreground mb-4">
-          A <C>call</C> to a NEAR Intents contract or to the keystore DAO contract is refused. For a swap and a withdrawal to another
+          A <C>call</C> to a NEAR Intents contract, to the keystore DAO contract or to the OutLayer contract, and a call of a method whose name starts with <C>w_execute_</C>, are refused. For a swap and a withdrawal to another
           chain the state carries <C>quote</C>, what 1Click quoted; the quote waits ten minutes for its input, and an input that arrives
           later is returned by 1Click to the wallet contract.
         </p>

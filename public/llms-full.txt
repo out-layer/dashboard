@@ -93,7 +93,7 @@ Live on mainnet: 1.5M attested executions, self-hosted Intel TDX servers, five c
 
 - **The key is never stored.** It is derived on demand inside the enclave from a master secret. No endpoint exports it.
 - **The master comes from NEAR MPC, not from OutLayer.** The MPC network derives it (confidential key derivation) and releases it only to a keystore whose TDX attestation was verified on chain and whose build the DAO approved. Each release is a public transaction.
-- **The agent holds an API key, not a private key.** A leaked API key is bounded by the policy and is revoked or frozen by the owner. The addresses and the funds stay.
+- **The agent holds an API key, not the wallet's private key.** A leaked API key is bounded by the policy and is revoked or frozen by the owner. The addresses and the funds stay. (With [on-chain custody](#on-chain-custody-two-signatures-required-by-the-chain) the agent also holds a key of its own, one of the two the wallet contract requires.)
 - **No credential store for many users.** A deterministic wallet is addressed by a NEAR account plus a seed and authenticated by that account's signature. One NEAR key serves any number of user wallets, and removing the key revokes access within 60 seconds.
 - **Free to create.** A wallet is a NEAR implicit account: one API call, no transaction, no storage deposit, no key registration on `intents.near`. An agent can register itself and hand its owner a link to take control.
 
@@ -165,7 +165,7 @@ A signature costs one round trip to the keystore and one free view call. MPC is 
 
 ### On-chain custody: two signatures, required by the chain
 
-An agent's wallet is an implicit account whose key is derived in the enclave: one API call, no transaction per operation, every feature. An owner who wants the chain itself to require two signatures installs a wallet contract on a NEAR account of their choice, and the agent's main balance lies there. The wallet contract executes a request only under both: the agent's own key and a key in OutLayer's enclave, which signs only for an operation the owner's policy allows. Each move is a NEAR transaction with gas, relayed and paid by the agent's OutLayer wallet, and the owner can leave and sign for both sides. With `use_bound_identity` a program runs as the wallet contract's account.
+An agent's wallet is an implicit account whose key is derived in the enclave: one API call, no transaction per operation, every feature. An owner who wants the chain itself to require two signatures installs a wallet contract on a NEAR account of their choice, and the agent's main balance lies there. The wallet contract executes a request only under both: the agent's own key and a key in OutLayer's enclave, which signs only for an operation the owner's policy allows. Each move is a NEAR transaction with gas, relayed and paid by the agent's OutLayer wallet, and the owner can leave and sign for both sides. With `use_bound_identity` a program runs as the wallet contract's account. The model, the setup and the routes: [docs/ON_CHAIN_CUSTODY.md](https://github.com/out-layer/outlayer/blob/main/docs/ON_CHAIN_CUSTODY.md).
 
 ### Verifiable end to end
 
@@ -437,12 +437,17 @@ key names the account; the agent's own key asks for each operation.
 | GET | `/wallet/v1/contract/key` | Wallet API key | The public key of the wallet's TEE key, one of the pair the owner installs |
 | PUT | `/wallet/v1/contract` | Wallet API key | Name the account that is this wallet's wallet contract; its pair is read from the chain and must hold this wallet's TEE key |
 | GET | `/wallet/v1/contract` | Wallet API key | The wallet contract of this wallet |
+| POST | `/wallet/v1/contract/setup` | Wallet API key | Open a setup: a one-time token for the owner's page, which the agent hands over as a link |
+| GET | `/wallet/v1/contract/setup` | Wallet API key | Collect the finished setup: the account and the agent's key, sealed to the agent's one-time key |
+| GET | `/wallet/v1/contract/setup/owner` | Setup token (`Authorization: Bearer`) | What the owner's page needs: the wallet's TEE key and the message the agent's key is derived from |
+| POST | `/wallet/v1/contract/setup/owner` | Setup token (`Authorization: Bearer`) | Finish: name the owner's account or a sub-account of it and hand the agent its sealed key; the token ends |
 | POST | `/wallet/contract/v1/operations` | Agent's signature | Ask for an operation: the owner's policy judges it, and the enclave signs its half of the request for an operation the policy allows |
 | GET | `/wallet/contract/v1/operations/{id}` | Agent's signature | Where the operation stands |
 | POST | `/wallet/contract/v1/operations/{id}/relay` | Agent's signature | The agent adds its half; the wallet's own NEAR account sends the transaction to the wallet contract and pays its gas |
 
 Operations: a NEAR transfer, a contract call, a transfer inside NEAR Intents, a
 swap and a withdrawal to another chain through 1Click, a withdrawal to NEAR.
+The model, the setup and every refusal: [docs/ON_CHAIN_CUSTODY.md](https://github.com/out-layer/outlayer/blob/main/docs/ON_CHAIN_CUSTODY.md).
 
 ### Confidential Intents (private balances)
 
@@ -1637,7 +1642,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 **Note**: `signer_account_id()` reads `NEAR_SENDER_ID` and returns:
 - `Some(account_id)` when called via blockchain transaction (the transaction's signer; for a meta-transaction, the account that signed the delegate action)
 - `Some(payment_key_owner)` when called via HTTPS API — every HTTPS call carries a payment key
-- the bound account instead, when the request sets `use_bound_identity` (Agent Connect)
+- the account of the caller's wallet contract instead, when the request sets `use_bound_identity`
 - `None` only outside OutLayer (e.g. local wasmtime)
 
 `predecessor_account_id()` (`NEAR_PREDECESSOR_ID`) names the account that
@@ -2016,11 +2021,6 @@ if !error.is_empty() {
         "policy_denied" | "wallet_frozen" => {
             return Ok(json!({ "needs_owner": true, "reason": error }))
         }
-        // Agent Connect refused before signing, so no gas was spent.
-        // `terminal=true` means the same request will never work.
-        "agent_connect_denied" if error.contains("terminal=true") => {
-            return Ok(json!({ "needs_owner": true, "reason": error }))
-        }
         _ => return Err(error.into()),
     }
 }
@@ -2032,7 +2032,7 @@ let moved: serde_json::Value = serde_json::from_str(&result)?; // fails obscurel
 ```
 
 Codes worth knowing: `no_wallet`, `wallet_busy`, `policy_denied`,
-`wallet_frozen`, `agent_connect_denied`, `insufficient_balance`. A failure that is not one of
+`wallet_frozen`, `insufficient_balance`. A failure that is not one of
 ours arrives verbatim rather than dressed in an invented code.
 
 **A wallet runs one money operation at a time.** Two of your own calls in
@@ -2631,9 +2631,9 @@ let display_name = sender_id.strip_suffix(account_suffix).unwrap_or(&sender_id);
 | `NEAR_USER_ACCOUNT_ID` | The account that sent the transaction (the payer) | Payment Key owner (the payer) |
 
 Always set in both modes. The two are the same account unless the request sets
-`use_bound_identity` (Agent Connect): then `NEAR_SENDER_ID` is the bound
-account, verified against the chain inside the worker's TEE before the run
-starts, and `NEAR_USER_ACCOUNT_ID` stays the paying account.
+`use_bound_identity`: then `NEAR_SENDER_ID` is the account of the caller's
+wallet contract, confirmed by the enclave before the run starts, and
+`NEAR_USER_ACCOUNT_ID` stays the paying account.
 
 **Recommended**: For WASI P2, use the OutLayer SDK instead:
 
@@ -4270,8 +4270,8 @@ the input can.
   the caller in them from the host, never from the input: the account that
   paid is `NEAR_USER_ACCOUNT_ID` (`env::var`), the account the run acts as
   is `NEAR_SENDER_ID` (`env::signer_account_id()`) — the same account,
-  except under Agent Connect's bound identity, where it is the bound
-  agent's (`WASM_ENV_VARS.md`) — every caller can make it sign whatever the module will sign for
+  except with `use_bound_identity`, where it is the account of the caller's
+  wallet contract (`WASM_ENV_VARS.md`) — every caller can make it sign whatever the module will sign for
   any of them. The environment is input too: a caller names secret rows of
   its own for the run (`secrets_ref`, `secrets_refs`), and their variables
   are the caller's. Take what a `none` key signs from the input, the code,
@@ -5816,7 +5816,7 @@ interface takes an account.
 
 The run that **answers** a task is the preparer's, started by the platform
 on the owner's approval: it is admitted with the consent sealed in the task
-— the preparer's payment key, wallet, identity binding and compute limit, as
+— the preparer's payment key, wallet, wallet-contract identity and compute limit, as
 the preparing run had them — and the host refuses the answer in any other
 run (`not-the-preparer`), and in the preparer's own run without the owner's
 signature over this task, this hash and these words (`approval-invalid`).
@@ -5899,7 +5899,7 @@ the outcomes kept, stay.
 | `state` | bytes of the project's own, sealed beside the task and handed back when it is answered. The prepared action lives there. Never shown |
 | `policy_hash` | the hash of the policy the task was made under |
 | `build` | SHA-256 of the build that made the task: the code the owner's proof names, and the build the run that answers must be of |
-| consent | sealed beside the envelope, never shown: the preparing run's payment key (its nonce), wallet, whether its identity was bound, and its compute limit — what the run that carries the task out must be admitted with. The store keeps the same facts in the clear as the task's **voucher**, from which the platform starts that run |
+| consent | sealed beside the envelope, never shown: the preparing run's payment key (its nonce), wallet, whether it ran as its wallet contract's account, and its compute limit — what the run that carries the task out must be admitted with. The store keeps the same facts in the clear as the task's **voucher**, from which the platform starts that run |
 | `thread` | the id of the first task of the conversation; a turn keeps the conversation's preparer |
 | life | 24 hours at most; a project may ask for less, but not under 15 minutes for a task that takes an answer (a notice has no floor) |
 
@@ -6229,7 +6229,7 @@ is `ok([])`.
 | `unlock()` | owner | writes the copies for the devices now in force |
 
 `open` seals the run's consent into the task — its payment key, wallet,
-identity binding and compute limit — and sends the same facts to the store as
+wallet-contract identity and compute limit — and sends the same facts to the store as
 the voucher. `answered` holds the run it is in to that consent before it
 looks at the signature: another key, wallet, identity, or more compute than
 the preparing run was allowed is `not-the-preparer`. The refusals a run
@@ -6367,8 +6367,8 @@ near call outlayer.testnet request_execution '{
   - `attached_usd` (U128, stablecoin minimal units, `1000000` = $1) — payment to
     the project's owner, debited from the caller's stablecoin balance in the
     contract (`ft_on_transfer` with `deposit_balance`). `Project` source only.
-  - `use_bound_identity` (bool) — run the guest under the caller's bound
-    account name.
+  - `use_bound_identity` (bool) — run the guest as the account of the
+    caller's wallet contract.
   - `force_rebuild`, `store_on_fastfs`, `compile_only` — build controls.
     `force_rebuild` is refused for a `WasmUrl` source; `store_on_fastfs`
     requires `force_rebuild`; compile-only refuses a non-empty `input_data`.
@@ -9272,8 +9272,8 @@ out, which is a separate choice.
 A wallet with an owner — an account registered for the owner's exit in the
 keystore DAO — can keep its main balance in a wallet contract: a NEAR
 account running the two-key variant of the NEAR Intents wallet contract.
-The owner installs it on a NEAR account of their choice (a sub-account of
-theirs by default, or any named or implicit account) with a pair of public
+The owner installs it on a sub-account of theirs or on their own account,
+with a pair of public
 keys: the agent's and the wallet's TEE key. The wallet contract executes a
 request only under both signatures.
 
@@ -9595,10 +9595,12 @@ other wallet is refused with `400 bad_request` on every route below.
   is in a third byte format. A pair with equal keys is refused by the contract.
 - **A wallet contract has no extension.** An extension has full control of a
   wallet contract, so the enclave signs for no wallet contract that has one.
-- **One build, by its code hash.** The account uses a global contract by its
-  code hash, so the installing transaction carries no code. The enclave reads
-  the account's code hash before every signature and signs for the configured
-  build only. The published build on testnet is
+- **A build the DAO approved, by its code hash.** The account uses a global
+  contract by its code hash, so the installing transaction carries no code.
+  The enclave reads the account's code hash before every signature and signs
+  only for a build on the keystore DAO's list (`ApproveWalletContract`, a vote
+  with the DAO's delay). An account stays on the build it was installed with,
+  so a later build is approved beside the earlier one. The published build is
   `651XC7DH8J4Xczf8JKXH9pyveBY8ZuNCfy5HZ3SvuSiL`.
 
 ## 4. Setup
@@ -9613,8 +9615,8 @@ the API carries between them a token and a sealed key it cannot read.
 | 2 | Owner | opens the link and connects the owner account; the page shows the owner, the agent's OutLayer wallet, the enclave's key for it and the network |
 | 3 | Owner | chooses the account and what happens to the account's own keys (below) |
 | 4 | Owner | signs one message with the owner key; the page turns the signature into the agent's key and shows the pair the contract will require |
-| 5 | Owner | creates the account if it is a sub-account, and installs the wallet contract on it with the pair |
-| 6 | Owner | hands the agent its key: the page seals it to the agent's one-time key and names the account, `PUT /wallet/v1/contract/setup/{token}` |
+| 5 | Owner | signs one plain transaction: the creation of the sub-account, or one key added to their own account. The page then installs the wallet contract on the account with the pair |
+| 6 | Owner | hands the agent its key: the page seals it to the agent's one-time key and names the account, `POST /wallet/v1/contract/setup/owner` |
 | 7 | Owner | stores a policy for the wallet; the enclave signs for a wallet contract only under a policy its owner stored |
 | 8 | Agent | collects the account and its key: `GET /wallet/v1/contract/setup` |
 
@@ -9626,10 +9628,14 @@ A refused wallet leaves the page on the same step.
 | Choice | What happens |
 |---|---|
 | A sub-account of the owner's, `<name>.<owner>` (the page offers `agent`) | The owner's wallet creates it with 0.5 NEAR for its storage, the owner's key and a key the page holds for the installing transaction alone. The page then sends the account's own transaction: the global contract by its hash, `w_init` with the pair, and the removal of the page's key |
-| The owner account itself | The owner's wallet signs the installing transaction on the account it is connected with. The owner's key stays on it and acts on it directly |
+| The owner account itself | The owner's wallet adds one full-access key the page holds for the installing transaction alone: made in the tab, stored nowhere. The page then sends the same transaction as for a sub-account, which removes that key. The owner's key stays on the account and acts on it directly |
 
-Installing is one transaction signed by the account itself: `UseGlobalContract`
-by the code hash, then `w_init(public_key)` with 1 yoctoNEAR attached. OutLayer
+The owner's wallet signs nothing but an account creation, a transfer and added
+keys, which every wallet signs. Installing is one transaction of the account
+itself, signed by the page's key: `UseGlobalContract` by the code hash, then
+`w_init(public_key)` with 1 yoctoNEAR attached, then the removal of the page's
+key. A page closed between the two leaves that key on the account with nobody
+holding it; the owner removes it in their wallet. OutLayer
 neither creates the account nor computes its address. An account that was
 installed by other means is named with `PUT /wallet/v1/contract`; it is taken
 under the same check.
@@ -9643,12 +9649,20 @@ sub-account:
 
 | Choice | What it means |
 |---|---|
-| Keep the owner's key on it (the default) | The owner acts on the account at any time with their own wallet, and can install the contract again with another agent key at the same address. Whoever holds that key moves everything on the account at once, and no policy applies to it |
-| Remove every key from it | Nothing moves without the agent's signature and the enclave's. The owner alone acts on it only through the owner's exit, after its window. It cannot be undone, and another agent key means another account |
+| Keep the owner's key on it (the default) | The owner acts on the account at any time with their own wallet. Whoever holds that key moves everything on the account at once, and no policy applies to it |
+| Remove every key from it | Nothing moves without the agent's signature and the enclave's. The owner alone acts on it only through the owner's exit, after its window. It cannot be undone |
 
 With the owner account itself as the agent's account there is no choice: the
 owner's key stays, since the account needs it to store a policy, to approve
-and to leave.
+and to leave. The agent then acts as the owner's account toward every contract
+its policy lets it call: what that account may do there, a vote in a DAO
+included, the agent does in its name. Calls to OutLayer's own contracts are
+refused, so the agent cannot store the policy it is held to.
+
+A key registered for an account in NEAR Intents is an access key for what the
+account holds there: it signs intents for the account with no signature of the
+agent or of the enclave. A sub-account the setup creates has none. An owner
+account that has used NEAR Intents has its own, as it has its NEAR key.
 
 While the owner holds a key of the account, the setup is undone from the
 owner's own wallet: another contract deployed on the account, or the account
@@ -9666,13 +9680,15 @@ deleted.
 { "token": "<64 hex characters>", "expires_at": "2026-11-27T12:00:00Z" }
 ```
 
-The token is valid for 24 hours. Whoever holds it can name this wallet's
-wallet contract until it expires; the account it names is taken only when its
-pair on chain holds this wallet's enclave key. A wallet has one setup: opening
+The token is valid for 24 hours and ends when the setup is finished. Whoever
+holds it can name this wallet's wallet contract once, and only as the owner
+account or a sub-account of it; the account is taken only when its pair on
+chain holds this wallet's enclave key. A wallet has one setup: opening
 again issues another token for another one-time key, ends the earlier token,
 and discards a sealed key that was not collected.
 
-`GET /wallet/v1/contract/setup/{token}` — the token is the only credential.
+`GET /wallet/v1/contract/setup/owner` — the token is the only credential, sent as
+`Authorization: Bearer <token>` and never in a URL of the API.
 
 ```json
 {
@@ -9692,7 +9708,7 @@ The page computes the message itself and signs only when the API's request
 equals it. A token that is unknown or expired, or that a later setup of the
 wallet superseded, answers `404 request_not_found`.
 
-`PUT /wallet/v1/contract/setup/{token}` — the token is the only credential.
+`POST /wallet/v1/contract/setup/owner` — the token is the only credential, sent the same way.
 
 ```json
 { "account_id": "agent.alice.near", "sealed_agent_key": "<base64>" }
@@ -9703,9 +9719,11 @@ wallet superseded, answers `404 request_not_found`.
 ```
 
 The account's pair is read from the chain (`w_public_key`). It is refused with
-`400 bad_request` when the account does not answer with a pair of keys or the
-pair's second half is not this wallet's enclave key, and with
-`422 chain_refused` when the chain has no such account, contract or method.
+`400 bad_request` when the account is neither the owner's nor a sub-account of
+it, when it does not answer with a pair of keys or the pair's second half is
+not this wallet's enclave key; with `409 conflict` when the account is another
+wallet's wallet contract; and with `422 chain_refused` when the chain has no
+such account, contract or method.
 
 `GET /wallet/v1/contract/setup` — wallet API key.
 
@@ -9732,7 +9750,7 @@ The same record without the setup link:
 | Route | Does |
 |---|---|
 | `GET /wallet/v1/contract/key` | the enclave's public key of this wallet's wallet contract: `{ "tee_public_key": "<hex>" }` |
-| `PUT /wallet/v1/contract` | names the account, `{ "account_id": "…" }`; reads its pair from the chain. Naming the same account again reads the pair again, which is how another agent key on the same account is taken up |
+| `PUT /wallet/v1/contract` | names the account, `{ "account_id": "…" }`; reads its pair from the chain. Naming the same account again reads the pair again; an account that is another wallet's is `409` |
 | `GET /wallet/v1/contract` | the recorded account and the agent's public key; `404 request_not_found` when the wallet has none |
 
 ### The sealed key
@@ -9800,9 +9818,9 @@ token's own for a token. A token is its id inside NEAR Intents
 | `swap` | `token_in`, `amount_in`, `token_out`, `min_out` | `mt_transfer` of the input to the deposit address of a 1Click quote whose recipient and refund address are the wallet contract inside NEAR Intents |
 | `cross_chain_withdraw` | `to`, `amount`, `token`, `chain` | `mt_transfer` of the input to the deposit address of a 1Click quote whose recipient is `to` on `chain` and whose refund address is the wallet contract |
 
-- A `call` to a NEAR Intents contract or to the keystore DAO contract, and a
-  call of a method whose name starts with `w_execute_`, are refused. A wallet
-  contract sends no request to itself.
+- A `call` to a NEAR Intents contract, to the keystore DAO contract or to the
+  OutLayer contract, and a call of a method whose name starts with
+  `w_execute_`, are refused. A wallet contract sends no request to itself.
 - NEAR Intents is on mainnet only: `intents_transfer`, `withdraw`, `swap` and
   `cross_chain_withdraw` are refused on testnet.
 - The result of a swap arrives in the wallet contract's balance inside NEAR
@@ -9823,7 +9841,7 @@ token's own for a token. A token is its id inside NEAR Intents
 | `relayed` | the transaction `tx_hash` was sent and its outcome is not recorded | reads the operation; the read settles it |
 | `success` | the request executed on chain. For a swap or a withdrawal to another chain it says the input reached 1Click's deposit address; `route_status` on a read follows the route | — |
 | `failed` | the chain refused; `result` carries the chain's failure | reads the failure; the same thing again is another operation under another id |
-| `closed` | ended with nothing sent, for `reason`: the vote did not end in approval, or a prepared request was not relayed within an hour | reads the reason; the same thing again is another operation under another id |
+| `closed` | ended with nothing sent, for `reason`: the vote was rejected or expired, an approval was not used within its 24 hours, or a prepared request was not relayed within an hour | reads the reason; the same thing again is another operation under another id |
 
 ### The agent's signed request
 
@@ -9833,11 +9851,11 @@ The operation routes take no API key. Each request carries four headers:
 |---|---|
 | `x-agent-account` | the wallet contract's account |
 | `x-agent-timestamp` | Unix seconds, within 120 seconds of the server's clock |
-| `x-agent-nonce` | 16 bytes in hex, the agent's choice; each request is taken once |
-| `x-agent-signature` | 64 bytes in hex: the agent key's Ed25519 signature |
+| `x-agent-nonce` | 16 bytes in lowercase hex, the agent's choice; each request is taken once |
+| `x-agent-signature` | 64 bytes in lowercase hex: the agent key's Ed25519 signature |
 
 The signature covers the method, the path and the body
-([section 11](#11-byte-formats)), so a request signed for one route is not
+([section 12](#12-byte-formats)), so a request signed for one route is not
 taken by another. A request not signed by the agent's key of the wallet
 contract it names, or with a timestamp outside the window, answers
 `401 invalid_signature`; so does an account that is no wallet's wallet
@@ -9923,7 +9941,8 @@ operation, with amounts below the policy's threshold passing without one.
 - An operation that needs approvers is answered `pending_approval` with
   `approval_id`. The vote is read and cast on like any other
   (`GET /wallet/v1/approval/{id}`, `POST /wallet/v1/approve/{id}`); its type
-  is `wallet_contract`, and it stays open for 24 hours. The policy's `webhook_url` receives `approval_needed`
+  is `wallet_contract`, and it lives 24 hours: the agent asks again within
+  them, voted or not, or the operation is closed. The policy's `webhook_url` receives `approval_needed`
   with `operation_id` (the agent's id), `approval_id`, `type` and `required`.
 - **An approval starts nothing.** Once the approvers have voted, the agent
   sends the same request again under the same id. The votes go to the enclave
@@ -9945,6 +9964,10 @@ operation, with amounts below the policy's threshold passing without one.
   every other kind counts its input amount under its token.
 - **A prepared request that is not relayed within an hour is closed.** The
   wallet contract accepts a request for an hour from its `created_at_ns`.
+- **A freeze stops new requests, not the one already prepared.** A prepared
+  request carries the enclave's half, and the wallet contract accepts it with
+  the agent's half until its hour ends. One operation runs at a time, so that
+  is one request at most.
 - One operation of a wallet runs at a time (`409 wallet_busy`), so the limits
   are counted correctly.
 - The working account pays the gas of every relay. It needs NEAR for that.
@@ -10023,11 +10046,12 @@ The commands and the moves they build:
 - The registration for the exit comes before the wallet contract: on-chain
   custody is refused for a wallet without an owner, so no wallet contract is
   set up without a way out.
-- The wallet contract has no operation that replaces a key. With a key of the
-  owner's kept on the account, another agent key is the contract installed
-  again on the same account, and the address stays; `PUT /wallet/v1/contract`
-  then reads the pair again. With the account's keys removed it is another
-  account, and the assets move there by ordinary operations.
+- The pair of a wallet contract is set once, when it is installed, and both
+  keys are derived for the owner and the wallet: the same wallet always has
+  the same pair. Another agent key is another agent: a new OutLayer wallet
+  with a wallet contract on another account. The owner moves the assets there
+  with their key of the old account, or through the exit where the keys were
+  removed.
 - An owner who keeps a key on the account acts on it at any time with that
   key, without an exit.
 
@@ -10038,11 +10062,11 @@ The commands and the moves they build:
 | The enclave (memory read) | the enclave's key. No signature of the agent, so no move out of a wallet contract; and no move signed by the agent that the policy did not pass, since the agent signs last. What lies on the working account is under the enclave's key |
 | OutLayer's governance: a hostile build, a hostile upgrade of OutLayer's own contracts | the enclave's key, and still no move out of a wallet contract without the agent's signature. No contract OutLayer can change is on the path of the funds in a wallet contract |
 | The coordinator (the API in front of the enclave) | no move of its own and no request in the agent's name: the enclave verifies the agent's signature and reads the wallet contract itself. The coordinator supplies the 1Click deposit address, the request's nonce and the counters of what was spent; the agent checks the request before it signs |
-| The agent's machine | the agent's key. Every operation still passes the enclave's policy; the owner freezes the wallet and installs the contract again with another agent key, or sets up another account |
+| The agent's machine | the agent's key. Every operation still passes the enclave's policy; the owner freezes the wallet, sets up another agent on another account and moves the assets there |
 | A prompt injection into the agent | an operation request, which the enclave judges by the policy |
 | The owner account's key | the agent's key, by the setup's signature. With a locked policy: what the policy allows as it stands, since a change of policy and an exit both need the approvers. Without a lock the owner's key is the whole authority |
 | An access key of the wallet contract's account, where the owner kept one | everything on that account, at once: the key is above the contract, and neither the policy nor its lock applies |
-| A setup token | the right to name this wallet's wallet contract for 24 hours; the account is taken only when its pair holds this wallet's enclave key. The sealed agent key opens with the agent's one-time key alone |
+| A setup token | the right to name this wallet's wallet contract once, within 24 hours, and only as the owner account or a sub-account of it, which nobody but the owner can make; the account is taken only when its pair holds this wallet's enclave key. The token ends when the setup is finished. The sealed agent key opens with the agent's one-time key alone |
 | NEAR MPC | the enclave's key, through the master; not the agent's, which comes from the owner's own signature. No move out of a wallet contract |
 
 ## 12. Byte formats
@@ -10134,9 +10158,13 @@ seed is `HMAC-SHA256(key = "outlayer/agent-key/v1", signature ‖ message)`.
 
 ## 13. Operator configuration
 
-| Component | Setting | Meaning |
-|---|---|---|
-| Keystore | `WALLET_CONTRACT_CODE_HASH` (base58) | the code hash of the published build of the two-key wallet contract. The enclave signs for an account only when its code hash equals this value. Without it the keystore's `/wallet/contract/*` routes refuse |
+The keystore takes no setting for on-chain custody. The builds of the wallet
+contract it signs for are the keystore DAO's list
+(`get_approved_wallet_contracts`): a build is added by an
+`ApproveWalletContract` vote and taken off by `RevokeWalletContract`, or at
+once by the DAO's owner (`remove_approved_wallet_contract`). The DAO contract
+that carries the list is upgraded before a keystore that reads it starts, and
+the build is approved before the first setup.
 
 The keystore's four routes take a coordinator or worker token, as every
 keystore route that reads the chain or derives a key:
@@ -10149,7 +10177,7 @@ keystore route that reads the chain or derives a key:
 | `/wallet/contract/identity` | worker | whether a caller's wallet is the one an account is the wallet contract of |
 
 An account is admitted as a wallet's wallet contract when, as the chain
-answers at the moment of the request, it runs the configured build, has no
+answers at the moment of the request, it runs an approved build, has no
 extension, accepts signatures, and holds a pair whose second key is this
 wallet's enclave key. The account's own access keys and its balance are the
 owner's and are not looked at.
@@ -10296,6 +10324,9 @@ current generation: the wallet is created once the claim has settled.
 
 A wallet in an owner's scope is deterministic: `wallet_id = f(account, seed, owner path)`.
 With no seed in the link the owner's next free numbered seed is taken — `0`, `1`, `2`, ….
+
+The policy of a wallet in an owner's scope is stored by the owner account and by no other:
+the keystore signs a policy for that sender alone, and `403` for any other.
 
 An agent that already works on a wallet without an owner can move to one with an exit: it
 is a new wallet at a new address, the funds move by an ordinary transfer, and the venue
@@ -11476,7 +11507,7 @@ vrf:{request_id}:{sender_id}:{user_seed}
 ```
 
 - **request_id** — the contract's request id (on-chain request) or the numeric request id the coordinator assigns to an HTTPS call. Auto-injected by worker, WASM cannot set it.
-- **sender_id** — the paying account: the transaction's sender (blockchain) or the payment key owner (HTTPS). It is not the bound name a `use_bound_identity` run uses. Auto-injected by worker.
+- **sender_id** — the paying account: the transaction's sender (blockchain) or the payment key owner (HTTPS). It is not the wallet contract's account a `use_bound_identity` run acts as. Auto-injected by worker.
 - **user_seed** — arbitrary string from developer's WASM module. Must not contain `:`.
 
 Example: `vrf:98321:alice.near:coin-flip`

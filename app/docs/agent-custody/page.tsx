@@ -63,6 +63,18 @@ export default function AgentCustodyPage() {
             fully determines which master is used.
           </p>
         </div>
+ <div className="bg-card-muted border-l-4 border-border p-4 mb-6">
+ <p className="text-sm text-foreground">
+ <strong>Optional: on-chain custody.</strong> An owner can also give the agent a wallet contract on NEAR for its
+            main balance. The contract executes a request only under two signatures, the agent&rsquo;s own key and a key in
+            the enclave, so the chain itself holds that rule; each move is a NEAR transaction, and the wallet described on
+            this page stays the agent&rsquo;s working account. See{' '}
+            <Link href="/docs/on-chain-custody" className="text-accent-text hover:underline">
+              On-chain Custody
+            </Link>
+            .
+          </p>
+        </div>
       </section>
 
       {/* How It Works */}
@@ -545,7 +557,7 @@ export default function AgentCustodyPage() {
  <p className="text-foreground mb-3">
  <strong>A 1-yoctoNEAR marker is not a spend.</strong> The single yocto a payable method
           requires is protocol overhead, and it is deducted before anything is counted &mdash; so a
-          token transfer through a bound account moves the token and nothing native. That also
+          token transfer moves the token and nothing native. That also
           decides what <code className="bg-card-muted px-1 rounded">rate_limit.max_per_hour</code>{' '}
           counts: it counts <strong>money movements</strong>, not requests. A token transfer is one.
           A request moving NEAR <em>and</em> a token is two. A request the chain refused is still
@@ -1560,22 +1572,6 @@ curl -s -H "Authorization: Bearer $API_KEY" \\
  After deletion, the on-chain account no longer exists and all API keys are revoked. Subsequent API requests will return <code className="bg-card-muted px-1 rounded">invalid_api_key</code>.
         </p>
       </section>
-
-      {/* Bind Your Own Account */}
- <section id="account-binding" className="mb-10 scroll-mt-4">
- <AnchorHeading id="account-binding">Bind Your Own Account</AnchorHeading>
- <p className="text-foreground mb-4">
- Letting an agent act as an account it does not own — yours, or one leased to it — now has a page
- of its own: <Link href="/docs/account-binding" className="text-accent-text underline">Personal Account Binding</Link>,
- with the partner lease programme on <Link href="/docs/agent-connect" className="text-accent-text underline">Agent Connect</Link>.
- It covers both modes, the transaction the account holder signs, and how an agent asks to run under
- the bound name.
- </p>
- <p className="text-foreground mb-4">
- It moved because it is the one part of custody a non-developer has to carry out, and it was the
- least findable thing on this page.
- </p>
- </section>
 
       {/* Sign Message (NEP-413) */}
 

@@ -2,8 +2,8 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: "Personal Account Binding",
-  description: "Letting an agent act as a named account its owner already has: the one transaction the holder signs (the wallet contract installed by hash as a global…",
+  title: "On-chain Custody",
+  description: "An agent whose main balance lies in a wallet contract on NEAR that executes a request only under two signatures, the agent's own key and a key in the…",
 };
 
 export default function Layout({ children }: { children: React.ReactNode }) {

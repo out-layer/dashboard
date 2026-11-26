@@ -150,9 +150,16 @@ function Inner() {
       if (!signed) throw new Error('The wallet returned no signature.');
       if (signed.accountId !== setup.owner) throw new Error(`The message was signed by ${signed.accountId}, not by ${setup.owner}.`);
       const agentSeed = await agentKeySeed(fromBase64(signed.signature), setup.owner, setup.wallet_id);
+      const derived = pairText(await publicKeyOfSeed(agentSeed), setup.tee_public_key);
       setSeed(agentSeed);
-      setPair(pairText(await publicKeyOfSeed(agentSeed), setup.tee_public_key));
+      setPair(derived);
       setOwnerKey(signed.publicKey);
+      // An account that already runs the wallet contract with this pair has
+      // nothing left to install: the key is handed to the agent again.
+      if ((await viewPair(rpcUrl, agentAccount)) === derived) {
+        setCreated(true);
+        setInstalled(true);
+      }
     });
 
   const createAccount = () =>

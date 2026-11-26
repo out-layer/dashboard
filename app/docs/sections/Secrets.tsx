@@ -298,7 +298,7 @@ export default function SecretsSection() {
  <p className="text-foreground mt-3">
             <strong>Access</strong> on a secret card changes the condition without touching the value:
             grant an agent by its wallet account (the 64-character account that pays for its calls &mdash;
-            your own custody wallets are offered by name), with an expiry for a leased agent, and revoke
+            your own custody wallets are offered by name), with an expiry where the grant is for a limited time, and revoke
             by removing it. The secrets page also lists every account your secrets are handed to, with a
             one-click revoke, so a grant that has outlived its agent is found rather than remembered. The
             agent names the secret in its call with{' '}

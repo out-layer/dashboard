@@ -123,7 +123,7 @@ export default function NearIntegrationPage() {
  <p className="text-sm text-muted-foreground mb-2">Advanced execution control parameters:</p>
  <ul className="list-disc list-inside text-sm text-foreground ml-4 space-y-1">
  <li><code className="bg-card-muted px-2 py-1 rounded">attached_usd</code>: U128 (optional) - Payment to the project owner in stablecoin minimal units (1_000_000 = $1), deducted from your stablecoin balance in the contract. Project source only.</li>
- <li><code className="bg-card-muted px-2 py-1 rounded">use_bound_identity</code>: bool (default: false) - Run the guest under the caller&apos;s bound account name. See <a href="/docs/binding-api#running-as" className="underline">Running a job under the bound name</a>.</li>
+ <li><code className="bg-card-muted px-2 py-1 rounded">use_bound_identity</code>: bool (default: false) - Run the guest as the account of the caller&apos;s wallet contract: <code className="bg-card-muted px-2 py-1 rounded">NEAR_SENDER_ID</code> is that account, and <code className="bg-card-muted px-2 py-1 rounded">NEAR_USER_ACCOUNT_ID</code> stays the account that paid. See <a href="/docs/on-chain-custody#working-account" className="underline">On-chain custody</a>.</li>
                 </ul>
               </div>
             </div>

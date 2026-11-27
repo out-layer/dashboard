@@ -199,7 +199,8 @@ function Outcome({ exit, of }: { exit: Exit; of: string[] }) {
   return outcome.error ? <Failure>{outcome.error}</Failure> : <Done>{outcome.done}</Done>;
 }
 
-function Register({ exit }: { exit: Exit }) {
+/** The registration's window and its one button: in its own section, or as the first step of a link. */
+function RegisterForm({ exit }: { exit: Exit }) {
   const { accountId, dao, config, busy, send } = exit;
   const [hours, setHours] = useState<number | null>(null);
   if (!config) return null;
@@ -208,17 +209,7 @@ function Register({ exit }: { exit: Exit }) {
   const chosen = (hours ?? config.defaultWindowSecs / unit) * unit;
   const valid = Number.isInteger(chosen) && chosen >= config.minWindowSecs && chosen <= config.maxWindowSecs;
   return (
-    <Section
-      title="Register this account as an owner"
-      about={
-        <>
-          One transaction to <span className="font-mono">{dao}</span>, once per account. It stores <span className="font-mono">{accountId}</span>{' '}
-          and its exit window in the contract — public, like everything on chain — and takes a fee of {formatNear(config.registrationFeeYocto)} NEAR,
-          which is not returned. Nothing else is stored and no wallet is created by it. There is no call that removes a registration; an account
-          that never creates a wallet is simply never used.
-        </>
-      }
-    >
+    <>
       <label className="flex flex-wrap items-center gap-2 text-sm text-foreground">
         Exit window
         <input
@@ -254,6 +245,26 @@ function Register({ exit }: { exit: Exit }) {
         {busy === 'register' ? 'Waiting for the wallet…' : `Register ${accountId} in ${dao} — ${formatNear(config.registrationFeeYocto)} NEAR`}
       </Button>
       <Outcome exit={exit} of={['register']} />
+    </>
+  );
+}
+
+function Register({ exit }: { exit: Exit }) {
+  const { accountId, dao, config } = exit;
+  if (!config) return null;
+  return (
+    <Section
+      title="Register this account as an owner"
+      about={
+        <>
+          One transaction to <span className="font-mono">{dao}</span>, once per account. It stores <span className="font-mono">{accountId}</span>{' '}
+          and its exit window in the contract — public, like everything on chain — and takes a fee of {formatNear(config.registrationFeeYocto)} NEAR,
+          which is not returned. Nothing else is stored and no wallet is created by it. There is no call that removes a registration; an account
+          that never creates a wallet is simply never used.
+        </>
+      }
+    >
+      <RegisterForm exit={exit} />
     </Section>
   );
 }
@@ -377,20 +388,19 @@ function FromLink({ token, exit }: { token: string; exit: Exit }) {
     );
   }
   const expired = prepared.expires_at * 1000 < readAt;
-
-  return (
-    <Section
-      title="A wallet from a link"
-      about="Whoever made this link asked for a wallet that you own and can leave OutLayer with. They hold the wallet's API key and will operate the wallet in your name; you hold the exit."
-    >
-      <div className="rounded-md border border-warning/40 bg-warning/10 p-3 text-sm text-foreground">
-        <p className="font-medium">Continue only if this link came from an agent you run or trust.</p>
-        <p className="mt-1">
-          Anyone can make such a link. Its maker keeps the key below: with it they spend whatever the wallet holds, within the policy you set —
-          and the wallet has none until you set one. If you did not ask an agent for this, close the page.
-        </p>
-      </div>
-      <table className="w-full text-sm">
+  const trust = (
+    <div className="space-y-1 rounded-md border border-warning/40 bg-warning/10 p-3 text-sm text-foreground">
+      <p>
+        Continue only if this link came from an agent you run or trust: whoever made it holds the wallet&apos;s key and spends what it holds,
+        within the policy you set.
+      </p>
+      <p className="text-muted-foreground">This is a new wallet at a new address: nothing moves into it by itself.</p>
+    </div>
+  );
+  const whatTheLinkAsks = (
+    <details className="text-sm text-muted-foreground [&>summary]:cursor-pointer [&>summary]:select-none">
+      <summary>What this link asks for</summary>
+      <table className="mt-3 w-full text-sm">
         <tbody>
           <Row name="Owner">
             <span className="font-mono">{accountId}</span>
@@ -402,20 +412,24 @@ function FromLink({ token, exit }: { token: string; exit: Exit }) {
           <Row name="Link expires">{new Date(prepared.expires_at * 1000).toLocaleString()}</Row>
         </tbody>
       </table>
-
-      {!created && (
-        <p className="text-sm text-muted-foreground">
-          This is a new wallet at a new address. Nothing moves into it by itself: funds of a wallet the agent already uses are sent over by an
-          ordinary transfer, and a Hyperliquid or Polymarket account belongs to the wallet it was opened from, so it is opened again under this
-          one.
-        </p>
+      {prepared.message && (
+        <>
+          <p className="mt-3">The message you sign:</p>
+          <p className="mt-1 break-all rounded-md border border-border bg-background p-3 font-mono text-xs text-foreground">{prepared.message}</p>
+        </>
       )}
+      <p className="mt-3">
+        Funds of a wallet the agent already uses are sent over by an ordinary transfer, and a
+        Hyperliquid or Polymarket account belongs to the wallet it was opened from, so it is opened again under this one.
+      </p>
+    </details>
+  );
 
-      {created ? (
+  if (created) {
+    return (
+      <Section title="The wallet is ready">
         <Done>
-          <p>
-            The wallet exists. The agent&apos;s key works now; tell the agent it can continue.
-          </p>
+          <p>The agent&apos;s key works now: tell the agent it can continue.</p>
           <p className="mt-2 break-all font-mono text-xs">
             wallet_id {created.wallet_id}
             <br />
@@ -424,41 +438,73 @@ function FromLink({ token, exit }: { token: string; exit: Exit }) {
             owner {created.owner}, generation {created.generation}, seed {created.seed}
           </p>
         </Done>
-      ) : expired ? (
-        <Failure>This link has expired. Ask the agent for a new one.</Failure>
-      ) : owner === null ? (
         <p className="text-sm text-muted-foreground">
-          <span className="font-mono">{accountId}</span> is not registered as an owner yet. Register it below; the button that creates the wallet
-          appears here after.
+          The wallet has no policy until you set one. Your exit, its window and its approvers are on{' '}
+          <a href="/exit" className="text-accent-text hover:underline">
+            Owner exit
+          </a>
+          .
         </p>
-      ) : prepared.message ? (
-        <>
-          <p className="text-sm text-muted-foreground">
-            Creating the wallet is a signature, not a transaction: it costs nothing and moves nothing. You sign this message, which names the
-            network, your account, your generation, the seed, the agent&apos;s key and the link&apos;s expiry:
-          </p>
-          <p className="break-all rounded-md border border-border bg-background p-3 font-mono text-xs text-foreground">{prepared.message}</p>
-          <p className="text-sm text-muted-foreground">
-            After it, whoever holds the agent&apos;s key can use the wallet within its policy. The wallet has no policy until you set one on the
-            Wallets page. To take the wallet away from the agent, leave with its keys — the exit below.
-          </p>
-          <Button disabled={busy} onClick={() => void create()}>
-            {busy ? 'Waiting for the wallet…' : `Sign as ${accountId} to create the wallet`}
-          </Button>
-        </>
-      ) : (
-        // Registered on chain, and OutLayer has not read it yet: its read of the chain is a
-        // few blocks behind. Nothing to pay again; ask again.
-        <>
-          <p className="text-sm text-muted-foreground">
-            <span className="font-mono">{accountId}</span> is registered, and OutLayer does not see it yet — its read of the chain is a few
-            seconds behind. Nothing more is to be paid.
-          </p>
-          <Button variant="outline" onClick={() => setAsked((n) => n + 1)}>
-            Check again
-          </Button>
-        </>
-      )}
+      </Section>
+    );
+  }
+  if (expired) {
+    return (
+      <Section title="A wallet from a link">
+        <Failure>This link has expired. Ask the agent for a new one.</Failure>
+      </Section>
+    );
+  }
+  if (owner === undefined) {
+    return (
+      <Section title="A wallet from a link">
+        <p className="text-sm text-muted-foreground">Reading your account&apos;s record…</p>
+      </Section>
+    );
+  }
+  if (owner === null) {
+    return (
+      <Section
+        title="Step 1 of 2: register as an owner"
+        about={
+          <>
+            Your agent asked for a wallet that you own and can leave OutLayer with. First, one transaction registers{' '}
+            <span className="font-mono">{accountId}</span> as an owner, once for all its wallets. The fee is not returned.
+          </>
+        }
+      >
+        {trust}
+        <RegisterForm exit={exit} />
+        {whatTheLinkAsks}
+      </Section>
+    );
+  }
+  if (!prepared.message) {
+    // Registered on chain, and OutLayer has not read it yet: its read of the chain is a
+    // few blocks behind. Nothing to pay again; ask again.
+    return (
+      <Section title="Step 2 of 2: create the wallet">
+        <p className="text-sm text-muted-foreground">
+          <span className="font-mono">{accountId}</span> is registered, and OutLayer does not see it yet: its read of the chain is a few seconds
+          behind. Nothing more is to be paid.
+        </p>
+        <Button variant="outline" onClick={() => setAsked((n) => n + 1)}>
+          Check again
+        </Button>
+        {error && <Failure>{error}</Failure>}
+      </Section>
+    );
+  }
+  return (
+    <Section
+      title="Step 2 of 2: create the wallet"
+      about="One signature, not a transaction: it costs nothing and moves nothing. After it the agent's key runs the wallet, within the policy you set."
+    >
+      {trust}
+      <Button disabled={busy} onClick={() => void create()}>
+        {busy ? 'Waiting for the wallet…' : `Sign as ${accountId} to create the wallet`}
+      </Button>
+      {whatTheLinkAsks}
       {error && <Failure>{error}</Failure>}
     </Section>
   );
@@ -820,13 +866,19 @@ function ExitPage() {
   const exit = useExit();
   return (
     <div className="space-y-5">
-      {/* Keyed by the account: what one account was shown and asked to sign is not another's. */}
-      {token && <FromLink key={`${exit.accountId}:${token}`} token={token} exit={exit} />}
-      {exit.owner === null && <Register exit={exit} />}
-      <Status exit={exit} />
-      <Window exit={exit} />
-      <Approvers exit={exit} />
-      <Vote exit={exit} />
+      {/* With a link the page is the link's steps alone, one at a time. Keyed by the account:
+          what one account was shown and asked to sign is not another's. */}
+      {token ? (
+        <FromLink key={`${exit.accountId}:${token}`} token={token} exit={exit} />
+      ) : (
+        <>
+          {exit.owner === null && <Register exit={exit} />}
+          <Status exit={exit} />
+          <Window exit={exit} />
+          <Approvers exit={exit} />
+          <Vote exit={exit} />
+        </>
+      )}
       {exit.error && <Failure>{exit.error}</Failure>}
     </div>
   );

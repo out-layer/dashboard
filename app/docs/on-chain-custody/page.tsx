@@ -451,7 +451,13 @@ if (state.status === 'pending_approval') {
             runs at a time, so that is one request at most.
           </li>
           <li>One operation of a wallet runs at a time; a second one is refused with <C>wallet_busy</C>.</li>
-          <li>The working account pays the gas of every relay and needs NEAR for it.</li>
+          <li>
+            The working account pays the gas of every relay and keeps 0.5 NEAR for it. Before a relay runs, the
+            node checks that the account could pay the relay&apos;s 300 Tgas at ten times the current gas price:
+            0.3 NEAR today, checked and not spent. A transfer burns about 0.0004 NEAR, a call at most 0.03 NEAR; the
+            0.2 above the check pays for some 500 transfers. Top it up to 0.5 once it is under 0.35 NEAR; a relay it
+            cannot cover answers <C>402 wallet_underfunded</C>.
+          </li>
         </ul>
       </section>
 

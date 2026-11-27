@@ -417,7 +417,7 @@ function Inner() {
             Set the policy →
           </Link>
           <p className="mt-3 text-muted">
-            The agent&apos;s OutLayer wallet pays the gas of each move: keep a little NEAR on it. To take the key back,
+            The agent&apos;s OutLayer wallet pays the gas of each move: keep 0.5 NEAR on it. Each move is checked against 0.3 NEAR of gas and burns about 0.0004 NEAR of it. To take the key back,
             sign the same message again on this page with a new link, or leave through the owner&apos;s exit.
           </p>
         </div>

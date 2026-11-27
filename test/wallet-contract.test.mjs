@@ -12,7 +12,8 @@ import {
   fromBase58,
   fromBase64,
   fromHex,
-  installAndDropKeysActions,
+  installAndDropKeyActions,
+  installActions,
   isSubAccountName,
   openAgentKey,
   pairText,
@@ -76,38 +77,38 @@ test('a sub-account name is one segment', () => {
   for (const name of ['', 'Agent', 'a.b', '-a', 'a-', 'a--b', 'a b']) assert.ok(!isSubAccountName(name), name);
 });
 
-test("the owner's transaction creates the account with the owner's key and the page's", () => {
-  const owner = KeyPair.fromRandom('ed25519').getPublicKey().toString();
+test("the owner's transaction creates the account with the page's key alone", () => {
   const page = KeyPair.fromRandom('ed25519').getPublicKey().toString();
-  const actions = createAccountActions(owner, page);
-  assert.deepEqual(actions.map((a) => a.enum), ['createAccount', 'transfer', 'addKey', 'addKey']);
-  assert.equal(actions[2].addKey.publicKey.toString(), owner);
-  assert.equal(actions[3].addKey.publicKey.toString(), page);
+  const actions = createAccountActions(page);
+  assert.deepEqual(actions.map((a) => a.enum), ['createAccount', 'transfer', 'addKey']);
+  assert.equal(actions[2].addKey.publicKey.toString(), page);
 });
 
-test("the account's own transaction installs the contract and drops the keys it is told to", async () => {
+test("the owner's own account installs the contract with no key added", () => {
+  const pair = keys.agent.public_key + keys.tee.public_key;
+  const actions = installActions(pair);
+  assert.deepEqual(actions.map((a) => a.enum), ['useGlobalContract', 'functionCall']);
+  assert.equal(actions[1].functionCall.methodName, 'w_init');
+  assert.equal(actions[1].functionCall.deposit, 1n);
+});
+
+test("the new account's own transaction installs the contract and drops its only key", async () => {
   const pageKey = KeyPair.fromRandom('ed25519');
   const page = pageKey.getPublicKey().toString();
-  const owner = KeyPair.fromRandom('ed25519').getPublicKey().toString();
   const pair = keys.agent.public_key + keys.tee.public_key;
 
-  const kept = installAndDropKeysActions(pair, page, null);
-  assert.deepEqual(kept.map((a) => a.enum), ['useGlobalContract', 'functionCall', 'deleteKey']);
-  assert.equal(kept[1].functionCall.methodName, 'w_init');
-  assert.deepEqual(JSON.parse(new TextDecoder().decode(kept[1].functionCall.args)), { public_key: pair });
-  assert.equal(kept[1].functionCall.deposit, 1n);
-  assert.equal(kept[2].deleteKey.publicKey.toString(), page);
-
-  const removed = installAndDropKeysActions(pair, page, owner);
-  assert.deepEqual(removed.map((a) => a.enum), ['useGlobalContract', 'functionCall', 'deleteKey', 'deleteKey']);
-  assert.equal(removed[2].deleteKey.publicKey.toString(), owner);
-  assert.equal(removed[3].deleteKey.publicKey.toString(), page);
+  const actions = installAndDropKeyActions(pair, page);
+  assert.deepEqual(actions.map((a) => a.enum), ['useGlobalContract', 'functionCall', 'deleteKey']);
+  assert.equal(actions[1].functionCall.methodName, 'w_init');
+  assert.deepEqual(JSON.parse(new TextDecoder().decode(actions[1].functionCall.args)), { public_key: pair });
+  assert.equal(actions[1].functionCall.deposit, 1n);
+  assert.equal(actions[2].deleteKey.publicKey.toString(), page);
 
   // signed by the page's key, it is a transaction of the account to itself
-  const signed = await signTransaction(pageKey, 'agent.alice.testnet', 'agent.alice.testnet', 8n, new Uint8Array(32), removed);
+  const signed = await signTransaction(pageKey, 'agent.alice.testnet', 'agent.alice.testnet', 8n, new Uint8Array(32), actions);
   const decoded = decodeSignedTransaction(fromBase64(signed));
   assert.equal(decoded.transaction.signerId, 'agent.alice.testnet');
   assert.equal(decoded.transaction.receiverId, 'agent.alice.testnet');
   assert.equal(decoded.transaction.nonce, 8n);
-  assert.equal(decoded.transaction.actions.length, 4);
+  assert.equal(decoded.transaction.actions.length, 3);
 });

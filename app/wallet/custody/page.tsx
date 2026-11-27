@@ -14,10 +14,10 @@ import {
   WALLET_CONTRACT_CODE_HASH,
   agentKeyMessage,
   agentKeySeed,
-  addPageKeyActions,
   createAccountActions,
   fromBase64,
-  installAndDropKeysActions,
+  installAndDropKeyActions,
+  installActions,
   isSubAccountName,
   pairText,
   publicKeyOfSeed,
@@ -70,12 +70,10 @@ function Inner() {
   // The choices.
   const [where, setWhere] = useState<Where>('sub-account');
   const [name, setName] = useState('agent');
-  const [removeKeys, setRemoveKeys] = useState(false);
 
   // What each step leaves for the next.
   const [seed, setSeed] = useState<Uint8Array | null>(null);
   const [pair, setPair] = useState<string | null>(null);
-  const [ownerKey, setOwnerKey] = useState<string | null>(null);
   const [pageKey, setPageKey] = useState<KeyPair | null>(null);
   const [created, setCreated] = useState(false);
   const [installed, setInstalled] = useState(false);
@@ -155,7 +153,6 @@ function Inner() {
       const derived = pairText(await publicKeyOfSeed(agentSeed), setup.tee_public_key);
       setSeed(agentSeed);
       setPair(derived);
-      setOwnerKey(signed.publicKey);
       // An account that already runs the wallet contract with this pair has
       // nothing left to install: the key is handed to the agent again.
       if ((await viewPair(rpcUrl, agentAccount)) === derived) {
@@ -164,30 +161,33 @@ function Inner() {
       }
     });
 
+  // The owner's wallet signs one transaction. On the owner's own account it is
+  // the install itself, and no key is added. A new account is created with one
+  // key this page holds, for the installing transaction that drops it: `w_init`
+  // is signed by a full-access key of the account it initialises.
   const prepareAccount = () =>
     step('create', async () => {
-      if (!ownerKey) return;
-      const key = pageKey ?? KeyPair.fromRandom('ed25519');
-      setPageKey(key);
-      const pagePublicKey = key.getPublicKey().toString();
+      if (!pair) return;
+      const own = where === 'own-account';
+      const key = own ? null : (pageKey ?? KeyPair.fromRandom('ed25519'));
+      if (key) setPageKey(key);
       await signAndSendTransaction({
         receiverId: agentAccount,
-        actions: where === 'own-account' ? addPageKeyActions(pagePublicKey) : createAccountActions(ownerKey, pagePublicKey),
+        actions: key ? createAccountActions(key.getPublicKey().toString()) : installActions(pair),
       });
       setCreated(true);
+      if (own) {
+        if ((await viewPair(rpcUrl, agentAccount)) !== pair) {
+          throw new Error(`The transaction was sent, but ${agentAccount} does not answer with the pair of keys yet. Reload the page in a few seconds.`);
+        }
+        setInstalled(true);
+      }
     });
 
   const install = () =>
     step('install', async () => {
-      if (!pair || !pageKey || !ownerKey) return;
-      // The owner's own account keeps the owner's key, whatever was chosen for a sub-account.
-      const ownerKeyToRemove = where === 'sub-account' && removeKeys ? ownerKey : null;
-      await sendAsAccount(
-        rpcUrl,
-        agentAccount,
-        pageKey,
-        installAndDropKeysActions(pair, pageKey.getPublicKey().toString(), ownerKeyToRemove),
-      );
+      if (!pair || !pageKey) return;
+      await sendAsAccount(rpcUrl, agentAccount, pageKey, installAndDropKeyActions(pair, pageKey.getPublicKey().toString()));
       if ((await viewPair(rpcUrl, agentAccount)) !== pair) {
         throw new Error(`The transaction was sent, but ${agentAccount} does not answer with the pair of keys yet. Try the next step in a few seconds.`);
       }
@@ -290,32 +290,6 @@ function Inner() {
             </label>
             {!nameOk && <p className={warning}>A name is lowercase letters and digits, with single - or _ between them.</p>}
 
-            {where === 'sub-account' && (
-              <>
-                <p className="mt-4 font-medium">Your key on the agent&apos;s account</p>
-                <label className="mt-2 flex items-start gap-2">
-                  <input type="radio" checked={!removeKeys} disabled={installed} onChange={() => setRemoveKeys(false)} />
-                  <span>
-                    Keep my key on it
-                    <span className="block text-muted">
-                      You can act on the account at any time with your own wallet. A key of an account is above its
-                      contract: whoever holds yours moves everything on this account at once, and no policy applies to
-                      it.
-                    </span>
-                  </span>
-                </label>
-                <label className="mt-2 flex items-start gap-2">
-                  <input type="radio" checked={removeKeys} disabled={installed} onChange={() => setRemoveKeys(true)} />
-                  <span>
-                    Remove every key from it
-                    <span className="block text-muted">
-                      Nothing moves without the agent&apos;s signature and the enclave&apos;s. You alone act on it only
-                      through the owner&apos;s exit, after its window. This cannot be undone.
-                    </span>
-                  </span>
-                </label>
-              </>
-            )}
           </div>
 
           <div className={card}>
@@ -342,34 +316,29 @@ function Inner() {
           {pair && (
             <div className={card}>
               <p className="font-medium">3. The wallet contract</p>
-              <ol className="mt-2 list-decimal space-y-1 pl-5">
-                <li>
-                  {where === 'sub-account' ? (
-                    <>
-                      Your wallet creates <code>{agentAccount}</code> with its NEAR, your own key and a key this page holds
-                      for the next action alone.
-                    </>
-                  ) : (
-                    <>
-                      Your wallet adds to <code>{agentAccount}</code> a full-access key this page holds for the next
-                      action alone. It is made in this tab, stored nowhere, and removed by that action. If you leave before
-                      it, the key stays on your account and nobody holds it: remove it in your wallet.
-                    </>
-                  )}
-                </li>
-                <li>
-                  This page, with that key, points <code>{agentAccount}</code> at the published wallet contract by its hash{' '}
+              {where === 'sub-account' ? (
+                <ol className="mt-2 list-decimal space-y-1 pl-5">
+                  <li>
+                    Your wallet creates <code>{agentAccount}</code> with its NEAR and one key, which this page made in
+                    this tab for the next action alone and stores nowhere.
+                  </li>
+                  <li>
+                    This page, with that key, points <code>{agentAccount}</code> at the published wallet contract by its
+                    hash <code className="break-all">{WALLET_CONTRACT_CODE_HASH}</code> (no code is uploaded), initialises
+                    it with the pair above, and removes the key. The account is left with no key: nothing moves without
+                    the agent&apos;s signature and the enclave&apos;s, and you act on it alone through the owner&apos;s
+                    exit.
+                  </li>
+                </ol>
+              ) : (
+                <p className="mt-2">
+                  Your wallet points <code>{agentAccount}</code> at the published wallet contract by its hash{' '}
                   <code className="break-all">{WALLET_CONTRACT_CODE_HASH}</code> (no code is uploaded) and initialises it
-                  with the pair above
-                  {where === 'sub-account' && removeKeys
-                    ? ', then removes both keys from the account.'
-                    : ', then removes its own key; yours stays.'}
-                </li>
-              </ol>
-              <p className="mt-3 text-muted">
-                The contract has no extension and takes no other signer. To undo it while you hold a key of the account:
-                deploy another contract on it, or delete the account, from your own wallet.
-              </p>
+                  with the pair above. No key is added; yours stay. To undo it, deploy another contract on your account
+                  from your own wallet.
+                </p>
+              )}
+              <p className="mt-3 text-muted">The contract has no extension and takes no other signer.</p>
 
               {!created && (
                 <button onClick={prepareAccount} disabled={!!busy} className={button}>
@@ -377,7 +346,7 @@ function Inner() {
                     ? 'Waiting for the wallet…'
                     : where === 'sub-account'
                       ? `Create ${agentAccount}`
-                      : `Add this page’s one-time key to ${agentAccount}`}
+                      : `Install the wallet contract on ${agentAccount}`}
                 </button>
               )}
               {created && !installed && (

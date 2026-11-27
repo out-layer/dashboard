@@ -212,7 +212,12 @@ export function isSubAccountName(name: string): boolean {
   return /^[a-z0-9]+([-_][a-z0-9]+)*$/.test(name) && name.length >= 1;
 }
 
-/** The actions that put the wallet contract on the account that signs them. */
+/**
+ * The actions that put the wallet contract on the account that signs them.
+ * `w_init` takes its caller for the account itself and a deposit, so it is
+ * signed by a full-access key of that account: the owner's wallet for the
+ * owner's own account, the page's one-time key for a new one.
+ */
 export function installActions(pair: string): Action[] {
   return [
     actionCreators.useGlobalContract(new GlobalContractIdentifier({ CodeHash: fromBase58(WALLET_CONTRACT_CODE_HASH) })),
@@ -222,39 +227,24 @@ export function installActions(pair: string): Action[] {
 
 /**
  * The owner's transaction that creates the agent's account: the account, its
- * NEAR, the owner's own key on it (so a failure after this leaves the account
- * in the owner's hands), and a key this page holds for the next step alone.
+ * NEAR, and one key, which this page holds for the installing transaction
+ * alone. The owner's own key is not put on it.
  */
-export function createAccountActions(ownerPublicKey: string, pagePublicKey: string): Action[] {
+export function createAccountActions(pagePublicKey: string): Action[] {
   return [
     actionCreators.createAccount(),
     actionCreators.transfer(AGENT_ACCOUNT_DEPOSIT_YOCTO),
-    actionCreators.addKey(PublicKey.fromString(ownerPublicKey), actionCreators.fullAccessKey()),
     actionCreators.addKey(PublicKey.fromString(pagePublicKey), actionCreators.fullAccessKey()),
   ];
 }
 
 /**
- * The owner's transaction on their own account, when it is to be the agent's:
- * a key this page holds for the installing transaction alone. Every wallet
- * signs an added key; the install itself never goes through a wallet.
+ * The new account's own transaction, signed by the page's key: install the
+ * wallet contract and drop that key, the account's only one. The account is
+ * left with no key.
  */
-export function addPageKeyActions(pagePublicKey: string): Action[] {
-  return [actionCreators.addKey(PublicKey.fromString(pagePublicKey), actionCreators.fullAccessKey())];
-}
-
-/**
- * The agent account's own transaction, signed by the page's key: install the
- * wallet contract, drop the page's key, and, when the owner chose so, the
- * owner's key too.
- */
-export function installAndDropKeysActions(pair: string, pagePublicKey: string, ownerPublicKeyToRemove: string | null): Action[] {
-  const drop = (key: string) => actionCreators.deleteKey(PublicKey.fromString(key));
-  return [
-    ...installActions(pair),
-    ...(ownerPublicKeyToRemove ? [drop(ownerPublicKeyToRemove)] : []),
-    drop(pagePublicKey),
-  ];
+export function installAndDropKeyActions(pair: string, pagePublicKey: string): Action[] {
+  return [...installActions(pair), actionCreators.deleteKey(PublicKey.fromString(pagePublicKey))];
 }
 
 /** A transaction of `signerId` signed with `key`, as the RPC takes it (base64). */

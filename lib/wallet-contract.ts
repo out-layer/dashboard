@@ -229,24 +229,30 @@ export function installActions(pair: string): Action[] {
 
 /**
  * The owner's transaction that creates the agent's account: the account, its
- * NEAR, and one key, which this page holds for the installing transaction
- * alone. The owner's own key is not put on it.
+ * NEAR, a key this page holds for the installing transaction alone, and the
+ * owner's own key, so that a tab lost before the install leaves the account in
+ * the owner's hands. The install removes both.
  */
-export function createAccountActions(pagePublicKey: string): Action[] {
+export function createAccountActions(pagePublicKey: string, ownerPublicKey: string | null): Action[] {
   return [
     actionCreators.createAccount(),
     actionCreators.transfer(AGENT_ACCOUNT_DEPOSIT_YOCTO),
     actionCreators.addKey(PublicKey.fromString(pagePublicKey), actionCreators.fullAccessKey()),
+    ...(ownerPublicKey ? [actionCreators.addKey(PublicKey.fromString(ownerPublicKey), actionCreators.fullAccessKey())] : []),
   ];
 }
 
 /**
  * The new account's own transaction, signed by the page's key: install the
- * wallet contract and drop that key, the account's only one. The account is
- * left with no key.
+ * wallet contract and drop the owner's key and the page's. The account is left
+ * with no key.
  */
-export function installAndDropKeyActions(pair: string, pagePublicKey: string): Action[] {
-  return [...installActions(pair), actionCreators.deleteKey(PublicKey.fromString(pagePublicKey))];
+export function installAndDropKeyActions(pair: string, pagePublicKey: string, ownerPublicKey: string | null): Action[] {
+  return [
+    ...installActions(pair),
+    ...(ownerPublicKey ? [actionCreators.deleteKey(PublicKey.fromString(ownerPublicKey))] : []),
+    actionCreators.deleteKey(PublicKey.fromString(pagePublicKey)),
+  ];
 }
 
 // ── A wallet contract at its deterministic address (NEP-616) ────────────────
@@ -448,13 +454,25 @@ export async function createDeterministicAccount(rpcUrl: string, key: KeyPair, o
   // nonce, since a read made right after the first may not show it yet.
   const nonce = BigInt(accessKey.nonce) + BigInt(1);
   const blockHash = fromBase58(accessKey.block_hash);
-  const created = await rpc<{ status?: { Failure?: unknown } }>(rpcUrl, 'broadcast_tx_commit', [
-    signStateInitTransaction(key, signerId, nonce, blockHash, pair),
-  ]);
-  if (created.status?.Failure) throw new Error(JSON.stringify(created.status.Failure));
-  const closed = await rpc<{ status?: { Failure?: unknown } }>(rpcUrl, 'broadcast_tx_commit', [
-    await signTransaction(key, signerId, signerId, nonce + BigInt(1), blockHash, [actionCreators.deleteAccount(owner)]),
-  ]);
-  if (closed.status?.Failure) throw new Error(JSON.stringify(closed.status.Failure));
+  // The key's account is closed to the owner whether or not the contract was
+  // created, so what the owner sent comes back either way.
+  const close = async () => {
+    const closed = await rpc<{ status?: { Failure?: unknown } }>(rpcUrl, 'broadcast_tx_commit', [
+      await signTransaction(key, signerId, signerId, nonce + BigInt(1), blockHash, [actionCreators.deleteAccount(owner)]),
+    ]);
+    if (closed.status?.Failure) throw new Error(JSON.stringify(closed.status.Failure));
+  };
+  let created: { status?: { Failure?: unknown } };
+  try {
+    created = await rpc(rpcUrl, 'broadcast_tx_commit', [signStateInitTransaction(key, signerId, nonce, blockHash, pair)]);
+  } catch (e) {
+    await close().catch(() => undefined);
+    throw e;
+  }
+  if (created.status?.Failure) {
+    await close().catch(() => undefined);
+    throw new Error(`The wallet contract was not created: ${JSON.stringify(created.status.Failure)}`);
+  }
+  await close();
   return deterministicAccount(pair);
 }

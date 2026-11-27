@@ -66,9 +66,7 @@ function Inner() {
   // The token names the setup and lets its holder finish it. It is read once,
   // at the first render, from the link's fragment (`#setup=`): a fragment is
   // not sent to any server, so the token reaches no log, proxy or link preview.
-  const [token] = useState(() =>
-    typeof window === 'undefined' ? '' : new URLSearchParams(window.location.hash.slice(1)).get('setup') ?? '',
-  );
+  const [token, setToken] = useState<string | null>(null);
   const [setup, setSetup] = useState<Setup | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
@@ -80,23 +78,31 @@ function Inner() {
   // What each step leaves for the next.
   const [seed, setSeed] = useState<Uint8Array | null>(null);
   const [pair, setPair] = useState<string | null>(null);
+  const [ownerKey, setOwnerKey] = useState<string | null>(null);
   const [pageKey, setPageKey] = useState<KeyPair | null>(null);
   const [created, setCreated] = useState(false);
   const [installed, setInstalled] = useState(false);
   const [done, setDone] = useState(false);
 
-  // Take it out of the address bar, the history and any referrer.
+  // Read after the first render (the server renders the page with no token),
+  // then taken out of the address bar, the history and any referrer.
   useEffect(() => {
-    if (!token) return;
+    const read = new URLSearchParams(window.location.hash.slice(1)).get('setup') ?? '';
+    setToken(read);
+    if (!read) return;
     try {
       window.history.replaceState(null, '', window.location.pathname);
     } catch {
       // The token still works; it stays in the address bar.
     }
-  }, [token]);
+  }, []);
 
   useEffect(() => {
-    if (!/^[0-9a-f]{64}$/.test(token)) return;
+    if (!token) return;
+    if (!/^[0-9a-f]{64}$/.test(token)) {
+      setError('This link is not a setup link, or it was cut short. Ask the agent for a new link.');
+      return;
+    }
     let cancelled = false;
     (async () => {
       setError(null);
@@ -161,6 +167,7 @@ function Inner() {
       const derived = pairText(await publicKeyOfSeed(agentSeed), setup.tee_public_key);
       setSeed(agentSeed);
       setPair(derived);
+      setOwnerKey(signed.publicKey);
       // An account that already runs the wallet contract with this pair has
       // nothing left to install: the key is handed to the agent again.
       if ((await viewPair(rpcUrl, accountFor(where, derived))) === derived) {
@@ -184,7 +191,7 @@ function Inner() {
       const [receiverId, actions] = !key
         ? [agentAccount, installActions(pair)]
         : where === 'sub-account'
-          ? [agentAccount, createAccountActions(key.getPublicKey().toString())]
+          ? [agentAccount, createAccountActions(key.getPublicKey().toString(), ownerKey)]
           : [implicitAccountOf(key), fundPageKeyActions()];
       await signAndSendTransaction({ receiverId, actions });
       setCreated(true);
@@ -202,7 +209,7 @@ function Inner() {
       if (where === 'deterministic') {
         await createDeterministicAccount(rpcUrl, pageKey, owner, pair);
       } else {
-        await sendAsAccount(rpcUrl, agentAccount, pageKey, installAndDropKeyActions(pair, pageKey.getPublicKey().toString()));
+        await sendAsAccount(rpcUrl, agentAccount, pageKey, installAndDropKeyActions(pair, pageKey.getPublicKey().toString(), ownerKey));
       }
       if ((await viewPair(rpcUrl, agentAccount)) !== pair) {
         throw new Error(`The transaction was sent, but ${agentAccount} does not answer with the pair of keys yet. Try the next step in a few seconds.`);
@@ -235,7 +242,7 @@ function Inner() {
         description="The agent keeps its main balance in a wallet contract on NEAR, which moves nothing without two signatures: the agent's and one from OutLayer's enclave, given only within your policy."
       />
 
-      {!token && (
+      {token === '' && (
         <p className="mt-6 text-sm text-muted">
           This page is opened from the link an agent gives its owner. Ask the agent to open a setup and send you the link.
         </p>
@@ -360,13 +367,13 @@ function Inner() {
               ) : where === 'sub-account' ? (
                 <ol className="mt-2 list-decimal space-y-1 pl-5">
                   <li>
-                    Your wallet creates <code>{agentAccount}</code> with its NEAR and one key, which this page made in
-                    this tab for the next action alone and stores nowhere.
+                    Your wallet creates <code>{agentAccount}</code> with its NEAR, your own key, and a key this page
+                    made in this tab for the next action alone and stores nowhere.
                   </li>
                   <li>
                     This page, with that key, points <code>{agentAccount}</code> at the published wallet contract by its
                     hash <code className="break-all">{WALLET_CONTRACT_CODE_HASH}</code> (no code is uploaded), initialises
-                    it with the pair above, and removes the key. The account is left with no key: nothing moves without
+                    it with the pair above, and removes both keys. The account is left with no key: nothing moves without
                     the agent&apos;s signature and the enclave&apos;s, and you act on it alone through the owner&apos;s
                     exit.
                   </li>

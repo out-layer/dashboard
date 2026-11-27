@@ -14,6 +14,8 @@
  */
 
 import { type KeyPair, PublicKey } from '@near-js/crypto';
+import { sha256 } from '@noble/hashes/sha256';
+import { keccak_256 } from '@noble/hashes/sha3';
 import {
   type Action,
   GlobalContractIdentifier,
@@ -247,6 +249,121 @@ export function installAndDropKeyActions(pair: string, pagePublicKey: string): A
   return [...installActions(pair), actionCreators.deleteKey(PublicKey.fromString(pagePublicKey))];
 }
 
+// ── A wallet contract at its deterministic address (NEP-616) ────────────────
+//
+// The address is "0s" + hex(keccak256(borsh(StateInit))[12..32]); the
+// StateInit names the build by its code hash and holds the contract's first
+// state, `State::new(pair)`. Held to custody-core's vectors/deterministic.json.
+
+/** The two-key contract's default timeout (`State::new`), in seconds. */
+const CONTRACT_DEFAULT_TIMEOUT_SECS = 3600;
+
+function u32le(n: number): Uint8Array {
+  const out = new Uint8Array(4);
+  new DataView(out.buffer).setUint32(0, n, true);
+  return out;
+}
+
+function u64le(n: bigint): Uint8Array {
+  const out = new Uint8Array(8);
+  new DataView(out.buffer).setBigUint64(0, n, true);
+  return out;
+}
+
+function u128le(n: bigint): Uint8Array {
+  return concat(u64le(n & BigInt('0xffffffffffffffff')), u64le(n >> BigInt(64)));
+}
+
+function borshString(text: string): Uint8Array {
+  const bytes = utf8.encode(text);
+  return concat(u32le(bytes.length), bytes);
+}
+
+/** The Borsh of the two-key contract's `State::new(pair)`; `pair` is the 128-hex text form. */
+export function stateBytes(pair: string): Uint8Array {
+  const keys = fromHex(pair, 64);
+  return concat(
+    Uint8Array.of(1), // signatures on
+    u32le(0), // subwallet id
+    keys,
+    u32le(CONTRACT_DEFAULT_TIMEOUT_SECS),
+    u64le(BigInt(0)), // last_cleaned_at
+    u32le(0), // old nonces: none
+    u32le(0), // current nonces: none
+    u32le(0), // extensions: none
+  );
+}
+
+/** The Borsh of `StateInit::V1 { code: CodeHash(build), data: { "": state } }`. */
+export function stateInitBytes(pair: string, codeHash: string = WALLET_CONTRACT_CODE_HASH): Uint8Array {
+  const state = stateBytes(pair);
+  return concat(Uint8Array.of(0, 0), fromBase58(codeHash), u32le(1), u32le(0), u32le(state.length), state);
+}
+
+/** The `0s` account of a fresh wallet contract of `pair`. */
+export function deterministicAccount(pair: string, codeHash: string = WALLET_CONTRACT_CODE_HASH): string {
+  return `0s${toHex(keccak_256(stateInitBytes(pair, codeHash)).slice(12))}`;
+}
+
+/**
+ * What the owner sends the page's one-time key for its two transactions' gas.
+ * Creating the contract costs about 0.0074 NEAR (its storage is paid in gas
+ * within the zero-balance limit); what is left goes back to the owner.
+ */
+export const PAGE_KEY_FUNDING_YOCTO = BigInt('20000000000000000000000'); // 0.02 NEAR
+
+/** The NEAR implicit account of an Ed25519 key: its public key in hex. */
+export function implicitAccountOf(key: KeyPair): string {
+  return toHex(key.getPublicKey().data);
+}
+
+/** The owner's transaction: NEAR for the page's one-time key, an ordinary transfer. */
+export function fundPageKeyActions(): Action[] {
+  return [actionCreators.transfer(PAGE_KEY_FUNDING_YOCTO)];
+}
+
+/**
+ * A transaction with one `DeterministicStateInit` action (NEP-616, action 11),
+ * signed with `key`, as the RPC takes it (base64). Written out by hand: the
+ * transaction library does not encode this action. The frame is the library's
+ * own (held by a test against `encodeTransaction`).
+ */
+export function signStateInitTransaction(
+  key: KeyPair,
+  signerId: string,
+  nonce: bigint,
+  blockHash: Uint8Array,
+  pair: string,
+): string {
+  const receiverId = deterministicAccount(pair);
+  const transaction = concat(
+    borshString(signerId),
+    Uint8Array.of(0),
+    key.getPublicKey().data,
+    u64le(nonce),
+    borshString(receiverId),
+    blockHash,
+    u32le(1),
+    Uint8Array.of(11),
+    stateInitBytes(pair),
+    u128le(BigInt(0)), // no deposit: the state fits the zero-balance limit
+  );
+  const { signature } = key.sign(sha256(transaction));
+  return toBase64(concat(transaction, Uint8Array.of(0), signature));
+}
+
+/** The frame of a transaction as `signStateInitTransaction` writes it, with any action bytes. */
+export function transactionFrame(
+  publicKey: Uint8Array,
+  signerId: string,
+  receiverId: string,
+  nonce: bigint,
+  blockHash: Uint8Array,
+  action: Uint8Array,
+): Uint8Array {
+  return concat(borshString(signerId), Uint8Array.of(0), publicKey, u64le(nonce), borshString(receiverId), blockHash, u32le(1), action);
+}
+
 /** A transaction of `signerId` signed with `key`, as the RPC takes it (base64). */
 export async function signTransaction(
   key: KeyPair,
@@ -312,4 +429,32 @@ export async function viewPair(rpcUrl: string, accountId: string): Promise<strin
   } catch {
     return null;
   }
+}
+
+/**
+ * With the page's one-time key, funded by the owner: create the `0s` wallet
+ * contract of `pair` by `StateInit`, then delete the key's own account with the
+ * owner as beneficiary, so what is left of the funding goes back.
+ */
+export async function createDeterministicAccount(rpcUrl: string, key: KeyPair, owner: string, pair: string): Promise<string> {
+  const signerId = implicitAccountOf(key);
+  const accessKey = await rpc<{ nonce: number; block_hash: string }>(rpcUrl, 'query', {
+    request_type: 'view_access_key',
+    finality: 'final',
+    account_id: signerId,
+    public_key: key.getPublicKey().toString(),
+  });
+  // Both transactions from one read of the key: the second takes the next
+  // nonce, since a read made right after the first may not show it yet.
+  const nonce = BigInt(accessKey.nonce) + BigInt(1);
+  const blockHash = fromBase58(accessKey.block_hash);
+  const created = await rpc<{ status?: { Failure?: unknown } }>(rpcUrl, 'broadcast_tx_commit', [
+    signStateInitTransaction(key, signerId, nonce, blockHash, pair),
+  ]);
+  if (created.status?.Failure) throw new Error(JSON.stringify(created.status.Failure));
+  const closed = await rpc<{ status?: { Failure?: unknown } }>(rpcUrl, 'broadcast_tx_commit', [
+    await signTransaction(key, signerId, signerId, nonce + BigInt(1), blockHash, [actionCreators.deleteAccount(owner)]),
+  ]);
+  if (closed.status?.Failure) throw new Error(JSON.stringify(closed.status.Failure));
+  return deterministicAccount(pair);
 }

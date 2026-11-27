@@ -2,13 +2,21 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import { KeyPair } from '@near-js/crypto';
-import { decodeSignedTransaction } from '@near-js/transactions';
+import { actionCreators, createTransaction, decodeSignedTransaction, encodeTransaction } from '@near-js/transactions';
+import { sha256 } from '@noble/hashes/sha256';
 import {
   AGENT_KEY_NONCE,
   AGENT_KEY_RECIPIENT,
   agentKeyMessage,
   agentKeySeed,
   createAccountActions,
+  deterministicAccount,
+  fundPageKeyActions,
+  implicitAccountOf,
+  signStateInitTransaction,
+  stateBytes,
+  stateInitBytes,
+  transactionFrame,
   fromBase58,
   fromBase64,
   fromHex,
@@ -112,3 +120,42 @@ test("the new account's own transaction installs the contract and drops its only
   assert.equal(decoded.transaction.nonce, 8n);
   assert.equal(decoded.transaction.actions.length, 3);
 });
+
+const deterministic = JSON.parse(readFileSync(new URL('./fixtures/custody-deterministic.json', import.meta.url), 'utf8'));
+
+test("a 0s wallet contract's state, StateInit and address are custody-core's", () => {
+  assert.equal(deterministic.cases.length, 3);
+  for (const c of deterministic.cases) {
+    assert.equal(toHex(stateBytes(c.pair)), c.state, `${c.name}: state`);
+    assert.equal(toHex(stateInitBytes(c.pair, deterministic.code_hash)), c.state_init, `${c.name}: state_init`);
+    assert.equal(deterministicAccount(c.pair, deterministic.code_hash), c.account_id, `${c.name}: address`);
+  }
+  assert.ok(deterministic.cases.some((c) => c.account_id === '0scaf38f4da73c18308919d2f94e5445cd4131e2a5'));
+});
+
+test("the owner's transaction for a 0s account is one transfer to the page's key", () => {
+  const actions = fundPageKeyActions();
+  assert.deepEqual(actions.map((a) => a.enum), ['transfer']);
+  const key = KeyPair.fromRandom('ed25519');
+  assert.match(implicitAccountOf(key), /^[0-9a-f]{64}$/);
+});
+
+test('the StateInit transaction is framed as the library frames a transaction, and signed over it', () => {
+  const key = KeyPair.fromRandom('ed25519');
+  const signer = implicitAccountOf(key);
+  const blockHash = new Uint8Array(32).fill(7);
+  // the frame, against the library's own encoding of a transaction with one transfer of 5
+  const u128 = (n) => { const b = new Uint8Array(16); new DataView(b.buffer).setBigUint64(0, n, true); return b; };
+  const library = encodeTransaction(createTransaction(signer, key.getPublicKey(), 'bob.testnet', 9n, [actionCreators.transfer(5n)], blockHash));
+  const ours = transactionFrame(key.getPublicKey().data, signer, 'bob.testnet', 9n, blockHash, Uint8Array.of(3, ...u128(5n)));
+  assert.equal(toHex(ours), toHex(library));
+
+  const pair = deterministic.cases[0].pair;
+  const signed = fromBase64(signStateInitTransaction(key, signer, 9n, blockHash, pair));
+  const tx = signed.slice(0, signed.length - 65);
+  const action = Uint8Array.of(11, ...stateInitBytes(pair), ...new Uint8Array(16));
+  assert.equal(toHex(tx), toHex(transactionFrame(key.getPublicKey().data, signer, deterministicAccount(pair), 9n, blockHash, action)));
+  assert.equal(signed[signed.length - 65], 0, 'an ed25519 signature');
+  assert.ok(key.verify(sha256(tx), signed.slice(signed.length - 64)), 'signed over the transaction');
+});
+

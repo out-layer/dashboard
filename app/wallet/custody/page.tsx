@@ -2,7 +2,6 @@
 
 import { Suspense, useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
 import { KeyPair } from '@near-js/crypto';
 import { PageHeader } from '@/components/ui/page-header';
 import { useNearWallet } from '@/contexts/NearWalletContext';
@@ -14,6 +13,11 @@ import {
   WALLET_CONTRACT_CODE_HASH,
   agentKeyMessage,
   agentKeySeed,
+  createDeterministicAccount,
+  deterministicAccount,
+  fundPageKeyActions,
+  implicitAccountOf,
+  PAGE_KEY_FUNDING_YOCTO,
   createAccountActions,
   fromBase64,
   installAndDropKeyActions,
@@ -53,22 +57,24 @@ interface Setup {
   agent_key_request: { message: string; recipient: string; nonce_base64: string };
 }
 
-type Where = 'sub-account' | 'own-account';
+type Where = 'deterministic' | 'sub-account' | 'own-account';
 
 function Inner() {
-  const searchParams = useSearchParams();
   const { accountId, isConnected, connect, signAndSendTransaction, signMessage, network, rpcUrl } = useNearWallet();
   const coordinator = getCoordinatorApiUrl();
 
-  // The token names the setup and lets its holder finish it. It is read from
-  // the link once, at the first render.
-  const [token] = useState(() => searchParams.get('setup') ?? '');
+  // The token names the setup and lets its holder finish it. It is read once,
+  // at the first render, from the link's fragment (`#setup=`): a fragment is
+  // not sent to any server, so the token reaches no log, proxy or link preview.
+  const [token] = useState(() =>
+    typeof window === 'undefined' ? '' : new URLSearchParams(window.location.hash.slice(1)).get('setup') ?? '',
+  );
   const [setup, setSetup] = useState<Setup | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
 
   // The choices.
-  const [where, setWhere] = useState<Where>('sub-account');
+  const [where, setWhere] = useState<Where>('deterministic');
   const [name, setName] = useState('agent');
 
   // What each step leaves for the next.
@@ -121,8 +127,10 @@ function Inner() {
 
   const owner = setup?.owner ?? '';
   const wrongAccount = !!setup && !!accountId && accountId !== owner;
-  const agentAccount = where === 'own-account' ? owner : `${name}.${owner}`;
-  const nameOk = where === 'own-account' || isSubAccountName(name);
+  const accountFor = (choice: Where, forPair: string | null) =>
+    choice === 'own-account' ? owner : choice === 'sub-account' ? `${name}.${owner}` : forPair ? deterministicAccount(forPair) : '';
+  const agentAccount = accountFor(where, pair);
+  const nameOk = where !== 'sub-account' || isSubAccountName(name);
 
   const step = useCallback(async (label: string, work: () => Promise<void>) => {
     setBusy(label);
@@ -155,7 +163,7 @@ function Inner() {
       setPair(derived);
       // An account that already runs the wallet contract with this pair has
       // nothing left to install: the key is handed to the agent again.
-      if ((await viewPair(rpcUrl, agentAccount)) === derived) {
+      if ((await viewPair(rpcUrl, accountFor(where, derived))) === derived) {
         setCreated(true);
         setInstalled(true);
       }
@@ -171,10 +179,14 @@ function Inner() {
       const own = where === 'own-account';
       const key = own ? null : (pageKey ?? KeyPair.fromRandom('ed25519'));
       if (key) setPageKey(key);
-      await signAndSendTransaction({
-        receiverId: agentAccount,
-        actions: key ? createAccountActions(key.getPublicKey().toString()) : installActions(pair),
-      });
+      // own account: the install itself; a sub-account: created with the page's key;
+      // a 0s account: NEAR for the page's key, which creates the contract
+      const [receiverId, actions] = !key
+        ? [agentAccount, installActions(pair)]
+        : where === 'sub-account'
+          ? [agentAccount, createAccountActions(key.getPublicKey().toString())]
+          : [implicitAccountOf(key), fundPageKeyActions()];
+      await signAndSendTransaction({ receiverId, actions });
       setCreated(true);
       if (own) {
         if ((await viewPair(rpcUrl, agentAccount)) !== pair) {
@@ -187,7 +199,11 @@ function Inner() {
   const install = () =>
     step('install', async () => {
       if (!pair || !pageKey) return;
-      await sendAsAccount(rpcUrl, agentAccount, pageKey, installAndDropKeyActions(pair, pageKey.getPublicKey().toString()));
+      if (where === 'deterministic') {
+        await createDeterministicAccount(rpcUrl, pageKey, owner, pair);
+      } else {
+        await sendAsAccount(rpcUrl, agentAccount, pageKey, installAndDropKeyActions(pair, pageKey.getPublicKey().toString()));
+      }
       if ((await viewPair(rpcUrl, agentAccount)) !== pair) {
         throw new Error(`The transaction was sent, but ${agentAccount} does not answer with the pair of keys yet. Try the next step in a few seconds.`);
       }
@@ -262,6 +278,18 @@ function Inner() {
           <div className={card}>
             <p className="font-medium">1. Which account is the agent&apos;s</p>
             <label className="mt-3 flex items-start gap-2">
+              <input type="radio" checked={where === 'deterministic'} disabled={created} onChange={() => setWhere('deterministic')} />
+              <span>
+                A new account with no key (recommended)
+                <span className="block text-muted">
+                  Its address, <span className="font-mono">0s…</span>, is computed from the agent&apos;s keys and the published
+                  wallet contract (NEAR&apos;s deterministic accounts, NEP-616). No key is ever on it, and your wallet only
+                  sends {(Number(PAGE_KEY_FUNDING_YOCTO / BigInt(1e21)) / 1000).toString()} NEAR for gas, most of which comes
+                  back.
+                </span>
+              </span>
+            </label>
+            <label className="mt-2 flex items-start gap-2">
               <input type="radio" checked={where === 'sub-account'} disabled={created} onChange={() => setWhere('sub-account')} />
               <span>
                 A new account for the agent:{' '}
@@ -316,7 +344,20 @@ function Inner() {
           {pair && (
             <div className={card}>
               <p className="font-medium">3. The wallet contract</p>
-              {where === 'sub-account' ? (
+              {where === 'deterministic' ? (
+                <ol className="mt-2 list-decimal space-y-1 pl-5">
+                  <li>
+                    Your wallet sends {(Number(PAGE_KEY_FUNDING_YOCTO / BigInt(1e21)) / 1000).toString()} NEAR to a one-time
+                    key this page made in this tab and stores nowhere: an ordinary transfer.
+                  </li>
+                  <li>
+                    This page, with that key, creates the wallet contract at <code>{agentAccount}</code>: the published
+                    contract <code className="break-all">{WALLET_CONTRACT_CODE_HASH}</code> with the pair above as its
+                    first state. The address is the hash of exactly that, so the account holds no key and runs nothing
+                    else. Then the key&apos;s own account is deleted and what is left goes back to you.
+                  </li>
+                </ol>
+              ) : where === 'sub-account' ? (
                 <ol className="mt-2 list-decimal space-y-1 pl-5">
                   <li>
                     Your wallet creates <code>{agentAccount}</code> with its NEAR and one key, which this page made in
@@ -346,12 +387,18 @@ function Inner() {
                     ? 'Waiting for the wallet…'
                     : where === 'sub-account'
                       ? `Create ${agentAccount}`
-                      : `Install the wallet contract on ${agentAccount}`}
+                      : where === 'deterministic'
+                        ? `Send ${(Number(PAGE_KEY_FUNDING_YOCTO / BigInt(1e21)) / 1000).toString()} NEAR for the one-time key`
+                        : `Install the wallet contract on ${agentAccount}`}
                 </button>
               )}
               {created && !installed && (
                 <button onClick={install} disabled={!!busy} className={button}>
-                  {busy === 'install' ? 'Installing…' : `Install the wallet contract on ${agentAccount}`}
+                  {busy === 'install'
+                    ? 'Installing…'
+                    : where === 'deterministic'
+                      ? `Create the wallet contract ${agentAccount}`
+                      : `Install the wallet contract on ${agentAccount}`}
                 </button>
               )}
               {installed && <p className="mt-3">Installed: {agentAccount} answers with the pair above.</p>}
@@ -379,6 +426,11 @@ function Inner() {
             <span className="font-mono">{agentAccount}</span> is the agent&apos;s account.
           </p>
           <p className="mt-2">
+            {where === 'deterministic' && (
+              <>
+                It is an address, not a name: keep it. The recovery tool derives it again from your keys.{' '}
+              </>
+            )}
             The enclave signs for it only under a policy you stored, so the agent can act once a policy is on chain. Funds
             you send to <span className="font-mono">{agentAccount}</span> move only under both signatures.
           </p>

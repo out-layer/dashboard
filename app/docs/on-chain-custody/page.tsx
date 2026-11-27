@@ -278,7 +278,7 @@ export default function OnChainCustodyPage() {
 const options = { apiKey: process.env.OUTLAYER_API_KEY! }; // the wallet's API key
 
 const setup = await openSetup(options);
-// setup.url       → the link for the owner: https://app.outlayer.ai/wallet/custody?setup=…
+// setup.url       → the link for the owner: https://app.outlayer.ai/wallet/custody#setup=…
 // setup.expiresAt → the link works for 24 hours
 // setup.key       → a one-time key; keep it in memory until the setup is collected`}
         </SyntaxHighlighter>

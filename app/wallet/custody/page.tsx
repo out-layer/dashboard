@@ -115,9 +115,11 @@ function Inner() {
         if (!r.ok) {
           setSetup(null);
           setError(
-            r.status === 404
-              ? `This link opens no setup on ${network}: it has expired, was replaced by a newer one, or belongs to the other network. Ask the agent for a new link, or switch the network above.`
-              : body?.message || body?.error || `The setup could not be read (HTTP ${r.status}).`,
+            r.status === 409
+              ? 'This link was used already. If you did not finish it, do not go on: send nothing to the account it named, and ask the agent for a new link.'
+              : r.status === 404
+                ? `This link opens no setup on ${network}: it has expired, was replaced by a newer one, or belongs to the other network. Ask the agent for a new link, or switch the network above.`
+                : body?.message || body?.error || `The setup could not be read (HTTP ${r.status}).`,
           );
           return;
         }
@@ -180,8 +182,25 @@ function Inner() {
   // the install itself, and no key is added. A new account is created with one
   // key this page holds, for the installing transaction that drops it: `w_init`
   // is signed by a full-access key of the account it initialises.
+  // Before the owner's wallet sends anything, and before the key is handed
+  // over: the setup is still open. A link someone else already used stops
+  // here, with nothing sent.
+  const requireOpen = async () => {
+    const r = await fetch(`${coordinator}/wallet/v1/contract/setup/owner`, {
+      headers: { authorization: `Bearer ${token}` },
+    });
+    if (r.ok) return;
+    const body = await r.json().catch(() => ({}));
+    throw new Error(
+      r.status === 409
+        ? 'Do not go on: this link was used already. Send nothing to the account it named, and ask the agent for a new link.'
+        : body?.message || `The setup could not be read (HTTP ${r.status}). Nothing was sent.`,
+    );
+  };
+
   const prepareAccount = () =>
     step('create', async () => {
+      await requireOpen();
       if (!pair) return;
       const own = where === 'own-account';
       const key = own ? null : (pageKey ?? KeyPair.fromRandom('ed25519'));
@@ -205,6 +224,7 @@ function Inner() {
 
   const install = () =>
     step('install', async () => {
+      await requireOpen();
       if (!pair || !pageKey) return;
       if (where === 'deterministic') {
         await createDeterministicAccount(rpcUrl, pageKey, owner, pair);
@@ -219,6 +239,7 @@ function Inner() {
 
   const handOver = () =>
     step('hand', async () => {
+      await requireOpen();
       if (!setup || !seed) return;
       const sealed = await sealAgentKey(setup.recipient_public_key, seed, setup.wallet_id);
       const r = await fetch(`${coordinator}/wallet/v1/contract/setup/owner`, {

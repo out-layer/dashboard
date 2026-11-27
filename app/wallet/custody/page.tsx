@@ -15,7 +15,10 @@ import {
   agentKeyMessage,
   agentKeySeed,
   createAccountActions,
+  accountExists,
   createDeterministicAccount,
+  hasAccessKey,
+  PageKeyClosed,
   deterministicAccount,
   fromBase64,
   fundPageKeyActions,
@@ -72,11 +75,23 @@ const secondary =
   'rounded-lg border border-border px-4 py-2 text-sm font-semibold text-foreground hover:bg-card-muted disabled:opacity-50';
 const more = 'mt-4 text-sm text-muted-foreground [&>summary]:cursor-pointer [&>summary]:select-none';
 
-// The setup token, read from the link's fragment once per page load: the page
-// takes it out of the address bar right after, and keeps reading this value.
+// The setup token, read from the link's fragment: the page takes it out of the
+// address bar right after and keeps this value. A new link opened in the same
+// tab (only its fragment changes) replaces it, and the steps start again.
 let tokenOfThisLoad: string | null = null;
-const readToken = () => (tokenOfThisLoad ??= new URLSearchParams(window.location.hash.slice(1)).get('setup') ?? '');
-const noSubscription = () => () => {};
+const tokenInHash = () => new URLSearchParams(window.location.hash.slice(1)).get('setup');
+const readToken = () => (tokenOfThisLoad ??= tokenInHash() ?? '');
+const subscribeToken = (changed: () => void) => {
+  const onHash = () => {
+    const next = tokenInHash();
+    if (next && next !== tokenOfThisLoad) {
+      tokenOfThisLoad = next;
+      changed();
+    }
+  };
+  window.addEventListener('hashchange', onHash);
+  return () => window.removeEventListener('hashchange', onHash);
+};
 
 function StepNumber({ n, done }: { n: number; done: boolean }) {
   return (
@@ -86,14 +101,13 @@ function StepNumber({ n, done }: { n: number; done: boolean }) {
   );
 }
 
-function Inner() {
+function Inner({ token }: { token: string | null }) {
   const { accountId, isConnected, connect, signAndSendTransaction, signMessage, network, rpcUrl } = useNearWallet();
   const coordinator = getCoordinatorApiUrl();
 
   // The token names the setup and lets its holder finish it, from the link's
   // fragment (`#setup=`): a fragment is sent to no server, so the token reaches
   // no log, proxy or link preview.
-  const token = useSyncExternalStore(noSubscription, readToken, () => null);
   const tokenError =
     token && !/^[0-9a-f]{64}$/.test(token) ? 'This link is not a setup link, or it was cut short. Ask the agent for a new link.' : null;
   const [setup, setSetup] = useState<Setup | null>(null);
@@ -178,12 +192,15 @@ function Inner() {
   // Before the owner's wallet sends anything, and before the key is handed
   // over: the setup is still open. A link someone else already used stops
   // here, with nothing sent.
-  const requireOpen = async () => {
+  // Returns 'finished-here' when the setup is finished with the account this
+  // page made: its own hand-over, whose answer was lost.
+  const requireOpen = async (madeHere?: string): Promise<'open' | 'finished-here'> => {
     const r = await fetch(`${coordinator}/wallet/v1/contract/setup/owner`, {
       headers: { authorization: `Bearer ${token}` },
     });
-    if (r.ok) return;
+    if (r.ok) return 'open';
     const body = await r.json().catch(() => ({}));
+    if (r.status === 409 && madeHere && String(body?.message ?? '').includes(`\`${madeHere}\``)) return 'finished-here';
     throw new Error(
       r.status === 409
         ? 'Do not go on: this link was used already. Send nothing to the account it named, and ask the agent for a new link.'
@@ -208,6 +225,8 @@ function Inner() {
       setSeed(agentSeed);
       setPair(derived);
       setOwnerKey(signed.publicKey);
+      // Here, with no wallet to follow: step 2 opens the wallet first thing.
+      await requireOpen();
       // An account that already runs the wallet contract with this pair has
       // nothing left to install: the key is handed to the agent again.
       if ((await viewPair(rpcUrl, accountFor(where, derived))) === derived) {
@@ -221,6 +240,10 @@ function Inner() {
   const install = async (key: KeyPair) => {
     if (!pair) return;
     await requireOpen();
+    if ((await viewPair(rpcUrl, agentAccount)) === pair) {
+      setInstalled(true);
+      return;
+    }
     if (where === 'deterministic') {
       await createDeterministicAccount(rpcUrl, key, owner, pair);
     } else {
@@ -236,7 +259,10 @@ function Inner() {
   // account's name. Opens no wallet.
   const handOver = async () => {
     if (!setup || !seed) return;
-    await requireOpen();
+    if ((await requireOpen(agentAccount)) === 'finished-here') {
+      setDone(true);
+      return;
+    }
     const sealed = await sealAgentKey(setup.recipient_public_key, seed, setup.wallet_id);
     const r = await fetch(`${coordinator}/wallet/v1/contract/setup/owner`, {
       method: 'POST',
@@ -248,17 +274,32 @@ function Inner() {
     setDone(true);
   };
 
-  // The one click of step 2: the owner's one wallet transaction, then the
-  // page's own work. Pressed again after a failure, it goes on from where it
-  // stopped; the wallet is asked again only if its transaction did not go.
+  // Whether the owner's transaction is on chain, read from the chain and not
+  // from the wallet's answer; a few seconds for it to be final.
+  const landed = async (key: KeyPair | null): Promise<boolean> => {
+    for (let i = 0; i < 6; i++) {
+      const on = !key
+        ? (await viewPair(rpcUrl, agentAccount)) === pair
+        : where === 'sub-account'
+          ? await hasAccessKey(rpcUrl, agentAccount, key.getPublicKey().toString())
+          : await accountExists(rpcUrl, implicitAccountOf(key));
+      if (on) return true;
+      await new Promise((r) => setTimeout(r, 2000));
+    }
+    return false;
+  };
+
+  // The one click of step 2: the owner's one wallet transaction first, then the
+  // page's own work. Pressed again after a failure, it goes on from what the
+  // chain shows; the wallet is asked again only if its transaction is not there.
   const createWallet = () =>
     step('create', async () => {
       if (!pair) return;
-      await requireOpen();
       const own = where === 'own-account';
       const key = own ? null : (pageKey ?? KeyPair.fromRandom('ed25519'));
-      if (key) setPageKey(key);
-      if (!created) {
+      if (key && key !== pageKey) setPageKey(key);
+      let isCreated = created;
+      if (!isCreated) {
         // own account: the install itself; a sub-account: created with the page's
         // key and the owner's; a 0s account: NEAR for the page's key
         const [receiverId, actions] = !key
@@ -267,21 +308,43 @@ function Inner() {
             ? [agentAccount, createAccountActions(key.getPublicKey().toString(), ownerKey)]
             : [implicitAccountOf(key), fundPageKeyActions()];
         setBusy('wallet');
-        await signAndSendTransaction({ receiverId, actions });
-        setCreated(true);
-        if (own) {
-          if ((await viewPair(rpcUrl, agentAccount)) !== pair) {
-            throw new Error(`The transaction was sent, but ${agentAccount} does not answer with the pair of keys yet. Press the button again in a few seconds.`);
-          }
-          setInstalled(true);
+        let refused: unknown = null;
+        try {
+          await signAndSendTransaction({ receiverId, actions });
+        } catch (e) {
+          refused = e;
         }
+        if (!(await landed(key))) {
+          if (where === 'sub-account' && (await accountExists(rpcUrl, agentAccount))) {
+            throw new Error(
+              `${agentAccount} exists already, from an earlier attempt. Delete it in your wallet, or choose another name under Other options.`,
+            );
+          }
+          throw refused ?? new Error("Your wallet's transaction is not on chain. Press the button again.");
+        }
+        isCreated = true;
+        setCreated(true);
       }
-      if (!own && !installed && key) {
+      let isInstalled = installed || own;
+      if (own) setInstalled(true);
+      if (!isInstalled && key) {
         setBusy('install');
-        await install(key);
+        try {
+          await install(key);
+        } catch (e) {
+          if (e instanceof PageKeyClosed) {
+            // the NEAR is back with the owner: the next click funds a new key
+            setCreated(false);
+            setPageKey(null);
+          }
+          throw e;
+        }
+        isInstalled = true;
       }
-      setBusy('hand');
-      await handOver();
+      if (isCreated && isInstalled) {
+        setBusy('hand');
+        await handOver();
+      }
     });
 
   const costOfStep2 =
@@ -364,10 +427,12 @@ function Inner() {
                   make the same key again any time by signing again.
                 </p>
                 {!pair && (
+                  <button type="button" onClick={deriveKey} disabled={!!busy || !nameOk} className={`mt-4 ${primary}`}>
+                    {busy === 'key' ? 'Waiting for your wallet…' : 'Sign'}
+                  </button>
+                )}
+                {!created && (
                   <>
-                    <button type="button" onClick={deriveKey} disabled={!!busy || !nameOk} className={`mt-4 ${primary}`}>
-                      {busy === 'key' ? 'Waiting for your wallet…' : 'Sign'}
-                    </button>
                     <details className={more}>
                       <summary>Other options: the account the wallet is on</summary>
                       <div className="mt-3 grid gap-3">
@@ -501,10 +566,15 @@ function Inner() {
   );
 }
 
+function Gate() {
+  const token = useSyncExternalStore(subscribeToken, readToken, () => null);
+  return <Inner key={token ?? ''} token={token} />;
+}
+
 export default function Page() {
   return (
     <Suspense fallback={<div className="mx-auto max-w-3xl px-4 py-8">Loading…</div>}>
-      <Inner />
+      <Gate />
     </Suspense>
   );
 }

@@ -411,11 +411,7 @@ export async function sendAsAccount(rpcUrl: string, accountId: string, key: KeyP
     public_key: key.getPublicKey().toString(),
   });
   const signed = await signTransaction(key, accountId, accountId, BigInt(accessKey.nonce) + BigInt(1), fromBase58(accessKey.block_hash), actions);
-  const outcome = await rpc<{ status?: { Failure?: unknown }; transaction: { hash: string } }>(
-    rpcUrl,
-    'broadcast_tx_commit',
-    [signed],
-  );
+  const outcome = await sendFinal(rpcUrl, signed);
   if (outcome.status?.Failure) throw new Error(JSON.stringify(outcome.status.Failure));
   return outcome.transaction.hash;
 }
@@ -437,6 +433,34 @@ export async function viewPair(rpcUrl: string, accountId: string): Promise<strin
   }
 }
 
+/** Send a signed transaction and wait until it is final, so a read at `final` sees it. */
+async function sendFinal(rpcUrl: string, signed: string): Promise<{ status?: { Failure?: unknown }; transaction: { hash: string } }> {
+  return rpc(rpcUrl, 'send_tx', { signed_tx_base64: signed, wait_until: 'FINAL' });
+}
+
+/** Whether `accountId` exists. */
+export async function accountExists(rpcUrl: string, accountId: string): Promise<boolean> {
+  try {
+    await rpc(rpcUrl, 'query', { request_type: 'view_account', finality: 'final', account_id: accountId });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** Whether `publicKey` is an access key of `accountId`. */
+export async function hasAccessKey(rpcUrl: string, accountId: string, publicKey: string): Promise<boolean> {
+  try {
+    await rpc(rpcUrl, 'query', { request_type: 'view_access_key', finality: 'final', account_id: accountId, public_key: publicKey });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** The one-time key's account was closed with no contract made: a new key is funded next time. */
+export class PageKeyClosed extends Error {}
+
 /**
  * With the page's one-time key, funded by the owner: create the `0s` wallet
  * contract of `pair` by `StateInit`, then delete the key's own account with the
@@ -456,23 +480,23 @@ export async function createDeterministicAccount(rpcUrl: string, key: KeyPair, o
   const blockHash = fromBase58(accessKey.block_hash);
   // The key's account is closed to the owner whether or not the contract was
   // created, so what the owner sent comes back either way.
+  const account = deterministicAccount(pair);
   const close = async () => {
-    const closed = await rpc<{ status?: { Failure?: unknown } }>(rpcUrl, 'broadcast_tx_commit', [
+    const closed = await sendFinal(
+      rpcUrl,
       await signTransaction(key, signerId, signerId, nonce + BigInt(1), blockHash, [actionCreators.deleteAccount(owner)]),
-    ]);
+    );
     if (closed.status?.Failure) throw new Error(JSON.stringify(closed.status.Failure));
   };
-  let created: { status?: { Failure?: unknown } };
+  let failure: string | null = null;
   try {
-    created = await rpc(rpcUrl, 'broadcast_tx_commit', [signStateInitTransaction(key, signerId, nonce, blockHash, pair)]);
+    const created = await sendFinal(rpcUrl, signStateInitTransaction(key, signerId, nonce, blockHash, pair));
+    if (created.status?.Failure) failure = JSON.stringify(created.status.Failure);
   } catch (e) {
-    await close().catch(() => undefined);
-    throw e;
+    failure = e instanceof Error ? e.message : String(e);
   }
-  if (created.status?.Failure) {
-    await close().catch(() => undefined);
-    throw new Error(`The wallet contract was not created: ${JSON.stringify(created.status.Failure)}`);
-  }
-  await close();
-  return deterministicAccount(pair);
+  await close().catch(() => undefined);
+  // What counts is the chain: a StateInit whose answer was lost may have landed.
+  if ((await viewPair(rpcUrl, account)) === pair) return account;
+  throw new PageKeyClosed(`The wallet contract was not created${failure ? ` (${failure})` : ''}. The NEAR came back to you; press the button again.`);
 }

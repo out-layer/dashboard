@@ -86,3 +86,9 @@ test("the page's own work follows the owner's transaction inside one step, and o
   assert.ok(body('createWallet').indexOf('signAndSendTransaction') < body('createWallet').indexOf('install('), 'the wallet first');
 });
 
+test("step 2 opens the wallet before it waits on anything", () => {
+  const at = PAGE.indexOf('const createWallet = ');
+  const body = PAGE.slice(at, PAGE.indexOf('signAndSendTransaction', at)).replace(/await\s*$/, '');
+  assert.ok(!/\bawait\b/.test(body), 'an await precedes the wallet in createWallet: the click would lose its activation');
+});
+

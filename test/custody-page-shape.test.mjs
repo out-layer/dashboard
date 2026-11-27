@@ -16,7 +16,10 @@ const PAGE = code('app/wallet/custody/page.tsx');
 const LIB = code('lib/wallet-contract.ts');
 
 /** The steps that reach a wallet or send a transaction, each a function of the page. */
-const STEPS = ['deriveKey', 'prepareAccount', 'install', 'handOver'];
+const STEPS = ['deriveKey', 'createWallet'];
+
+/** The page's own work after the owner's transaction: no wallet, called from createWallet alone. */
+const FOLLOWERS = ['install', 'handOver'];
 
 /** The body of every `useEffect(() => { … }, [deps])` in the page. */
 function effects(text) {
@@ -63,3 +66,23 @@ test('each step is the handler of one button and is called from nowhere else', (
     assert.equal(PAGE.match(new RegExp(`\\b${step}\\(`, 'g')), null, `${step} is called outside its button`);
   }
 });
+
+test("the page's own work follows the owner's transaction inside one step, and opens no wallet", () => {
+  const body = (name) => {
+    const at = PAGE.indexOf(`const ${name} = `);
+    assert.ok(at >= 0, `${name} is declared`);
+    const next = PAGE.indexOf('\n  const ', at + 1);
+    return PAGE.slice(at, next === -1 ? undefined : next);
+  };
+  for (const follower of FOLLOWERS) {
+    for (const opens of ['signAndSendTransaction', 'signMessage']) {
+      assert.ok(!body(follower).includes(opens), `${follower} opens a wallet`);
+    }
+    const calls = PAGE.match(new RegExp(`\\b${follower}\\(`, 'g'))?.length ?? 0;
+    const inCreate = body('createWallet').match(new RegExp(`\\b${follower}\\(`, 'g'))?.length ?? 0;
+    assert.equal(calls, inCreate, `${follower} is called outside createWallet`);
+    assert.ok(inCreate >= 1, `${follower} is not called from createWallet`);
+  }
+  assert.ok(body('createWallet').indexOf('signAndSendTransaction') < body('createWallet').indexOf('install('), 'the wallet first');
+});
+

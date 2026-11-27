@@ -230,6 +230,9 @@ function Inner({ token }: { token: string | null }) {
   // Set once this page has sent its hand-over: only then is a 409 naming the
   // account its own finish, whose answer was lost, and not someone else's.
   const posted = useRef(false);
+  // The setup as the last read answered it: what a step judges by, so that an
+  // account the agent named while the page was open is seen.
+  const fresh = useRef<Setup | null>(null);
 
   // Returns 'finished-here' when the setup is finished with the account this
   // page posted: its own hand-over, whose answer was lost.
@@ -237,7 +240,14 @@ function Inner({ token }: { token: string | null }) {
     const r = await fetch(`${coordinator}/wallet/v1/contract/setup/owner`, {
       headers: { authorization: `Bearer ${token}` },
     });
-    if (r.ok) return 'open';
+    if (r.ok) {
+      const read = (await r.json().catch(() => null)) as Setup | null;
+      if (read) {
+        fresh.current = read;
+        setSetup(read);
+      }
+      return 'open';
+    }
     const body = await r.json().catch(() => ({}));
     if (r.status === 409 && madeHere && posted.current && String(body?.message ?? '').includes(`\`${madeHere}\``)) {
       return 'finished-here';
@@ -277,7 +287,7 @@ function Inner({ token }: { token: string | null }) {
       await requireOpen();
       // Everything is read before anything is kept: a step that fails here
       // leaves step 1 to be signed again, and step 2 closed.
-      const recorded = current;
+      const recorded = replacing ? null : (fresh.current?.current_contract ?? null);
       let handTo: string | null = null;
       let refusal: string | null = null;
       if (recorded && recorded.agent_public_key === toHex(agentPublicKey)) {

@@ -65,7 +65,7 @@ export default function AgentCustodyPage() {
         </div>
  <div className="bg-card-muted border-l-4 border-border p-4 mb-6">
  <p className="text-sm text-foreground">
- <strong>Optional: on-chain custody.</strong> An owner can also give the agent a wallet contract on NEAR for its
+ <strong>Optional: on-chain custody</strong> (on testnet now, on mainnet with the next release). An owner can also give the agent a wallet contract on NEAR for its
             main balance. The contract executes a request only under two signatures, the agent&rsquo;s own key and a key in
             the enclave, so the chain itself holds that rule; each move is a NEAR transaction, and the wallet described on
             this page stays the agent&rsquo;s working account. See{' '}

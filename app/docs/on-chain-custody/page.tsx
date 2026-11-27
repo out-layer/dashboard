@@ -187,6 +187,12 @@ export default function OnChainCustodyPage() {
   return (
     <div className="max-w-5xl">
       <h1 className="text-4xl font-bold mb-3">On-chain Custody</h1>
+      <div className="bg-card-muted border-l-4 border-border p-4 mb-6">
+        <p className="text-sm text-foreground">
+          <strong>On testnet now</strong> (<code>https://testnet-api.outlayer.ai</code>); on mainnet with the next release. Until then{' '}
+          <code>api.outlayer.ai</code> answers <code>404</code> on every route below.
+        </p>
+      </div>
       <p className="text-muted-foreground mb-8">
         An agent with on-chain custody keeps its main balance in a <strong>wallet contract</strong>: a NEAR account that runs the
         two-key variant of the{' '}

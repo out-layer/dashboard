@@ -1,7 +1,6 @@
 'use client';
 
 import { Suspense, useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
-import Link from 'next/link';
 import { KeyPair } from '@near-js/crypto';
 import { PageHeader } from '@/components/ui/page-header';
 import { useNearWallet } from '@/contexts/NearWalletContext';
@@ -39,6 +38,17 @@ import {
   toBase64,
   viewPair,
 } from '@/lib/wallet-contract';
+import {
+  AccountOptions,
+  ConnectScreen,
+  CreateScreen,
+  Details,
+  Failure,
+  ReadyScreen,
+  SignScreen,
+  WrongAccountScreen,
+  type Where,
+} from './screens';
 
 /**
  * Set up on-chain custody for an agent: the steps only its owner can take.
@@ -72,16 +82,9 @@ interface Setup {
   current_contract: CurrentContract | null;
 }
 
-type Where = 'deterministic' | 'sub-account' | 'own-account';
 
 const near = (yocto: bigint) => (Number(yocto / BigInt(1e21)) / 1000).toString();
 
-const card = 'rounded-lg border border-border bg-card p-4 sm:p-5';
-const primary =
-  'rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-on-accent hover:bg-accent-hover disabled:opacity-50';
-const secondary =
-  'rounded-lg border border-border px-4 py-2 text-sm font-semibold text-foreground hover:bg-card-muted disabled:opacity-50';
-const more = 'mt-4 text-sm text-muted-foreground [&>summary]:cursor-pointer [&>summary]:select-none';
 
 // The setup token, read from the link's fragment: the page takes it out of the
 // address bar right after and keeps this value. A new link opened in the same
@@ -100,14 +103,6 @@ const subscribeToken = (changed: () => void) => {
   window.addEventListener('hashchange', onHash);
   return () => window.removeEventListener('hashchange', onHash);
 };
-
-function StepNumber({ n, done }: { n: number; done: boolean }) {
-  return (
-    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-border-strong text-xs tabular-nums text-muted-foreground">
-      {done ? '✓' : n}
-    </span>
-  );
-}
 
 function Inner({ token }: { token: string | null }) {
   const { accountId, isConnected, connect, signAndSendTransaction, signMessage, network, rpcUrl } = useNearWallet();
@@ -330,9 +325,10 @@ function Inner({ token }: { token: string | null }) {
       }
     });
 
-  // Back from that choice before anything was sent: step 1 is signed again.
-  const undoReplace = () => {
+  // Back to step 1 while nothing was sent: the owner signs again, with this or another key.
+  const restart = () => {
     setReplacing(false);
+    setMismatch(null);
     setSeed(null);
     setPair(null);
     setOwnerKey(null);
@@ -536,211 +532,120 @@ function Inner({ token }: { token: string | null }) {
     }
   };
 
+  const options =
+    !created && !pageKey && !current ? (
+      <AccountOptions
+        where={where}
+        choose={choose}
+        name={name}
+        setName={setName}
+        nameOk={nameOk}
+        owner={owner}
+        depositNear={near(AGENT_ACCOUNT_DEPOSIT_YOCTO)}
+        disabled={!!busy}
+      />
+    ) : null;
+  const stage = done
+    ? 'ready'
+    : !setup
+      ? null
+      : !isConnected
+        ? 'connect'
+        : wrongAccount
+          ? 'wrong'
+          : pair
+            ? 'create'
+            : 'sign';
+
   return (
-    <div className="mx-auto w-full max-w-3xl">
+    <div className="mx-auto w-full max-w-2xl">
       <PageHeader
         title="Set up your agent's wallet"
         description="Your agent keeps its funds in a wallet of its own on NEAR. Nothing leaves it without two signatures: your agent's, and OutLayer's enclave, which signs only what your rules allow."
       />
 
-      {token === '' && (
-        <p className="text-sm text-muted-foreground">
-          This page opens from the link your agent gives you. Ask the agent for the link.
-        </p>
-      )}
+      <div className="space-y-4">
+        {token === '' && (
+          <p className="text-sm text-muted-foreground">This page opens from the link your agent gives you. Ask the agent for the link.</p>
+        )}
+        {(error || tokenError) && <Failure>{error || tokenError}</Failure>}
+        {token && !tokenError && !setup && !error && <p className="text-sm text-muted-foreground">Reading the link…</p>}
 
-      {(error || tokenError) && (
-        <div className="mb-4 rounded-md border border-destructive/30 bg-destructive/10 p-3">
-          <p className="text-sm text-destructive-text">{error || tokenError}</p>
-        </div>
-      )}
-
-      {token && !tokenError && !setup && !error && <p className="text-sm text-muted-foreground">Reading the link…</p>}
-
-      {setup && !isConnected && !done && (
-        <section className={card}>
-          <h2 className="text-sm font-semibold text-foreground">Connect {setup.owner}</h2>
-          <p className="mt-2 text-sm text-muted-foreground">Your agent asked you, {setup.owner}, to set up its wallet.</p>
-          <button type="button" onClick={connect} className={`mt-4 ${primary}`}>
-            Connect your wallet
-          </button>
-        </section>
-      )}
-
-      {wrongAccount && !done && (
-        <div className="mb-4 rounded-md border border-destructive/30 bg-destructive/10 p-3">
-          <p className="text-sm text-destructive-text">
-            You are connected as <span className="font-mono">{accountId}</span>; this agent&apos;s owner is{' '}
-            <span className="font-mono">{owner}</span>. Switch wallets.
-          </p>
-        </div>
-      )}
-
-      {setup && isConnected && !wrongAccount && !done && (
-        <div className="grid gap-4">
-          <section className={card}>
-            <div className="flex gap-3">
-              <StepNumber n={1} done={!!pair} />
-              <div className="min-w-0 flex-1">
-                <h2 className="text-sm font-semibold text-foreground">Sign to make your agent&apos;s key</h2>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  A signature, not a transaction: it costs nothing. This page turns it into your agent&apos;s key, and you can
-                  make the same key again any time by signing again.
-                </p>
-                {!pair && (
-                  <button type="button" onClick={deriveKey} disabled={!!busy || !nameOk} className={`mt-4 ${primary}`}>
-                    {busy === 'key' ? 'Waiting for your wallet…' : 'Sign'}
-                  </button>
+        {stage === 'connect' && setup && <ConnectScreen owner={setup.owner} onConnect={connect} />}
+        {stage === 'wrong' && <WrongAccountScreen connected={accountId ?? ''} owner={owner} />}
+        {stage === 'sign' && (
+          <SignScreen
+            busy={!!busy}
+            waiting={busy === 'key'}
+            signDisabled={!nameOk}
+            onSign={deriveKey}
+            mismatch={mismatch && setup?.current_contract ? { why: mismatch.why, account: setup.current_contract.account_id } : null}
+            onReplace={replaceContract}
+            options={options}
+          />
+        )}
+        {stage === 'create' && (
+          <CreateScreen
+            title={handOnly ? "Give your agent its key" : "Create your agent's wallet"}
+            cost={costOfStep2}
+            label={step2Label}
+            busy={!!busy}
+            onCreate={createWallet}
+            onBack={!created && !pageKey ? restart : null}
+            options={replacing ? options : null}
+          />
+        )}
+        {stage === 'ready' && finished && (
+          <ReadyScreen
+            account={finished}
+            copied={copied}
+            onCopy={copyAddress}
+            howItWorks={
+              <ul className="list-disc space-y-2 pl-5 text-xs">
+                {finished.startsWith('0s') && (
+                  <li>The wallet&apos;s address is an address, not a name: it is made from your agent&apos;s keys.</li>
                 )}
-                {mismatch && (
-                  <div className="mt-4 rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm">
-                    <p className="text-destructive-text">{mismatch.why}</p>
-                    <p className="mt-2 text-muted-foreground">
-                      Or set up a new wallet contract for this signature instead: for instance when you did not set up{' '}
-                      {setup.current_contract?.account_id} yourself (someone else used a link), or can no longer sign with the
-                      key that did. Funds in {setup.current_contract?.account_id} do not move to it.
-                    </p>
-                    <button type="button" onClick={replaceContract} disabled={!!busy} className={`mt-3 ${secondary}`}>
-                      Set up a new wallet contract instead
-                    </button>
-                  </div>
-                )}
-                {replacing && !created && !pageKey && (
-                  <button type="button" onClick={undoReplace} disabled={!!busy} className={`mt-4 ${secondary}`}>
-                    Sign with another key instead
-                  </button>
-                )}
-                {!created && !pageKey && !current && (
-                  <>
-                    <details className={more}>
-                      <summary>Other options: the account the wallet is on</summary>
-                      <fieldset disabled={!!busy} className="mt-3 grid gap-3">
-                        <label className="flex items-start gap-2">
-                          <input type="radio" checked={where === 'deterministic'} onChange={() => choose('deterministic')} />
-                          <span>
-                            <span className="text-foreground">A new account with no key</span> (recommended). Its address,{' '}
-                            <span className="font-mono">0s…</span>, is made from your agent&apos;s keys.
-                          </span>
-                        </label>
-                        <label className="flex items-start gap-2">
-                          <input type="radio" checked={where === 'sub-account'} onChange={() => choose('sub-account')} />
-                          <span>
-                            <span className="text-foreground">A named sub-account:</span>{' '}
-                            <input
-                              value={name}
-                              onChange={(e) => setName(e.target.value.trim().toLowerCase())}
-                              className="w-28 rounded border border-border bg-background px-2 py-0.5 font-mono text-foreground"
-                            />
-                            <span className="font-mono">.{owner}</span>, for {near(AGENT_ACCOUNT_DEPOSIT_YOCTO)} NEAR of storage.
-                            Some wallets do not allow it yet.
-                            {!nameOk && (
-                              <span className="block text-destructive-text">
-                                Lowercase letters and digits, with single - or _ between them.
-                              </span>
-                            )}
-                          </span>
-                        </label>
-                        <label className="flex items-start gap-2">
-                          <input type="radio" checked={where === 'own-account'} onChange={() => choose('own-account')} />
-                          <span>
-                            <span className="text-foreground">Your own account,</span> <span className="font-mono">{owner}</span>.
-                            The wallet contract replaces any contract on it; your keys stay.
-                          </span>
-                        </label>
-                      </fieldset>
-                    </details>
-                  </>
-                )}
-              </div>
-            </div>
-          </section>
-
-          <section className={`${card} ${pair ? '' : 'opacity-60'}`}>
-            <div className="flex gap-3">
-              <StepNumber n={2} done={done} />
-              <div className="min-w-0 flex-1">
-                <h2 className="text-sm font-semibold text-foreground">Create your agent&apos;s wallet</h2>
-                <p className="mt-1 text-sm text-muted-foreground">{pair ? costOfStep2 : 'After step 1.'}</p>
-                {pair && (
-                  <button type="button" onClick={createWallet} disabled={!!busy} className={`mt-4 ${primary}`}>
-                    {step2Label}
-                  </button>
-                )}
-              </div>
-            </div>
-          </section>
-
-          <details className={more}>
-            <summary>Details</summary>
-            <dl className="mt-3 grid grid-cols-[10rem_1fr] gap-y-1 text-xs">
-              <dt>Owner</dt>
-              <dd className="font-mono">{setup.owner}</dd>
-              <dt>Agent&apos;s OutLayer wallet</dt>
-              <dd className="break-all font-mono">{setup.wallet_id}</dd>
-              <dt>Enclave&apos;s key for it</dt>
-              <dd className="break-all font-mono">{setup.tee_public_key}</dd>
-              <dt>Network</dt>
-              <dd>{network}</dd>
-              <dt>Wallet contract</dt>
-              <dd className="break-all font-mono">{WALLET_CONTRACT_CODE_HASH}</dd>
-              {pair && (
-                <>
-                  <dt>Its pair of keys</dt>
-                  <dd className="break-all font-mono">{pair}</dd>
-                  <dt>Its account</dt>
-                  <dd className="break-all font-mono">{agentAccount}</dd>
-                </>
-              )}
-            </dl>
-            {where === 'deterministic' && (
-              <p className="mt-3 text-xs">
-                Step 2 sends the NEAR to a one-time key this page made in this tab and stores nowhere. With it the page
-                creates the wallet contract at its address (the address is the hash of the published contract and the pair
-                above, so the account holds no key and runs nothing else), deletes the key&apos;s own account, and the rest of
-                the NEAR returns to you.
-              </p>
-            )}
-          </details>
-        </div>
-      )}
-
-      {done && (
-        <section className={card}>
-          <h2 className="text-sm font-semibold text-foreground">Your agent&apos;s wallet is ready</h2>
-          <p className="mt-2 break-all font-mono text-sm text-foreground">{finished}</p>
-          <p className="mt-2 text-sm text-muted-foreground">
-            Your agent already has its key and uses this wallet. Next, set what it may do: until then it can do nothing.
-          </p>
-          <div className="mt-4 flex flex-wrap items-center gap-3">
-            <Link href="/wallet/manage" className={primary}>
-              Set what the agent may do
-            </Link>
-            <button type="button" onClick={copyAddress} className={secondary}>
-              {copied ? 'Address copied' : 'Copy the address, to send funds'}
-            </button>
-          </div>
-          <details className={more}>
-            <summary>How this works</summary>
-            <ul className="mt-3 list-disc space-y-2 pl-5 text-xs">
-              {finished?.startsWith('0s') && (
+                <li>Funds sent to the wallet move only under both signatures, and the enclave signs only what your rules allow.</li>
                 <li>
-                  The wallet&apos;s address is an address, not a name. This page and the recovery tool both derive it again
-                  from your keys.
+                  Your agent&apos;s OutLayer wallet pays the fee of each move: keep 0.5 NEAR on it. A move is checked against 0.3
+                  NEAR of gas and spends about 0.0004 NEAR.
                 </li>
-              )}
-              <li>Funds sent to the wallet move only under both signatures, and the enclave signs only what your rules allow.</li>
-              <li>
-                Your agent&apos;s OutLayer wallet pays the fee of each move: keep 0.5 NEAR on it. A move is checked against
-                0.3 NEAR of gas and spends about 0.0004 NEAR.
-              </li>
-              <li>
-                To make the agent&apos;s key again, sign the same message on this page with a new link from the agent. To take
-                everything out without OutLayer, use the owner&apos;s exit.
-              </li>
-            </ul>
-          </details>
-        </section>
-      )}
+                <li>
+                  To make the agent&apos;s key again, sign the same message on this page with a new link from the agent. To take
+                  everything out without OutLayer, use the owner&apos;s exit.
+                </li>
+              </ul>
+            }
+          />
+        )}
+
+        {(stage === 'sign' || stage === 'create') && setup && (
+          <Details
+            rows={[
+              ['Owner', setup.owner],
+              ["Agent's OutLayer wallet", setup.wallet_id],
+              ["Enclave's key for it", setup.tee_public_key],
+              ['Network', network],
+              ['Wallet contract', WALLET_CONTRACT_CODE_HASH],
+              ...(pair
+                ? ([
+                    ['Its pair of keys', pair],
+                    ['Its account', agentAccount],
+                  ] as Array<[string, string]>)
+                : []),
+            ]}
+            note={
+              where === 'deterministic' && !current ? (
+                <>
+                  Step 2 sends the NEAR to a one-time key this page makes in this tab and stores nowhere. With it the page creates
+                  the wallet contract at its address (the hash of the published contract and the pair above, so the account holds
+                  no key and runs nothing else), deletes the key&apos;s own account, and the rest of the NEAR returns to you.
+                </>
+              ) : null
+            }
+          />
+        )}
+      </div>
     </div>
   );
 }

@@ -13,10 +13,13 @@ const read = (path) => readFileSync(fileURLToPath(new URL(`../${path}`, import.m
 /** The source without its comments. */
 const code = (path) => read(path).replace(/\/\*[\s\S]*?\*\/|(?<![:'"`\w\\/])\/\/.*$/gm, '');
 const PAGE = code('app/wallet/custody/page.tsx');
+const SCREENS = code('app/wallet/custody/screens.tsx');
 const LIB = code('lib/wallet-contract.ts');
 
-/** The steps that reach a wallet or send a transaction, each a function of the page. */
+/** The steps that reach a wallet or send a transaction, each a function of the page, and the
+ *  prop of the screen whose one button it is. */
 const STEPS = ['deriveKey', 'createWallet'];
+const BUTTON_OF = { deriveKey: 'onSign', createWallet: 'onCreate' };
 
 /** The page's own work after the owner's transaction: no wallet, called from createWallet alone. */
 const FOLLOWERS = ['install', 'handOver'];
@@ -61,7 +64,12 @@ test('the wallet is asked once for a signature and once for a transaction', () =
 
 test('each step is the handler of one button and is called from nowhere else', () => {
   for (const step of STEPS) {
-    assert.equal(PAGE.match(new RegExp(`onClick=\\{${step}\\}`, 'g'))?.length, 1, `${step} is not one button's handler`);
+    // The page hands the step to its screen once, and the screen to one button alone.
+    const prop = BUTTON_OF[step];
+    assert.equal(PAGE.match(new RegExp(`${prop}=\\{${step}\\}`, 'g'))?.length, 1, `${step} is not handed to its screen once`);
+    assert.equal(SCREENS.match(new RegExp(`onClick=\\{${prop}\\}`, 'g'))?.length, 1, `${prop} is not one button's handler`);
+    assert.equal(SCREENS.match(new RegExp(`\\b${prop}\\(`, 'g')), null, `${prop} is called outside its button`);
+    assert.ok(!/signMessage|signAndSendTransaction/.test(SCREENS), 'a screen reaches a wallet itself');
     // Its declaration and its button: no call from a promise chain, a timer or another step.
     assert.equal(PAGE.match(new RegExp(`\\b${step}\\(`, 'g')), null, `${step} is called outside its button`);
   }

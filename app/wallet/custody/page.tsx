@@ -17,6 +17,10 @@ import {
   createAccountActions,
   accountExists,
   closePageKey,
+  otherKeyRefusal,
+  setupCanName,
+  toHex,
+  type CurrentContract,
   isFullAccessKey,
   createDeterministicAccount,
   hasAccessKey,
@@ -64,6 +68,8 @@ interface Setup {
   tee_public_key: string;
   recipient_public_key: string;
   agent_key_request: { message: string; recipient: string; nonce_base64: string };
+  /** The wallet contract the wallet has already: a setup of it hands its agent key over again. */
+  current_contract: CurrentContract | null;
 }
 
 type Where = 'deterministic' | 'sub-account' | 'own-account';
@@ -126,6 +132,12 @@ function Inner({ token }: { token: string | null }) {
   const [pageKey, setPageKey] = useState<KeyPair | null>(null);
   const [created, setCreated] = useState(false);
   const [installed, setInstalled] = useState(false);
+  // A wallet that has a wallet contract: the account step 2 hands the key over
+  // for, found on chain; a signature that makes another agent key, held back
+  // until the owner signs again or chooses a new contract; that choice.
+  const [target, setTarget] = useState<string | null>(null);
+  const [mismatch, setMismatch] = useState<{ why: string; seed: Uint8Array; pair: string; ownerKey: string } | null>(null);
+  const [replacing, setReplacing] = useState(false);
   // The account the setup was finished with, as the coordinator answered.
   const [finished, setFinished] = useState<string | null>(null);
   const done = finished !== null;
@@ -175,8 +187,20 @@ function Inner({ token }: { token: string | null }) {
 
   const owner = setup?.owner ?? '';
   const wrongAccount = !!setup && !!accountId && accountId !== owner;
+  // A wallet that has a wallet contract keeps it, unless the owner chose a new
+  // one: the account is the one found on chain for this signature, or on record.
+  const current = replacing ? null : (setup?.current_contract ?? null);
+  const fixed = replacing ? null : (target ?? current?.account_id ?? null);
   const accountFor = (choice: Where, forPair: string | null) =>
-    choice === 'own-account' ? owner : choice === 'sub-account' ? `${name}.${owner}` : forPair ? deterministicAccount(forPair) : '';
+    fixed
+      ? fixed
+      : choice === 'own-account'
+        ? owner
+        : choice === 'sub-account'
+          ? `${name}.${owner}`
+          : forPair
+            ? deterministicAccount(forPair)
+            : '';
   const agentAccount = accountFor(where, pair);
   const nameOk = where !== 'sub-account' || isSubAccountName(name);
 
@@ -228,6 +252,7 @@ function Inner({ token }: { token: string | null }) {
   const deriveKey = () =>
     step('key', async () => {
       if (!setup) return;
+      setMismatch(null);
       // The page signs the message it computes, never one it is handed.
       const message = agentKeyMessage(setup.owner, setup.wallet_id);
       const request = setup.agent_key_request;
@@ -246,19 +271,76 @@ function Inner({ token }: { token: string | null }) {
         );
       }
       const agentSeed = await agentKeySeed(fromBase64(signed.signature), setup.owner, setup.wallet_id);
-      const derived = pairText(await publicKeyOfSeed(agentSeed), setup.tee_public_key);
+      const agentPublicKey = await publicKeyOfSeed(agentSeed);
+      const derived = pairText(agentPublicKey, setup.tee_public_key);
       // Here, with no wallet to follow: step 2 opens the wallet first thing.
       await requireOpen();
+      // Everything is read before anything is kept: a step that fails here
+      // leaves step 1 to be signed again, and step 2 closed.
+      const recorded = current;
+      let handTo: string | null = null;
+      let refusal: string | null = null;
+      if (recorded && recorded.agent_public_key === toHex(agentPublicKey)) {
+        if (!setupCanName(recorded.account_id, setup.owner)) {
+          throw new Error(
+            `${recorded.account_id} was named by your agent itself, not set up on this page, so this page cannot give its key again. Nothing was sent.`,
+          );
+        }
+        if ((await viewPair(rpcUrl, recorded.account_id)) === derived) {
+          handTo = recorded.account_id;
+        } else {
+          refusal = `${recorded.account_id} no longer answers with this wallet's pair of keys on chain: its contract was replaced or removed. Nothing was sent.`;
+        }
+      } else if (recorded) {
+        // A contract this key made before is the owner's own: the key goes to it.
+        for (const account of [deterministicAccount(derived), setup.owner]) {
+          if ((await viewPair(rpcUrl, account)) === derived) {
+            handTo = account;
+            break;
+          }
+        }
+        if (!handTo) refusal = otherKeyRefusal(recorded, toHex(agentPublicKey), setup.owner, signed.publicKey);
+      } else if ((await viewPair(rpcUrl, accountFor(where, derived))) === derived) {
+        // An account that already runs the wallet contract with this pair has
+        // nothing left to install: the key is handed to the agent again.
+        handTo = accountFor(where, derived);
+      }
+      if (refusal) {
+        setMismatch({ why: refusal, seed: agentSeed, pair: derived, ownerKey: signed.publicKey });
+        return;
+      }
+      setMismatch(null);
       setSeed(agentSeed);
       setPair(derived);
       setOwnerKey(signed.publicKey);
-      // An account that already runs the wallet contract with this pair has
-      // nothing left to install: the key is handed to the agent again.
-      if ((await viewPair(rpcUrl, accountFor(where, derived))) === derived) {
+      if (handTo) {
+        setTarget(handTo);
         setCreated(true);
         setInstalled(true);
       }
     });
+
+  // Back from that choice before anything was sent: step 1 is signed again.
+  const undoReplace = () => {
+    setReplacing(false);
+    setSeed(null);
+    setPair(null);
+    setOwnerKey(null);
+    setTarget(null);
+    setCreated(false);
+    setInstalled(false);
+  };
+
+  // The owner's choice after a signature of another key: a new wallet contract
+  // for this key. The contract on record and its funds stay where they are.
+  const replaceContract = () => {
+    if (!mismatch) return;
+    setReplacing(true);
+    setSeed(mismatch.seed);
+    setPair(mismatch.pair);
+    setOwnerKey(mismatch.ownerKey);
+    setMismatch(null);
+  };
 
   // With the page's one-time key, after the owner's transaction: the wallet
   // contract on a new account. Opens no wallet. On a 0s account the key's own
@@ -303,6 +385,9 @@ function Inner({ token }: { token: string | null }) {
       body: JSON.stringify({ account_id: account, sealed_agent_key: toBase64(sealed) }),
     });
     const body = await r.json().catch(() => ({}));
+    if (!r.ok && r.status === 400 && account === setup.current_contract?.account_id) {
+      throw new Error(`${account} was named by your agent itself, not set up on this page, so this page cannot give its key again. Nothing was sent.`);
+    }
     if (!r.ok) throw new Error(body?.message || body?.error || `The setup was not finished (HTTP ${r.status}).`);
     setFinished(String(body.account_id ?? account));
   };
@@ -335,6 +420,10 @@ function Inner({ token }: { token: string | null }) {
   const createWallet = () =>
     step('create', async () => {
       if (!pair) return;
+      // A wallet that has a contract gets no second one but by the owner's choice.
+      if (current && !(created && installed)) {
+        throw new Error(`This wallet has its wallet contract, ${current.account_id}. Nothing was sent.`);
+      }
       const choice = where;
       const account = agentAccount;
       const own = choice === 'own-account';
@@ -358,6 +447,14 @@ function Inner({ token }: { token: string | null }) {
         }
         // a refused wallet: a short look; an answered one: time to be final
         if (!(await landed(key, account, choice, refused ? 2 : 6))) {
+          if (choice === 'sub-account' && (await viewPair(rpcUrl, account)) === pair) {
+            // this key's own contract, from an earlier setup: the key goes to it
+            setCreated(true);
+            setInstalled(true);
+            setBusy('hand');
+            await handOver(account);
+            return;
+          }
           if (choice === 'sub-account' && (await accountExists(rpcUrl, account))) {
             throw new Error(
               `${account} exists already, from an earlier attempt. Delete it in your wallet, or choose another name under Other options.`,
@@ -390,12 +487,19 @@ function Inner({ token }: { token: string | null }) {
       }
     });
 
+  const handOnly = created && installed;
+  // The contract the wallet has now, when step 2 moves the agent off it.
+  const recordedAccount = setup?.current_contract?.account_id ?? null;
+  const movesOff = recordedAccount && (replacing || agentAccount !== recordedAccount) ? recordedAccount : null;
   const costOfStep2 =
-    where === 'deterministic'
-      ? `Your wallet sends ${near(PAGE_KEY_FUNDING_YOCTO)} NEAR for the fees; most of it comes back to you.`
-      : where === 'sub-account'
-        ? `Your wallet creates ${agentAccount} with ${near(AGENT_ACCOUNT_DEPOSIT_YOCTO)} NEAR for its storage.`
-        : `Your wallet installs the wallet contract on ${owner}. Your own keys stay on it.`;
+    (handOnly
+      ? `${agentAccount} is set up already. Nothing is sent: the page gives your agent its key again.`
+      : where === 'deterministic'
+        ? `Your wallet sends ${near(PAGE_KEY_FUNDING_YOCTO)} NEAR for the fees; most of it comes back to you.`
+        : where === 'sub-account'
+          ? `Your wallet creates ${agentAccount} with ${near(AGENT_ACCOUNT_DEPOSIT_YOCTO)} NEAR for its storage.`
+          : `Your wallet installs the wallet contract on ${owner}. Your own keys stay on it.`) +
+    (movesOff ? ` Your agent moves from ${movesOff} to ${agentAccount}; the funds in ${movesOff} stay there.` : '');
   const step2Label =
     busy === 'wallet'
       ? 'Waiting for your wallet…'
@@ -403,11 +507,15 @@ function Inner({ token }: { token: string | null }) {
         ? 'Creating the wallet…'
         : busy === 'hand'
           ? 'Handing the key to your agent…'
-          : where === 'deterministic'
-            ? `Send ${near(PAGE_KEY_FUNDING_YOCTO)} NEAR and create the wallet`
-            : where === 'sub-account'
-              ? `Create ${agentAccount}`
-              : `Install on ${owner}`;
+          : handOnly
+            ? movesOff
+              ? `Move your agent to ${agentAccount}`
+              : 'Give the key to your agent'
+            : where === 'deterministic'
+              ? `Send ${near(PAGE_KEY_FUNDING_YOCTO)} NEAR and create the wallet`
+              : where === 'sub-account'
+                ? `Create ${agentAccount}`
+                : `Install on ${owner}`;
 
   const copyAddress = async () => {
     try {
@@ -474,7 +582,25 @@ function Inner({ token }: { token: string | null }) {
                     {busy === 'key' ? 'Waiting for your wallet…' : 'Sign'}
                   </button>
                 )}
-                {!created && !pageKey && (
+                {mismatch && (
+                  <div className="mt-4 rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm">
+                    <p className="text-destructive-text">{mismatch.why}</p>
+                    <p className="mt-2 text-muted-foreground">
+                      Or set up a new wallet contract for this signature instead: for instance when you did not set up{' '}
+                      {setup.current_contract?.account_id} yourself (someone else used a link), or can no longer sign with the
+                      key that did. Funds in {setup.current_contract?.account_id} do not move to it.
+                    </p>
+                    <button type="button" onClick={replaceContract} disabled={!!busy} className={`mt-3 ${secondary}`}>
+                      Set up a new wallet contract instead
+                    </button>
+                  </div>
+                )}
+                {replacing && !created && !pageKey && (
+                  <button type="button" onClick={undoReplace} disabled={!!busy} className={`mt-4 ${secondary}`}>
+                    Sign with another key instead
+                  </button>
+                )}
+                {!created && !pageKey && !current && (
                   <>
                     <details className={more}>
                       <summary>Other options: the account the wallet is on</summary>

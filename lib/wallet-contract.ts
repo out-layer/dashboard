@@ -554,3 +554,43 @@ export async function createDeterministicAccount(rpcUrl: string, key: KeyPair, o
   if (closed) throw new PageKeyClosed(`${why} The NEAR came back to you; press the button again.`);
   throw new Error(`${why} Press the button again: the same one-time key is used.`);
 }
+
+/** The wallet contract a wallet has already, as the setup reports it. */
+export interface CurrentContract {
+  account_id: string;
+  /** The agent's Ed25519 public key in the contract's pair, in hex. */
+  agent_public_key: string;
+}
+
+/**
+ * Why a signature cannot hand over the agent's key of a wallet that has a
+ * wallet contract, or `null` when it can. The agent's key follows from the key
+ * that signed, so a signature of another key makes another agent key: the page
+ * stops there instead of installing a second contract the first one's funds do
+ * not follow. Nothing about the earlier signature is kept: the contract's own
+ * key is what the new one is held to.
+ */
+export function otherKeyRefusal(
+  current: CurrentContract | null,
+  agentPublicKeyHex: string,
+  owner: string,
+  signedWith: string,
+): string | null {
+  if (!current || current.agent_public_key === agentPublicKeyHex) return null;
+  return (
+    `This wallet's agent key was made with another key of ${owner}: the key ${signedWith} makes a different one. ` +
+    `Sign again with the full-access key you used when you set this wallet up. ` +
+    `Nothing was sent: the wallet contract ${current.account_id} and its funds stay as they are.`
+  );
+}
+
+/**
+ * Whether a setup can name `account` for `owner`'s wallet: the owner's own
+ * account, a sub-account of it, or a `0s` address (which the coordinator holds
+ * to the wallet's pair and an approved build). An account the agent named
+ * itself (`PUT /wallet/v1/contract`) is none of these, and its key is handed
+ * over by no setup.
+ */
+export function setupCanName(account: string, owner: string): boolean {
+  return account === owner || account.endsWith(`.${owner}`) || /^0s[0-9a-f]{40}$/.test(account);
+}

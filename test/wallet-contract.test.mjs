@@ -23,6 +23,8 @@ import {
   installAndDropKeyActions,
   installActions,
   isSubAccountName,
+  otherKeyRefusal,
+  setupCanName,
   openAgentKey,
   pairText,
   publicKeyOfSeed,
@@ -163,3 +165,21 @@ test('the StateInit transaction is framed as the library frames a transaction, a
   assert.ok(key.verify(sha256(tx), signed.slice(signed.length - 64)), 'signed over the transaction');
 });
 
+
+test("a signature of another key is stopped before anything is sent, and the contract's own key is the measure", () => {
+  const current = { account_id: '0s90462efa84e2dbabb27993c5968fa87eb20eb57f', agent_public_key: 'ab'.repeat(32) };
+  assert.equal(otherKeyRefusal(null, 'cd'.repeat(32), 'alice.testnet', 'ed25519:K'), null, 'a wallet with no contract');
+  assert.equal(otherKeyRefusal(current, 'ab'.repeat(32), 'alice.testnet', 'ed25519:K'), null, 'the key that made it');
+  const why = otherKeyRefusal(current, 'cd'.repeat(32), 'alice.testnet', 'ed25519:K');
+  assert.ok(why, 'another key');
+  for (const part of ['ed25519:K', 'alice.testnet', current.account_id, 'Nothing was sent']) assert.ok(why.includes(part), part);
+});
+
+test('a setup hands over for the accounts a setup can name, and no other', () => {
+  for (const ok of ['alice.testnet', 'agent.alice.testnet', 'a.b.alice.testnet', '0s90462efa84e2dbabb27993c5968fa87eb20eb57f']) {
+    assert.ok(setupCanName(ok, 'alice.testnet'), ok);
+  }
+  for (const no of ['bob.testnet', 'xalice.testnet', 'alice.testnet.evil', '0sam.near', 'agent-cli.coin-toss.testnet']) {
+    assert.ok(!setupCanName(no, 'alice.testnet'), no);
+  }
+});

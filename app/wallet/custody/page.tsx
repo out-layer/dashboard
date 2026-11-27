@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useCallback, useEffect, useState, useSyncExternalStore } from 'react';
+import { Suspense, useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import Link from 'next/link';
 import { KeyPair } from '@near-js/crypto';
 import { PageHeader } from '@/components/ui/page-header';
@@ -16,6 +16,8 @@ import {
   agentKeySeed,
   createAccountActions,
   accountExists,
+  closePageKey,
+  isFullAccessKey,
   createDeterministicAccount,
   hasAccessKey,
   PageKeyClosed,
@@ -124,7 +126,9 @@ function Inner({ token }: { token: string | null }) {
   const [pageKey, setPageKey] = useState<KeyPair | null>(null);
   const [created, setCreated] = useState(false);
   const [installed, setInstalled] = useState(false);
-  const [done, setDone] = useState(false);
+  // The account the setup was finished with, as the coordinator answered.
+  const [finished, setFinished] = useState<string | null>(null);
+  const done = finished !== null;
   const [copied, setCopied] = useState(false);
 
   // Out of the address bar, the history and any referrer once read.
@@ -176,6 +180,13 @@ function Inner({ token }: { token: string | null }) {
   const agentAccount = accountFor(where, pair);
   const nameOk = where !== 'sub-account' || isSubAccountName(name);
 
+  // Another account after step 1: what was found for the earlier one no longer holds.
+  const choose = (choice: Where) => {
+    setWhere(choice);
+    setCreated(false);
+    setInstalled(false);
+  };
+
   const step = useCallback(async (label: string, work: () => Promise<void>) => {
     setBusy(label);
     setError(null);
@@ -192,19 +203,25 @@ function Inner({ token }: { token: string | null }) {
   // Before the owner's wallet sends anything, and before the key is handed
   // over: the setup is still open. A link someone else already used stops
   // here, with nothing sent.
+  // Set once this page has sent its hand-over: only then is a 409 naming the
+  // account its own finish, whose answer was lost, and not someone else's.
+  const posted = useRef(false);
+
   // Returns 'finished-here' when the setup is finished with the account this
-  // page made: its own hand-over, whose answer was lost.
+  // page posted: its own hand-over, whose answer was lost.
   const requireOpen = async (madeHere?: string): Promise<'open' | 'finished-here'> => {
     const r = await fetch(`${coordinator}/wallet/v1/contract/setup/owner`, {
       headers: { authorization: `Bearer ${token}` },
     });
     if (r.ok) return 'open';
     const body = await r.json().catch(() => ({}));
-    if (r.status === 409 && madeHere && String(body?.message ?? '').includes(`\`${madeHere}\``)) return 'finished-here';
+    if (r.status === 409 && madeHere && posted.current && String(body?.message ?? '').includes(`\`${madeHere}\``)) {
+      return 'finished-here';
+    }
     throw new Error(
       r.status === 409
         ? 'Do not go on: this link was used already. Send nothing to the account it named, and ask the agent for a new link.'
-        : body?.message || `The setup could not be read (HTTP ${r.status}). Nothing was sent.`,
+        : body?.message || `The setup could not be read (HTTP ${r.status}).`,
     );
   };
 
@@ -220,13 +237,21 @@ function Inner({ token }: { token: string | null }) {
       const signed = await signMessage({ message, recipient: AGENT_KEY_RECIPIENT, nonce: toBase64(AGENT_KEY_NONCE) });
       if (!signed) throw new Error('The wallet returned no signature.');
       if (signed.accountId !== setup.owner) throw new Error(`The message was signed by ${signed.accountId}, not by ${setup.owner}.`);
+      // The agent's key follows from this signature, and so from the key that
+      // made it: it has to be a key of the account that stays, not an app's
+      // function-call key that is removed when the app signs out.
+      if (!(await isFullAccessKey(rpcUrl, setup.owner, signed.publicKey))) {
+        throw new Error(
+          `The message was signed with ${signed.publicKey}, which is not a full-access key of ${setup.owner}. Sign with your account's own key: you need the same key to make the agent's key again.`,
+        );
+      }
       const agentSeed = await agentKeySeed(fromBase64(signed.signature), setup.owner, setup.wallet_id);
       const derived = pairText(await publicKeyOfSeed(agentSeed), setup.tee_public_key);
+      // Here, with no wallet to follow: step 2 opens the wallet first thing.
+      await requireOpen();
       setSeed(agentSeed);
       setPair(derived);
       setOwnerKey(signed.publicKey);
-      // Here, with no wallet to follow: step 2 opens the wallet first thing.
-      await requireOpen();
       // An account that already runs the wallet contract with this pair has
       // nothing left to install: the key is handed to the agent again.
       if ((await viewPair(rpcUrl, accountFor(where, derived))) === derived) {
@@ -236,66 +261,83 @@ function Inner({ token }: { token: string | null }) {
     });
 
   // With the page's one-time key, after the owner's transaction: the wallet
-  // contract on a new account. Opens no wallet.
-  const install = async (key: KeyPair) => {
+  // contract on a new account. Opens no wallet. On a 0s account the key's own
+  // account is closed to the owner whatever happens, unless a retry may use it.
+  const install = async (key: KeyPair, account: string, choice: Where) => {
     if (!pair) return;
-    await requireOpen();
-    if ((await viewPair(rpcUrl, agentAccount)) === pair) {
+    try {
+      await requireOpen();
+    } catch (e) {
+      if (choice === 'deterministic') await closePageKey(rpcUrl, key, owner).catch(() => false);
+      throw e;
+    }
+    if ((await viewPair(rpcUrl, account)) === pair) {
+      if (choice === 'deterministic') await closePageKey(rpcUrl, key, owner).catch(() => false);
       setInstalled(true);
       return;
     }
-    if (where === 'deterministic') {
+    if (choice === 'deterministic') {
       await createDeterministicAccount(rpcUrl, key, owner, pair);
     } else {
-      await sendAsAccount(rpcUrl, agentAccount, key, installAndDropKeyActions(pair, key.getPublicKey().toString(), ownerKey));
+      await sendAsAccount(rpcUrl, account, key, installAndDropKeyActions(pair, key.getPublicKey().toString(), ownerKey));
     }
-    if ((await viewPair(rpcUrl, agentAccount)) !== pair) {
-      throw new Error(`${agentAccount} does not answer with the pair of keys yet. Press the button again in a few seconds.`);
+    if ((await viewPair(rpcUrl, account)) !== pair) {
+      throw new Error(`${account} does not answer with the pair of keys yet. Press the button again in a few seconds.`);
     }
     setInstalled(true);
   };
 
   // The agent's key, sealed to the one-time key the agent made, left with the
   // account's name. Opens no wallet.
-  const handOver = async () => {
+  const handOver = async (account: string) => {
     if (!setup || !seed) return;
-    if ((await requireOpen(agentAccount)) === 'finished-here') {
-      setDone(true);
+    if ((await requireOpen(account)) === 'finished-here') {
+      setFinished(account);
       return;
     }
     const sealed = await sealAgentKey(setup.recipient_public_key, seed, setup.wallet_id);
+    posted.current = true;
     const r = await fetch(`${coordinator}/wallet/v1/contract/setup/owner`, {
       method: 'POST',
       headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
-      body: JSON.stringify({ account_id: agentAccount, sealed_agent_key: toBase64(sealed) }),
+      body: JSON.stringify({ account_id: account, sealed_agent_key: toBase64(sealed) }),
     });
     const body = await r.json().catch(() => ({}));
     if (!r.ok) throw new Error(body?.message || body?.error || `The setup was not finished (HTTP ${r.status}).`);
-    setDone(true);
+    setFinished(String(body.account_id ?? account));
   };
 
   // Whether the owner's transaction is on chain, read from the chain and not
-  // from the wallet's answer; a few seconds for it to be final.
-  const landed = async (key: KeyPair | null): Promise<boolean> => {
-    for (let i = 0; i < 6; i++) {
-      const on = !key
-        ? (await viewPair(rpcUrl, agentAccount)) === pair
-        : where === 'sub-account'
-          ? await hasAccessKey(rpcUrl, agentAccount, key.getPublicKey().toString())
-          : await accountExists(rpcUrl, implicitAccountOf(key));
+  // from the wallet's answer: up to `tries` reads two seconds apart.
+  const landed = async (key: KeyPair | null, account: string, choice: Where, tries: number): Promise<boolean> => {
+    for (let i = 0; i < tries; i++) {
+      const on = await (async () => {
+        try {
+          return !key
+            ? (await viewPair(rpcUrl, account)) === pair
+            : choice === 'sub-account'
+              ? await hasAccessKey(rpcUrl, account, key.getPublicKey().toString())
+              : await accountExists(rpcUrl, implicitAccountOf(key));
+        } catch {
+          return false;
+        }
+      })();
       if (on) return true;
-      await new Promise((r) => setTimeout(r, 2000));
+      if (i + 1 < tries) await new Promise((r) => setTimeout(r, 2000));
     }
     return false;
   };
 
   // The one click of step 2: the owner's one wallet transaction first, then the
-  // page's own work. Pressed again after a failure, it goes on from what the
-  // chain shows; the wallet is asked again only if its transaction is not there.
+  // page's own work, all for the account and the choice of the moment of the
+  // click. Pressed again after a failure, it goes on from what the chain
+  // shows; the wallet is asked again only if its transaction is not there.
   const createWallet = () =>
     step('create', async () => {
       if (!pair) return;
-      const own = where === 'own-account';
+      const choice = where;
+      const account = agentAccount;
+      const own = choice === 'own-account';
       const key = own ? null : (pageKey ?? KeyPair.fromRandom('ed25519'));
       if (key && key !== pageKey) setPageKey(key);
       let isCreated = created;
@@ -303,9 +345,9 @@ function Inner({ token }: { token: string | null }) {
         // own account: the install itself; a sub-account: created with the page's
         // key and the owner's; a 0s account: NEAR for the page's key
         const [receiverId, actions] = !key
-          ? [agentAccount, installActions(pair)]
-          : where === 'sub-account'
-            ? [agentAccount, createAccountActions(key.getPublicKey().toString(), ownerKey)]
+          ? [account, installActions(pair)]
+          : choice === 'sub-account'
+            ? [account, createAccountActions(key.getPublicKey().toString(), ownerKey)]
             : [implicitAccountOf(key), fundPageKeyActions()];
         setBusy('wallet');
         let refused: unknown = null;
@@ -314,10 +356,11 @@ function Inner({ token }: { token: string | null }) {
         } catch (e) {
           refused = e;
         }
-        if (!(await landed(key))) {
-          if (where === 'sub-account' && (await accountExists(rpcUrl, agentAccount))) {
+        // a refused wallet: a short look; an answered one: time to be final
+        if (!(await landed(key, account, choice, refused ? 2 : 6))) {
+          if (choice === 'sub-account' && (await accountExists(rpcUrl, account))) {
             throw new Error(
-              `${agentAccount} exists already, from an earlier attempt. Delete it in your wallet, or choose another name under Other options.`,
+              `${account} exists already, from an earlier attempt. Delete it in your wallet, or choose another name under Other options.`,
             );
           }
           throw refused ?? new Error("Your wallet's transaction is not on chain. Press the button again.");
@@ -330,7 +373,7 @@ function Inner({ token }: { token: string | null }) {
       if (!isInstalled && key) {
         setBusy('install');
         try {
-          await install(key);
+          await install(key, account, choice);
         } catch (e) {
           if (e instanceof PageKeyClosed) {
             // the NEAR is back with the owner: the next click funds a new key
@@ -343,7 +386,7 @@ function Inner({ token }: { token: string | null }) {
       }
       if (isCreated && isInstalled) {
         setBusy('hand');
-        await handOver();
+        await handOver(account);
       }
     });
 
@@ -368,7 +411,7 @@ function Inner({ token }: { token: string | null }) {
 
   const copyAddress = async () => {
     try {
-      await navigator.clipboard.writeText(agentAccount);
+      await navigator.clipboard.writeText(finished ?? '');
       setCopied(true);
     } catch {
       setCopied(false);
@@ -431,20 +474,20 @@ function Inner({ token }: { token: string | null }) {
                     {busy === 'key' ? 'Waiting for your wallet…' : 'Sign'}
                   </button>
                 )}
-                {!created && (
+                {!created && !pageKey && (
                   <>
                     <details className={more}>
                       <summary>Other options: the account the wallet is on</summary>
-                      <div className="mt-3 grid gap-3">
+                      <fieldset disabled={!!busy} className="mt-3 grid gap-3">
                         <label className="flex items-start gap-2">
-                          <input type="radio" checked={where === 'deterministic'} onChange={() => setWhere('deterministic')} />
+                          <input type="radio" checked={where === 'deterministic'} onChange={() => choose('deterministic')} />
                           <span>
                             <span className="text-foreground">A new account with no key</span> (recommended). Its address,{' '}
                             <span className="font-mono">0s…</span>, is made from your agent&apos;s keys.
                           </span>
                         </label>
                         <label className="flex items-start gap-2">
-                          <input type="radio" checked={where === 'sub-account'} onChange={() => setWhere('sub-account')} />
+                          <input type="radio" checked={where === 'sub-account'} onChange={() => choose('sub-account')} />
                           <span>
                             <span className="text-foreground">A named sub-account:</span>{' '}
                             <input
@@ -462,13 +505,13 @@ function Inner({ token }: { token: string | null }) {
                           </span>
                         </label>
                         <label className="flex items-start gap-2">
-                          <input type="radio" checked={where === 'own-account'} onChange={() => setWhere('own-account')} />
+                          <input type="radio" checked={where === 'own-account'} onChange={() => choose('own-account')} />
                           <span>
                             <span className="text-foreground">Your own account,</span> <span className="font-mono">{owner}</span>.
                             The wallet contract replaces any contract on it; your keys stay.
                           </span>
                         </label>
-                      </div>
+                      </fieldset>
                     </details>
                   </>
                 )}
@@ -528,7 +571,7 @@ function Inner({ token }: { token: string | null }) {
       {done && (
         <section className={card}>
           <h2 className="text-sm font-semibold text-foreground">Your agent&apos;s wallet is ready</h2>
-          <p className="mt-2 break-all font-mono text-sm text-foreground">{agentAccount}</p>
+          <p className="mt-2 break-all font-mono text-sm text-foreground">{finished}</p>
           <p className="mt-2 text-sm text-muted-foreground">
             Your agent already has its key and uses this wallet. Next, set what it may do: until then it can do nothing.
           </p>
@@ -543,7 +586,7 @@ function Inner({ token }: { token: string | null }) {
           <details className={more}>
             <summary>How this works</summary>
             <ul className="mt-3 list-disc space-y-2 pl-5 text-xs">
-              {where === 'deterministic' && (
+              {finished?.startsWith('0s') && (
                 <li>
                   The wallet&apos;s address is an address, not a name. This page and the recovery tool both derive it again
                   from your keys.

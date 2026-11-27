@@ -417,20 +417,29 @@ export async function sendAsAccount(rpcUrl: string, accountId: string, key: KeyP
 }
 
 /** What `w_public_key` of the account answers; `null` when it runs no wallet contract. */
+/**
+ * The pair `accountId`'s wallet contract answers, or `null` when the account
+ * has no such contract (or does not exist). A failure to ask is thrown, so it is
+ * never read as "no contract".
+ */
 export async function viewPair(rpcUrl: string, accountId: string): Promise<string | null> {
+  let view: { result?: number[]; error?: string };
   try {
-    const view = await rpc<{ result: number[] }>(rpcUrl, 'query', {
+    view = await rpc<{ result?: number[]; error?: string }>(rpcUrl, 'query', {
       request_type: 'call_function',
       finality: 'final',
       account_id: accountId,
       method_name: 'w_public_key',
       args_base64: toBase64(utf8.encode('{}')),
     });
-    const text = JSON.parse(new TextDecoder().decode(Uint8Array.from(view.result)));
-    return typeof text === 'string' ? text : null;
-  } catch {
-    return null;
+  } catch (e) {
+    const said = e instanceof Error ? e.message : String(e);
+    if (/UNKNOWN_ACCOUNT|does not exist|CodeDoesNotExist|MethodNotFound|NO_CONTRACT_CODE|wasm execution failed/.test(said)) return null;
+    throw e;
   }
+  if (!view.result) return null;
+  const text = JSON.parse(new TextDecoder().decode(Uint8Array.from(view.result)));
+  return typeof text === 'string' ? text : null;
 }
 
 /** Send a signed transaction and wait until it is final, so a read at `final` sees it. */
@@ -458,8 +467,45 @@ export async function hasAccessKey(rpcUrl: string, accountId: string, publicKey:
   }
 }
 
+/** Whether `publicKey` is a full-access key of `accountId` (a function-call key is not). */
+export async function isFullAccessKey(rpcUrl: string, accountId: string, publicKey: string): Promise<boolean> {
+  try {
+    const key = await rpc<{ permission?: unknown }>(rpcUrl, 'query', {
+      request_type: 'view_access_key',
+      finality: 'final',
+      account_id: accountId,
+      public_key: publicKey,
+    });
+    return key.permission === 'FullAccess';
+  } catch {
+    return false;
+  }
+}
+
 /** The one-time key's account was closed with no contract made: a new key is funded next time. */
 export class PageKeyClosed extends Error {}
+
+/**
+ * Close the one-time key's account to the owner, when it still exists: what is
+ * left of the owner's NEAR goes back. Returns whether the account is gone.
+ */
+export async function closePageKey(rpcUrl: string, key: KeyPair, owner: string): Promise<boolean> {
+  const signerId = implicitAccountOf(key);
+  if (!(await accountExists(rpcUrl, signerId))) return true;
+  const accessKey = await rpc<{ nonce: number; block_hash: string }>(rpcUrl, 'query', {
+    request_type: 'view_access_key',
+    finality: 'final',
+    account_id: signerId,
+    public_key: key.getPublicKey().toString(),
+  });
+  await sendFinal(
+    rpcUrl,
+    await signTransaction(key, signerId, signerId, BigInt(accessKey.nonce) + BigInt(1), fromBase58(accessKey.block_hash), [
+      actionCreators.deleteAccount(owner),
+    ]),
+  ).catch(() => undefined);
+  return !(await accountExists(rpcUrl, signerId));
+}
 
 /**
  * With the page's one-time key, funded by the owner: create the `0s` wallet
@@ -496,7 +542,15 @@ export async function createDeterministicAccount(rpcUrl: string, key: KeyPair, o
     failure = e instanceof Error ? e.message : String(e);
   }
   await close().catch(() => undefined);
-  // What counts is the chain: a StateInit whose answer was lost may have landed.
-  if ((await viewPair(rpcUrl, account)) === pair) return account;
-  throw new PageKeyClosed(`The wallet contract was not created${failure ? ` (${failure})` : ''}. The NEAR came back to you; press the button again.`);
+  // What counts is the chain: a StateInit whose answer was lost may have landed,
+  // and a close whose answer was lost may have gone through.
+  const made = (await viewPair(rpcUrl, account)) === pair;
+  const closed = !(await accountExists(rpcUrl, signerId));
+  if (made) {
+    if (!closed) await closePageKey(rpcUrl, key, owner);
+    return account;
+  }
+  const why = `The wallet contract was not created${failure ? ` (${failure})` : ''}.`;
+  if (closed) throw new PageKeyClosed(`${why} The NEAR came back to you; press the button again.`);
+  throw new Error(`${why} Press the button again: the same one-time key is used.`);
 }
